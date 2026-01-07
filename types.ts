@@ -47,8 +47,17 @@ export interface LeaveRequest {
   endDate: string;
   totalDays: number;
   reason: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING_MANAGER' | 'PENDING_HR' | 'APPROVED' | 'REJECTED';
   appliedDate: string;
+  approverRemarks?: string;
+  managerRemarks?: string;
+}
+
+export interface LeaveBalance {
+  employeeId: string;
+  ANNUAL: number;
+  CASUAL: number;
+  SICK: number;
 }
 
 export interface LeaveWorkflow {

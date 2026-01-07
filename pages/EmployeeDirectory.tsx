@@ -13,8 +13,9 @@ import {
   ShieldCheck,
   CreditCard,
   Briefcase,
-  // Fix: Added missing Mail icon import
-  Mail
+  Mail,
+  RefreshCw,
+  Lock
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { Employee } from '../types';
@@ -96,6 +97,7 @@ const EmployeeDirectory: React.FC = () => {
       ...initialNewEmpState,
       ...emp,
       salary: emp.salary || 0,
+      password: emp.password || '' // Load current password for editing if needed
     } as any);
     setShowModal(true);
   };
@@ -121,11 +123,20 @@ const EmployeeDirectory: React.FC = () => {
         ...formState,
         avatar: formState.avatar || `https://picsum.photos/seed/${formState.name}/200`
       } as any);
-      alert(`Successfully onboarded ${formState.name}! ID: ${formState.id}`);
+      alert(`Successfully onboarded ${formState.name}! ID: ${formState.id}. Password set to: ${formState.password || '123'}`);
     }
     
     fetchEmployees();
     setShowModal(false);
+  };
+
+  const generatePassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let pass = "";
+    for (let i = 0; i < 8; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormState({...formState, password: pass});
   };
 
   return (
@@ -418,21 +429,46 @@ const EmployeeDirectory: React.FC = () => {
                 </div>
               </div>
 
-              {!editingId && (
-                <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3">
-                  <Key className="text-amber-600 mt-1" size={18} />
-                  <div>
-                    <p className="text-xs font-bold text-amber-900">Security Requirement</p>
-                    <p className="text-[10px] text-amber-700 leading-relaxed font-medium">Please set a temporary password for the initial login. The employee will be prompted to update it upon first access.</p>
-                    <input 
-                      type="password" 
-                      placeholder="Initial Password"
-                      className="mt-3 w-full max-w-xs px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-sm font-bold"
-                      onChange={e => setFormState({...formState, password: e.target.value})}
-                    />
+              {/* Security & Password Reset Section */}
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-[32px] space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <Lock size={16} className="text-indigo-600" />
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Security & Account Access</h4>
+                </div>
+                
+                <div className="flex flex-col md:flex-row gap-4 items-end">
+                  <div className="flex-1 space-y-1.5 w-full">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      {editingId ? 'Reset Password' : 'Initial Access Password'}
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder={editingId ? "Leave blank to keep current" : "Set initial password"}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm focus:ring-2 focus:ring-indigo-500 outline-none pr-12" 
+                        value={formState.password}
+                        onChange={e => setFormState({...formState, password: e.target.value})}
+                      />
+                      <button 
+                        type="button"
+                        onClick={generatePassword}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        title="Generate Secure Password"
+                      >
+                        <RefreshCw size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-2 max-w-xs">
+                    <ShieldCheck className="text-indigo-600 shrink-0 mt-0.5" size={14} />
+                    <p className="text-[9px] text-indigo-700 leading-tight font-bold uppercase">
+                      {editingId 
+                        ? "Changing this will take effect on the employee's next login attempt." 
+                        : "Required for first-time onboarding access."}
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
 
               <div className="pt-8 border-t border-slate-100 flex gap-4">
                 <button 
@@ -446,7 +482,7 @@ const EmployeeDirectory: React.FC = () => {
                   type="submit" 
                   className={`flex-1 py-4 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 ${editingId ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'}`}
                 >
-                  <Save size={18} /> {editingId ? 'Update Personnel File' : 'Onboard New Staff'}
+                  <Save size={18} /> {editingId ? 'Save Profile & Security' : 'Onboard & Create Account'}
                 </button>
               </div>
             </form>

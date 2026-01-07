@@ -1,5 +1,5 @@
 
-import { Employee, Attendance, LeaveRequest, User, Holiday, AppConfig, LeaveWorkflow } from '../types';
+import { Employee, Attendance, LeaveRequest, User, Holiday, AppConfig, LeaveWorkflow, LeaveBalance, Role } from '../types';
 import { DEPARTMENTS, DESIGNATIONS, BD_HOLIDAYS, DEFAULT_CONFIG } from '../constants.tsx';
 
 const STORAGE_KEYS = {
@@ -33,6 +33,7 @@ const INITIAL_EMPLOYEES: Employee[] = [
     location: 'Dhaka',
     avatar: 'https://picsum.photos/seed/admin/200',
     nid: '1234567890',
+    password: '123'
   },
   {
     id: 'EMP002',
@@ -51,7 +52,8 @@ const INITIAL_EMPLOYEES: Employee[] = [
     location: 'Dhaka',
     avatar: 'https://picsum.photos/seed/anis/200',
     nid: '0987654321',
-    lineManagerId: 'EMP001'
+    lineManagerId: 'EMP001',
+    password: '123'
   }
 ];
 
@@ -79,12 +81,35 @@ export const hrService = {
       }));
       localStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(initialWorkflows));
     }
+    this.initializeBalances();
   },
 
-  // Auth
+  initializeBalances() {
+    if (!localStorage.getItem(STORAGE_KEYS.BALANCES)) {
+      const employees = this.getEmployees();
+      const balances: Record<string, LeaveBalance> = {};
+      employees.forEach(emp => {
+        balances[emp.id] = {
+          employeeId: emp.id,
+          ANNUAL: 14,
+          CASUAL: 10,
+          SICK: 14
+        };
+      });
+      localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(balances));
+    }
+  },
+
   login(email: string, password: string): User | null {
     const employees = this.getEmployees();
-    const user = employees.find(e => e.email === email || e.username === email);
+    // Use trim and lowerCase for maximum resiliency
+    const normalizedInput = email.trim().toLowerCase();
+    
+    const user = employees.find(e => 
+      (e.email.toLowerCase() === normalizedInput || e.username?.toLowerCase() === normalizedInput) && 
+      (e.password === password)
+    );
+
     if (user) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
       return user;
@@ -101,15 +126,26 @@ export const hrService = {
     return data ? JSON.parse(data) : null;
   },
 
-  // Employees
   getEmployees(): Employee[] {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
   },
 
   addEmployee(employee: Employee) {
     const employees = this.getEmployees();
-    employees.push(employee);
+    // Hard-set a default password if empty
+    const pwd = (employee.password && employee.password.trim().length > 0) ? employee.password : '123';
+    const newEmployee = { ...employee, password: pwd };
+    employees.push(newEmployee);
     localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+    
+    const balances = this.getAllLeaveBalances();
+    balances[employee.id] = {
+      employeeId: employee.id,
+      ANNUAL: 14,
+      CASUAL: 10,
+      SICK: 14
+    };
+    localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(balances));
   },
 
   updateProfile(userId: string, updates: Partial<Employee>) {
@@ -134,7 +170,6 @@ export const hrService = {
     localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(filtered));
   },
 
-  // Organization Management
   getDepartments(): string[] {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.DEPARTMENTS) || '[]');
   },
@@ -151,7 +186,6 @@ export const hrService = {
     localStorage.setItem(STORAGE_KEYS.DESIGNATIONS, JSON.stringify(desigs));
   },
 
-  // Configuration
   getConfig(): AppConfig {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.CONFIG) || JSON.stringify(DEFAULT_CONFIG));
   },
@@ -160,7 +194,6 @@ export const hrService = {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
   },
 
-  // Holidays
   getHolidays(): Holiday[] {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.HOLIDAYS) || '[]');
   },
@@ -169,7 +202,6 @@ export const hrService = {
     localStorage.setItem(STORAGE_KEYS.HOLIDAYS, JSON.stringify(holidays));
   },
 
-  // Workflows
   getWorkflows(): LeaveWorkflow[] {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.WORKFLOWS) || '[]');
   },
@@ -178,13 +210,11 @@ export const hrService = {
     localStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(workflows));
   },
 
-  // Attendance
   getAttendance(): Attendance[] {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.ATTENDANCE) || '[]');
   },
 
   getActiveAttendance(employeeId: string): Attendance | undefined {
-    // Finds a record where checkOut is missing (user is still clocked in)
     return this.getAttendance().find(a => a.employeeId === employeeId && !a.checkOut);
   },
 
@@ -215,23 +245,71 @@ export const hrService = {
     return undefined;
   },
 
-  // Leaves
   getLeaves(): LeaveRequest[] {
     return JSON.parse(localStorage.getItem(STORAGE_KEYS.LEAVES) || '[]');
   },
 
   saveLeaveRequest(request: LeaveRequest) {
     const list = this.getLeaves();
+    request.status = 'PENDING_MANAGER';
     list.push(request);
     localStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(list));
   },
 
-  updateLeaveStatus(requestId: string, status: 'APPROVED' | 'REJECTED') {
+  updateLeaveStatus(requestId: string, status: 'APPROVED' | 'REJECTED' | 'PENDING_HR', remarks?: string, approverRole?: Role) {
     const list = this.getLeaves();
     const index = list.findIndex(r => r.id === requestId);
     if (index > -1) {
-      list[index].status = status;
+      const request = list[index];
+      
+      const isActuallyManager = this.isManagerOfSomeone(this.getCurrentUser()?.id || '');
+      const isHRAdmin = approverRole === 'ADMIN' || approverRole === 'HR';
+
+      // Stage 1: Line Manager Approval
+      if (approverRole === 'MANAGER' || (approverRole === 'EMPLOYEE' && isActuallyManager)) {
+         if (status === 'APPROVED') {
+           request.status = 'PENDING_HR';
+           request.managerRemarks = remarks;
+         } else {
+           request.status = 'REJECTED';
+           request.managerRemarks = remarks;
+         }
+      } 
+      // Stage 2: HR/Admin Final Decision
+      else if (isHRAdmin) {
+        request.status = status as any;
+        request.approverRemarks = remarks;
+        
+        if (status === 'APPROVED') {
+          this.deductLeaveBalance(request.employeeId, request.type as any, request.totalDays);
+        }
+      }
+      
       localStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(list));
     }
+  },
+
+  getAllLeaveBalances(): Record<string, LeaveBalance> {
+    return JSON.parse(localStorage.getItem(STORAGE_KEYS.BALANCES) || '{}');
+  },
+
+  getLeaveBalance(employeeId: string): LeaveBalance {
+    const all = this.getAllLeaveBalances();
+    return all[employeeId] || { employeeId, ANNUAL: 14, CASUAL: 10, SICK: 14 };
+  },
+
+  deductLeaveBalance(employeeId: string, type: 'ANNUAL' | 'CASUAL' | 'SICK', days: number) {
+    const all = this.getAllLeaveBalances();
+    if (all[employeeId]) {
+      if (type === 'ANNUAL' || type === 'CASUAL' || type === 'SICK') {
+        all[employeeId][type] = Math.max(0, all[employeeId][type] - days);
+      }
+      localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(all));
+    }
+  },
+
+  isManagerOfSomeone(managerId: string): boolean {
+    const employees = this.getEmployees();
+    return employees.some(e => e.lineManagerId === managerId);
   }
 };

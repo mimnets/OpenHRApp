@@ -13,22 +13,26 @@ import {
   Navigation,
   RefreshCw,
   MessageSquare,
-  History
+  History,
+  ShieldCheck,
+  CameraOff,
+  Maximize2
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { DEPARTMENTS, OFFICE_LOCATIONS } from '../constants.tsx';
+import { OFFICE_LOCATIONS } from '../constants.tsx';
 import { Attendance as AttendanceType } from '../types';
 
 const Attendance: React.FC<{ user: any }> = ({ user }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [status, setStatus] = useState<'idle' | 'pushed' | 'loading' | 'camera' | 'preparing'>('idle');
+  const [status, setStatus] = useState<'idle' | 'pushed' | 'loading'>('idle');
   const [activeRecord, setActiveRecord] = useState<AttendanceType | undefined>(undefined);
   const [todayHistory, setTodayHistory] = useState<AttendanceType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [showExitModal, setShowExitModal] = useState(false);
   const [remarks, setRemarks] = useState('');
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,6 +42,7 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     refreshData();
     detectLocation();
+    initCamera();
     
     return () => {
       clearInterval(timer);
@@ -45,16 +50,48 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     };
   }, [user.id]);
 
+  useEffect(() => {
+    if (cameraEnabled && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraEnabled, status]);
+
   const refreshData = () => {
     setActiveRecord(hrService.getActiveAttendance(user.id));
     setTodayHistory(hrService.getTodayAttendance(user.id));
   };
 
-  useEffect(() => {
-    if (status === 'camera' && streamRef.current && videoRef.current) {
-      videoRef.current.srcObject = streamRef.current;
+  const initCamera = async () => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      streamRef.current = stream;
+      setCameraEnabled(true);
+      setCameraError(null);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Camera access failed", err);
+      setCameraError("Camera access required for biometric verification.");
+      setCameraEnabled(false);
     }
-  }, [status]);
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
 
   const detectLocation = () => {
     if (navigator.geolocation) {
@@ -70,12 +107,7 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
                 break;
              }
           }
-
-          setLocation({
-            lat,
-            lng,
-            address: matchedOffice
-          });
+          setLocation({ lat, lng, address: matchedOffice });
         },
         (err) => {
           console.error("Location access denied", err);
@@ -86,37 +118,12 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     }
   };
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      streamRef.current = stream;
-      setStatus('camera');
-    } catch (err) {
-      alert("Camera permission denied. Please enable camera access to verify identity.");
-      console.error(err);
-      setStatus('preparing');
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  };
-
   const captureSelfie = (): string | null => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.translate(canvas.width, 0);
@@ -128,51 +135,50 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     return null;
   };
 
-  const handleClockIn = () => {
+  const handlePunch = () => {
+    if (!location) {
+      alert("Location lock required. Please ensure GPS is enabled.");
+      detectLocation();
+      return;
+    }
+
     const selfieData = captureSelfie();
     if (!selfieData) {
-      alert("Verification failed. Please ensure your face is visible.");
+      alert("Camera feed not ready. Please ensure camera access is allowed.");
+      initCamera();
       return;
     }
 
     setStatus('loading');
-    stopCamera();
-
+    
     setTimeout(() => {
       const punchTime = new Date().toLocaleTimeString('en-US', { hour12: true });
-      const newRecord: AttendanceType = {
-        id: Math.random().toString(36).substr(2, 9),
-        employeeId: user.id,
-        employeeName: user.name,
-        date: new Date().toISOString().split('T')[0],
-        checkIn: punchTime,
-        status: 'PRESENT',
-        location: location ? { lat: location.lat, lng: location.lng, address: location.address } : undefined,
-        selfie: selfieData || undefined,
-        remarks: remarks || undefined
-      };
       
-      hrService.saveAttendance(newRecord);
+      if (activeRecord) {
+        hrService.updateAttendance(activeRecord.id, {
+          checkOut: punchTime,
+          remarks: remarks || activeRecord.remarks,
+        });
+      } else {
+        const newRecord: AttendanceType = {
+          id: Math.random().toString(36).substr(2, 9),
+          employeeId: user.id,
+          employeeName: user.name,
+          date: new Date().toISOString().split('T')[0],
+          checkIn: punchTime,
+          status: 'PRESENT',
+          location: { lat: location.lat, lng: location.lng, address: location.address },
+          selfie: selfieData,
+          remarks: remarks || undefined
+        };
+        hrService.saveAttendance(newRecord);
+      }
+      
       refreshData();
       setStatus('pushed');
       setRemarks('');
-      setTimeout(() => setStatus('idle'), 3000);
+      setTimeout(() => setStatus('idle'), 2500);
     }, 1200);
-  };
-
-  const handleClockOut = () => {
-    if (!activeRecord) return;
-    
-    const outTime = new Date().toLocaleTimeString('en-US', { hour12: true });
-    hrService.updateAttendance(activeRecord.id, {
-      checkOut: outTime,
-      remarks: remarks || activeRecord.remarks
-    });
-    
-    refreshData();
-    setShowExitModal(false);
-    setRemarks('');
-    alert("Clock-Out recorded at " + outTime);
   };
 
   if (isAdmin) {
@@ -180,33 +186,9 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         <header>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Organization Attendance</h1>
-          <p className="text-slate-500 font-medium">Monitoring and compliance logs</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Organization Attendance Logs</h1>
+          <p className="text-slate-500 font-medium">Biometric verification and GPS coordinate tracking for all staff</p>
         </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><UserCheck size={24} /></div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase">Total Sessions Today</p>
-              <h4 className="text-2xl font-black text-slate-900">{allAttendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length}</h4>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Navigation size={24} /></div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase">Active Now</p>
-              <h4 className="text-2xl font-black text-slate-900">{allAttendance.filter(a => !a.checkOut).length}</h4>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-rose-50 text-rose-600 rounded-xl"><AlertTriangle size={24} /></div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase">Early Exits</p>
-              <h4 className="text-2xl font-black text-slate-900">{allAttendance.filter(a => !!a.remarks && !!a.checkOut).length}</h4>
-            </div>
-          </div>
-        </div>
 
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
           <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -214,7 +196,7 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="text" 
-                placeholder="Search staff..."
+                placeholder="Search by staff name..."
                 className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -226,40 +208,51 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
             <table className="w-full text-left">
               <thead>
                 <tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100">
-                  <th className="pb-4">Employee</th>
-                  <th className="pb-4 text-center">Time Log</th>
-                  <th className="pb-4 text-center">Verification</th>
+                  <th className="pb-4">Employee & Selfie</th>
+                  <th className="pb-4 text-center">In/Out Times</th>
+                  <th className="pb-4 text-center">Verified GPS Data</th>
                   <th className="pb-4 text-right">Remarks</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {allAttendance.filter(r => (r.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase())).reverse().map((row, i) => (
-                  <tr key={i}>
+                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full border-2 border-slate-100 overflow-hidden bg-slate-50">
-                          {row.selfie ? <img src={row.selfie} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-bold text-slate-300">{row.employeeName?.[0]}</div>}
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl border-2 border-slate-100 overflow-hidden bg-slate-100 group relative">
+                          {row.selfie ? (
+                            <>
+                              <img src={row.selfie} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-zoom-in" onClick={() => window.open(row.selfie)}>
+                                <Maximize2 size={16} className="text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center font-bold text-slate-300">NA</div>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-900 leading-none">{row.employeeName}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{row.date}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase mt-1.5">{row.date}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 text-center">
                       <div className="flex flex-col items-center">
-                         <span className="text-sm font-black text-slate-900 tabular-nums">In: {row.checkIn}</span>
-                         <span className={`text-[10px] font-bold tabular-nums ${row.checkOut ? 'text-slate-400' : 'text-emerald-500 animate-pulse'}`}>{row.checkOut ? `Out: ${row.checkOut}` : 'ACTIVE SESSION'}</span>
+                         <span className="text-sm font-black text-slate-900 tabular-nums">IN: {row.checkIn}</span>
+                         <span className={`text-[10px] font-bold tabular-nums mt-1 ${row.checkOut ? 'text-slate-400' : 'text-emerald-500 animate-pulse'}`}>{row.checkOut ? `OUT: ${row.checkOut}` : 'SESSION ACTIVE'}</span>
                       </div>
                     </td>
                     <td className="py-4">
                        <div className="flex flex-col items-center">
-                         <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1"><MapPin size={10}/> {row.location?.address || 'Verified'}</span>
-                         <span className="text-[9px] text-slate-300 font-bold tabular-nums">{row.location?.lat.toFixed(4)}, {row.location?.lng.toFixed(4)}</span>
+                         <span className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-1"><MapPin size={10} className="text-indigo-500"/> {row.location?.address}</span>
+                         <span className="text-[9px] text-indigo-600 font-black tabular-nums mt-0.5 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                           Lat: {row.location?.lat.toFixed(7)}, Lng: {row.location?.lng.toFixed(7)}
+                         </span>
                        </div>
                     </td>
-                    <td className="py-4 text-right max-w-[200px]">
-                      {row.remarks ? <p className="text-[11px] font-medium text-slate-500 italic">"{row.remarks}"</p> : <span className="text-[10px] text-slate-300">--</span>}
+                    <td className="py-4 text-right max-w-[180px]">
+                      {row.remarks ? <p className="text-[11px] font-medium text-slate-500 italic leading-tight">"{row.remarks}"</p> : <span className="text-[10px] text-slate-300">No remarks</span>}
                     </td>
                   </tr>
                 ))}
@@ -272,218 +265,162 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-12">
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-        <div className="p-8 md:p-12 text-center bg-gradient-to-br from-slate-900 to-indigo-900 text-white relative">
-          <div className="absolute top-4 right-4 bg-white/10 px-3 py-1 rounded-full flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-            Biometric Link Active
+    <div className="max-w-6xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-12">
+      <div className={`rounded-[40px] shadow-2xl overflow-hidden border transition-all duration-700 ${activeRecord ? 'border-emerald-100' : 'border-indigo-100'}`}>
+        <div className={`p-10 md:p-12 text-center text-white relative transition-all duration-700 ${activeRecord ? 'bg-gradient-to-br from-emerald-900 to-slate-900' : 'bg-gradient-to-br from-slate-900 to-indigo-900'}`}>
+          <div className="md:absolute md:top-6 md:left-6 mb-4 md:mb-0 inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/5 backdrop-blur-md">
+            <ShieldCheck size={14} className={activeRecord ? 'text-emerald-400' : 'text-indigo-400'} />
+            Secure Biometric Station
           </div>
-          <p className="text-indigo-300 font-bold tracking-widest uppercase text-xs mb-3">Organization Time</p>
-          <h2 className="text-6xl md:text-7xl font-black mb-4 tracking-tighter tabular-nums">
+          
+          <div className="absolute top-6 right-6 hidden md:flex items-center gap-2 text-white/40">
+            <p className="text-[10px] font-black uppercase tracking-widest">{currentTime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+          </div>
+
+          <h2 className="text-6xl sm:text-7xl md:text-8xl font-black mb-4 tracking-tighter tabular-nums drop-shadow-2xl">
             {currentTime.toLocaleTimeString('en-US', { hour12: false })}
           </h2>
-          <p className="text-indigo-200/60 font-medium text-sm">
-            {currentTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
+          
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center justify-center gap-2 text-white/80 font-bold text-sm tracking-wide">
+              <MapPin size={16} className="text-indigo-400" />
+              {location ? location.address : 'Initializing GPS Signal...'}
+            </div>
+            {location && (
+              <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-sm">
+                <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] tabular-nums">
+                  GPS: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="p-8 md:p-12 bg-white">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="space-y-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm border ${location ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600 animate-pulse'}`}>
-                    <Navigation size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center justify-between">
-                      Location Lock
-                      <button onClick={detectLocation} className="hover:text-indigo-600 transition-colors"><RefreshCw size={12}/></button>
-                    </p>
-                    <p className={`text-lg font-black uppercase tracking-tight ${location ? 'text-emerald-600' : 'text-rose-500'}`}>
-                      {location ? 'READY' : 'SCANNING...'}
-                    </p>
-                    <div className="mt-1 flex flex-col">
-                      <p className="text-sm font-bold text-slate-900">{location ? location.address : 'Verifying Geofence...'}</p>
-                      {location && <p className="text-[10px] font-medium text-slate-400 tabular-nums">LOC: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</p>}
+              <div className="relative">
+                <div className={`w-full aspect-video rounded-[48px] overflow-hidden border-8 relative transition-all duration-500 shadow-xl ${activeRecord ? 'border-emerald-50 bg-emerald-100/20' : 'border-slate-50 bg-slate-100'}`}>
+                  {status === 'loading' ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/90 backdrop-blur-sm z-20">
+                      <div className={`w-12 h-12 border-4 rounded-full animate-spin ${activeRecord ? 'border-emerald-600 border-t-transparent' : 'border-indigo-600 border-t-transparent'}`}></div>
+                      <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Validating...</p>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 space-y-4">
-                   <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Today's Activity History</p>
-                      <History size={14} className="text-slate-300" />
-                   </div>
-                   <div className="space-y-2 max-h-40 overflow-y-auto no-scrollbar">
-                      {todayHistory.length === 0 ? (
-                        <p className="text-center py-4 text-xs font-bold text-slate-300 italic uppercase">No logs for today</p>
-                      ) : todayHistory.map((h, i) => (
-                        <div key={i} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100">
-                           <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                              <span className="text-[11px] font-bold text-slate-700">In: {h.checkIn}</span>
-                           </div>
-                           <span className={`text-[11px] font-black tabular-nums ${h.checkOut ? 'text-slate-400' : 'text-emerald-500 animate-pulse'}`}>
-                             {h.checkOut ? `Out: ${h.checkOut}` : 'ACTIVE'}
-                           </span>
-                        </div>
-                      ))}
-                   </div>
-                   {activeRecord && (
-                      <button 
-                        onClick={() => { setShowExitModal(true); setRemarks(''); }}
-                        className="w-full py-4 bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center justify-center gap-2"
-                      >
-                        <LogOut size={16} /> End Session / Clock Out
-                      </button>
-                   )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[48px] border-2 border-dashed border-slate-200 relative overflow-hidden min-h-[400px]">
-              {status === 'loading' ? (
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="text-xs font-black text-indigo-600 uppercase animate-pulse">Hashing Biometric...</p>
-                </div>
-              ) : status === 'pushed' ? (
-                <div className="text-center animate-in zoom-in duration-500">
-                  <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-xl">
-                    <CheckCircle2 size={48} className="text-emerald-500" />
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Clock-In Saved</h3>
-                  <p className="text-xs text-slate-500 font-bold mt-2">Multiple sessions allowed</p>
-                </div>
-              ) : status === 'preparing' ? (
-                <div className="w-full space-y-6 animate-in fade-in">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 px-1">
-                      <MessageSquare size={12} className="text-slate-400" />
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Optional Entry Remarks</label>
+                  ) : status === 'pushed' ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-emerald-500 text-white z-20 animate-in zoom-in duration-300">
+                      <CheckCircle2 size={64} />
+                      <h3 className="text-2xl font-black uppercase tracking-tighter">Identity Verified</h3>
+                      <p className="text-xs font-bold uppercase opacity-80">{activeRecord ? 'Punch Complete' : 'Attendance Logged'}</p>
                     </div>
-                    <textarea 
-                      placeholder="e.g. Starting site visit, returning from client meeting..."
-                      className="w-full p-5 bg-white border border-slate-200 rounded-[32px] text-sm font-bold min-h-[140px] outline-none shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all"
-                      value={remarks}
-                      onChange={e => setRemarks(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                     <button onClick={() => setStatus('idle')} className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100">Back</button>
-                     <button 
-                       onClick={startCamera} 
-                       disabled={!location}
-                       className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100 disabled:opacity-50 flex items-center justify-center gap-2"
-                     >
-                       <Camera size={16} /> Open Camera
-                     </button>
-                  </div>
-                </div>
-              ) : status === 'camera' ? (
-                <div className="w-full space-y-6 animate-in fade-in">
-                  <div className="relative w-full aspect-video bg-black rounded-[40px] overflow-hidden border-4 border-indigo-600 shadow-2xl">
-                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                    <div className="absolute inset-0 border-[30px] border-black/30 pointer-events-none"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 border-2 border-white/40 rounded-full pointer-events-none border-dashed animate-pulse"></div>
-                  </div>
+                  ) : cameraEnabled ? (
+                    <>
+                      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+                      <div className="absolute inset-0 border-[40px] border-black/10 pointer-events-none"></div>
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-white/20 rounded-full pointer-events-none border-dashed animate-pulse"></div>
+                      <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
+                         <div className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                           Live Identity Scan
+                         </div>
+                         <button onClick={initCamera} className="p-2 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-md transition-all">
+                           <RefreshCw size={14} />
+                         </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-8 text-center">
+                      <CameraOff size={48} className="text-slate-300" />
+                      <p className="text-sm font-black text-slate-900 uppercase">Camera Access Required</p>
+                      <button onClick={initCamera} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Enable Camera</button>
+                    </div>
+                  )}
                   <canvas ref={canvasRef} className="hidden" />
-                  <div className="flex gap-4">
-                    <button onClick={() => { stopCamera(); setStatus('preparing'); }} className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-slate-500"><X size={18} className="mx-auto"/></button>
-                    <button onClick={handleClockIn} className="flex-[3] py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Verify & Punch In</button>
-                  </div>
-                </div>
-              ) : activeRecord ? (
-                <div className="text-center space-y-6 animate-in slide-in-from-top-4">
-                  <div className="w-32 h-32 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-xl relative">
-                    <UserCheck size={64} className="text-emerald-500" />
-                    <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
-                       <span className="w-3 h-3 bg-emerald-500 rounded-full animate-ping"></span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xl font-black text-slate-900 uppercase tracking-tighter">Session Active</p>
-                    <div className="px-4 py-2 bg-emerald-100/50 rounded-full border border-emerald-100 flex items-center gap-2">
-                       <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                       <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">In Progress since {activeRecord.checkIn}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center space-y-8">
-                  <div className="relative">
-                    <div className="absolute -inset-8 bg-indigo-100 rounded-full animate-ping opacity-20"></div>
-                    <button 
-                      onClick={() => setStatus('preparing')}
-                      className="w-48 h-48 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-2xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all ring-[18px] ring-indigo-50 z-10 relative group"
-                    >
-                      <Clock size={56} className="group-hover:rotate-12 transition-transform" />
-                      <span className="font-black uppercase tracking-widest text-xs">Start Session</span>
-                    </button>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identity & Geofence Sync</p>
-                    <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">Tap to clock in for duty</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showExitModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[48px] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-300 border border-slate-100">
-            <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
-              <div className="flex items-center gap-3">
-                <LogOut size={24} className="text-indigo-400" />
-                <h3 className="text-xl font-black uppercase tracking-tight">Clock Out</h3>
-              </div>
-              <button onClick={() => setShowExitModal(false)} className="p-2 hover:bg-white/10 rounded-xl"><X size={24} /></button>
-            </div>
-            
-            <div className="p-8 space-y-6">
-              <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Sign-out</p>
-                  <p className="text-2xl font-black text-slate-900 tabular-nums">{currentTime.toLocaleTimeString()}</p>
-                </div>
-                <div className="h-10 w-px bg-slate-200"></div>
-                <div className="space-y-1 text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entry Time</p>
-                  <p className="text-lg font-bold text-slate-600 tabular-nums">{activeRecord?.checkIn}</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
-                  <MessageSquare size={12} className="text-slate-400" />
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Session Summary / Remarks</label>
+                  <MessageSquare size={14} className="text-slate-400" />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entry Remarks (Optional)</label>
                 </div>
                 <textarea 
-                  placeholder="Summarize activities or state reason for ending session..."
-                  className="w-full p-5 bg-slate-50 border border-slate-200 rounded-3xl text-sm font-bold min-h-[140px] outline-none shadow-inner focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                  placeholder={activeRecord ? "Briefly summarize your shift summary..." : "What are you working on today?"}
+                  className={`w-full p-5 rounded-[32px] text-sm font-bold min-h-[120px] outline-none shadow-sm border transition-all resize-none focus:ring-4 ${activeRecord ? 'bg-emerald-50/30 border-emerald-100 focus:ring-emerald-100' : 'bg-slate-50 border-slate-100 focus:ring-indigo-100'}`}
                   value={remarks}
                   onChange={e => setRemarks(e.target.value)}
                 />
               </div>
 
-              <div className="flex gap-4">
-                <button onClick={() => setShowExitModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
-                <button 
-                  onClick={handleClockOut}
-                  className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
-                >
-                  Verify & End Session
-                </button>
+              <button 
+                onClick={handlePunch}
+                disabled={!location || status !== 'idle' || !cameraEnabled}
+                className={`w-full py-6 rounded-[32px] font-black uppercase tracking-[0.2em] text-sm shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-4 disabled:opacity-40 ${
+                  activeRecord ? 'bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+                }`}
+              >
+                {activeRecord ? <LogOut size={24} /> : <Camera size={24} />}
+                {activeRecord ? 'End Session' : 'Clock In Now'}
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              <div className="grid grid-cols-2 gap-6">
+                <div className={`p-6 rounded-[32px] border flex flex-col justify-between h-40 transition-all ${location ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100 animate-pulse'}`}>
+                   <div className="flex justify-between items-center">
+                      <div className="p-2 bg-white rounded-xl shadow-sm text-indigo-500"><Navigation size={20}/></div>
+                      <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white shadow-sm ${location ? 'text-emerald-600' : 'text-rose-600'}`}>{location ? 'Locked' : 'Waiting'}</span>
+                   </div>
+                   <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Geofence Status</p>
+                      <p className="text-sm font-black text-slate-900 truncate leading-tight">{location ? location.address : 'Scanning signal...'}</p>
+                      {location && <p className="text-[9px] font-bold text-indigo-400 mt-1 tabular-nums">{location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>}
+                   </div>
+                </div>
+                <div className={`p-6 rounded-[32px] border flex flex-col justify-between h-40 transition-all ${cameraEnabled ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-200'}`}>
+                   <div className="flex justify-between items-center">
+                      <div className="p-2 bg-white rounded-xl shadow-sm text-indigo-500"><ShieldCheck size={20}/></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white shadow-sm text-indigo-600">Secure</span>
+                   </div>
+                   <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Audit Status</p>
+                      <p className="text-sm font-black text-slate-900 leading-tight">Biometric Ready</p>
+                   </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8 flex-1">
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 mb-6">
+                  <History size={20} className="text-indigo-600" /> Today's Session History
+                </h3>
+                <div className="space-y-4 max-h-[360px] overflow-y-auto no-scrollbar pr-1">
+                   {todayHistory.length === 0 ? (
+                      <div className="py-12 text-center text-slate-300 space-y-2">
+                        <Clock size={40} className="mx-auto" />
+                        <p className="text-xs font-black uppercase tracking-widest">No records today</p>
+                      </div>
+                   ) : todayHistory.map((h, i) => (
+                      <div key={i} className="flex items-center justify-between p-5 bg-slate-50 border border-slate-100 rounded-3xl hover:bg-white hover:shadow-lg transition-all group">
+                         <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white shadow-sm overflow-hidden border border-slate-100">
+                               {h.selfie ? <img src={h.selfie} className="w-full h-full object-cover" /> : <Clock size={20} className="m-auto text-slate-200" />}
+                            </div>
+                            <div>
+                               <p className="text-xs font-black text-slate-900 uppercase leading-none">Session #{todayHistory.length - i}</p>
+                               <p className="text-[10px] font-bold text-slate-500 mt-1">In: {h.checkIn} — {h.checkOut || 'Active'}</p>
+                               <p className="text-[9px] font-black text-indigo-500 mt-0.5 tabular-nums">GPS Locked: {h.location?.lat.toFixed(4)}, {h.location?.lng.toFixed(4)}</p>
+                            </div>
+                         </div>
+                         <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${h.checkOut ? 'bg-slate-200 text-slate-500' : 'bg-emerald-500 text-white animate-pulse'}`}>
+                            {h.checkOut ? 'Logged' : 'Live'}
+                         </div>
+                      </div>
+                   ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
