@@ -25,23 +25,33 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         const isAdminRole = ['ADMIN', 'HR'].includes(user.role);
         
         if (roleMode === 'ADMIN' && !isAdminRole) {
-          setError('Invalid login. This account is registered as an Employee. Please use the Employee Login tab.');
+          setError('Access Denied. This account is registered as a Standard Employee/Manager. Please use the Employee Login tab.');
           setIsLoading(false);
           return;
         }
         
+        // If they are Admin/HR and trying to use Employee tab, we allow it but notify them
+        // or just let them in as they have higher privileges. 
+        // For strict compliance as per previous requirement:
         if (roleMode === 'EMPLOYEE' && isAdminRole) {
-          setError('Invalid login. This account is registered as an Admin/HR. Please use the Admin Login tab.');
+          setError('System Policy: HR/Admin accounts must use the Administrative Login tab.');
           setIsLoading(false);
           return;
         }
 
         onLoginSuccess(user);
       } else {
-        setError('Invalid credentials. User not found.');
+        setError('Verification Failed: Invalid credentials or account not found in system.');
       }
       setIsLoading(false);
     }, 800);
+  };
+
+  const handleDemoAccess = (demoEmail: string, mode: 'ADMIN' | 'EMPLOYEE') => {
+    setEmail(demoEmail);
+    setPassword('123'); // Demo accounts always use '123'
+    setRoleMode(mode);
+    setError('');
   };
 
   return (
@@ -87,8 +97,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Welcome Back</h2>
-            <p className="text-slate-500 font-medium">Please enter your details to sign in.</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">System Access</h2>
+            <p className="text-slate-500 font-medium">Please verify your credentials to continue.</p>
           </div>
 
           <div className="flex p-1 bg-slate-100 rounded-xl">
@@ -108,11 +118,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Email Address</label>
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Identity (Email/Username)</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
-                  type="email" 
+                  type="text" 
                   required
                   placeholder="name@company.com"
                   className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
@@ -123,7 +133,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Password</label>
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Security Key</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
@@ -151,25 +161,25 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
-                <>Sign In as {roleMode === 'ADMIN' ? 'Administrator' : 'Employee'} <ArrowRight size={18} /></>
+                <>Sign In as {roleMode === 'ADMIN' ? 'Administrator' : 'Staff Member'} <ArrowRight size={18} /></>
               )}
             </button>
           </form>
 
           <div className="pt-4 text-center">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">Quick Demo Access</p>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-3">System Quick Access</p>
             <div className="grid grid-cols-2 gap-3">
               <button 
-                onClick={() => { setEmail('admin@probashi.com'); setRoleMode('ADMIN'); }}
-                className="text-[10px] py-2 px-3 bg-slate-100 rounded-lg text-slate-600 font-bold hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                onClick={() => handleDemoAccess('admin@probashi.com', 'ADMIN')}
+                className="text-[10px] py-2 px-3 bg-slate-100 rounded-lg text-slate-600 font-black uppercase hover:bg-indigo-50 hover:text-indigo-600 transition-all"
               >
-                Use Admin Demo
+                Admin Demo
               </button>
               <button 
-                onClick={() => { setEmail('anis@probashi.com'); setRoleMode('EMPLOYEE'); }}
-                className="text-[10px] py-2 px-3 bg-slate-100 rounded-lg text-slate-600 font-bold hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                onClick={() => handleDemoAccess('anis@probashi.com', 'EMPLOYEE')}
+                className="text-[10px] py-2 px-3 bg-slate-100 rounded-lg text-slate-600 font-black uppercase hover:bg-indigo-50 hover:text-indigo-600 transition-all"
               >
-                Use Employee Demo
+                Staff Demo
               </button>
             </div>
           </div>

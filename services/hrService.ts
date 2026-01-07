@@ -59,9 +59,25 @@ const INITIAL_EMPLOYEES: Employee[] = [
 
 export const hrService = {
   initialize() {
+    // 1. Initial creation
     if (!localStorage.getItem(STORAGE_KEYS.EMPLOYEES)) {
       localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(INITIAL_EMPLOYEES));
+    } else {
+      // 2. Data Repair: Ensure all existing records have a password field
+      const existing = this.getEmployees();
+      let updated = false;
+      const repaired = existing.map(emp => {
+        if (!emp.password) {
+          emp.password = '123';
+          updated = true;
+        }
+        return emp;
+      });
+      if (updated) {
+        localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(repaired));
+      }
     }
+
     if (!localStorage.getItem(STORAGE_KEYS.DEPARTMENTS)) {
       localStorage.setItem(STORAGE_KEYS.DEPARTMENTS, JSON.stringify(DEPARTMENTS));
     }
@@ -102,12 +118,11 @@ export const hrService = {
 
   login(email: string, password: string): User | null {
     const employees = this.getEmployees();
-    // Use trim and lowerCase for maximum resiliency
     const normalizedInput = email.trim().toLowerCase();
     
     const user = employees.find(e => 
       (e.email.toLowerCase() === normalizedInput || e.username?.toLowerCase() === normalizedInput) && 
-      (e.password === password)
+      ( (e.password || '123') === password ) // Default missing password to '123'
     );
 
     if (user) {
@@ -132,7 +147,6 @@ export const hrService = {
 
   addEmployee(employee: Employee) {
     const employees = this.getEmployees();
-    // Hard-set a default password if empty
     const pwd = (employee.password && employee.password.trim().length > 0) ? employee.password : '123';
     const newEmployee = { ...employee, password: pwd };
     employees.push(newEmployee);
