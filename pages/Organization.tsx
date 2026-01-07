@@ -36,11 +36,11 @@ const Organization: React.FC = () => {
   const [workflows, setWorkflows] = useState<LeaveWorkflow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
 
-  // Editing State
-  const [isEditingDept, setIsEditingDept] = useState<number | null>(null);
-  const [isEditingDesig, setIsEditingDesig] = useState<number | null>(null);
-  const [inputValue, setInputValue] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
+  // Modal State for Add/Edit
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'DEPT' | 'DESIG'>('DEPT');
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [modalValue, setModalValue] = useState('');
 
   useEffect(() => {
     setDepartments(hrService.getDepartments());
@@ -61,47 +61,125 @@ const Organization: React.FC = () => {
     setEmployees(hrService.getEmployees());
   };
 
+  const openModal = (type: 'DEPT' | 'DESIG', index: number | null = null) => {
+    setModalType(type);
+    setEditIndex(index);
+    setModalValue(index !== null ? (type === 'DEPT' ? departments[index] : designations[index]) : '');
+    setShowModal(true);
+  };
+
+  const handleModalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalValue.trim()) return;
+
+    if (modalType === 'DEPT') {
+      const next = [...departments];
+      if (editIndex !== null) {
+        next[editIndex] = modalValue.trim();
+      } else {
+        next.push(modalValue.trim());
+      }
+      setDepartments(next);
+      hrService.setDepartments(next);
+    } else {
+      const next = [...designations];
+      if (editIndex !== null) {
+        next[editIndex] = modalValue.trim();
+      } else {
+        next.push(modalValue.trim());
+      }
+      setDesignations(next);
+      hrService.setDesignations(next);
+    }
+
+    setShowModal(false);
+  };
+
+  const deleteItem = (type: 'DEPT' | 'DESIG', index: number) => {
+    if (!confirm(`Are you sure you want to delete this ${type === 'DEPT' ? 'Department' : 'Designation'}?`)) return;
+    
+    if (type === 'DEPT') {
+      const updated = departments.filter((_, idx) => idx !== index);
+      setDepartments(updated);
+      hrService.setDepartments(updated);
+    } else {
+      const updated = designations.filter((_, idx) => idx !== index);
+      setDesignations(updated);
+      hrService.setDesignations(updated);
+    }
+  };
+
   const renderStructure = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Departments Section */}
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+        <div className="p-6 bg-[#0f172a] text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Network size={20} />
-            <h3 className="text-sm font-black uppercase">Departments</h3>
+            <Network size={20} className="text-slate-400" />
+            <h3 className="text-sm font-black uppercase tracking-wider">Departments</h3>
           </div>
-          <button onClick={() => { setInputValue(''); setShowAddForm(true); }} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all"><Plus size={18} /></button>
+          <button 
+            onClick={() => openModal('DEPT')} 
+            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all flex items-center justify-center"
+          >
+            <Plus size={18} />
+          </button>
         </div>
         <div className="p-6 space-y-2">
           {departments.map((dept, i) => (
             <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white hover:shadow-md transition-all">
               <span className="font-bold text-slate-800">{dept}</span>
-              <button onClick={() => {
-                const updated = departments.filter((_, idx) => idx !== i);
-                setDepartments(updated);
-                hrService.setDepartments(updated);
-              }} className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => openModal('DEPT', i)}
+                  className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  <Edit3 size={16} />
+                </button>
+                <button 
+                  onClick={() => deleteItem('DEPT', i)} 
+                  className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Designations Section */}
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-        <div className="p-6 bg-indigo-900 text-white flex justify-between items-center">
+        <div className="p-6 bg-[#1e293b] text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Briefcase size={20} />
-            <h3 className="text-sm font-black uppercase">Designations</h3>
+            <Briefcase size={20} className="text-slate-400" />
+            <h3 className="text-sm font-black uppercase tracking-wider">Designations</h3>
           </div>
-          <button className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all"><Plus size={18} /></button>
+          <button 
+            onClick={() => openModal('DESIG')}
+            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all flex items-center justify-center"
+          >
+            <Plus size={18} />
+          </button>
         </div>
         <div className="p-6 space-y-2">
           {designations.map((des, i) => (
             <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white hover:shadow-md transition-all">
               <span className="font-bold text-slate-800">{des}</span>
-              <button onClick={() => {
-                const updated = designations.filter((_, idx) => idx !== i);
-                setDesignations(updated);
-                hrService.setDesignations(updated);
-              }} className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => openModal('DESIG', i)}
+                  className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  <Edit3 size={16} />
+                </button>
+                <button 
+                  onClick={() => deleteItem('DESIG', i)} 
+                  className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -339,7 +417,7 @@ const Organization: React.FC = () => {
           <p className="text-sm text-slate-500">Government, Religious and Special Company holidays</p>
         </div>
         <button 
-          onClick={() => setShowAddForm(true)}
+          onClick={() => setShowModal(false)} // Placeholder for actual holiday add
           className="flex items-center gap-2 px-6 py-2 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest"
         >
           <Plus size={16} /> Add Holiday
@@ -414,6 +492,60 @@ const Organization: React.FC = () => {
           <p className="text-[8px] text-slate-500 font-bold uppercase">v2.4.1 Compliant</p>
         </div>
       </div>
+
+      {/* Unified Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-lg">
+                  {modalType === 'DEPT' ? <Network size={20} /> : <Briefcase size={20} />}
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tight">
+                  {editIndex !== null ? 'Edit' : 'New'} {modalType === 'DEPT' ? 'Department' : 'Designation'}
+                </h3>
+              </div>
+              <button onClick={() => setShowModal(false)} className="hover:bg-white/10 p-2 rounded-xl">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleModalSubmit} className="p-8 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                  {modalType === 'DEPT' ? 'Department Name' : 'Designation Title'}
+                </label>
+                <input 
+                  type="text" 
+                  autoFocus
+                  required 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:ring-4 focus:ring-indigo-100 transition-all" 
+                  value={modalValue} 
+                  onChange={e => setModalValue(e.target.value)}
+                  placeholder={`e.g. ${modalType === 'DEPT' ? 'Logistics' : 'Senior Specialist'}`}
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowModal(false)} 
+                  className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                >
+                  <Save size={16} /> {editIndex !== null ? 'Update' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
