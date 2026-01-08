@@ -4,7 +4,7 @@
  * Handles OAuth2 and File Uploads to Google Drive
  */
 
-const CLIENT_ID = '879929245496-dc5pdfgbvt38ueotp4u52eh52pbffn8o.apps.googleusercontent.com';
+const CLIENT_ID = '879929245496-dcdfsdfsdfsf5pdfgbvt38ueotp4u52eh52pbffn8o.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata.readonly';
 const SYNC_FILENAME = 'OpenHR_Cloud_Sync.json';
 
