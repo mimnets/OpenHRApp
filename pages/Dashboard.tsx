@@ -164,8 +164,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
 
         <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
           <h3 className="text-xl font-black text-slate-900 mb-6">Leave Allocation</h3>
-          <div className="flex-1 min-h-[220px] w-full relative">
-            <ResponsiveContainer width="100%" height={220}>
+          <div className="flex-1 w-full min-h-[220px]" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie data={leaveData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                   {leaveData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}

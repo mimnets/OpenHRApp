@@ -27,14 +27,22 @@ const App: React.FC = () => {
     setCurrentUser(user);
     setIsInitialized(true);
 
-    // Auto-sync logic: listen for changes in hrService
+    // Auto-sync logic & State Sync: listen for changes in hrService
     const unsubscribe = hrService.subscribe(() => {
+      // Sync local state if profile was modified in another component
+      const updatedUser = hrService.getCurrentUser();
+      if (updatedUser) {
+        setCurrentUser(updatedUser);
+      }
+      
       if (googleDriveService.isConnected()) {
         triggerAutoSync();
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Debounced auto-sync to avoid excessive API calls
@@ -52,7 +60,7 @@ const App: React.FC = () => {
       } finally {
         setIsSyncing(false);
       }
-    }, 5000); // Wait 5 seconds after the last local change before syncing
+    }, 5000); 
   };
 
   const handleLogout = () => {
@@ -82,7 +90,7 @@ const App: React.FC = () => {
       case 'attendance': return <Attendance user={currentUser} />;
       case 'leave': return <Leave user={currentUser} />;
       case 'settings': return <Settings />;
-      case 'reports': return <Reports />;
+      case 'reports': return <Reports user={currentUser} />;
       case 'organization': return <Organization />;
       default: return <Dashboard user={currentUser} onNavigate={setCurrentPath} />;
     }

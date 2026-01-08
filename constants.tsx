@@ -54,5 +54,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   officeStartTime: "09:00",
   officeEndTime: "18:00",
   lateGracePeriod: 15,
-  earlyOutGracePeriod: 15
+  earlyOutGracePeriod: 15,
+  defaultReportRecipient: ""
 };

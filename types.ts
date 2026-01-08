@@ -62,7 +62,6 @@ export interface LeaveBalance {
   SICK: number;
 }
 
-// Added missing LeaveWorkflow interface to fix export errors
 export interface LeaveWorkflow {
   department: string;
   approverRole: 'LINE_MANAGER' | 'HR' | 'ADMIN';
@@ -82,22 +81,15 @@ export interface SentEmail {
   subject: string;
   body: string;
   sentAt: string;
-  status: 'SENT' | 'FAILED';
+  status: 'SENT' | 'FAILED' | 'QUEUED';
   provider: string;
 }
 
-export interface SmtpConfig {
-  provider: 'GMAIL' | 'MICROSOFT' | 'MANUAL';
-  authType: 'BASIC' | 'OAUTH2';
-  host: string;
-  port: number;
+export interface RelayConfig {
   username: string;
-  password?: string;
-  accessToken?: string;
-  encryption: 'SSL' | 'TLS' | 'NONE';
-  fromEmail: string;
   fromName: string;
   isActive: boolean;
+  relayUrl: string;
 }
 
 export interface AppConfig {
@@ -110,5 +102,6 @@ export interface AppConfig {
   officeEndTime: string;
   lateGracePeriod: number;
   earlyOutGracePeriod: number;
-  smtp?: SmtpConfig;
+  defaultReportRecipient?: string;
+  smtp?: RelayConfig; // Keeping key name for backward compatibility with hrService
 }

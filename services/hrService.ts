@@ -75,25 +75,7 @@ export const hrService = {
   initialize() {
     if (!localStorage.getItem(STORAGE_KEYS.EMPLOYEES)) {
       localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(INITIAL_EMPLOYEES));
-    } else {
-      const existing = this.getEmployees();
-      let updated = false;
-      const repaired = existing.map(emp => {
-        if (!emp.password) {
-          emp.password = '123';
-          updated = true;
-        }
-        if (!emp.workType) {
-          emp.workType = 'OFFICE';
-          updated = true;
-        }
-        return emp;
-      });
-      if (updated) {
-        localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(repaired));
-      }
     }
-
     if (!localStorage.getItem(STORAGE_KEYS.DEPARTMENTS)) {
       localStorage.setItem(STORAGE_KEYS.DEPARTMENTS, JSON.stringify(DEPARTMENTS));
     }
@@ -109,7 +91,7 @@ export const hrService = {
     if (!localStorage.getItem(STORAGE_KEYS.WORKFLOWS)) {
       const initialWorkflows: LeaveWorkflow[] = DEPARTMENTS.map(d => ({
         department: d,
-        approverRole: 'LINE_MANAGER'
+        approverRole: 'HR' // Default: Manager -> HR -> Approve
       }));
       localStorage.setItem(STORAGE_KEYS.WORKFLOWS, JSON.stringify(initialWorkflows));
     }
@@ -121,12 +103,7 @@ export const hrService = {
       const employees = this.getEmployees();
       const balances: Record<string, LeaveBalance> = {};
       employees.forEach(emp => {
-        balances[emp.id] = {
-          employeeId: emp.id,
-          ANNUAL: 14,
-          CASUAL: 10,
-          SICK: 14
-        };
+        balances[emp.id] = { employeeId: emp.id, ANNUAL: 14, CASUAL: 10, SICK: 14 };
       });
       localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(balances));
     }
@@ -140,28 +117,12 @@ export const hrService = {
     return JSON.stringify(exportObj);
   },
 
-  importFullData(jsonString: string) {
-    try {
-      const data = JSON.parse(jsonString);
-      Object.keys(data).forEach(key => {
-        if (data[key] !== null) {
-          localStorage.setItem(key, data[key]);
-        }
-      });
-      alert('Data imported successfully. The application will now reload.');
-      window.location.reload();
-    } catch (err) {
-      console.error('Import Error:', err);
-      throw new Error('Invalid backup file format.');
-    }
-  },
-
   login(email: string, password: string): User | null {
     const employees = this.getEmployees();
     const normalizedInput = email.trim().toLowerCase();
     const user = employees.find(e => 
       (e.email.toLowerCase() === normalizedInput || e.username?.toLowerCase() === normalizedInput) && 
-      ( (e.password || '123') === password )
+      ((e.password || '123') === password)
     );
     if (user) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
@@ -185,18 +146,8 @@ export const hrService = {
 
   addEmployee(employee: Employee) {
     const employees = this.getEmployees();
-    const pwd = (employee.password && employee.password.trim().length > 0) ? employee.password : '123';
-    const newEmployee = { ...employee, password: pwd, workType: employee.workType || 'OFFICE' };
-    employees.push(newEmployee);
+    employees.push(employee);
     localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
-    const balances = this.getAllLeaveBalances();
-    balances[employee.id] = {
-      employeeId: employee.id,
-      ANNUAL: 14,
-      CASUAL: 10,
-      SICK: 14
-    };
-    localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(balances));
     this.notify();
   },
 
@@ -206,10 +157,6 @@ export const hrService = {
     if (index > -1) {
       employees[index] = { ...employees[index], ...updates };
       localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
-      const currentUser = this.getCurrentUser();
-      if (currentUser && currentUser.id === userId) {
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(employees[index]));
-      }
       this.notify();
       return employees[index];
     }
@@ -283,27 +230,7 @@ export const hrService = {
 
   saveAttendance(attendance: Attendance) {
     const list = this.getAttendance();
-    const config = this.getConfig();
-    const emp = this.getEmployees().find(e => e.id === attendance.employeeId);
-    
-    // Logic for LATE marking
-    if (emp?.workType === 'OFFICE' && attendance.checkIn) {
-      const [inH, inM] = attendance.checkIn.split(':').map(Number);
-      const [offH, offM] = config.officeStartTime.split(':').map(Number);
-      const inMinutes = inH * 60 + inM;
-      const offMinutes = offH * 60 + offM;
-      
-      if (inMinutes > offMinutes + config.lateGracePeriod) {
-        attendance.status = 'LATE';
-      }
-    }
-
-    const index = list.findIndex(a => a.id === attendance.id);
-    if (index > -1) {
-      list[index] = attendance;
-    } else {
-      list.push(attendance);
-    }
+    list.push(attendance);
     localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
     this.notify();
   },
@@ -312,32 +239,10 @@ export const hrService = {
     const list = this.getAttendance();
     const index = list.findIndex(a => a.id === id);
     if (index > -1) {
-      const current = list[index];
-      const config = this.getConfig();
-      const emp = this.getEmployees().find(e => e.id === current.employeeId);
-      
-      const updated = { ...current, ...updates };
-
-      // Logic for EARLY_OUT marking
-      if (emp?.workType === 'OFFICE' && updated.checkOut) {
-        const [outH, outM] = updated.checkOut.split(':').map(Number);
-        const [offEndH, offEndM] = config.officeEndTime.split(':').map(Number);
-        const outMinutes = outH * 60 + outM;
-        const offEndMinutes = offEndH * 60 + offEndM;
-        
-        if (outMinutes < offEndMinutes - config.earlyOutGracePeriod) {
-          if (updated.status === 'PRESENT') {
-            updated.status = 'EARLY_OUT';
-          }
-        }
-      }
-
-      list[index] = updated;
+      list[index] = { ...list[index], ...updates };
       localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
       this.notify();
-      return list[index];
     }
-    return undefined;
   },
 
   getLeaves(): LeaveRequest[] {
@@ -346,12 +251,12 @@ export const hrService = {
 
   saveLeaveRequest(request: LeaveRequest) {
     const list = this.getLeaves();
-    request.status = 'PENDING_MANAGER';
     list.push(request);
     localStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(list));
     this.notify();
   },
 
+  // Added modifyLeaveRequest to handle updates to existing leave requests as called in pages/Leave.tsx
   modifyLeaveRequest(id: string, updates: Partial<LeaveRequest>) {
     const list = this.getLeaves();
     const index = list.findIndex(r => r.id === id);
@@ -367,28 +272,31 @@ export const hrService = {
     const index = list.findIndex(r => r.id === requestId);
     if (index > -1) {
       const request = list[index];
-      const isHRAdmin = approverRole === 'ADMIN' || approverRole === 'HR';
-      const oldStatus = request.status;
+      const applicant = this.getEmployees().find(e => e.id === request.employeeId);
+      const workflow = this.getWorkflows().find(w => w.department === applicant?.department);
       
-      if (request.status === 'PENDING_MANAGER') {
-        if (status === 'APPROVED') {
-          request.status = 'PENDING_HR';
-          request.managerRemarks = remarks;
-        } else {
-          request.status = 'REJECTED';
-          request.managerRemarks = remarks;
-        }
-      } 
-      else if (isHRAdmin) {
-        if (oldStatus === 'APPROVED' && status === 'REJECTED') {
-          this.addLeaveBalance(request.employeeId, request.type as any, request.totalDays);
-        }
-        request.status = status as any;
+      const isFinalApprover = (workflow?.approverRole === approverRole) || approverRole === 'ADMIN';
+
+      if (status === 'REJECTED') {
+        request.status = 'REJECTED';
         request.approverRemarks = remarks;
-        if (status === 'APPROVED' && oldStatus !== 'APPROVED') {
+      } else if (status === 'APPROVED') {
+        if (request.status === 'PENDING_MANAGER') {
+          // If the workflow says Manager is enough or if user is Admin, approve. Otherwise, move to HR.
+          if (isFinalApprover) {
+            request.status = 'APPROVED';
+            this.deductLeaveBalance(request.employeeId, request.type as any, request.totalDays);
+          } else {
+            request.status = 'PENDING_HR';
+            request.managerRemarks = remarks;
+          }
+        } else if (request.status === 'PENDING_HR') {
+          request.status = 'APPROVED';
+          request.approverRemarks = remarks;
           this.deductLeaveBalance(request.employeeId, request.type as any, request.totalDays);
         }
       }
+
       localStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(list));
       this.notify();
     }
@@ -405,28 +313,14 @@ export const hrService = {
 
   deductLeaveBalance(employeeId: string, type: 'ANNUAL' | 'CASUAL' | 'SICK', days: number) {
     const all = this.getAllLeaveBalances();
-    if (all[employeeId]) {
-      if (type === 'ANNUAL' || type === 'CASUAL' || type === 'SICK') {
-        all[employeeId][type] = Math.max(0, all[employeeId][type] - days);
-      }
-      localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(all));
-      this.notify();
-    }
-  },
-
-  addLeaveBalance(employeeId: string, type: 'ANNUAL' | 'CASUAL' | 'SICK', days: number) {
-    const all = this.getAllLeaveBalances();
-    if (all[employeeId]) {
-      if (type === 'ANNUAL' || type === 'CASUAL' || type === 'SICK') {
-        all[employeeId][type] += days;
-      }
+    if (all[employeeId] && (type === 'ANNUAL' || type === 'CASUAL' || type === 'SICK')) {
+      all[employeeId][type] = Math.max(0, all[employeeId][type] - days);
       localStorage.setItem(STORAGE_KEYS.BALANCES, JSON.stringify(all));
       this.notify();
     }
   },
 
   isManagerOfSomeone(managerId: string): boolean {
-    const employees = this.getEmployees();
-    return employees.some(e => e.lineManagerId === managerId);
+    return this.getEmployees().some(e => e.lineManagerId === managerId);
   }
 };

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Globe, ShieldCheck, Mail, Lock, ArrowRight, User as UserIcon, X, CheckCircle } from 'lucide-react';
+import { Globe, ShieldCheck, Mail, Lock, ArrowRight, User as UserIcon, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
 
@@ -20,6 +20,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,23 +49,39 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsResetting(true);
+    setResetError(null);
     
-    const config = hrService.getConfig().smtp;
-    if (!config || !config.isActive) {
-      alert('Password recovery system is currently offline (SMTP disabled). Please contact your HR department.');
+    // Check if user even exists in local DB first
+    const employees = hrService.getEmployees();
+    const targetUser = employees.find(emp => emp.email.toLowerCase() === forgotEmail.trim().toLowerCase() || emp.username?.toLowerCase() === forgotEmail.trim().toLowerCase());
+    
+    if (!targetUser) {
+      setResetError("No account associated with this email or username found.");
       setIsResetting(false);
       return;
     }
 
-    await emailService.sendPasswordReset(forgotEmail);
+    const config = hrService.getConfig().smtp;
+    const relayUrl = config?.relayUrl || '';
+    
+    if (!relayUrl || relayUrl === 'http://localhost:5000') {
+      // If still default, remind them it might need setup
+      console.warn("Using default or empty relay URL for password reset.");
+    }
+
+    const result = await emailService.sendPasswordReset(targetUser.email);
     
     setIsResetting(false);
-    setResetSuccess(true);
-    setTimeout(() => {
-      setShowForgotModal(false);
-      setResetSuccess(false);
-      setForgotEmail('');
-    }, 3000);
+    if (result.success) {
+      setResetSuccess(true);
+      setTimeout(() => {
+        setShowForgotModal(false);
+        setResetSuccess(false);
+        setForgotEmail('');
+      }, 4000);
+    } else {
+      setResetError("Relay connection failed. Please check your backend status in Settings.");
+    }
   };
 
   return (
@@ -103,7 +120,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secret Key</label>
-                <button type="button" onClick={() => setShowForgotModal(true)} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Forgot Key?</button>
+                <button type="button" onClick={() => { setShowForgotModal(true); setResetError(null); }} className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Forgot Key?</button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -138,16 +155,22 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                      <CheckCircle size={48} />
                    </div>
                    <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">Email Dispatched</h4>
-                   <p className="text-xs text-slate-500 font-medium px-4">A recovery key has been sent to your registered email via the organization's SMTP relay.</p>
+                   <p className="text-xs text-slate-500 font-medium px-4">A recovery link has been requested via the Express Relay to {forgotEmail}.</p>
                 </div>
               ) : (
                 <>
                   <p className="text-xs text-slate-500 font-medium leading-relaxed italic">Enter your identifier below. We will attempt to send recovery instructions via the system outbox.</p>
                   <form onSubmit={handleForgotSubmit} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Registered Email</label>
-                      <input type="email" required className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="e.g. employee@vclbd.com" />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Registered Email or Username</label>
+                      <input type="text" required className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="e.g. sabbir@vclbd.net" />
                     </div>
+                    {resetError && (
+                      <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600">
+                        <AlertCircle size={16} />
+                        <p className="text-[10px] font-black uppercase">{resetError}</p>
+                      </div>
+                    )}
                     <button type="submit" disabled={isResetting} className="w-full py-5 bg-indigo-600 text-white rounded-3xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-indigo-700 active:scale-95 transition-all">
                       {isResetting ? 'Processing SMTP Relay...' : 'Request Recovery Key'}
                     </button>
