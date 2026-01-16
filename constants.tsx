@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Holiday, AppConfig } from './types';
 
@@ -46,14 +45,14 @@ export const BD_HOLIDAYS: Holiday[] = [
 ];
 
 export const DEFAULT_CONFIG: AppConfig = {
-  companyName: "OpenHR Solutions Ltd.",
+  companyName: "OpenHRApp Solutions Ltd.",
   timezone: "Asia/Dhaka",
   currency: "BDT",
   dateFormat: "DD/MM/YYYY",
   workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"],
   officeStartTime: "09:00",
   officeEndTime: "18:00",
-  lateGracePeriod: 15,
+  lateGracePeriod: 5,
   earlyOutGracePeriod: 15,
   defaultReportRecipient: ""
 };

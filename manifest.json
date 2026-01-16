@@ -1,7 +1,7 @@
 {
-  "name": "OpenHR Management System",
-  "short_name": "OpenHR",
-  "description": "Enterprise HRMS for Mid-Size Organizations",
+  "name": "OpenHRApp Management System",
+  "short_name": "OpenHRApp",
+  "description": "Smart Enterprise HRMS for Mid-Size Organizations",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

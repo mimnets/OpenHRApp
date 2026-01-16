@@ -12,7 +12,6 @@ import {
   Activity, 
   Loader2,
   ChevronRight,
-  TrendingUp,
   CalendarCheck,
   UserMinus,
   Briefcase,
@@ -21,7 +20,6 @@ import {
   Trash2,
   Save,
   Camera,
-  Filter,
   Building2,
   Building
 } from 'lucide-react';
@@ -201,18 +199,18 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
         await hrService.updateAttendance(activeRecord.id, { checkOut: punchTime, remarks });
       } else {
         // LATE LOGIC:
-        // Factory Duty is exempt from Late policy.
-        // Office Duty uses lateGracePeriod (Defaulting to 5 mins as requested).
+        // Factory Duty is ALWAYS exempt from Late policy.
+        // Office Duty counts as late if punchTime > officeStartTime + 5 mins.
         let punchStatus: AttendanceType['status'] = 'PRESENT';
         
         if (dutyType === 'OFFICE' && appConfig) {
           const [pH, pM] = punchTime.split(':').map(Number);
           const [sH, sM] = appConfig.officeStartTime.split(':').map(Number);
-          const punchTotal = pH * 60 + pM;
-          const startTotal = sH * 60 + sM;
-          const grace = 5; // User specifically asked for 5 minute count
+          const punchTotalMinutes = pH * 60 + pM;
+          const startTotalMinutes = sH * 60 + sM;
+          const threshold = 5; // Strict 5-minute threshold
           
-          if (punchTotal > (startTotal + grace)) {
+          if (punchTotalMinutes > (startTotalMinutes + threshold)) {
             punchStatus = 'LATE';
           }
         }
@@ -289,9 +287,8 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
 
       {currentTab === 'STATION' ? (
         <div className="flex-1 flex flex-col max-w-lg mx-auto w-full space-y-3 min-h-0 pt-1">
-          {/* Duty Type Selector */}
           {!activeRecord && (
-            <div className="flex gap-2 p-1 bg-white border border-slate-100 rounded-2xl shadow-sm">
+            <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
               <button 
                 onClick={() => setDutyType('OFFICE')}
                 className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${dutyType === 'OFFICE' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}
@@ -304,16 +301,16 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
                 className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${dutyType === 'FACTORY' ? 'bg-amber-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}
               >
                 <Building2 size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Factory Duty</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Factory Visit</span>
               </button>
             </div>
           )}
 
-          <div className={`relative flex-1 rounded-[2rem] overflow-hidden border-[4px] shadow-lg transition-all duration-1000 ${activeRecord ? 'border-emerald-500/10 bg-emerald-950' : 'border-white bg-slate-900'} max-h-[48vh] sm:max-h-[50vh]`}>
+          <div className={`relative flex-1 rounded-[2.5rem] overflow-hidden border-[6px] shadow-2xl transition-all duration-1000 ${activeRecord ? 'border-emerald-500/20 bg-emerald-950' : 'border-white bg-slate-900'} max-h-[48vh] sm:max-h-[52vh]`}>
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-              <div className="bg-black/40 backdrop-blur-lg border border-white/5 px-4 py-1.5 rounded-xl text-white text-center">
-                <p className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Standard Time</p>
-                <p className="text-lg font-black tabular-nums">{currentTime.toLocaleTimeString('en-US', { hour12: false })}</p>
+              <div className="bg-black/40 backdrop-blur-lg border border-white/10 px-6 py-2 rounded-2xl text-white text-center">
+                <p className="text-[7px] font-black uppercase tracking-[0.3em] opacity-40 mb-1">Live Sync Clock</p>
+                <p className="text-xl font-black tabular-nums">{currentTime.toLocaleTimeString('en-US', { hour12: false })}</p>
               </div>
             </div>
 
@@ -322,113 +319,122 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white/40">
                 <CameraOff size={32} className="mb-2 opacity-20" />
-                <p className="font-black uppercase tracking-widest text-[9px] mb-4">{cameraError || 'Camera Offline'}</p>
-                <button onClick={initCamera} className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-black uppercase tracking-widest text-[9px]">Enable Camera</button>
+                <p className="font-black uppercase tracking-widest text-[9px] mb-4">{cameraError || 'Camera Required'}</p>
+                <button onClick={initCamera} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg">Restore Access</button>
               </div>
             )}
             <canvas ref={canvasRef} className="hidden" />
             
             {status === 'loading' && (
-              <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-white">
-                <RefreshCw className="animate-spin mb-2 text-indigo-400" size={32} />
-                <p className="font-black uppercase tracking-widest text-[9px]">Verifying...</p>
+              <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md z-30 flex flex-col items-center justify-center text-white">
+                <RefreshCw className="animate-spin mb-3 text-indigo-400" size={36} />
+                <p className="font-black uppercase tracking-[0.2em] text-[10px]">Processing Biometric...</p>
               </div>
             )}
             
-            <div className="absolute bottom-4 left-3 right-3 flex items-center justify-between pointer-events-none gap-2">
-              <div className="bg-black/30 backdrop-blur-md border border-white/5 px-3 py-1.5 rounded-full text-white">
-                 <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest">
-                   <MapPin size={10} className={location ? 'text-emerald-400' : 'text-rose-400'} />
-                   <span className="truncate max-w-[70px]">{location ? location.address : 'GPS Linking...'}</span>
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none gap-2">
+              <div className="bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-white">
+                 <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                   <MapPin size={12} className={location ? 'text-emerald-400' : 'text-rose-400'} />
+                   <span className="truncate max-w-[100px]">{location ? location.address : 'GPS Linking...'}</span>
                  </div>
               </div>
-              <div className="bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 px-3 py-1.5 rounded-full text-emerald-400 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest">
-                <ShieldCheck size={10} /> Verified
+              <div className="bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-4 py-2 rounded-full text-emerald-400 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                <ShieldCheck size={12} /> Encrypted
               </div>
             </div>
           </div>
 
-          <div className="space-y-2 bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-md">
-            <input 
-              type="text"
-              placeholder={dutyType === 'FACTORY' ? "Enter Factory Name / Purpose (Required)" : "Session notes (Optional)"}
-              className={`w-full px-4 py-3 bg-slate-50 border rounded-lg text-[11px] font-bold outline-none focus:ring-2 focus:ring-indigo-100 transition-all ${dutyType === 'FACTORY' ? 'border-amber-200' : 'border-slate-200'}`}
-              value={remarks}
-              onChange={e => setRemarks(e.target.value)}
-            />
+          <div className="space-y-3 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl">
+            <div className="relative">
+              <input 
+                type="text"
+                placeholder={dutyType === 'FACTORY' ? "Which Factory? (Required)" : "Session remarks (Optional)"}
+                className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl text-[12px] font-bold outline-none focus:ring-4 transition-all ${dutyType === 'FACTORY' ? 'border-amber-200 focus:ring-amber-50' : 'border-slate-100 focus:ring-indigo-50'}`}
+                value={remarks}
+                onChange={e => setRemarks(e.target.value)}
+              />
+              {dutyType === 'FACTORY' && (
+                <Building2 className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 opacity-50" size={16} />
+              )}
+            </div>
             <button 
               onClick={handlePunch}
               disabled={!location || status !== 'idle' || !cameraEnabled || (dutyType === 'FACTORY' && !remarks && !activeRecord)}
-              className={`w-full py-4 rounded-lg font-black uppercase tracking-[0.1em] text-[11px] shadow-lg transition-all active:scale-[0.97] flex items-center justify-center gap-2 ${
-                activeRecord ? 'bg-rose-600 text-white' : dutyType === 'FACTORY' ? 'bg-amber-600 text-white' : 'bg-indigo-600 text-white'
-              }`}
+              className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 ${
+                activeRecord 
+                  ? 'bg-rose-600 text-white shadow-rose-200' 
+                  : dutyType === 'FACTORY' 
+                    ? 'bg-amber-600 text-white shadow-amber-200' 
+                    : 'bg-indigo-600 text-white shadow-indigo-200'
+              } disabled:opacity-40`}
             >
-              {activeRecord ? <LogOut size={14}/> : <CalendarCheck size={14}/>}
-              {activeRecord ? 'End Session' : dutyType === 'FACTORY' ? 'Start Factory Visit' : 'Clock In Now'}
+              {activeRecord ? <LogOut size={16}/> : <CalendarCheck size={16}/>}
+              {activeRecord ? 'Terminate Session' : dutyType === 'FACTORY' ? 'Start Factory Duty' : 'Authenticate Entry'}
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto no-scrollbar space-y-5 animate-in slide-in-from-bottom-8 duration-700">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm col-span-2 flex flex-col justify-between">
-              <div className="flex justify-between items-start mb-3">
-                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><CalendarCheck size={18} /></div>
-                <span className="text-[7px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Monthly</span>
+        <div className="flex-1 overflow-auto no-scrollbar space-y-6 animate-in slide-in-from-bottom-8 duration-700">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm col-span-2 flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarCheck size={20} /></div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Logged</span>
               </div>
               <div>
-                <h4 className="text-xl font-black text-slate-900 tabular-nums">{analytics.present}</h4>
-                <p className="text-[7px] text-slate-400 font-bold uppercase mt-0.5">Days Logged</p>
+                <h4 className="text-3xl font-black text-slate-900 tabular-nums">{analytics.present}</h4>
+                <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 tracking-widest">Days Present</p>
               </div>
             </div>
             
-            <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg w-fit mb-2"><Clock size={18} /></div>
+            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div className="p-2 bg-amber-50 text-amber-600 rounded-xl w-fit mb-3"><Clock size={20} /></div>
               <div>
-                <h4 className="text-lg font-black text-slate-900 tabular-nums">{analytics.late}</h4>
-                <p className="text-[7px] text-slate-400 font-black uppercase">Late</p>
+                <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.late}</h4>
+                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Late</p>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg w-fit mb-2"><UserMinus size={18} /></div>
+            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl w-fit mb-3"><UserMinus size={20} /></div>
               <div>
-                <h4 className="text-lg font-black text-slate-900 tabular-nums">{analytics.absent}</h4>
-                <p className="text-[7px] text-slate-400 font-black uppercase">Absent</p>
+                <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.absent}</h4>
+                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Absent</p>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col justify-between col-span-2">
-              <div className="flex justify-between items-start mb-3">
-                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><Briefcase size={18} /></div>
-                <span className="text-[7px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Leaves</span>
+            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between col-span-2">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><Briefcase size={20} /></div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Balance</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                   <h4 className="text-lg font-black text-slate-900 tabular-nums">{analytics.totalLeavesThisYear}</h4>
-                   <p className="text-[7px] text-slate-400 font-black uppercase tracking-tight">Approved</p>
+                   <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.totalLeavesThisYear}</h4>
+                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Approved</p>
                 </div>
                 <div>
-                   <h4 className="text-lg font-black text-slate-900 tabular-nums">{analytics.pendingLeaves}</h4>
-                   <p className="text-[7px] text-slate-400 font-black uppercase tracking-tight">Pending</p>
+                   <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.pendingLeaves}</h4>
+                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Pending</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <History size={18} className="text-indigo-600" /> {isAdmin ? 'Organization Audit' : 'My Audit'}
+            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
+                  <History size={20} className="text-indigo-600" /> {isAdmin ? 'Global Workforce Audit' : 'My Session History'}
                 </h3>
                 {isAdmin && (
                   <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input 
                       type="text" 
-                      placeholder="Search employee name, ID or date..."
-                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none"
+                      placeholder="Search name, ID or date..."
+                      className="w-full pl-12 pr-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
                       value={adminSearch}
                       onChange={e => setAdminSearch(e.target.value)}
                     />
@@ -436,38 +442,38 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
                 )}
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {filteredAttendance.map((h, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl group hover:bg-white hover:shadow-sm transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white shadow-sm overflow-hidden flex items-center justify-center cursor-zoom-in" onClick={() => h.selfie && setPreviewSelfie(h.selfie)}>
-                        {h.selfie ? <img src={h.selfie} className="w-full h-full object-cover" /> : <Clock size={14} className="text-slate-200" />}
+                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-white hover:shadow-xl transition-all">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-white shadow-sm overflow-hidden flex items-center justify-center border border-slate-100 cursor-zoom-in group-hover:scale-105 transition-transform" onClick={() => h.selfie && setPreviewSelfie(h.selfie)}>
+                        {h.selfie ? <img src={h.selfie} className="w-full h-full object-cover scale-x-[-1]" /> : <Clock size={16} className="text-slate-200" />}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                            <p className="text-xs font-black text-slate-900 tabular-nums">{new Date(h.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
-                           {isAdmin && <span className="text-[8px] font-black text-indigo-500 uppercase tracking-tight bg-indigo-50 px-1.5 py-0.5 rounded-md">{h.employeeName}</span>}
+                           {isAdmin && <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-lg">{h.employeeName}</span>}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-[8px] font-bold text-slate-400 uppercase tracking-tight">
-                          {h.checkIn} — {h.checkOut || <span className="text-indigo-600 animate-pulse">Live</span>}
+                        <div className="flex items-center gap-2 mt-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                          {h.checkIn} — {h.checkOut || <span className="text-indigo-600 animate-pulse">Running</span>}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       {getStatusBadge(h.status)}
                       {isAdmin && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                           <button onClick={() => setEditingRecord(h)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><Edit2 size={12}/></button>
-                           <button onClick={() => handleAdminDelete(h.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 size={12}/></button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                           <button onClick={() => setEditingRecord(h)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl"><Edit2 size={14}/></button>
+                           <button onClick={() => handleAdminDelete(h.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
                         </div>
                       )}
-                      <ChevronRight size={14} className="text-slate-300" />
+                      <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 ))}
                 {filteredAttendance.length === 0 && (
-                  <div className="py-20 text-center text-slate-300 font-black uppercase text-[10px] tracking-widest">
-                    No matching records found.
+                  <div className="py-24 text-center text-slate-300 font-black uppercase text-[11px] tracking-[0.2em]">
+                    No workforce activity detected.
                   </div>
                 )}
               </div>
@@ -476,42 +482,45 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
         </div>
       )}
 
-      {/* Edit Modal for Admin */}
+      {/* Admin Edit Modal */}
       {editingRecord && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[160] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
-             <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
-                <h3 className="text-sm font-black uppercase tracking-widest">Adjust Session</h3>
-                <button onClick={() => setEditingRecord(null)}><X size={24}/></button>
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[160] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
+             <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+                <div className="flex items-center gap-3">
+                  <Edit2 size={20} className="text-indigo-400" />
+                  <h3 className="text-sm font-black uppercase tracking-widest">Adjust Record</h3>
+                </div>
+                <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-white/10 rounded-xl transition-all"><X size={24}/></button>
              </div>
-             <form onSubmit={handleAdminUpdate} className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Check In</label>
-                    <input type="time" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={editingRecord.checkIn} onChange={e => setEditingRecord({...editingRecord, checkIn: e.target.value})} />
+             <form onSubmit={handleAdminUpdate} className="p-10 space-y-8">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Check In</label>
+                    <input type="time" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold" value={editingRecord.checkIn} onChange={e => setEditingRecord({...editingRecord, checkIn: e.target.value})} />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Check Out</label>
-                    <input type="time" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={editingRecord.checkOut} onChange={e => setEditingRecord({...editingRecord, checkOut: e.target.value})} />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Check Out</label>
+                    <input type="time" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold" value={editingRecord.checkOut} onChange={e => setEditingRecord({...editingRecord, checkOut: e.target.value})} />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Date</label>
-                  <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={editingRecord.date} onChange={e => setEditingRecord({...editingRecord, date: e.target.value})} />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Session Date</label>
+                  <input type="date" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold" value={editingRecord.date} onChange={e => setEditingRecord({...editingRecord, date: e.target.value})} />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Status</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" value={editingRecord.status} onChange={e => setEditingRecord({...editingRecord, status: e.target.value as any})}>
-                    <option value="PRESENT">Present</option>
-                    <option value="LATE">Late</option>
-                    <option value="ABSENT">Absent</option>
-                    <option value="EARLY_OUT">Early Out</option>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Status Audit</label>
+                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none" value={editingRecord.status} onChange={e => setEditingRecord({...editingRecord, status: e.target.value as any})}>
+                    <option value="PRESENT">Standard Present</option>
+                    <option value="LATE">Verified Late</option>
+                    <option value="ABSENT">Unexcused Absent</option>
+                    <option value="EARLY_OUT">Early Departure</option>
                   </select>
                 </div>
                 <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => setEditingRecord(null)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest">Cancel</button>
-                  <button type="submit" disabled={status === 'loading'} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2">
-                    {status === 'loading' ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Commit Edit
+                  <button type="button" onClick={() => setEditingRecord(null)} className="flex-1 py-5 bg-slate-100 text-slate-500 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all hover:bg-slate-200">Cancel</button>
+                  <button type="submit" disabled={status === 'loading'} className="flex-1 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-2xl flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all">
+                    {status === 'loading' ? <RefreshCw className="animate-spin" size={16}/> : <Save size={16}/>} Commit
                   </button>
                 </div>
              </form>
@@ -519,13 +528,20 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
         </div>
       )}
 
+      {/* Selfie Preview */}
       {previewSelfie && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-[150] flex items-center justify-center p-4 animate-in fade-in zoom-in duration-300" onClick={() => setPreviewSelfie(null)}>
-           <div className="max-w-md w-full aspect-square rounded-[2rem] overflow-hidden border-4 border-white/5 shadow-2xl relative">
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-[200] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300" onClick={() => setPreviewSelfie(null)}>
+           <div className="max-w-xl w-full aspect-square rounded-[3rem] overflow-hidden border-8 border-white/10 shadow-2xl relative">
               <img src={previewSelfie} className="w-full h-full object-cover scale-x-[-1]" />
-              <button className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-all" onClick={() => setPreviewSelfie(null)}>
-                <X size={16} />
+              <button className="absolute top-6 right-6 p-4 bg-black/60 text-white rounded-2xl hover:bg-white hover:text-black transition-all shadow-xl" onClick={() => setPreviewSelfie(null)}>
+                <X size={24} />
               </button>
+              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
+                 <div className="flex items-center gap-3 text-white">
+                    <ShieldCheck className="text-emerald-400" />
+                    <span className="font-black uppercase tracking-widest text-xs">Biometric Verification Proof</span>
+                 </div>
+              </div>
            </div>
         </div>
       )}

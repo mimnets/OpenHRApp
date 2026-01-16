@@ -14,13 +14,12 @@ import { pb, isPocketBaseConfigured } from './services/pocketbase';
 import { User } from './types';
 import { 
   Database, 
-  ShieldAlert, 
   Menu, 
   X, 
   LayoutDashboard, 
   Clock, 
   CalendarDays, 
-  UserCircle 
+  UserCircle
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -37,7 +36,7 @@ const App: React.FC = () => {
 
       setCurrentUser({
         id: model.id,
-        employeeId: model.employee_id || '', // Standardized to lowercase
+        employeeId: model.employee_id || '', 
         name: model.name || 'User',
         email: model.email,
         role: normalizedRole,
@@ -53,7 +52,7 @@ const App: React.FC = () => {
          const normalized = (m.role || 'EMPLOYEE').toString().toUpperCase() as any;
          setCurrentUser({
             id: m.id,
-            employeeId: m.employee_id || '', // Standardized to lowercase
+            employeeId: m.employee_id || '', 
             name: m.name || 'User',
             email: m.email,
             role: normalized,
@@ -110,16 +109,14 @@ const App: React.FC = () => {
 
   return (
     <div className="flex bg-slate-50 min-h-screen relative overflow-hidden">
-      {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      {/* Mobile Sidebar Backdrop */}
+      <div 
+        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
 
-      {/* Sidebar - Desktop and Mobile Drawer */}
-      <div className={`fixed h-full z-[70] transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:block'}`}>
+      {/* Sidebar Container */}
+      <div className={`fixed h-full z-[70] transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar 
           currentPath={currentPath} 
           onNavigate={handleNavigate} 
@@ -128,8 +125,7 @@ const App: React.FC = () => {
         />
       </div>
 
-      <main className="flex-1 md:ml-64 flex flex-col min-h-screen relative">
-        {/* Universal Header */}
+      <main className="flex-1 md:ml-64 flex flex-col min-h-screen max-w-full overflow-hidden">
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 md:px-10 sticky top-0 z-40">
            <div className="flex items-center gap-4">
               <button 
@@ -139,24 +135,22 @@ const App: React.FC = () => {
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
               
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full border bg-indigo-50 text-indigo-600 border-indigo-100 hidden sm:flex">
-                <Database size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">POCKETBASE</span>
-              </div>
-              
-              <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${
-                currentUser.role === 'ADMIN' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-50 text-slate-500 border-slate-100'
-              }`}>
-                <ShieldAlert size={12} />
-                <span className="hidden xs:inline">{currentUser.role} ACCESS</span>
-                <span className="xs:hidden">{currentUser.role[0]}</span>
+              <div className="flex items-center gap-2">
+                 <div className="p-1.5 bg-indigo-600 rounded-lg text-white md:hidden">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" className="w-5 h-5 invert" alt="Logo" />
+                 </div>
+                 <h2 className="font-black text-lg tracking-tighter brand-gradient md:hidden truncate max-w-[120px]">OpenHR</h2>
+                 <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50 text-slate-500 border-slate-100">
+                   <Database size={12} />
+                   <span className="text-[9px] font-black uppercase tracking-widest">System Cloud</span>
+                 </div>
               </div>
            </div>
 
            <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900 leading-tight">{currentUser.name}</p>
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{currentUser.designation}</p>
+                <p className="text-sm font-black text-slate-900 leading-tight truncate max-w-[150px]">{currentUser.name}</p>
+                <p className="text-[9px] font-black uppercase text-indigo-50 text-indigo-500 tracking-wider">Verified {currentUser.role}</p>
               </div>
               <div 
                 className="cursor-pointer"
@@ -171,36 +165,37 @@ const App: React.FC = () => {
            </div>
         </header>
 
-        {/* Content Area */}
-        <div className="flex-1 p-4 md:p-10 max-w-7xl mx-auto w-full pb-24 md:pb-10">
-          {renderContent()}
+        <div className="flex-1 p-4 md:p-10 w-full pb-24 md:pb-10 overflow-x-hidden">
+          <div className="max-w-7xl mx-auto w-full">
+            {renderContent()}
+          </div>
         </div>
 
-        {/* Mobile Bottom Navigation (Only for Employees/General use) */}
+        {/* Mobile Navigation Bar */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 flex items-center justify-around p-4 z-50">
           <button 
-            onClick={() => setCurrentPath('dashboard')}
+            onClick={() => handleNavigate('dashboard')}
             className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
           >
             <LayoutDashboard size={20} className={currentPath === 'dashboard' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Home</span>
           </button>
           <button 
-            onClick={() => setCurrentPath('attendance')}
+            onClick={() => handleNavigate('attendance')}
             className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'attendance' ? 'text-indigo-600' : 'text-slate-400'}`}
           >
             <Clock size={20} className={currentPath === 'attendance' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Station</span>
           </button>
           <button 
-            onClick={() => setCurrentPath('leave')}
+            onClick={() => handleNavigate('leave')}
             className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'leave' ? 'text-indigo-600' : 'text-slate-400'}`}
           >
             <CalendarDays size={20} className={currentPath === 'leave' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Leave</span>
           </button>
           <button 
-            onClick={() => setCurrentPath('profile')}
+            onClick={() => handleNavigate('profile')}
             className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'profile' ? 'text-indigo-600' : 'text-slate-400'}`}
           >
             <UserCircle size={20} className={currentPath === 'profile' ? 'scale-110' : ''} />

@@ -34,6 +34,10 @@ Add these fields:
 - `recipient_email` (email, non-empty)
 - `subject` (text)
 - `html_content` (text/editor)
+- `status` (text) - Values: PENDING, SENT, FAILED
+- `sent_at` (date/time)
+- `failed_at` (date/time)
+- `error_message` (text)
 
 ### attendance
 - `employee_id` (relation: users, single)

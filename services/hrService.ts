@@ -360,13 +360,19 @@ export const hrService = {
   async sendCustomEmail(payload: { recipientEmail: string, subject?: string, html: string }) {
     if (!pb || !isPocketBaseConfigured()) return;
     try {
+        // We only send the minimum required fields to avoid validation 400 errors
         return await pb.collection('reports_queue').create({
             recipient_email: payload.recipientEmail,
             subject: payload.subject || "OpenHR Report",
-            html_content: payload.html
+            html_content: payload.html,
+            status: 'PENDING'
         });
     } catch (err: any) {
-        console.error("PocketBase Email Queueing Error: ", err);
+        if (err.data) {
+           console.error("PocketBase Validation Error:", JSON.stringify(err.data, null, 2));
+        } else {
+           console.error("PocketBase Queueing Error:", err.message || err);
+        }
         throw err;
     }
   },

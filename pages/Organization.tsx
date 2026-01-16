@@ -92,7 +92,6 @@ const Organization: React.FC = () => {
   const handleSaveWorkflows = async () => {
     setIsSaving(true);
     try {
-      // Ensure we save a workflow for every current department
       const finalWorkflows = departments.map(dept => {
         const existing = workflows.find(w => w.department === dept);
         return existing || { department: dept, approverRole: 'LINE_MANAGER' as const };
@@ -200,11 +199,11 @@ const Organization: React.FC = () => {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 overflow-x-hidden">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Organization & Setup</h1>
-          <p className="text-slate-500 font-medium">Core structural and policy configurations</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Organization & Setup</h1>
+          <p className="text-sm text-slate-500 font-medium">Core structural and policy configurations</p>
         </div>
       </header>
 
@@ -213,7 +212,7 @@ const Organization: React.FC = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`px-4 md:px-6 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
               activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -222,19 +221,19 @@ const Organization: React.FC = () => {
         ))}
       </div>
 
-      <div className="animate-in fade-in duration-300">
+      <div className="animate-in fade-in duration-300 w-full">
         {activeTab === 'STRUCTURE' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-6 bg-[#0f172a] text-white flex justify-between items-center">
-                <div className="flex items-center gap-3"><Network size={20} /><h3 className="text-sm font-black uppercase tracking-wider">Departments</h3></div>
-                <button onClick={() => openModal('DEPT')} className="p-2 bg-white/10 rounded-lg"><Plus size={18} /></button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+            <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-5 md:p-6 bg-[#0f172a] text-white flex justify-between items-center">
+                <div className="flex items-center gap-3"><Network size={20} /><h3 className="text-xs md:text-sm font-black uppercase tracking-wider">Departments</h3></div>
+                <button onClick={() => openModal('DEPT')} className="p-2 bg-white/10 rounded-lg transition-colors hover:bg-white/20"><Plus size={18} /></button>
               </div>
-              <div className="p-6 space-y-2">
+              <div className="p-4 md:p-6 space-y-2 flex-1 overflow-y-auto">
                 {departments.map((dept, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white transition-all">
-                    <span className="font-bold text-slate-800">{dept}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div key={i} className="flex items-center justify-between p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white transition-all">
+                    <span className="font-bold text-slate-800 break-words max-w-[70%]">{dept}</span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
                       <button onClick={() => openModal('DEPT', i)} className="p-2 text-slate-400 hover:text-indigo-600"><Edit3 size={16} /></button>
                       <button onClick={() => deleteItem('DEPT', i)} className="p-2 text-slate-400 hover:text-rose-500"><Trash2 size={16} /></button>
                     </div>
@@ -247,16 +246,17 @@ const Organization: React.FC = () => {
                 )}
               </div>
             </section>
-            <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-6 bg-[#1e293b] text-white flex justify-between items-center">
-                <div className="flex items-center gap-3"><Briefcase size={20} /><h3 className="text-sm font-black uppercase tracking-wider">Designations</h3></div>
-                <button onClick={() => openModal('DESIG')} className="p-2 bg-white/10 rounded-lg"><Plus size={18} /></button>
+            
+            <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-5 md:p-6 bg-[#1e293b] text-white flex justify-between items-center">
+                <div className="flex items-center gap-3"><Briefcase size={20} /><h3 className="text-xs md:text-sm font-black uppercase tracking-wider">Designations</h3></div>
+                <button onClick={() => openModal('DESIG')} className="p-2 bg-white/10 rounded-lg transition-colors hover:bg-white/20"><Plus size={18} /></button>
               </div>
-              <div className="p-6 space-y-2">
+              <div className="p-4 md:p-6 space-y-2 flex-1 overflow-y-auto">
                 {designations.map((des, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white transition-all">
-                    <span className="font-bold text-slate-800">{des}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div key={i} className="flex items-center justify-between p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white transition-all">
+                    <span className="font-bold text-slate-800 break-words max-w-[70%]">{des}</span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
                       <button onClick={() => openModal('DESIG', i)} className="p-2 text-slate-400 hover:text-indigo-600"><Edit3 size={16} /></button>
                       <button onClick={() => deleteItem('DESIG', i)} className="p-2 text-slate-400 hover:text-rose-500"><Trash2 size={16} /></button>
                     </div>
@@ -273,24 +273,24 @@ const Organization: React.FC = () => {
         )}
 
         {activeTab === 'HOLIDAYS' && (
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden animate-in zoom-in duration-500">
-             <div className="p-6 bg-emerald-900 text-white flex justify-between items-center">
-                <div className="flex items-center gap-3"><Palmtree size={20} /><h3 className="text-sm font-black uppercase tracking-wider">Company Holiday Calendar</h3></div>
-                <button onClick={() => openModal('HOLIDAY')} className="px-6 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><Plus size={14}/> Add Holiday</button>
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in zoom-in duration-500">
+             <div className="p-5 md:p-6 bg-emerald-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-3"><Palmtree size={20} /><h3 className="text-xs md:text-sm font-black uppercase tracking-wider">Holiday Calendar</h3></div>
+                <button onClick={() => openModal('HOLIDAY')} className="w-full sm:w-auto px-6 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"><Plus size={14}/> Add Holiday</button>
              </div>
-             <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {holidays.sort((a,b) => a.date.localeCompare(b.date)).map((hol, i) => (
-                   <div key={hol.id} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] group relative hover:bg-white transition-all">
+                   <div key={hol.id} className="p-5 md:p-6 bg-slate-50 border border-slate-100 rounded-[2rem] group relative hover:bg-white transition-all">
                       <div className="flex justify-between items-start mb-3">
                          <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${hol.type === 'ISLAMIC' ? 'bg-emerald-100 text-emerald-700' : hol.type === 'NATIONAL' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}`}>
                             {hol.type}
                          </div>
-                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
                             <button onClick={() => openModal('HOLIDAY', i)} className="p-2 text-slate-400 hover:text-indigo-600"><Edit3 size={14} /></button>
                             <button onClick={() => deleteItem('HOLIDAY', i)} className="p-2 text-slate-400 hover:text-rose-500"><Trash2 size={14} /></button>
                          </div>
                       </div>
-                      <h4 className="font-black text-slate-900 text-sm mb-1">{hol.name}</h4>
+                      <h4 className="font-black text-slate-900 text-sm mb-1 break-words">{hol.name}</h4>
                       <div className="flex items-center gap-2 text-slate-400">
                          <Calendar size={12} />
                          <span className="text-[10px] font-black uppercase tracking-widest">{new Date(hol.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric'})}</span>
@@ -303,25 +303,25 @@ const Organization: React.FC = () => {
         )}
 
         {activeTab === 'WORKFLOW' && (
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 space-y-8">
-            <div className="flex justify-between items-center">
-               <div><h3 className="text-xl font-black text-slate-900">Leave Approval Matrix</h3><p className="text-sm text-slate-500">Define first-level approvers for each department</p></div>
-               <button onClick={handleSaveWorkflows} disabled={isSaving || departments.length === 0} className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
-                  {isSaving ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Save Workflow
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-8 space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+               <div><h3 className="text-xl font-black text-slate-900">Approval Matrix</h3><p className="text-sm text-slate-500">Define first-level approvers</p></div>
+               <button onClick={handleSaveWorkflows} disabled={isSaving || departments.length === 0} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
+                  {isSaving ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Save Changes
                </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                {departments.map((dept) => {
                  const currentWf = workflows.find(w => w.department === dept);
                  const currentRole = currentWf?.approverRole || 'LINE_MANAGER';
                  
                  return (
-                  <div key={dept} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem]">
+                  <div key={dept} className="p-5 md:p-6 bg-slate-50 border border-slate-100 rounded-[2rem]">
                      <div className="flex items-center gap-3 mb-4">
                         <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600"><Workflow size={18}/></div>
                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Department</span>
                      </div>
-                     <h4 className="text-sm font-black text-slate-900 mb-6">{dept}</h4>
+                     <h4 className="text-sm font-black text-slate-900 mb-6 break-words">{dept}</h4>
                      <div className="space-y-3">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Approver Role</p>
                         <select 
@@ -337,24 +337,19 @@ const Organization: React.FC = () => {
                   </div>
                  );
                })}
-               {departments.length === 0 && (
-                 <div className="col-span-full py-12 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                   Define departments first in the Structure tab to configure workflows.
-                 </div>
-               )}
             </div>
           </div>
         )}
 
         {activeTab === 'TERMS' && (
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 space-y-12">
-            <div className="flex justify-between items-center">
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-8 space-y-12">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div><h3 className="text-xl font-black text-slate-900">Compliance & Hours</h3><p className="text-sm text-slate-500">Configure shifts and workweek</p></div>
-              <button onClick={handleSaveConfig} disabled={isSaving} className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
+              <button onClick={handleSaveConfig} disabled={isSaving} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
                 {isSaving ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Save Policy
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
               <div className="space-y-6">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14} className="text-indigo-600" /> Fixed Shift Hours</h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -374,36 +369,35 @@ const Organization: React.FC = () => {
         )}
         
         {activeTab === 'PLACEMENT' && (
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 animate-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3"><UserCircle className="text-indigo-600"/> Staff Hierarchy (Reporting Lines)</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead><tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100"><th className="pb-4 px-4">Employee Name</th><th className="pb-4 px-4">Direct Supervisor / Manager</th></tr></thead>
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 md:p-8 animate-in slide-in-from-bottom-4 duration-500 w-full overflow-hidden">
+            <h3 className="text-lg md:text-xl font-black text-slate-900 mb-6 flex items-center gap-3"><UserCircle className="text-indigo-600"/> Reporting Lines</h3>
+            
+            {/* Fully Responsive Table Wrapper */}
+            <div className="w-full overflow-x-auto no-scrollbar rounded-xl border border-slate-50">
+              <table className="w-full text-left text-sm min-w-[500px]">
+                <thead><tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100"><th className="pb-4 px-4">Staff Member</th><th className="pb-4 px-4">Line Manager</th></tr></thead>
                 <tbody className="divide-y divide-slate-50">
                   {employees.length === 0 ? (
-                    <tr><td colSpan={2} className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No employees found in the "users" collection.</td></tr>
+                    <tr><td colSpan={2} className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No staff records found.</td></tr>
                   ) : (
                     employees.map(emp => (
                       <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-[10px] uppercase">
-                               {emp.avatar ? <img src={emp.avatar} className="w-full h-full object-cover rounded-lg" /> : emp.name[0]}
+                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex-shrink-0 flex items-center justify-center font-black text-indigo-600 text-[10px] uppercase overflow-hidden">
+                               {emp.avatar ? <img src={emp.avatar} className="w-full h-full object-cover" /> : emp.name[0]}
                             </div>
-                            <div>
-                               <p className="font-bold text-slate-700 leading-none">{emp.name}</p>
-                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{emp.department} • {emp.designation}</p>
+                            <div className="min-w-0">
+                               <p className="font-bold text-slate-700 leading-none truncate">{emp.name}</p>
+                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 truncate">{emp.department}</p>
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3 relative max-w-xs">
-                            <label htmlFor={`lm-${emp.id}`} className="sr-only">Select Manager for {emp.name}</label>
                             <select 
-                              id={`lm-${emp.id}`}
-                              name={`lm-${emp.id}`}
                               disabled={savingManagerId === emp.id}
-                              className={`w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all ${savingManagerId === emp.id ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                              className={`w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-[10px] md:text-xs font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all ${savingManagerId === emp.id ? 'opacity-50' : ''}`} 
                               value={emp.lineManagerId || ''} 
                               onChange={(e) => handleUpdateLineManager(emp.id, e.target.value)}
                             >
@@ -412,9 +406,6 @@ const Organization: React.FC = () => {
                                 <option key={m.id} value={m.id}>{m.name}</option>
                               ))}
                             </select>
-                            {savingManagerId === emp.id && (
-                              <RefreshCw size={14} className="animate-spin text-indigo-600 absolute right-3 pointer-events-none" />
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -429,16 +420,16 @@ const Organization: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
+          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
             <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
-               <h3 className="text-lg font-black uppercase">{modalType === 'HOLIDAY' ? 'Holiday Profile' : 'Manage ' + modalType}</h3>
-               <button onClick={() => setShowModal(false)}><X size={24} /></button>
+               <h3 className="text-sm font-black uppercase tracking-widest">{modalType === 'HOLIDAY' ? 'Holiday Profile' : 'Manage ' + modalType}</h3>
+               <button onClick={() => setShowModal(false)} className="p-2 rounded-lg hover:bg-white/10 transition-colors"><X size={24} /></button>
             </div>
-            <form onSubmit={handleModalSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleModalSubmit} className="p-6 md:p-8 space-y-6">
               {modalType === 'HOLIDAY' ? (
                 <div className="space-y-4">
-                   <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Holiday Title</label><input required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
-                   <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Event Date</label><input type="date" required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.date} onChange={e => setHolidayForm({...holidayForm, date: e.target.value})} /></div>
+                   <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Title</label><input required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
+                   <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Date</label><input type="date" required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.date} onChange={e => setHolidayForm({...holidayForm, date: e.target.value})} /></div>
                    <div className="space-y-1">
                       <label className="text-[10px] font-black text-slate-400 uppercase px-1">Category</label>
                       <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.type} onChange={e => setHolidayForm({...holidayForm, type: e.target.value as any})}>
@@ -451,7 +442,7 @@ const Organization: React.FC = () => {
               ) : (
                 <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Entry Name</label><input autoFocus required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={modalValue} onChange={e => setModalValue(e.target.value)} /></div>
               )}
-              <div className="flex gap-4 pt-4"><button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest">Cancel</button><button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"><Save size={16} /> Confirm Entry</button></div>
+              <div className="flex gap-3 pt-4"><button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-colors hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg transition-colors hover:bg-indigo-700"><Save size={16} /> Confirm</button></div>
             </form>
           </div>
         </div>
