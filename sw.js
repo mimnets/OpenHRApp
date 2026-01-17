@@ -1,15 +1,13 @@
-const CACHE_NAME = 'openhr-v2.5.3';
-const ASSETS_TO_CACHE = [
-  './',
+const CACHE_NAME = 'openhr-v2.6.3';
+const ASSETS_TO_PRECACHE = [
   './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com'
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_PRECACHE);
     }).then(() => self.skipWaiting())
   );
 });
@@ -29,47 +27,28 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle http/https requests. 
-  // Browser extensions often trigger other protocols (chrome-extension://) 
-  // which will cause 'Failed to fetch' errors if handled by the SW.
-  if (!event.request.url.startsWith('http')) {
-    return;
-  }
-
   const url = new URL(event.request.url);
 
-  // Avoid intercepting API calls or dynamic ESM modules directly 
-  // to prevent 403/CORS issues on mobile browsers.
-  if (url.hostname.includes('pocketbase') || url.hostname.includes('esm.sh')) {
-    return; 
+  // CRITICAL: Immediately bypass everything that isn't a local resource to avoid CORS issues
+  // We only care about caching the main app shell.
+  if (!event.request.url.startsWith(self.location.origin) || 
+      url.hostname.includes('tailwindcss.com') || 
+      url.hostname.includes('pocketbase')) {
+    return; // Let browser handle it normally
   }
 
-  // Navigation requests: Network-first with cache fallback
+  // Handle navigation requests
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(async () => {
-        try {
-          const cache = await caches.open(CACHE_NAME);
-          const cachedResponse = await cache.match('./index.html');
-          return cachedResponse || new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
-        } catch (e) {
-          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
-        }
-      })
+      fetch(event.request).catch(() => caches.match('./index.html'))
     );
     return;
   }
 
-  // For static assets: Cache-first
+  // Handle local assets (index.html, manifest, icons if local)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // Return a silent 404 for missing non-essential assets instead of throwing
-        return new Response(null, { status: 404 });
-      });
+      return cachedResponse || fetch(event.request);
     })
   );
 });

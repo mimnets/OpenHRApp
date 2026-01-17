@@ -1,7 +1,8 @@
 {
-  "name": "OpenHRApp Management System",
-  "short_name": "OpenHRApp",
-  "description": "Smart Enterprise HRMS for Mid-Size Organizations",
+  "id": "openhr-mobile-app-v2",
+  "name": "OpenHR App",
+  "short_name": "OpenHR",
+  "description": "Smart Open-Source HR Management System",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

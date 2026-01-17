@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>OpenHRApp - Open Source HRMS</title>
   
-  <!-- PWA Meta Tags -->
+  <!-- PWA & iOS Specific Meta Tags -->
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="OpenHRApp">
+  <meta name="apple-mobile-web-app-title" content="OpenHR">
+  
+  <!-- High Quality Icons for iOS -->
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/9167/9167014.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="https://cdn-icons-png.flaticon.com/512/9167/9167014.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn-icons-png.flaticon.com/512/9167/9167014.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="https://cdn-icons-png.flaticon.com/512/9167/9167014.png">
+  
   <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/9167/9167014.png">
   <link rel="manifest" href="manifest.json">
   
@@ -27,23 +33,21 @@
       -webkit-tap-highlight-color: transparent;
       padding-bottom: env(safe-area-inset-bottom);
     }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
+    /* Ensure the app feels like a real app on iOS notch devices */
     @media all and (display-mode: standalone) {
       body {
         padding-top: env(safe-area-inset-top);
       }
     }
 
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
     .brand-gradient {
       background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #10b981 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-    }
-
-    .brand-border {
-      border-image: linear-gradient(135deg, #2563eb, #7c3aed, #fbbf24, #10b981) 1;
     }
   </style>
 <script type="importmap">

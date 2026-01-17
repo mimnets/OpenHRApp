@@ -7,22 +7,43 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
+// Global PWA Install State
+let deferredPrompt: any = null;
+
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Standard relative registration is the most robust way to ensure the origin matches
-    // the current document, which is required for Service Workers.
     navigator.serviceWorker.register('./sw.js')
       .then(registration => {
-        console.log('OpenHR PWA ServiceWorker registered at scope:', registration.scope);
+        console.log('OpenHR PWA ServiceWorker registered. Scope:', registration.scope);
       })
       .catch(error => {
-        // Log warning but don't break the app; PWA features are progressive enhancements.
-        // In some sandboxed preview environments, Service Workers are restricted by origin policies.
-        console.warn('OpenHR PWA ServiceWorker registration skipped or failed:', error);
+        console.warn('OpenHR PWA ServiceWorker registration failed:', error);
       });
   });
 }
+
+// Listen for the "Install PWA" event
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent the default mini-infobar from appearing on some mobile browsers
+  e.preventDefault();
+  // Stash the event so it can be triggered later
+  deferredPrompt = e;
+  
+  // Custom property to make it accessible to components
+  (window as any).deferredPWAPrompt = e;
+  
+  // Notify components that the app is now installable
+  window.dispatchEvent(new CustomEvent('pwa-install-available'));
+  
+  console.log('PWA: Ready for manual installation trigger');
+});
+
+window.addEventListener('appinstalled', (evt) => {
+  console.log('PWA: Successfully installed on device');
+  (window as any).deferredPWAPrompt = null;
+  window.dispatchEvent(new CustomEvent('pwa-installed'));
+});
 
 try {
   const root = ReactDOM.createRoot(rootElement);
