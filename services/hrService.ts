@@ -4,15 +4,39 @@ import { pb, isPocketBaseConfigured } from './pocketbase';
 
 const subscribers: Set<() => void> = new Set();
 
-const cleanPayload = (data: any) => {
-  const systemFields = [
-    'id', 'created', 'updated', 'collectionId', 'collectionName', 
-    'expand', 'username', 'verified', 'emailVisibility',
-    'managerName', 'managerEmail'
-  ];
-  const cleaned = { ...data };
-  systemFields.forEach(field => delete cleaned[field]);
-  return cleaned;
+/**
+ * Strips all internal and camelCase fields, leaving only 
+ * what is confirmed to be in the PocketBase schema.
+ */
+const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
+  const pbData: any = {};
+  
+  // Mandatory Whitelist (Fields that exist in the PB 'users' collection)
+  if (data.name) pbData.name = data.name;
+  if (data.role) pbData.role = data.role.toUpperCase();
+  if (data.department) pbData.department = data.department;
+  if (data.designation) pbData.designation = data.designation;
+  
+  // Map camelCase to snake_case for DB
+  if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
+  if (data.lineManagerId !== undefined) pbData.line_manager_id = data.lineManagerId || null;
+  
+  // Files are handled separately in toFormData if they are base64
+  if (data.avatar && !data.avatar.startsWith('http')) {
+    pbData.avatar = data.avatar;
+  }
+
+  // Only include Auth fields on creation to avoid PB validation errors on update
+  if (!isUpdate) {
+    if (data.email) pbData.email = data.email;
+    if (data.password) {
+      pbData.password = data.password;
+      pbData.passwordConfirm = data.password;
+    }
+    pbData.emailVisibility = true;
+  }
+
+  return pbData;
 };
 
 const dataURLtoBlob = (dataurl: string) => {
@@ -34,7 +58,7 @@ const toFormData = (data: any, fileName: string = 'file.jpg') => {
     if (typeof value === 'string' && value.startsWith('data:')) {
       formData.append(key, dataURLtoBlob(value), fileName);
     } else if (value !== null && value !== undefined) {
-      formData.append(key, typeof value === 'object' ? JSON.stringify(value) : value);
+      formData.append(key, value);
     }
   });
   return formData;
@@ -154,15 +178,9 @@ export const hrService = {
 
   async addEmployee(emp: Partial<Employee>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    const pbData: any = cleanPayload(emp);
-    pbData.role = (emp.role || 'EMPLOYEE').toUpperCase();
-    pbData.employee_id = emp.employeeId || '';
-    pbData.line_manager_id = emp.lineManagerId || null; 
-    pbData.password = emp.password || 'OpenHR@123';
-    pbData.passwordConfirm = emp.password || 'OpenHR@123';
-    pbData.emailVisibility = true;
-
-    if (emp.avatar && emp.avatar.startsWith('data:')) {
+    const pbData = sanitizeUserPayload(emp, false);
+    
+    if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
       await pb.collection('users').create(toFormData(pbData, 'avatar.jpg'));
     } else {
       await pb.collection('users').create(pbData);
@@ -172,17 +190,14 @@ export const hrService = {
 
   async updateProfile(id: string, updates: Partial<Employee>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    const pbData: any = cleanPayload(updates);
-    if (updates.role) pbData.role = updates.role.toUpperCase();
-    if (updates.employeeId !== undefined) pbData.employee_id = updates.employeeId;
-    if (updates.lineManagerId !== undefined) pbData.line_manager_id = updates.lineManagerId || null; 
+    const pbData = sanitizeUserPayload(updates, true);
     
-    if (updates.avatar && updates.avatar.startsWith('data:')) {
+    // Check if we are updating an avatar
+    if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
       await pb.collection('users').update(id, toFormData(pbData, 'avatar.jpg'));
     } else {
-      if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('http')) {
-        delete pbData.avatar;
-      }
+      // If it's a URL or null, remove it from the payload to avoid trying to "upload" a string
+      delete pbData.avatar; 
       await pb.collection('users').update(id, pbData);
     }
     this.notify();
@@ -226,7 +241,6 @@ export const hrService = {
       if (result.items.length > 0) {
         const item = result.items[0];
         // AUTO-CLOSE STALE SESSIONS: 
-        // If the session is from a previous date, close it at 18:00 of that day automatically.
         if (item.date !== today) {
           await pb.collection('attendance').update(item.id, { 
             check_out: "18:00", 
@@ -315,16 +329,18 @@ export const hrService = {
   async saveLeaveRequest(data: LeaveRequest) {
     if (!pb || !isPocketBaseConfigured()) return;
     const payload = { 
-      ...data, 
       employee_id: data.employeeId, 
       employee_name: data.employeeName, 
       applied_date: data.appliedDate,
       start_date: data.startDate,
       end_date: data.endDate,
       total_days: data.totalDays,
+      type: data.type,
+      reason: data.reason,
+      status: data.status,
       line_manager_id: data.lineManagerId || null 
     };
-    await pb.collection('leaves').create(cleanPayload(payload));
+    await pb.collection('leaves').create(payload);
     this.notify();
   },
 
@@ -360,7 +376,6 @@ export const hrService = {
   async sendCustomEmail(payload: { recipientEmail: string, subject?: string, html: string }) {
     if (!pb || !isPocketBaseConfigured()) return;
     try {
-        // We only send the minimum required fields to avoid validation 400 errors
         return await pb.collection('reports_queue').create({
             recipient_email: payload.recipientEmail,
             subject: payload.subject || "OpenHR Report",
@@ -368,11 +383,6 @@ export const hrService = {
             status: 'PENDING'
         });
     } catch (err: any) {
-        if (err.data) {
-           console.error("PocketBase Validation Error:", JSON.stringify(err.data, null, 2));
-        } else {
-           console.error("PocketBase Queueing Error:", err.message || err);
-        }
         throw err;
     }
   },
