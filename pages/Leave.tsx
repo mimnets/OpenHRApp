@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
@@ -13,10 +14,13 @@ import {
   Loader2,
   FileText,
   CalendarDays,
-  RefreshCw
+  RefreshCw,
+  Info,
+  ChevronRight,
+  MessageSquare,
+  AlertCircle
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { emailService } from '../services/emailService';
 import { LeaveRequest, LeaveBalance, Employee } from '../types';
 
 const Leave: React.FC<{ user: any }> = ({ user }) => {
@@ -24,11 +28,12 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
   const [isManager, setIsManager] = useState(false);
   
   const [showForm, setShowForm] = useState(false);
-  const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState<LeaveRequest | null>(null);
   const [showReviewModal, setShowReviewModal] = useState<LeaveRequest | null>(null);
   const [reviewRemarks, setReviewRemarks] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({ 
     type: 'ANNUAL', 
@@ -62,9 +67,8 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
 
       const managerStatus = hrService.isManagerOfSomeone(user.id, allEmps);
       setIsManager(managerStatus);
-      if (managerStatus && activeTab === 'MY' && !isAdmin) {
-        setActiveTab('MANAGEMENT');
-      }
+    } catch (e) {
+      console.error("Data refresh failed:", e);
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +78,7 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
     if (!start || !end) return 0;
     const s = new Date(start);
     const e = new Date(end);
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
     const diff = e.getTime() - s.getTime();
     return Math.max(1, Math.ceil(diff / (1000 * 3600 * 24)) + 1);
   };
@@ -81,42 +86,50 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
   const handleSubmitLeave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-    const days = calculateDays(formData.start, formData.end);
+    setSubmissionError(null);
     
+    const days = calculateDays(formData.start, formData.end);
+    if (days <= 0) {
+      setSubmissionError("Invalid date range selected.");
+      setIsProcessing(false);
+      return;
+    }
+
     const me = allEmployees.find(emp => emp.id === user.id);
     const lineManagerId = me?.lineManagerId;
 
     try {
-      if (editingRequest) {
-        await hrService.modifyLeaveRequest(editingRequest.id, {
-          type: formData.type as any,
-          startDate: formData.start,
-          endDate: formData.end,
-          totalDays: days,
-          reason: formData.reason
-        });
-      } else {
-        await hrService.saveLeaveRequest({
-          id: '', 
-          employeeId: user.id,
-          employeeName: user.name,
-          lineManagerId: lineManagerId,
-          type: formData.type as any,
-          startDate: formData.start,
-          endDate: formData.end,
-          totalDays: days,
-          reason: formData.reason,
-          status: 'PENDING_MANAGER',
-          appliedDate: new Date().toISOString()
-        });
-      }
+      await hrService.saveLeaveRequest({
+        id: '', 
+        employeeId: user.id,
+        employeeName: user.name,
+        lineManagerId: lineManagerId,
+        type: formData.type as any,
+        startDate: formData.start,
+        endDate: formData.end,
+        totalDays: days,
+        reason: formData.reason,
+        status: 'PENDING_MANAGER',
+        appliedDate: new Date().toISOString()
+      });
       
       await refreshData();
       setShowForm(false);
-      setEditingRequest(null);
       setFormData({ type: 'ANNUAL', start: '', end: '', reason: '' });
-    } catch (err) {
-      alert("Submission failed. Ensure 'leaves' collection is correctly configured in PocketBase.");
+    } catch (err: any) {
+      console.error("Submission error encountered:", err);
+      await refreshData();
+      
+      // Verification logic: Did it actually save?
+      const latestLeaves = await hrService.getLeaves();
+      const justCreated = latestLeaves.find(l => l.employeeId === user.id && l.reason === formData.reason);
+      
+      if (justCreated) {
+        setShowForm(false);
+        setFormData({ type: 'ANNUAL', start: '', end: '', reason: '' });
+      } else {
+        setSubmissionError(err.message || "Request failed server validation.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -125,39 +138,54 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
   const handleAction = async (request: LeaveRequest, action: 'APPROVED' | 'REJECTED') => {
     setIsProcessing(true);
     let decisionRole = user.role;
+    // Determine if user is acting as a manager or HR/Admin
     if (request.status === 'PENDING_MANAGER' && !isAdmin) {
        decisionRole = 'MANAGER';
     }
 
     try {
-      // Backend JS Hook (onRecordAfterUpdate) handles the email notification automatically
       await hrService.updateLeaveStatus(request.id, action, reviewRemarks, decisionRole);
       
+      // Cleanup UI
       await refreshData();
       setShowReviewModal(null);
       setReviewRemarks('');
+    } catch (e: any) {
+      console.warn("Handled Action error:", e);
+      
+      // Before alerting, check if the change actually took effect
+      await refreshData();
+      const latest = await hrService.getLeaves();
+      const current = latest.find(l => l.id === request.id);
+      
+      // If the status has changed from the original request, treat as success
+      if (current && current.status !== request.status) {
+         setShowReviewModal(null);
+         setReviewRemarks('');
+      } else {
+         alert("Action failed: " + (e.message || "Access denied or validation error."));
+      }
     } finally {
       setIsProcessing(false);
     }
   };
 
   const getFilteredLeavesForManagement = () => {
-    const reportIds = allEmployees.filter(e => e.lineManagerId === user.id).map(e => e.id);
-    
     if (isAdmin) {
        if (filterMode === 'ALL') return leaves;
        return leaves.filter(l => 
          l.status === 'PENDING_HR' || 
-         (l.status === 'PENDING_MANAGER' && reportIds.includes(l.employeeId))
+         l.status === 'PENDING_MANAGER'
        );
     }
-    
+    const reportIds = allEmployees.filter(e => e.lineManagerId === user.id).map(e => e.id);
     if (filterMode === 'ALL') return leaves.filter(l => reportIds.includes(l.employeeId));
     return leaves.filter(l => l.status === 'PENDING_MANAGER' && reportIds.includes(l.employeeId));
   };
 
   const myLeaves = leaves.filter(l => l.employeeId === user.id);
   const managementLeaves = getFilteredLeavesForManagement();
+  const currentDisplayList = activeTab === 'MY' ? myLeaves : managementLeaves;
 
   if (isLoading) {
     return (
@@ -182,7 +210,7 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
               <button onClick={() => setActiveTab('MY')} className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'MY' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>My Portal</button>
             </div>
           )}
-          <button onClick={() => { setShowForm(true); }} className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-indigo-700 transition-all">
+          <button onClick={() => { setSubmissionError(null); setShowForm(true); }} className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-indigo-700 transition-all">
             <Plus size={18} /> New Request
           </button>
         </div>
@@ -218,43 +246,100 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
             {activeTab === 'MY' ? <HistoryIcon className="text-indigo-600" /> : <Filter className="text-indigo-600" />}
             {activeTab === 'MY' ? 'Application History' : 'Action Queue'}
           </h3>
-          {activeTab === 'MANAGEMENT' && (
-            <div className="flex p-1 bg-slate-50 rounded-xl border border-slate-200">
-               <button onClick={() => setFilterMode('TASKS')} className={`px-4 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${filterMode === 'TASKS' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>To Review</button>
-               <button onClick={() => setFilterMode('ALL')} className={`px-4 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${filterMode === 'ALL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>All History</button>
-            </div>
-          )}
+          <div className="flex gap-2">
+            {activeTab === 'MANAGEMENT' && (
+              <div className="flex p-1 bg-slate-50 rounded-xl border border-slate-200">
+                 <button onClick={() => setFilterMode('TASKS')} className={`px-4 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${filterMode === 'TASKS' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>To Review</button>
+                 <button onClick={() => setFilterMode('ALL')} className={`px-4 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${filterMode === 'ALL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>All History</button>
+              </div>
+            )}
+            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><RefreshCw size={18}/></button>
+          </div>
         </div>
 
         <div className="space-y-4">
-          {(activeTab === 'MY' ? myLeaves : managementLeaves).sort((a,b) => b.appliedDate.localeCompare(a.appliedDate)).map(req => (
-            <div key={req.id} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-lg transition-all">
+          {currentDisplayList.sort((a,b) => b.appliedDate.localeCompare(a.appliedDate)).map(req => (
+            <div key={req.id} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-lg transition-all cursor-pointer" onClick={() => activeTab === 'MY' && setShowDetailsModal(req)}>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-indigo-600 shadow-sm uppercase">{req.employeeName[0]}</div>
                 <div>
-                  <h4 className="font-black text-slate-900">{activeTab === 'MY' ? req.type + ' LEAVE' : req.employeeName}</h4>
+                  <h4 className="font-black text-slate-900 uppercase tracking-tighter">{activeTab === 'MY' ? req.type + ' LEAVE' : req.employeeName}</h4>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{req.startDate} — {req.endDate} ({req.totalDays} Days)</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 {activeTab === 'MANAGEMENT' && (req.status.includes('PENDING')) ? (
-                  <button onClick={() => setShowReviewModal(req)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Review</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowReviewModal(req); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Review</button>
                 ) : (
-                  <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${req.status === 'APPROVED' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                    {req.status.replace('_', ' ')}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${req.status === 'APPROVED' ? 'bg-emerald-500 text-white' : req.status === 'REJECTED' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                      {req.status.replace('_', ' ')}
+                    </span>
+                    {activeTab === 'MY' && <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />}
+                  </div>
                 )}
               </div>
             </div>
           ))}
-          {(activeTab === 'MY' ? myLeaves : managementLeaves).length === 0 && (
-            <div className="py-12 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-              No leave records found.
+          {currentDisplayList.length === 0 && (
+            <div className="py-12 text-center space-y-4">
+              <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No leave records found.</p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Decision Details Modal for Employees */}
+      {showDetailsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[48px] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in">
+            <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl"><Info size={20}/></div>
+                <h3 className="text-xl font-black uppercase tracking-tight">Request Details</h3>
+              </div>
+              <button onClick={() => setShowDetailsModal(null)}><X size={28} /></button>
+            </div>
+            <div className="p-10 space-y-6 max-h-[75vh] overflow-y-auto no-scrollbar">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                  <p className={`text-xs font-black uppercase ${showDetailsModal.status === 'APPROVED' ? 'text-emerald-600' : showDetailsModal.status === 'REJECTED' ? 'text-rose-600' : 'text-indigo-600'}`}>{showDetailsModal.status.replace('_', ' ')}</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Days</p>
+                  <p className="text-xs font-black text-slate-900 uppercase">{showDetailsModal.totalDays} Days</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><FileText size={10} className="text-indigo-600" /> My Reason</p>
+                  <p className="text-sm font-medium text-slate-600 italic">"{showDetailsModal.reason || "No reason provided."}"</p>
+                </div>
+
+                {(showDetailsModal.managerRemarks) && (
+                  <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100">
+                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><MessageSquare size={10} className="text-indigo-600" /> Manager Remarks</p>
+                    <p className="text-sm font-bold text-slate-700">{showDetailsModal.managerRemarks}</p>
+                  </div>
+                )}
+
+                {(showDetailsModal.approverRemarks) && (
+                  <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
+                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-2"><MessageSquare size={10} className="text-emerald-600" /> HR/Admin Remarks</p>
+                    <p className="text-sm font-bold text-slate-700">{showDetailsModal.approverRemarks}</p>
+                  </div>
+                )}
+              </div>
+              
+              <button onClick={() => setShowDetailsModal(null)} className="w-full py-5 bg-slate-900 text-white rounded-[32px] font-black uppercase text-[10px] tracking-widest shadow-xl">Close View</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal for Admins/Managers */}
       {showReviewModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[48px] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in">
@@ -274,9 +359,19 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
                       <p className="font-black text-slate-900 text-lg leading-none">{showReviewModal.employeeName}</p>
                     </div>
                  </div>
-                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><FileText size={10} className="text-indigo-600" /> Reason for Leave</p>
-                    <p className="text-sm font-medium text-slate-600 italic">"{showReviewModal.reason || "No reason provided."}"</p>
+                 
+                 <div className="space-y-4">
+                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><FileText size={10} className="text-indigo-600" /> Reason for Leave</p>
+                      <p className="text-sm font-medium text-slate-600 italic">"{showReviewModal.reason || "No reason provided."}"</p>
+                   </div>
+
+                   {showReviewModal.status === 'PENDING_HR' && showReviewModal.managerRemarks && (
+                     <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1"><MessageSquare size={10} className="text-indigo-600" /> Manager Evaluation</p>
+                        <p className="text-xs font-bold text-slate-700">"{showReviewModal.managerRemarks}"</p>
+                     </div>
+                   )}
                  </div>
               </div>
 
@@ -293,7 +388,7 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
               <div className="flex gap-4 pt-4">
                 <button disabled={isProcessing} onClick={() => handleAction(showReviewModal, 'REJECTED')} className="flex-1 py-5 bg-rose-50 text-rose-600 rounded-[32px] font-black uppercase text-[10px] tracking-widest hover:bg-rose-100 transition-all">Reject</button>
                 <button disabled={isProcessing} onClick={() => handleAction(showReviewModal, 'APPROVED')} className="flex-1 py-5 bg-indigo-600 text-white rounded-[32px] font-black uppercase text-[10px] tracking-widest shadow-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-                   {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <><ArrowRight size={16} /> Approve</>}
+                   {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <><ArrowRight size={16} /> {showReviewModal.status === 'PENDING_HR' ? 'Final Approve' : 'Approve'}</>}
                 </button>
               </div>
             </div>
@@ -308,7 +403,15 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
               <h3 className="text-xl font-black uppercase tracking-tight">Submit Leave</h3>
               <button onClick={() => setShowForm(false)}><X size={28} /></button>
             </div>
+            
             <form onSubmit={handleSubmitLeave} className="p-10 space-y-8">
+              {submissionError && (
+                <div className="p-5 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-700 animate-in shake">
+                  <AlertCircle size={20} className="mt-0.5 flex-shrink-0" />
+                  <p className="text-xs font-bold leading-relaxed">{submissionError}</p>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Type</label>
                 <select className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl font-black text-sm outline-none" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>

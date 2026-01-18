@@ -53,6 +53,7 @@ Add these fields:
 ### leaves
 - `employee_id` (relation: users, single)
 - `employee_name` (text)
+- `line_manager_id` (relation: users, single)
 - `type` (text)
 - `start_date` (text)
 - `end_date` (text)
@@ -63,11 +64,11 @@ Add these fields:
 - `approver_remarks` (text)
 - `manager_remarks` (text)
 
-## 4. API Rules Matrix
+## 4. API Rules Matrix (Updated for line_manager_id)
 | Collection | List/View | Create | Update |
 |------------|-----------|--------|--------|
 | **users** | `@request.auth.id != ""` | Admin only | `id = @request.auth.id || @request.auth.role = "ADMIN"` |
 | **settings** | `@request.auth.id != ""` | `@request.auth.role = "ADMIN"` | `@request.auth.role = "ADMIN"` |
 | **reports_queue** | `Admin only` | `@request.auth.id != ""` | `Admin only` |
 | **attendance** | `@request.auth.id != ""` | `@request.auth.id != ""` | `@request.auth.role = "ADMIN"` |
-| **leaves** | `@request.auth.id != ""` | `@request.auth.id != ""` | `@request.auth.id != ""` |
+| **leaves** | `employee_id = @request.auth.id || line_manager_id = @request.auth.id || @request.auth.role = "ADMIN" || @request.auth.role = "HR"` | `@request.auth.id != ""` | `employee_id = @request.auth.id || line_manager_id = @request.auth.id || @request.auth.role = "ADMIN" || @request.auth.role = "HR"` |
