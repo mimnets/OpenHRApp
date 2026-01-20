@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import EmployeeDirectory from './pages/EmployeeDirectory';
 import Attendance from './pages/Attendance';
+import AttendanceLogs from './pages/AttendanceLogs';
 import Leave from './pages/Leave';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
@@ -25,6 +26,7 @@ import {
 
 const App: React.FC = () => {
   const [currentPath, setCurrentPath] = useState('dashboard');
+  const [navParams, setNavParams] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isConfigured, setIsConfigured] = useState(isPocketBaseConfigured());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -73,11 +75,25 @@ const App: React.FC = () => {
     await hrService.logout();
     setCurrentUser(null);
     setCurrentPath('dashboard');
+    setNavParams(null);
     setIsMobileMenuOpen(false);
   };
 
   const handleNavigate = (path: string) => {
-    setCurrentPath(path);
+    // Check for quick punch intents
+    if (path === 'attendance-quick-office') {
+      setCurrentPath('attendance');
+      setNavParams({ autoStart: 'OFFICE' });
+    } else if (path === 'attendance-quick-factory') {
+      setCurrentPath('attendance');
+      setNavParams({ autoStart: 'FACTORY' });
+    } else if (path === 'attendance-finish') {
+      setCurrentPath('attendance');
+      setNavParams({ autoStart: 'FINISH' });
+    } else {
+      setCurrentPath(path);
+      setNavParams(null);
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -96,27 +112,32 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (currentPath) {
-      case 'dashboard': return <Dashboard user={currentUser} onNavigate={setCurrentPath} />;
+      case 'dashboard': return <Dashboard user={currentUser} onNavigate={handleNavigate} />;
       case 'profile': return <Settings user={currentUser} />;
       case 'employees': return <EmployeeDirectory />;
-      case 'attendance': return <Attendance user={currentUser} />;
+      case 'attendance': 
+        return <Attendance 
+          user={currentUser} 
+          autoStart={navParams?.autoStart} 
+          onFinish={() => handleNavigate('dashboard')} 
+        />;
+      case 'attendance-logs': return <AttendanceLogs user={currentUser} viewMode="MY" />;
+      case 'attendance-audit': return <AttendanceLogs user={currentUser} viewMode="AUDIT" />;
       case 'leave': return <Leave user={currentUser} />;
       case 'settings': return <Settings user={currentUser} />;
       case 'reports': return <Reports user={currentUser} />;
       case 'organization': return <Organization />;
-      default: return <Dashboard user={currentUser} onNavigate={setCurrentPath} />;
+      default: return <Dashboard user={currentUser} onNavigate={handleNavigate} />;
     }
   };
 
   return (
     <div className="flex bg-[#fcfdfe] min-h-screen relative overflow-hidden">
-      {/* Mobile Sidebar Backdrop */}
       <div 
         className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Sidebar Container */}
       <div className={`fixed h-full z-[70] transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar 
           currentPath={currentPath} 
@@ -169,7 +190,6 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation Bar */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-100 flex items-center justify-around p-4 z-50 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button 
             onClick={() => handleNavigate('dashboard')}
@@ -179,11 +199,11 @@ const App: React.FC = () => {
             <span className="text-[9px] font-black uppercase tracking-tighter">Home</span>
           </button>
           <button 
-            onClick={() => handleNavigate('attendance')}
-            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'attendance' ? 'text-blue-600' : 'text-slate-400'}`}
+            onClick={() => handleNavigate('attendance-logs')}
+            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'attendance-logs' || currentPath === 'attendance-audit' ? 'text-blue-600' : 'text-slate-400'}`}
           >
-            <Clock size={20} className={currentPath === 'attendance' ? 'scale-110' : ''} />
-            <span className="text-[9px] font-black uppercase tracking-tighter">Station</span>
+            <Clock size={20} className={currentPath === 'attendance-logs' || currentPath === 'attendance-audit' ? 'scale-110' : ''} />
+            <span className="text-[9px] font-black uppercase tracking-tighter">History</span>
           </button>
           <button 
             onClick={() => handleNavigate('leave')}

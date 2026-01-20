@@ -1,20 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Settings, Database, Eye, EyeOff, RotateCcw, Smartphone, Download, Info, Moon } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Database, Eye, EyeOff, RotateCcw, Download, Moon, Share } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { isPocketBaseConfigured } from '../services/pocketbase';
 
 interface LoginProps {
   onLoginSuccess: (user: any) => void;
-  onEnterSetup?: () => void;
-  initError?: string | null;
+  onEnterSetup: () => void;
+  initError?: string;
 }
 
 const BrandLogo = () => (
-  <div className="flex flex-col items-center justify-center gap-6">
-    <div className="relative w-28 h-28">
-      <div className="absolute inset-0 bg-teal-900/10 rounded-[2.5rem] blur-2xl transform translate-y-4"></div>
-      <div className="relative w-full h-full bg-[#064e3b] rounded-[2rem] shadow-xl flex items-center justify-center p-6 border-4 border-white">
+  <div className="flex flex-col items-center justify-center gap-4">
+    <div className="relative w-16 h-16 md:w-20 md:h-20">
+      <div className="absolute inset-0 bg-teal-900/10 rounded-[1.5rem] blur-xl transform translate-y-2"></div>
+      <div className="relative w-full h-full bg-[#064e3b] rounded-[1.25rem] shadow-lg flex items-center justify-center p-4 border-2 border-white">
         <img 
           src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" 
           className="w-full h-full object-contain invert" 
@@ -22,13 +22,13 @@ const BrandLogo = () => (
         />
       </div>
     </div>
-    <div className="text-center space-y-1">
-      <h1 className="text-4xl font-black tracking-tight flex items-center justify-center">
+    <div className="text-center">
+      <h1 className="text-2xl md:text-3xl font-black tracking-tighter flex items-center justify-center">
         <span className="text-[#2563eb]">Open</span>
         <span className="text-[#f59e0b]">HR</span>
         <span className="text-[#10b981]">App</span>
       </h1>
-      <p className="text-slate-500 font-medium text-sm">Streamlining Human Resources</p>
+      <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-0.5">Personnel Gateway</p>
     </div>
   </div>
 );
@@ -42,6 +42,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
   const [isInstallable, setIsInstallable] = useState(!!(window as any).deferredPWAPrompt);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [showIosInstructions, setShowIosInstructions] = useState(false);
   
   const isConfigured = isPocketBaseConfigured();
 
@@ -50,7 +51,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
     setIsStandalone(!!isPWA);
 
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIphone = /iphone|ipad|ipod/.test(userAgent);
+    const isIphone = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
     setIsIOS(isIphone);
 
     const handleAvailable = () => setIsInstallable(true);
@@ -69,12 +70,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
   }, []);
 
   const handleInstallClick = async () => {
+    if (isIOS) {
+      setShowIosInstructions(true);
+      return;
+    }
+
     const promptEvent = (window as any).deferredPWAPrompt;
     if (!promptEvent) return;
     promptEvent.prompt();
     const { outcome } = await promptEvent.userChoice;
-    (window as any).deferredPWAPrompt = null;
-    setIsInstallable(false);
+    if (outcome === 'accepted') {
+      (window as any).deferredPWAPrompt = null;
+      setIsInstallable(false);
+    }
   };
 
   const handleReset = () => {
@@ -107,102 +115,125 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-[#fcfdfe] overflow-y-auto no-scrollbar items-center px-6 py-12 md:py-24 relative">
-      <div className="w-full max-w-sm space-y-12">
-        
-        {/* Brand Header */}
-        <BrandLogo />
+    <div className="min-h-screen w-full flex flex-col bg-[#f8fafc] items-center justify-center p-4 relative overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 blur-[100px] rounded-full -z-10"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-teal-500/5 blur-[100px] rounded-full -z-10"></div>
+      
+      <div className="w-full max-w-[400px] animate-in fade-in zoom-in duration-500">
+        <div className="bg-white md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:border border-slate-100 rounded-[2rem] overflow-hidden">
+          
+          <div className="p-8 md:p-10 space-y-8">
+            {/* Brand Header */}
+            <BrandLogo />
 
-        {/* Login Form */}
-        <form onSubmit={handleLogin} className="space-y-8">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Email</label>
-              <div className="relative group">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                <input 
-                  type="email" 
-                  required 
-                  className="w-full pl-14 pr-5 py-4.5 bg-white border border-slate-200 rounded-2xl text-base font-medium text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="name@company.com" 
-                />
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
+                    <input 
+                      type="email" 
+                      required 
+                      className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 placeholder:text-slate-300" 
+                      value={email} 
+                      onChange={e => setEmail(e.target.value)} 
+                      placeholder="e.g. name@company.com" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Security Credentials</label>
+                  <div className="relative group">
+                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      required 
+                      className="w-full pl-14 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 placeholder:text-slate-300" 
+                      value={password} 
+                      onChange={e => setPassword(e.target.value)} 
+                      placeholder="Your secret key" 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)} 
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-500 transition-colors z-10 p-1"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Password</label>
-              <div className="relative group">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  required 
-                  className="w-full pl-14 pr-14 py-4.5 bg-white border border-slate-200 rounded-2xl text-base font-medium text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50" 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  placeholder="••••••••" 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPassword(!showPassword)} 
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+
+              {error && (
+                <div className="p-3.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-3 border border-rose-100 animate-in shake">
+                  <AlertCircle size={14} className="flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={isLoading} 
+                className="w-full py-4 bg-[#2563eb] text-white rounded-[1.25rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-2"
+              >
+                {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <>Continue <ArrowRight size={16} /></>}
+              </button>
+            </form>
+
+            {/* Action Buttons */}
+            <div className="space-y-5 pt-2">
+              {!isStandalone && (
+                <div className="w-full flex flex-col gap-3">
+                  <button 
+                    onClick={handleInstallClick}
+                    className="w-full py-3.5 bg-slate-50 border border-slate-100 text-slate-500 rounded-[1.25rem] font-black text-[10px] uppercase tracking-widest hover:bg-white hover:shadow-sm active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+                  >
+                    <Download size={16} className="text-blue-500" /> 
+                    {isIOS ? 'Install on Device' : 'App Installation'}
+                  </button>
+                  
+                  {showIosInstructions && (
+                    <div className="p-5 bg-blue-50 border border-blue-100 rounded-[1.5rem] animate-in fade-in slide-in-from-top-2">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Share size={16} className="text-blue-600" />
+                        <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest">PWA Setup</p>
+                      </div>
+                      <ol className="text-[11px] font-bold text-blue-700/80 space-y-2 list-decimal pl-4">
+                        <li>Tap <span className="text-blue-900">Share</span> in Safari bottom bar.</li>
+                        <li>Choose <span className="text-blue-900">Add to Home Screen</span>.</li>
+                        <li>Tap <span className="text-blue-900">Add</span> to complete.</li>
+                      </ol>
+                      <button onClick={() => setShowIosInstructions(false)} className="mt-4 w-full py-2 bg-white text-blue-600 rounded-xl text-[9px] font-black uppercase border border-blue-100">Got it</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-center gap-6 border-t border-slate-50 pt-6">
+                <button onClick={handleReset} className="text-slate-400 font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:text-rose-500 transition-colors">
+                  <RotateCcw size={12} /> Reset
+                </button>
+                <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+                <button onClick={onEnterSetup} className="text-slate-400 font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:text-blue-600 transition-colors">
+                  <Database size={12} /> Config
                 </button>
               </div>
             </div>
           </div>
-
-          {error && (
-            <div className="p-4 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl flex items-center gap-3 border border-rose-100 animate-in shake">
-              <AlertCircle size={16} className="flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            disabled={isLoading} 
-            className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-70"
-          >
-            {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <>Login <ArrowRight size={20} /></>}
-          </button>
-        </form>
-
-        {/* Action Buttons */}
-        <div className="space-y-8 pt-4">
-          <div className="w-full flex justify-center">
-            <button 
-              onClick={handleInstallClick}
-              disabled={!isInstallable && !isIOS}
-              className="w-full py-5 bg-white border-2 border-[#dbeafe] text-[#2563eb] rounded-2xl font-bold text-base shadow-sm hover:bg-blue-50 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-            >
-              <Download size={22} className="text-[#2563eb]" /> App Installation
-            </button>
-          </div>
-
-          <div className="flex items-center justify-center gap-10">
-            <button onClick={handleReset} className="text-slate-500 font-bold text-sm flex items-center gap-2 hover:text-rose-600 transition-colors">
-              <RotateCcw size={16} /> Reset
-            </button>
-            <div className="w-1.5 h-1.5 bg-slate-200 rounded-full"></div>
-            <button onClick={onEnterSetup} className="text-slate-500 font-bold text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
-              <Database size={16} /> Cloud Setup
-            </button>
-          </div>
         </div>
+
+        {/* System Version */}
+        <p className="text-center mt-6 text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">v2.7.0 Build-Stable</p>
       </div>
 
-      {/* Floating Dark Mode Toggle */}
-      <button className="fixed bottom-8 right-8 w-14 h-14 bg-white shadow-2xl rounded-full flex items-center justify-center text-slate-700 hover:scale-110 active:scale-95 transition-all border border-slate-100">
-        <Moon size={24} />
-      </button>
-
-      {/* Database Status */}
-      <div className="fixed top-8 right-8 flex items-center gap-2 bg-white/50 backdrop-blur-md px-4 py-2 rounded-full border border-slate-100">
-        <div className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></div>
-        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{isConfigured ? 'Live' : 'Offline'}</span>
+      {/* Database Connection Indicator */}
+      <div className="fixed top-6 right-6 hidden md:flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-100 shadow-sm">
+        <div className={`w-1.5 h-1.5 rounded-full ${isConfigured ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></div>
+        <span className="text-[8px] font-black uppercase text-slate-500 tracking-[0.2em]">{isConfigured ? 'Node Connected' : 'No Connection'}</span>
       </div>
     </div>
   );

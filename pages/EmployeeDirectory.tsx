@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, 
@@ -14,15 +15,24 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Hash
+  Hash,
+  Building2,
+  Phone,
+  Contact,
+  Users
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
+import { pb } from '../services/pocketbase';
 import { Employee } from '../types';
 
 const EmployeeDirectory: React.FC = () => {
+  const user = pb.authStore.model;
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
+  
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState<Employee | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +47,9 @@ const EmployeeDirectory: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await hrService.getEmployees();
-      setEmployees(data);
+      // Filter by department if not admin
+      const filteredData = isAdmin ? data : data.filter(e => e.department === user?.department);
+      setEmployees(filteredData);
     } catch (err) {
       console.error("Error fetching employees:", err);
     } finally {
@@ -48,12 +60,14 @@ const EmployeeDirectory: React.FC = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       await fetchEmployees();
-      const [departmentsList, designationsList] = await Promise.all([
-        hrService.getDepartments(),
-        hrService.getDesignations()
-      ]);
-      setDepts(departmentsList);
-      setDesigs(designationsList);
+      if (isAdmin) {
+        const [departmentsList, designationsList] = await Promise.all([
+          hrService.getDepartments(),
+          hrService.getDesignations()
+        ]);
+        setDepts(departmentsList);
+        setDesigs(designationsList);
+      }
     };
     loadInitialData();
 
@@ -61,7 +75,7 @@ const EmployeeDirectory: React.FC = () => {
       fetchEmployees();
     });
     return () => { unsubscribe(); };
-  }, []);
+  }, [isAdmin, user?.department]);
   
   const initialNewEmpState = {
     name: '',
@@ -106,6 +120,7 @@ const EmployeeDirectory: React.FC = () => {
   };
 
   const handleOpenAdd = () => {
+    if (!isAdmin) return;
     setEditingId(null);
     setFormError(null);
     setFormState({
@@ -117,6 +132,7 @@ const EmployeeDirectory: React.FC = () => {
   };
 
   const handleOpenEdit = (emp: Employee) => {
+    if (!isAdmin) return;
     setEditingId(emp.id);
     setFormError(null);
     
@@ -145,6 +161,7 @@ const EmployeeDirectory: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) return;
     if (confirm('Delete this user account? This cannot be undone.')) {
       try {
         await hrService.deleteEmployee(id);
@@ -156,6 +173,7 @@ const EmployeeDirectory: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setIsSubmitting(true);
     setFormError(null);
     
@@ -174,22 +192,26 @@ const EmployeeDirectory: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Organization Directory</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            {isAdmin ? 'Organization Directory' : 'My Team Members'}
+          </h1>
           <p className="text-sm text-slate-500 font-medium tracking-tight">
-            Managing {employees.length} personnel accounts.
+            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} team members in ${user?.department}.`}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl transition-all"
-          >
-            <UserPlus size={16} /> Provision New User
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <button 
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl transition-all"
+            >
+              <UserPlus size={16} /> Provision New User
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4">
@@ -197,7 +219,7 @@ const EmployeeDirectory: React.FC = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
             type="text" 
-            placeholder="Search by name, ID, or department..."
+            placeholder="Search by name, ID, or designation..."
             className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -210,7 +232,7 @@ const EmployeeDirectory: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filtered.map((emp) => (
-          <div key={emp.id} className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 transition-all group relative h-full flex flex-col">
+          <div key={emp.id} className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 transition-all group relative h-full flex flex-col hover:shadow-md cursor-pointer" onClick={() => setShowViewModal(emp)}>
             {/* Header: Avatar, Name & Quick Actions */}
             <div className="flex items-start gap-4">
               <div className="relative flex-shrink-0">
@@ -230,10 +252,12 @@ const EmployeeDirectory: React.FC = () => {
                       {emp.designation || 'Staff'}
                     </p>
                   </div>
-                  <div className="flex gap-0.5 flex-shrink-0 bg-slate-50/80 p-1 rounded-lg">
-                    <button onClick={() => handleOpenEdit(emp)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"><Edit size={14} /></button>
-                    <button onClick={() => handleDelete(emp.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all"><Trash2 size={14} /></button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-0.5 flex-shrink-0 bg-slate-50/80 p-1 rounded-lg" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => handleOpenEdit(emp)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"><Edit size={14} /></button>
+                      <button onClick={() => handleDelete(emp.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all"><Trash2 size={14} /></button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -270,8 +294,61 @@ const EmployeeDirectory: React.FC = () => {
         )}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      {/* View Modal for Everyone */}
+      {showViewModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+              <h3 className="text-xl font-black uppercase tracking-tight">Personnel Profile</h3>
+              <button onClick={() => setShowViewModal(null)} className="hover:bg-white/10 p-2 rounded-xl transition-all"><X size={28} /></button>
+            </div>
+            <div className="p-10 space-y-10 max-h-[80vh] overflow-y-auto no-scrollbar">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="relative">
+                  <img src={showViewModal.avatar || `https://ui-avatars.com/api/?name=${showViewModal.name}`} className="w-32 h-32 rounded-[2.5rem] object-cover bg-slate-100 shadow-xl border-4 border-white" />
+                  <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl border-2 border-white flex items-center justify-center ${showViewModal.role === 'ADMIN' ? 'bg-rose-500' : 'bg-indigo-500 shadow-lg'}`}>
+                    <ShieldCheck size={16} className="text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">{showViewModal.name}</h3>
+                  <p className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em]">{showViewModal.designation}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Hash size={12} className="text-indigo-500" /> Employee ID</p>
+                   <p className="font-black text-slate-700">{showViewModal.employeeId}</p>
+                </div>
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Building2 size={12} className="text-indigo-500" /> Department</p>
+                   <p className="font-black text-slate-700">{showViewModal.department}</p>
+                </div>
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Mail size={12} className="text-indigo-500" /> Work Email</p>
+                   <p className="font-black text-slate-700 truncate">{showViewModal.email}</p>
+                </div>
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12} className="text-indigo-500" /> Designation</p>
+                   <p className="font-black text-slate-700">{showViewModal.designation}</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowViewModal(null)}
+                className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[11px] tracking-widest shadow-xl"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Management Modal */}
+      {showModal && isAdmin && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] w-full max-w-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
               <div className="flex items-center gap-4">

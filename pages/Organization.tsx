@@ -25,13 +25,16 @@ import {
   AlertCircle,
   Loader2,
   Mail,
-  Send
+  Send,
+  Database,
+  Server
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
+import { updatePocketBaseConfig, getPocketBaseConfig } from '../services/pocketbase';
 import { Holiday, AppConfig, LeaveWorkflow, Employee } from '../types';
 import { DEFAULT_CONFIG } from '../constants.tsx';
 
-type OrgTab = 'STRUCTURE' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'HOLIDAYS';
+type OrgTab = 'STRUCTURE' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'HOLIDAYS' | 'SYSTEM';
 
 const Organization: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OrgTab>('STRUCTURE');
@@ -45,6 +48,9 @@ const Organization: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [savingManagerId, setSavingManagerId] = useState<string | null>(null);
+  
+  const [pbConfig, setPbConfig] = useState(getPocketBaseConfig());
+  const [testingBackend, setTestingBackend] = useState(false);
 
   // Modals
   const [showModal, setShowModal] = useState(false);
@@ -126,6 +132,20 @@ const Organization: React.FC = () => {
     } finally {
        setIsTestingEmail(false);
     }
+  };
+
+  const handleSaveInfrastructure = () => {
+    updatePocketBaseConfig(pbConfig, false);
+    alert('Database configuration saved. The page will reload to apply changes.');
+    window.location.reload();
+  };
+
+  const testBackend = async () => {
+    setTestingBackend(true);
+    const result = await hrService.testPocketBaseConnection(pbConfig.url);
+    if (result.success) alert("SUCCESS: " + result.message);
+    else alert("ERROR: " + (result.error || "Unknown"));
+    setTestingBackend(false);
   };
 
   const updateWorkflowRole = (dept: string, role: string) => {
@@ -230,7 +250,7 @@ const Organization: React.FC = () => {
       </header>
 
       <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-        {(['STRUCTURE', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'HOLIDAYS'] as OrgTab[]).map(tab => (
+        {(['STRUCTURE', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -382,19 +402,55 @@ const Organization: React.FC = () => {
         )}
 
         {activeTab === 'TERMS' && (
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-8 space-y-12">
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-8 space-y-12 animate-in slide-in-from-left-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div><h3 className="text-xl font-black text-slate-900">Compliance & Hours</h3><p className="text-sm text-slate-500">Configure shifts and workweek</p></div>
+              <div><h3 className="text-xl font-black text-slate-900">Compliance & Hours</h3><p className="text-sm text-slate-500">Configure shifts and grace periods</p></div>
               <button onClick={handleSaveConfig} disabled={isSaving} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
                 {isSaving ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Save Policy
               </button>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div className="space-y-6">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14} className="text-indigo-600" /> Fixed Shift Hours</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Office Start</label><input type="time" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs" value={config.officeStartTime} onChange={e => setConfig({...config, officeStartTime: e.target.value})} /></div>
                   <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Office End</label><input type="time" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs" value={config.officeEndTime} onChange={e => setConfig({...config, officeEndTime: e.target.value})} /></div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Timer size={14} className="text-indigo-600" /> Grace Period Management</h4>
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end px-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Late Check-in Grace</label>
+                      <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-tighter">{config.lateGracePeriod} Minutes</span>
+                    </div>
+                    <div className="relative h-10 flex items-center">
+                      <input 
+                        type="range" min="0" max="60" step="5" 
+                        className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        value={config.lateGracePeriod} 
+                        onChange={e => setConfig({...config, lateGracePeriod: parseInt(e.target.value)})} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end px-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Early Clock-out Grace</label>
+                      <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-tighter">{config.earlyOutGracePeriod} Minutes</span>
+                    </div>
+                    <div className="relative h-10 flex items-center">
+                      <input 
+                        type="range" min="0" max="60" step="5" 
+                        className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        value={config.earlyOutGracePeriod} 
+                        onChange={e => setConfig({...config, earlyOutGracePeriod: parseInt(e.target.value)})} 
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -429,6 +485,46 @@ const Organization: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'SYSTEM' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in duration-500">
+            <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-8">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2"><Server className="text-indigo-600" /> Infrastructure</h3>
+                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">PocketBase SDK</span>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Backend URL</label>
+                  <input type="text" placeholder="http://192.168.x.x:8090" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm" value={pbConfig.url} onChange={e => setPbConfig({...pbConfig, url: e.target.value})} />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={testBackend} disabled={testingBackend} className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+                    {testingBackend ? <RefreshCw className="animate-spin" size={14} /> : <Activity size={14} />} Verify
+                  </button>
+                  <button onClick={handleSaveInfrastructure} className="flex-[1.5] py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2">
+                    <Save size={14} /> Commit URL
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-8">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2"><Mail className="text-indigo-600" /> Communications</h3>
+                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">SMTP Relay</span>
+              </div>
+              <div className="space-y-4">
+                <p className="text-xs font-medium text-slate-500 leading-relaxed italic">
+                  Run a diagnostic check to verify that your PocketBase SMTP configuration and JS Hooks are correctly processing emails from the server.
+                </p>
+                <button onClick={handleTestEmailAlerts} disabled={isTestingEmail} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all">
+                  {isTestingEmail ? <RefreshCw className="animate-spin" size={18}/> : <Send size={18}/>} Test SMTP Delivery
+                </button>
+              </div>
+            </section>
           </div>
         )}
       </div>

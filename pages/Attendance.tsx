@@ -19,27 +19,32 @@ import {
   MapPin,
   Scan,
   X,
-  AlertCircle
+  AlertCircle,
+  LocateFixed
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { OFFICE_LOCATIONS } from '../constants.tsx';
 import { Attendance as AttendanceType, AppConfig } from '../types';
 
-const Attendance: React.FC<{ user: any }> = ({ user }) => {
-  const [view, setView] = useState<'STATION' | 'CAMERA'>('STATION');
+interface AttendanceProps {
+  user: any;
+  autoStart?: 'OFFICE' | 'FACTORY' | 'FINISH';
+  onFinish?: () => void;
+}
+
+const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [activeRecord, setActiveRecord] = useState<AttendanceType | undefined>(undefined);
-  const [allAttendance, setAllAttendance] = useState<AttendanceType[]>([]);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [dutyType, setDutyType] = useState<'OFFICE' | 'FACTORY'>('OFFICE');
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   
-  // Camera Controls
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isTorchOn, setIsTorchOn] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -47,74 +52,56 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Check mobile status
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   }, []);
 
-  const refreshData = useCallback(async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const [active, allAtt, config] = await Promise.all([
-        hrService.getActiveAttendance(user.id),
-        hrService.getAttendance(),
-        hrService.getConfig()
-      ]);
-      
-      // Auto-Close/Stale Session Logic:
-      // If the active record is from a previous day, we treat it as "ghosted"
-      // User cannot Clock Out for a previous day session.
-      if (active && active.date !== today) {
-        setActiveRecord(undefined); 
-      } else {
-        setActiveRecord(active);
-      }
-      
-      setAllAttendance(allAtt.filter(a => a.employeeId === user.id));
-      setAppConfig(config);
-    } catch (e: any) {
-      console.error('Data sync failed', e);
-    }
-  }, [user.id]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    const initData = async () => {
-      setIsInitialLoading(true);
-      await refreshData();
-      detectLocation();
-      setIsInitialLoading(false);
-    };
-    initData();
-    return () => clearInterval(timer);
-  }, [refreshData]);
-
-  const detectLocation = useCallback(() => {
+  const detectLocation = useCallback((force: boolean = false) => {
     if (!navigator.geolocation) return;
+    setIsLocating(true);
+    
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         let matchedOffice = "Remote Area";
         for (const office of OFFICE_LOCATIONS) {
-           if (Math.abs(office.lat - lat) < 0.01 && Math.abs(office.lng - lng) < 0.01) {
+           if (Math.abs(office.lat - lat) < 0.005 && Math.abs(office.lng - lng) < 0.005) {
               matchedOffice = office.name;
               break;
            }
         }
         setLocation({ lat, lng, address: matchedOffice });
+        setIsLocating(false);
       },
-      null,
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => {
+        console.error("Location error", err);
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: force ? 0 : 60000 }
     );
   }, []);
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+  const refreshData = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const [active, config] = await Promise.all([
+        hrService.getActiveAttendance(user.id),
+        hrService.getConfig()
+      ]);
+      
+      if (active && active.date !== today) {
+        setActiveRecord(undefined); 
+      } else {
+        setActiveRecord(active);
+      }
+      
+      setAppConfig(config);
+      return active;
+    } catch (e: any) {
+      console.error('Data sync failed', e);
     }
-  };
+  }, [user.id]);
 
   const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
     stopCamera();
@@ -133,6 +120,45 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
       }
     } catch (err: any) {
       setCameraError("Camera permission denied.");
+    }
+  };
+
+  const enterCameraMode = useCallback((type: 'OFFICE' | 'FACTORY') => {
+    setDutyType(type);
+    startCamera('user');
+    setFacingMode('user');
+    detectLocation(true);
+  }, [facingMode]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const initData = async () => {
+      setIsInitialLoading(true);
+      const active = await refreshData();
+      detectLocation();
+      
+      if (autoStart === 'FINISH' && active) {
+        enterCameraMode(active.dutyType || 'OFFICE');
+      } else if (autoStart === 'OFFICE' || autoStart === 'FACTORY') {
+        enterCameraMode(autoStart);
+      } else {
+        // If accessed directly without intent, go back
+        if (onFinish) onFinish();
+      }
+      
+      setIsInitialLoading(false);
+    };
+    initData();
+    return () => {
+      clearInterval(timer);
+      stopCamera();
+    };
+  }, [refreshData, autoStart]);
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
     }
   };
 
@@ -155,30 +181,21 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     }
   };
 
-  const enterCameraMode = (type: 'OFFICE' | 'FACTORY') => {
-    setDutyType(type);
-    setView('CAMERA');
-    startCamera('user');
-    setFacingMode('user');
-    detectLocation();
-  };
-
   const exitCameraMode = () => {
     stopCamera();
-    setView('STATION');
-    setRemarks('');
-    setStatus('idle');
+    if (onFinish) {
+      onFinish();
+    }
   };
 
   useEffect(() => {
-    if (view === 'CAMERA' && stream && videoRef.current) {
+    if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(e => console.error(e));
     }
-  }, [view, stream]);
+  }, [stream]);
 
   const handlePunchSubmit = async () => {
-    // Validation for Factory Duty
     if (dutyType === 'FACTORY' && !remarks.trim()) {
       alert("Mandatory: Please mention the Factory Name and details in remarks.");
       return;
@@ -208,21 +225,14 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
       const today = new Date().toISOString().split('T')[0];
 
       if (activeRecord && !activeRecord.checkOut) {
-        // CLOCK OUT
         await hrService.updateAttendance(activeRecord.id, { checkOut: punchTime, remarks });
       } else {
-        // CLOCK IN
         let punchStatus: AttendanceType['status'] = 'PRESENT';
-        
-        // Compliance Logic for Office Duty
         if (dutyType === 'OFFICE' && appConfig) {
           const [pH, pM] = punchTime.split(':').map(Number);
           const [sH, sM] = appConfig.officeStartTime.split(':').map(Number);
           const grace = appConfig.lateGracePeriod || 0;
-          
-          if ((pH * 60 + pM) > (sH * 60 + sM + grace)) {
-            punchStatus = 'LATE';
-          }
+          if ((pH * 60 + pM) > (sH * 60 + sM + grace)) punchStatus = 'LATE';
         }
         
         await hrService.saveAttendance({
@@ -243,104 +253,6 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
 
   if (isInitialLoading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
 
-  // -------------------- STATION VIEW (Dashboard) --------------------
-  if (view === 'STATION') {
-    return (
-      <div className="flex-1 flex flex-col space-y-10 max-w-lg mx-auto w-full pb-24 animate-in fade-in duration-500 px-4">
-        
-        {/* Elegant Time Header */}
-        <div className="text-center py-6 space-y-2">
-          <p className="text-[9px] font-black uppercase text-slate-300 tracking-[0.4em]">Live Station Time</p>
-          <div className="flex items-center justify-center gap-1">
-            <h2 className="text-6xl font-black text-[#0f172a] tracking-tighter tabular-nums">
-              {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
-            </h2>
-            <div className="flex flex-col items-start -mt-1">
-               <span className="text-2xl font-black text-indigo-600/20 tabular-nums">:{currentTime.toLocaleTimeString('en-US', { hour12: false, second: '2-digit' })}</span>
-            </div>
-          </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-            {currentTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}
-          </p>
-        </div>
-
-        {/* Dynamic Action Buttons */}
-        <div className="space-y-4">
-          <div className="flex gap-4 p-1.5 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
-            <button 
-              onClick={() => enterCameraMode('OFFICE')}
-              className={`flex-1 h-16 rounded-[2rem] flex items-center justify-center gap-3 transition-all font-black uppercase text-[10px] tracking-widest ${activeRecord ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 active:scale-95'}`}
-            >
-              <Building size={16} /> Office
-            </button>
-            <button 
-              onClick={() => enterCameraMode('FACTORY')}
-              className={`flex-1 h-16 rounded-[2rem] flex items-center justify-center gap-3 transition-all font-black uppercase text-[10px] tracking-widest ${activeRecord ? 'bg-slate-100 text-slate-400' : 'bg-emerald-600 text-white shadow-xl shadow-emerald-100 active:scale-95'}`}
-            >
-              <Building2 size={16} /> Factory
-            </button>
-          </div>
-          
-          {activeRecord && (
-            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-2">
-              <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><Clock size={18}/></div>
-              <div className="flex-1">
-                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Session Running</p>
-                 <p className="text-sm font-black text-blue-900 leading-none">Started at {activeRecord.checkIn} — {activeRecord.dutyType || 'Shift'}</p>
-              </div>
-              <button onClick={() => enterCameraMode(activeRecord.dutyType === 'FACTORY' ? 'FACTORY' : 'OFFICE')} className="px-5 py-2.5 bg-white text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">Clock Out</button>
-            </div>
-          )}
-        </div>
-
-        {/* Summaries */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm flex items-center gap-5">
-            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shadow-inner"><Clock size={20} /></div>
-            <div>
-              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Start</p>
-              <p className="text-xl font-black text-slate-900 tabular-nums">{activeRecord?.checkIn || '--:--'}</p>
-            </div>
-          </div>
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm flex items-center gap-5">
-            <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center shadow-inner"><LogOut size={20} /></div>
-            <div>
-              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">End</p>
-              <p className="text-xl font-black text-slate-900 tabular-nums">{activeRecord?.checkOut || '--:--'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Logs */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-3 px-2">
-             <History className="text-indigo-600" size={24} />
-             <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Today's Log</h3>
-          </div>
-          <div className="space-y-3">
-            {allAttendance.slice(0, 3).map((item) => (
-              <div key={item.id} className="bg-white p-5 rounded-[2.5rem] border border-slate-50 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-slate-100 rounded-full flex-shrink-0 overflow-hidden ring-4 ring-white shadow-sm">
-                    {item.selfie ? <img src={item.selfie} className="w-full h-full object-cover scale-x-[-1]" /> : <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300 font-black text-xs uppercase">{item.employeeName?.[0]}</div>}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900">{new Date(item.date).toLocaleDateString('en-GB')}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.checkIn} — {item.checkOut || 'Active'}</p>
-                  </div>
-                </div>
-                <span className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${item.status === 'LATE' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                  {item.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // -------------------- CAMERA VIEW (Separate Page) --------------------
   return (
     <div className="fixed inset-0 bg-[#fcfdfe] z-[9999] flex flex-col animate-in slide-in-from-bottom-6 duration-500 overflow-y-auto no-scrollbar">
       <div className="p-8 pt-16 flex flex-col items-center relative">
@@ -366,7 +278,14 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
                 <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                 Face Detected
              </div>
-             <div className="absolute inset-10 border-2 border-white/10 rounded-[4rem] border-dashed"></div>
+             
+             <div className="mt-4 px-4 py-2 bg-black/60 backdrop-blur-md rounded-2xl flex items-center gap-2 pointer-events-auto cursor-pointer" onClick={() => detectLocation(true)}>
+                <MapPin size={12} className={location ? "text-rose-400" : "text-white/40"} />
+                <span className="text-[9px] font-black text-white uppercase tracking-wider">
+                  {isLocating ? 'Locating...' : (location ? location.address : 'GPS Waiting')}
+                </span>
+                {location && !isLocating && <LocateFixed size={12} className="text-emerald-400" />}
+             </div>
           </div>
 
           {isMobile && (
@@ -403,7 +322,7 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
         <div className="w-full max-w-[360px] flex flex-col items-center">
           <button 
             onClick={handlePunchSubmit}
-            disabled={!location || status !== 'idle' || !stream || (dutyType === 'FACTORY' && !remarks.trim())}
+            disabled={!location || isLocating || status !== 'idle' || !stream || (dutyType === 'FACTORY' && !remarks.trim())}
             className={`w-full py-6 rounded-[2.5rem] font-black uppercase tracking-[0.15em] text-xs shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-4 text-white disabled:opacity-20 ${dutyType === 'FACTORY' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' : 'bg-gradient-to-r from-indigo-500 to-blue-600'}`}
           >
             {status === 'loading' ? <RefreshCw className="animate-spin" size={24}/> : <><Fingerprint size={24} /> {activeRecord ? 'Complete Session' : 'Begin Session'}</>}

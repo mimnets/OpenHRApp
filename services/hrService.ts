@@ -1,4 +1,5 @@
 
+
 import { Employee, Attendance, LeaveRequest, User, AppConfig, Holiday, LeaveWorkflow, LeaveBalance } from '../types';
 import { DEFAULT_CONFIG, BD_HOLIDAYS } from '../constants.tsx';
 import { pb, isPocketBaseConfigured } from './pocketbase';
@@ -61,9 +62,14 @@ const mapAttendance = (r: any): Attendance => ({
   checkIn: r.check_in,
   checkOut: r.check_out || "",
   status: r.status as any,
-  location: r.location ? { lat: 0, lng: 0, address: r.location } : { lat: 0, lng: 0, address: "Unknown" },
+  location: { 
+    lat: Number(r.latitude) || 0, 
+    lng: Number(r.longitude) || 0, 
+    address: r.location || "Unknown" 
+  },
   selfie: r.selfie ? pb.files.getURL(r, r.selfie) : undefined,
-  remarks: r.remarks || ""
+  remarks: r.remarks || "",
+  dutyType: r.duty_type as any
 });
 
 export const hrService = {
@@ -169,7 +175,10 @@ export const hrService = {
       check_in: data.checkIn,
       status: data.status,
       remarks: data.remarks || "",
-      location: data.location?.address || ""
+      location: data.location?.address || "",
+      latitude: parseFloat(String(data.location?.lat || 0)),
+      longitude: parseFloat(String(data.location?.lng || 0)),
+      duty_type: data.dutyType
     };
     if (data.selfie) payload.selfie = data.selfie;
     await pb.collection('attendance').create(toFormData(payload, 'selfie.jpg'));
@@ -226,6 +235,7 @@ export const hrService = {
     const now = new Date();
     const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
 
+    // FIX: Property 'total_days' does not exist on type 'Partial<LeaveRequest>'. Using 'totalDays'.
     const payload: any = {
       employee_id: data.employeeId?.trim(),
       employee_name: data.employeeName,
