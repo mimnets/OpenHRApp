@@ -1,104 +1,152 @@
-// pb_hooks/main.pb.js
-// Optimized for PocketBase JS VM (v0.22+)
 
-// 1. LEAVE REQUEST CREATED -> EMAIL MANAGER
+// pb_hooks/main.pb.js
+// Optimized for PocketBase v0.23+
+
+/**
+ * Helper to queue an email for background processing.
+ * Using a local function to avoid scope/ReferenceErrors.
+ */
+function queueEmail(recipient, subject, html) {
+    try {
+        const queueCollection = $app.findCollectionByNameOrId("reports_queue");
+        const record = new Record(queueCollection);
+        
+        record.set("recipient_email", recipient);
+        record.set("subject", subject);
+        record.set("html_content", html);
+        record.set("status", "PENDING");
+        
+        $app.save(record);
+        console.log("[QUEUE] Task created for: " + recipient);
+    } catch (err) {
+        console.error("[QUEUE_ERROR] Failed to insert task: " + err.toString());
+    }
+}
+
+/**
+ * Helper to get HR Email from settings collection
+ */
+function fetchHrEmail() {
+    try {
+        const record = $app.findFirstRecordByFilter("settings", "key = 'hr_email'");
+        let val = record.get("value");
+        // If it's a JSON string, clean it
+        if (typeof val === 'string') return val.replace(/^"|"$/g, '');
+        return val || "hr@vclbd.net";
+    } catch (e) {
+        return "hr@vclbd.net";
+    }
+}
+
+// 1. TRIGGER: When a new Leave Request is submitted (Notify Manager)
 onRecordAfterCreateSuccess((e) => {
     const record = e.record;
-    const managerId = record.get("line_manager_id");
+    const employeeId = record.getString("employee_id");
+    const managerId = record.getString("line_manager_id");
     
     if (!managerId) return;
 
     try {
-        const dao = e.app.dao();
-        const manager = dao.findRecordById("users", managerId);
-        
-        if (!manager) return;
+        const employee = $app.findRecordById("users", employeeId);
+        const manager = $app.findRecordById("users", managerId);
 
-        const message = new MailerMessage({
-            from: { address: e.app.settings().meta.senderAddress, name: e.app.settings().meta.senderName },
-            to: [{ address: manager.email() }],
-            subject: "New Leave Application: " + record.get("employee_name"),
-            html: "<h2>New Leave Request Received</h2>" +
-                  "<p><b>Employee:</b> " + record.get("employee_name") + "</p>" +
-                  "<p><b>Dates:</b> " + record.get("start_date") + " to " + record.get("end_date") + "</p>" +
-                  "<p><b>Reason:</b> " + (record.get("reason") || "N/A") + "</p>" +
-                  "<p>Please log in to the portal to review this request.</p>",
-        });
-        
-        e.app.newMailClient().send(message);
+        // Notify Manager
+        const managerSubject = `Action Required: New Leave Request - ${record.getString("employee_name")}`;
+        const managerHtml = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <h2 style="color: #4f46e5;">New Leave Application</h2>
+                <p><b>Employee:</b> ${record.getString("employee_name")}</p>
+                <p><b>Type:</b> ${record.getString("type")}</p>
+                <p><b>Dates:</b> ${record.getString("start_date")} to ${record.getString("end_date")}</p>
+                <p><b>Reason:</b> ${record.getString("reason") || "N/A"}</p>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                <p>Please log in to the portal to review.</p>
+            </div>
+        `;
+        queueEmail(manager.email(), managerSubject, managerHtml);
+
+        // Notify Employee
+        queueEmail(employee.email(), "Leave Request Submitted", `<p>Hi ${record.getString("employee_name")}, your request is now with your manager for review.</p>`);
+
     } catch (err) {
         console.error("[LEAVE_CREATE_HOOK] Error: " + err.toString());
     }
 }, "leaves");
 
-// 2. LEAVE REQUEST UPDATED -> WORKFLOW ALERTS
+// 2. TRIGGER: When a Manager or HR updates the request
 onRecordAfterUpdateSuccess((e) => {
     const record = e.record;
-    const status = record.get("status");
-    
+    const status = record.getString("status");
+    const employeeId = record.getString("employee_id");
+    const employeeName = record.getString("employee_name");
+
     try {
-        const dao = e.app.dao();
-        const employeeId = record.get("employee_id");
-        if (!employeeId) return;
+        const employee = $app.findRecordById("users", employeeId);
+        const hrEmail = fetchHrEmail();
 
-        const employee = dao.findRecordById("users", employeeId);
-        if (!employee) return;
-
-        // STAGE A: Manager Verified -> Notify HR/Admin
+        // SCENARIO A: Manager Approved (Moves to PENDING_HR)
         if (status === "PENDING_HR") {
-            const hrStaff = dao.findRecordsByFilter("users", 'role = "HR" || role = "ADMIN"', '-created', 10);
-            const hrEmails = hrStaff.map(u => ({ address: u.email() }));
-            
-            if (hrEmails.length > 0) {
-                const hrMessage = new MailerMessage({
-                    from: { address: e.app.settings().meta.senderAddress, name: e.app.settings().meta.senderName },
-                    to: hrEmails,
-                    subject: "Action Required: Leave Approval Stage 2 (" + record.get("employee_name") + ")",
-                    html: "<h3>Management Approval Recorded</h3>" +
-                          "<p>The line manager has approved the leave for <b>" + record.get("employee_name") + "</b>.</p>" +
-                          "<p><b>Manager Remarks:</b> " + (record.get("manager_remarks") || "N/A") + "</p>" +
-                          "<p>Final HR verification is now required.</p>",
-                });
-                e.app.newMailClient().send(hrMessage);
-            }
+            // Notify Employee
+            const empSubject = `Update: Manager Approved your Leave`;
+            const empHtml = `
+                <p>Hi ${employeeName},</p>
+                <p>Your Line Manager has <b>approved</b> your request. It has now been sent to HR for final documentation.</p>
+                <p><b>Manager Remarks:</b> ${record.getString("manager_remarks") || "None"}</p>
+            `;
+            queueEmail(employee.email(), empSubject, empHtml);
+
+            // Notify HR
+            const hrSubject = `Action Required: HR Review for ${employeeName}`;
+            const hrHtml = `<p>Line Manager has approved leave for ${employeeName}. Final HR verification required.</p>`;
+            queueEmail(hrEmail, hrSubject, hrHtml);
         }
 
-        // STAGE B: Final Decision (Approved or Rejected) -> Notify Employee
+        // SCENARIO B: Final HR Decision (APPROVED or REJECTED)
         if (status === "APPROVED" || status === "REJECTED") {
-            const message = new MailerMessage({
-                from: { address: e.app.settings().meta.senderAddress, name: e.app.settings().meta.senderName },
-                to: [{ address: employee.email() }],
-                subject: "Leave Request Final Decision: " + status,
-                html: "<h3>Hello " + record.get("employee_name") + ",</h3>" +
-                      "<p>A final decision has been made on your leave request.</p>" +
-                      "<p><b>Status:</b> <span style='font-weight:bold; color:" + (status === "APPROVED" ? "#10b981" : "#ef4444") + "'>" + status + "</span></p>" +
-                      "<p><b>Manager Notes:</b> " + (record.get("manager_remarks") || "No notes") + "</p>" +
-                      "<p><b>HR/Admin Notes:</b> " + (record.get("approver_remarks") || "No notes") + "</p>",
-            });
-            e.app.newMailClient().send(message);
+            const color = status === "APPROVED" ? "#10b981" : "#ef4444";
+            const subject = `Final Decision: Your Leave Request is ${status}`;
+            const html = `
+                <div style="font-family: sans-serif; border: 1px solid #eee; padding: 20px;">
+                    <h2 style="color: ${color};">${status}</h2>
+                    <p>Hi ${employeeName}, final review is complete.</p>
+                    <p><b>HR Remarks:</b> ${record.getString("approver_remarks") || "N/A"}</p>
+                </div>
+            `;
+            queueEmail(employee.email(), subject, html);
+            
+            // Log for HR if final approved
+            if (status === "APPROVED") {
+                queueEmail(hrEmail, `[LOG] Final Approved: ${employeeName}`, `<p>Leave officially logged for payroll.</p>`);
+            }
         }
     } catch (err) {
         console.error("[LEAVE_UPDATE_HOOK] Error: " + err.toString());
     }
 }, "leaves");
 
-// 3. GENERIC REPORT QUEUE HANDLER
+// 3. TRIGGER: The Background SMTP Worker
 onRecordAfterCreateSuccess((e) => {
     const record = e.record;
+    if (record.get("status") !== "PENDING") return;
+
     try {
+        const meta = $app.settings().meta;
         const message = new MailerMessage({
-            from: { address: e.app.settings().meta.senderAddress, name: e.app.settings().meta.senderName },
+            from: { address: meta.senderAddress, name: meta.senderName },
             to: [{ address: record.get("recipient_email") }],
             subject: record.get("subject"),
             html: record.get("html_content"),
         });
-        e.app.newMailClient().send(message);
+        
+        $app.newMailClient().send(message);
+        
         record.set("status", "SENT");
         record.set("sent_at", new Date().toISOString());
-        e.app.dao().saveRecord(record);
+        $app.save(record);
     } catch (err) {
+        console.error("[SMTP_ERROR] " + err.toString());
         record.set("status", "FAILED");
         record.set("error_message", err.toString());
-        e.app.dao().saveRecord(record);
+        $app.save(record);
     }
 }, "reports_queue");

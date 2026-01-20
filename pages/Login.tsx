@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Settings, Database, Eye, EyeOff, RotateCcw, Smartphone, Download, Info } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Settings, Database, Eye, EyeOff, RotateCcw, Smartphone, Download, Info, Moon } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { isPocketBaseConfigured } from '../services/pocketbase';
 
@@ -10,24 +11,24 @@ interface LoginProps {
 }
 
 const BrandLogo = () => (
-  <div className="flex flex-col items-center justify-center gap-4">
-    <div className="relative w-20 h-20 md:w-24 md:h-24">
-      <div className="absolute inset-0 bg-indigo-600/10 rounded-[2rem] blur-xl"></div>
-      <div className="relative w-full h-full bg-white rounded-[1.5rem] shadow-lg border border-slate-100 flex items-center justify-center p-4">
+  <div className="flex flex-col items-center justify-center gap-6">
+    <div className="relative w-28 h-28">
+      <div className="absolute inset-0 bg-teal-900/10 rounded-[2.5rem] blur-2xl transform translate-y-4"></div>
+      <div className="relative w-full h-full bg-[#064e3b] rounded-[2rem] shadow-xl flex items-center justify-center p-6 border-4 border-white">
         <img 
           src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" 
-          style={{ width: '100%', height: '100%', maxHeight: '64px' }} 
-          className="object-contain" 
+          className="w-full h-full object-contain invert" 
           alt="OpenHR Logo" 
         />
       </div>
     </div>
-    <div className="text-center">
-      <h1 className="text-2xl font-black tracking-tighter">
+    <div className="text-center space-y-1">
+      <h1 className="text-4xl font-black tracking-tight flex items-center justify-center">
         <span className="text-[#2563eb]">Open</span>
         <span className="text-[#f59e0b]">HR</span>
         <span className="text-[#10b981]">App</span>
       </h1>
+      <p className="text-slate-500 font-medium text-sm">Streamlining Human Resources</p>
     </div>
   </div>
 );
@@ -106,115 +107,102 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
   };
 
   return (
-    <div className="h-screen w-full flex flex-col lg:flex-row bg-slate-50 overflow-hidden">
-      {/* Side Brand Panel (Fixed Height & Position on Desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#0f172a] h-full relative items-center justify-center p-20 flex-shrink-0">
-        <div className="absolute top-12 left-12 flex items-center gap-3 text-white/90">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-900/40">
-            <img src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" className="w-6 h-6 invert" alt="favicon" />
-          </div>
-          <span className="font-black text-2xl tracking-tight uppercase italic">OpenHR<span className="text-indigo-400">App</span></span>
-        </div>
-        <div className="space-y-8 max-w-md">
-          <h1 className="text-7xl font-black text-white leading-[1.1] tracking-tighter">Secure Workforce Intelligence.</h1>
-          <p className="text-slate-400 text-xl font-medium leading-relaxed">Smart HR management for modern organizations. Built for scale, secured for privacy.</p>
-          <div className="flex items-center gap-4 text-slate-500 font-black uppercase text-[10px] tracking-[0.4em] pt-4">
-             <div className="h-px flex-1 bg-slate-800"></div>
-             <span>Open Source Foundation</span>
-             <div className="h-px flex-1 bg-slate-800"></div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen w-full flex flex-col bg-[#fcfdfe] overflow-y-auto no-scrollbar items-center px-6 py-12 md:py-24 relative">
+      <div className="w-full max-w-sm space-y-12">
+        
+        {/* Brand Header */}
+        <BrandLogo />
 
-      {/* Main Scrollable Container */}
-      <div className="flex-1 h-full overflow-y-auto no-scrollbar bg-slate-50 flex flex-col items-center">
-        <div className="w-full max-w-md p-6 py-12 md:py-20 space-y-12">
-          
-          {/* Header Branding (Visible primarily on mobile) */}
-          <div className="space-y-4">
-            <BrandLogo />
-            <div className="flex items-center gap-2 text-slate-500 font-medium justify-center">
-              <Database size={14} className="text-indigo-500" />
-              <span className={isConfigured ? 'text-emerald-600 font-black uppercase text-[10px] tracking-widest' : 'text-rose-500 font-black uppercase text-[10px] tracking-widest'}>
-                {isConfigured ? 'Server Ready' : 'Database Offline'}
-              </span>
-            </div>
-          </div>
-
-          {/* Login Card */}
-          <form onSubmit={handleLogin} className="space-y-6 bg-white p-8 md:p-10 rounded-[3rem] shadow-2xl shadow-slate-200/60 border border-slate-100">
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-8">
+          <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Work Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input type="email" required className="w-full pl-12 pr-4 py-4.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold shadow-sm outline-none transition-all focus:ring-4 focus:ring-indigo-50" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" />
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Email</label>
+              <div className="relative group">
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                <input 
+                  type="email" 
+                  required 
+                  className="w-full pl-14 pr-5 py-4.5 bg-white border border-slate-200 rounded-2xl text-base font-medium text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  placeholder="name@company.com" 
+                />
               </div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Access Key</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input type={showPassword ? "text" : "password"} required className="w-full pl-12 pr-12 py-4.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold shadow-sm outline-none transition-all focus:ring-4 focus:ring-indigo-50" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors">
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-4 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-xl flex items-start gap-3 border border-rose-100 animate-in shake">
-                <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button type="submit" disabled={isLoading} className="w-full py-5 bg-[#0f172a] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-50">
-              {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <>Continue to Dashboard <ArrowRight size={18} /></>}
-            </button>
-          </form>
-          
-          {/* Footer Actions Area */}
-          <div className="space-y-8 pt-4 text-center">
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] leading-relaxed max-w-[280px] mx-auto">
-              Community-Powered OpenSource HR Intelligence
-            </p>
-
-            <div className="flex flex-col items-center gap-6 pt-6 border-t border-slate-100">
-              {!isStandalone && (
-                <div className="w-full flex justify-center">
-                  {isInstallable ? (
-                    <button 
-                      onClick={handleInstallClick} 
-                      className="px-10 py-4.5 bg-indigo-600 text-white rounded-[2rem] shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse"
-                    >
-                      <Smartphone size={16} /> Install App to Device
-                    </button>
-                  ) : isIOS ? (
-                    <div className="group relative">
-                      <button className="px-6 py-3.5 bg-white border border-slate-100 text-slate-500 rounded-2xl flex items-center gap-2 text-[9px] font-black uppercase tracking-widest shadow-sm">
-                        <Download size={14} /> iOS Home Screen Setup
-                        <Info size={12} className="text-indigo-400" />
-                      </button>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-60 p-4 bg-slate-900 text-white text-[10px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl z-50">
-                        Tap the <span className="text-indigo-400 font-bold">Share</span> icon below and select <span className="text-indigo-400 font-bold">"Add to Home Screen"</span>.
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              <div className="flex items-center gap-4">
-                <button onClick={handleReset} className="px-6 py-3 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 rounded-xl shadow-sm transition-all flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                  <RotateCcw size={12} /> Reset System
-                </button>
-                <button onClick={onEnterSetup} className="px-6 py-3 bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 rounded-xl shadow-sm transition-all flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                  <Settings size={12} /> Cloud Setup
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.1em] px-1">Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  className="w-full pl-14 pr-14 py-4.5 bg-white border border-slate-200 rounded-2xl text-base font-medium text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-50" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  placeholder="••••••••" 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)} 
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
           </div>
+
+          {error && (
+            <div className="p-4 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl flex items-center gap-3 border border-rose-100 animate-in shake">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+          >
+            {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <>Login <ArrowRight size={20} /></>}
+          </button>
+        </form>
+
+        {/* Action Buttons */}
+        <div className="space-y-8 pt-4">
+          <div className="w-full flex justify-center">
+            <button 
+              onClick={handleInstallClick}
+              disabled={!isInstallable && !isIOS}
+              className="w-full py-5 bg-white border-2 border-[#dbeafe] text-[#2563eb] rounded-2xl font-bold text-base shadow-sm hover:bg-blue-50 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+            >
+              <Download size={22} className="text-[#2563eb]" /> App Installation
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-10">
+            <button onClick={handleReset} className="text-slate-500 font-bold text-sm flex items-center gap-2 hover:text-rose-600 transition-colors">
+              <RotateCcw size={16} /> Reset
+            </button>
+            <div className="w-1.5 h-1.5 bg-slate-200 rounded-full"></div>
+            <button onClick={onEnterSetup} className="text-slate-500 font-bold text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+              <Database size={16} /> Cloud Setup
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* Floating Dark Mode Toggle */}
+      <button className="fixed bottom-8 right-8 w-14 h-14 bg-white shadow-2xl rounded-full flex items-center justify-center text-slate-700 hover:scale-110 active:scale-95 transition-all border border-slate-100">
+        <Moon size={24} />
+      </button>
+
+      {/* Database Status */}
+      <div className="fixed top-8 right-8 flex items-center gap-2 bg-white/50 backdrop-blur-md px-4 py-2 rounded-full border border-slate-100">
+        <div className={`w-2 h-2 rounded-full ${isConfigured ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></div>
+        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{isConfigured ? 'Live' : 'Offline'}</span>
       </div>
     </div>
   );

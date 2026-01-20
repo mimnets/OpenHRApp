@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,10 +7,10 @@
   <title>OpenHRApp - Open Source HRMS</title>
   
   <!-- PWA & iOS Specific Meta Tags -->
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#fcfdfe">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="OpenHR">
   
   <!-- High Quality Icons for iOS -->
@@ -29,9 +30,11 @@
     body {
       font-family: 'Inter', sans-serif;
       margin: 0;
-      background-color: #f8fafc;
+      background-color: #fcfdfe;
       -webkit-tap-highlight-color: transparent;
       padding-bottom: env(safe-area-inset-bottom);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     
     /* Ensure the app feels like a real app on iOS notch devices */
@@ -45,7 +48,7 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .brand-gradient {
-      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #10b981 100%);
+      background: linear-gradient(135deg, #2563eb 0%, #f59e0b 50%, #10b981 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -67,7 +70,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-[#fcfdfe] text-slate-900">
   <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
 </body>

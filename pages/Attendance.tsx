@@ -1,162 +1,81 @@
-// Add React to the import list to resolve namespace errors
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  MapPin, 
   Clock, 
-  X, 
   LogOut, 
   RefreshCw, 
   History, 
-  ShieldCheck, 
   CameraOff, 
-  Activity, 
   Loader2,
-  ChevronRight,
-  CalendarCheck,
-  UserMinus,
-  Briefcase,
-  Search,
-  Edit2,
-  Trash2,
-  Save,
-  Camera,
   Building2,
-  Building
+  Building,
+  ArrowLeft,
+  CheckCircle2,
+  Fingerprint,
+  Flashlight,
+  SwitchCamera,
+  CalendarDays,
+  ShieldCheck,
+  MapPin,
+  Scan,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { OFFICE_LOCATIONS } from '../constants.tsx';
-import { Attendance as AttendanceType, LeaveRequest, AppConfig } from '../types';
+import { Attendance as AttendanceType, AppConfig } from '../types';
 
 const Attendance: React.FC<{ user: any }> = ({ user }) => {
-  const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
-  const [currentTab, setCurrentTab] = useState<'STATION' | 'ACTIVITY'>(isAdmin ? 'ACTIVITY' : 'STATION');
+  const [view, setView] = useState<'STATION' | 'CAMERA'>('STATION');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [status, setStatus] = useState<'idle' | 'pushed' | 'loading'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [activeRecord, setActiveRecord] = useState<AttendanceType | undefined>(undefined);
   const [allAttendance, setAllAttendance] = useState<AttendanceType[]>([]);
-  const [userLeaves, setUserLeaves] = useState<LeaveRequest[]>([]);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [remarks, setRemarks] = useState('');
   const [dutyType, setDutyType] = useState<'OFFICE' | 'FACTORY'>('OFFICE');
-  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [dataError, setDataError] = useState<string | null>(null);
-  const [previewSelfie, setPreviewSelfie] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   
-  // Admin Search/Edit states
-  const [adminSearch, setAdminSearch] = useState('');
-  const [editingRecord, setEditingRecord] = useState<AttendanceType | null>(null);
+  // Camera Controls
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [isTorchOn, setIsTorchOn] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+
+  // Check mobile status
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   const refreshData = useCallback(async () => {
     try {
-      const [active, allAtt, allLeaves, config] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0];
+      const [active, allAtt, config] = await Promise.all([
         hrService.getActiveAttendance(user.id),
         hrService.getAttendance(),
-        hrService.getLeaves(),
         hrService.getConfig()
       ]);
       
-      setActiveRecord(active);
-      setAllAttendance(allAtt);
-      setUserLeaves(allLeaves.filter(l => l.employeeId === user.id));
+      // Auto-Close/Stale Session Logic:
+      // If the active record is from a previous day, we treat it as "ghosted"
+      // User cannot Clock Out for a previous day session.
+      if (active && active.date !== today) {
+        setActiveRecord(undefined); 
+      } else {
+        setActiveRecord(active);
+      }
+      
+      setAllAttendance(allAtt.filter(a => a.employeeId === user.id));
       setAppConfig(config);
-      setDataError(null);
     } catch (e: any) {
-      setDataError('Failed to sync records');
+      console.error('Data sync failed', e);
     }
   }, [user.id]);
-
-  const analytics = useMemo(() => {
-    const userRecords = allAttendance.filter(a => a.employeeId === user.id);
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    const monthlyRecords = userRecords.filter(a => {
-      const d = new Date(a.date);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
-
-    return {
-      present: monthlyRecords.filter(a => a.status === 'PRESENT').length,
-      late: monthlyRecords.filter(a => a.status === 'LATE').length,
-      absent: monthlyRecords.filter(a => a.status === 'ABSENT').length,
-      pendingLeaves: userLeaves.filter(l => l.status.startsWith('PENDING')).length,
-      totalLeavesThisYear: userLeaves.filter(l => l.status === 'APPROVED' && new Date(l.startDate).getFullYear() === currentYear).reduce((acc, l) => acc + l.totalDays, 0),
-      lastThreeDays: userRecords.slice(0, 3),
-      personalHistory: userRecords.sort((a,b) => b.date.localeCompare(a.date))
-    };
-  }, [allAttendance, userLeaves, user.id]);
-
-  const filteredAttendance = useMemo(() => {
-    if (!isAdmin) return analytics.personalHistory;
-    return allAttendance
-      .filter(a => 
-        (a.employeeName || '').toLowerCase().includes(adminSearch.toLowerCase()) ||
-        (a.employeeId || '').toLowerCase().includes(adminSearch.toLowerCase()) ||
-        (a.date || '').includes(adminSearch)
-      )
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [allAttendance, adminSearch, isAdmin, analytics.personalHistory]);
-
-  const initCamera = useCallback(async () => {
-    try {
-      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
-      setCameraError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } } 
-      });
-      streamRef.current = stream;
-      setCameraEnabled(true);
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(e => console.warn("Video playback blocked", e));
-        }
-      }, 300);
-    } catch (err: any) {
-      setCameraError("Camera access required.");
-      setCameraEnabled(false);
-    }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
-  const detectLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocationError("No GPS");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        let matchedOffice = "Field Area";
-        for (const office of OFFICE_LOCATIONS) {
-           if (Math.abs(office.lat - lat) < 0.05 && Math.abs(office.lng - lng) < 0.05) {
-              matchedOffice = office.name;
-              break;
-           }
-        }
-        setLocation({ lat, lng, address: matchedOffice });
-        setLocationError(null);
-      },
-      () => setLocationError("GPS Signal Lost"),
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -164,21 +83,109 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
       setIsInitialLoading(true);
       await refreshData();
       detectLocation();
-      if (currentTab === 'STATION') await initCamera();
       setIsInitialLoading(false);
     };
     initData();
-    return () => { clearInterval(timer); stopCamera(); };
-  }, [refreshData, detectLocation]);
+    return () => clearInterval(timer);
+  }, [refreshData]);
+
+  const detectLocation = useCallback(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        let matchedOffice = "Remote Area";
+        for (const office of OFFICE_LOCATIONS) {
+           if (Math.abs(office.lat - lat) < 0.01 && Math.abs(office.lng - lng) < 0.01) {
+              matchedOffice = office.name;
+              break;
+           }
+        }
+        setLocation({ lat, lng, address: matchedOffice });
+      },
+      null,
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
+  const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
+    stopCamera();
+    try {
+      setCameraError(null);
+      const s = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: mode, 
+          width: { ideal: 1080 }, 
+          height: { ideal: 1440 } 
+        } 
+      });
+      setStream(s);
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+      }
+    } catch (err: any) {
+      setCameraError("Camera permission denied.");
+    }
+  };
+
+  const toggleCamera = () => {
+    const nextMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextMode);
+    setIsTorchOn(false);
+    startCamera(nextMode);
+  };
+
+  const toggleTorch = async () => {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    const capabilities = (track as any).getCapabilities?.() || {};
+    if (capabilities.torch) {
+      try {
+        await track.applyConstraints({ advanced: [{ torch: !isTorchOn } as any] });
+        setIsTorchOn(!isTorchOn);
+      } catch (e) { console.error(e); }
+    }
+  };
+
+  const enterCameraMode = (type: 'OFFICE' | 'FACTORY') => {
+    setDutyType(type);
+    setView('CAMERA');
+    startCamera('user');
+    setFacingMode('user');
+    detectLocation();
+  };
+
+  const exitCameraMode = () => {
+    stopCamera();
+    setView('STATION');
+    setRemarks('');
+    setStatus('idle');
+  };
 
   useEffect(() => {
-    if (currentTab === 'STATION') initCamera();
-    else stopCamera();
-  }, [currentTab, initCamera, stopCamera]);
+    if (view === 'CAMERA' && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(e => console.error(e));
+    }
+  }, [view, stream]);
 
-  const handlePunch = async () => {
-    if (!location) { detectLocation(); return; }
-    if (status === 'loading') return;
+  const handlePunchSubmit = async () => {
+    // Validation for Factory Duty
+    if (dutyType === 'FACTORY' && !remarks.trim()) {
+      alert("Mandatory: Please mention the Factory Name and details in remarks.");
+      return;
+    }
+
+    if (status !== 'idle' || !location || !stream) return;
+    
     const canvas = canvasRef.current;
     const video = videoRef.current;
     if (!video || !canvas) return;
@@ -186,365 +193,224 @@ const Attendance: React.FC<{ user: any }> = ({ user }) => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    ctx?.translate(canvas.width, 0);
-    ctx?.scale(-1, 1);
-    ctx?.drawImage(video, 0, 0);
-    const selfieData = canvas.toDataURL('image/jpeg', 0.9);
+    if (ctx) {
+      if (facingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0);
+    }
+    const selfieData = canvas.toDataURL('image/jpeg', 0.8);
 
     setStatus('loading');
     try {
       const punchTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-      
-      if (activeRecord) {
+      const today = new Date().toISOString().split('T')[0];
+
+      if (activeRecord && !activeRecord.checkOut) {
+        // CLOCK OUT
         await hrService.updateAttendance(activeRecord.id, { checkOut: punchTime, remarks });
       } else {
-        // LATE LOGIC:
-        // Factory Duty is ALWAYS exempt from Late policy.
-        // Office Duty counts as late if punchTime > officeStartTime + 5 mins.
+        // CLOCK IN
         let punchStatus: AttendanceType['status'] = 'PRESENT';
         
+        // Compliance Logic for Office Duty
         if (dutyType === 'OFFICE' && appConfig) {
           const [pH, pM] = punchTime.split(':').map(Number);
           const [sH, sM] = appConfig.officeStartTime.split(':').map(Number);
-          const punchTotalMinutes = pH * 60 + pM;
-          const startTotalMinutes = sH * 60 + sM;
-          const threshold = 5; // Strict 5-minute threshold
+          const grace = appConfig.lateGracePeriod || 0;
           
-          if (punchTotalMinutes > (startTotalMinutes + threshold)) {
+          if ((pH * 60 + pM) > (sH * 60 + sM + grace)) {
             punchStatus = 'LATE';
           }
         }
-
-        const finalRemarks = dutyType === 'FACTORY' 
-          ? `[FACTORY VISIT: ${remarks}]` 
-          : remarks;
-
+        
         await hrService.saveAttendance({
-          id: '', employeeId: user.id, employeeName: user.name, date: new Date().toISOString().split('T')[0],
-          checkIn: punchTime, status: punchStatus, location, selfie: selfieData, remarks: finalRemarks
+          id: '', employeeId: user.id, employeeName: user.name, date: today,
+          checkIn: punchTime, status: punchStatus, location, selfie: selfieData, 
+          remarks: dutyType === 'FACTORY' ? `[FACTORY] ${remarks}` : remarks,
+          dutyType: dutyType
         });
       }
+      
+      setStatus('success');
       await refreshData();
-      setRemarks('');
-      setStatus('pushed');
-      setTimeout(() => setStatus('idle'), 2500);
-    } catch (err: any) {
-      setDataError(err.message);
+      setTimeout(() => exitCameraMode(), 1500);
+    } catch (err) {
       setStatus('idle');
     }
   };
 
-  const handleAdminUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRecord) return;
-    setStatus('loading');
-    try {
-      await hrService.updateAttendance(editingRecord.id, editingRecord);
-      await refreshData();
-      setEditingRecord(null);
-    } finally {
-      setStatus('idle');
-    }
-  };
+  if (isInitialLoading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
 
-  const handleAdminDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this attendance record?")) return;
-    try {
-      await hrService.deleteAttendance(id);
-      await refreshData();
-    } catch (e) { alert("Failed to delete."); }
-  };
-
-  const getStatusBadge = (s: AttendanceType['status']) => {
-    const map: any = {
-      'LATE': 'bg-amber-100 text-amber-700',
-      'EARLY_OUT': 'bg-rose-100 text-rose-700',
-      'PRESENT': 'bg-emerald-100 text-emerald-700',
-      'ABSENT': 'bg-slate-100 text-slate-500',
-      'LEAVE': 'bg-indigo-100 text-indigo-700'
-    };
-    return <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${map[s] || 'bg-slate-100 text-slate-500'}`}>{s}</span>;
-  };
-
-  if (isInitialLoading) return <div className="h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-indigo-600" size={48} /></div>;
-
-  return (
-    <div className="h-full flex flex-col space-y-3 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex p-1 bg-white border border-slate-100 rounded-xl shadow-sm self-center">
-        <button 
-          onClick={() => setCurrentTab('STATION')} 
-          className={`px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${currentTab === 'STATION' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}
-        >
-          <Camera size={12} /> Station
-        </button>
-        <button 
-          onClick={() => setCurrentTab('ACTIVITY')} 
-          className={`px-5 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${currentTab === 'ACTIVITY' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400'}`}
-        >
-          <Activity size={12} /> {isAdmin ? 'Organization' : 'Activity'}
-        </button>
-      </div>
-
-      {currentTab === 'STATION' ? (
-        <div className="flex-1 flex flex-col max-w-lg mx-auto w-full space-y-3 min-h-0 pt-1">
-          {!activeRecord && (
-            <div className="flex gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-              <button 
-                onClick={() => setDutyType('OFFICE')}
-                className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${dutyType === 'OFFICE' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}
-              >
-                <Building size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Office Duty</span>
-              </button>
-              <button 
-                onClick={() => setDutyType('FACTORY')}
-                className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${dutyType === 'FACTORY' ? 'bg-amber-600 text-white shadow-md' : 'bg-slate-50 text-slate-400'}`}
-              >
-                <Building2 size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Factory Visit</span>
-              </button>
-            </div>
-          )}
-
-          <div className={`relative flex-1 rounded-[2.5rem] overflow-hidden border-[6px] shadow-2xl transition-all duration-1000 ${activeRecord ? 'border-emerald-500/20 bg-emerald-950' : 'border-white bg-slate-900'} max-h-[48vh] sm:max-h-[52vh]`}>
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
-              <div className="bg-black/40 backdrop-blur-lg border border-white/10 px-6 py-2 rounded-2xl text-white text-center">
-                <p className="text-[7px] font-black uppercase tracking-[0.3em] opacity-40 mb-1">Live Sync Clock</p>
-                <p className="text-xl font-black tabular-nums">{currentTime.toLocaleTimeString('en-US', { hour12: false })}</p>
-              </div>
-            </div>
-
-            {cameraEnabled ? (
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white/40">
-                <CameraOff size={32} className="mb-2 opacity-20" />
-                <p className="font-black uppercase tracking-widest text-[9px] mb-4">{cameraError || 'Camera Required'}</p>
-                <button onClick={initCamera} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg">Restore Access</button>
-              </div>
-            )}
-            <canvas ref={canvasRef} className="hidden" />
-            
-            {status === 'loading' && (
-              <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md z-30 flex flex-col items-center justify-center text-white">
-                <RefreshCw className="animate-spin mb-3 text-indigo-400" size={36} />
-                <p className="font-black uppercase tracking-[0.2em] text-[10px]">Processing Biometric...</p>
-              </div>
-            )}
-            
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none gap-2">
-              <div className="bg-black/40 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-white">
-                 <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                   <MapPin size={12} className={location ? 'text-emerald-400' : 'text-rose-400'} />
-                   <span className="truncate max-w-[100px]">{location ? location.address : 'GPS Linking...'}</span>
-                 </div>
-              </div>
-              <div className="bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-4 py-2 rounded-full text-emerald-400 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
-                <ShieldCheck size={12} /> Encrypted
-              </div>
+  // -------------------- STATION VIEW (Dashboard) --------------------
+  if (view === 'STATION') {
+    return (
+      <div className="flex-1 flex flex-col space-y-10 max-w-lg mx-auto w-full pb-24 animate-in fade-in duration-500 px-4">
+        
+        {/* Elegant Time Header */}
+        <div className="text-center py-6 space-y-2">
+          <p className="text-[9px] font-black uppercase text-slate-300 tracking-[0.4em]">Live Station Time</p>
+          <div className="flex items-center justify-center gap-1">
+            <h2 className="text-6xl font-black text-[#0f172a] tracking-tighter tabular-nums">
+              {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+            </h2>
+            <div className="flex flex-col items-start -mt-1">
+               <span className="text-2xl font-black text-indigo-600/20 tabular-nums">:{currentTime.toLocaleTimeString('en-US', { hour12: false, second: '2-digit' })}</span>
             </div>
           </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            {currentTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}
+          </p>
+        </div>
 
-          <div className="space-y-3 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-xl">
-            <div className="relative">
-              <input 
-                type="text"
-                placeholder={dutyType === 'FACTORY' ? "Which Factory? (Required)" : "Session remarks (Optional)"}
-                className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl text-[12px] font-bold outline-none focus:ring-4 transition-all ${dutyType === 'FACTORY' ? 'border-amber-200 focus:ring-amber-50' : 'border-slate-100 focus:ring-indigo-50'}`}
-                value={remarks}
-                onChange={e => setRemarks(e.target.value)}
-              />
-              {dutyType === 'FACTORY' && (
-                <Building2 className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500 opacity-50" size={16} />
-              )}
-            </div>
+        {/* Dynamic Action Buttons */}
+        <div className="space-y-4">
+          <div className="flex gap-4 p-1.5 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
             <button 
-              onClick={handlePunch}
-              disabled={!location || status !== 'idle' || !cameraEnabled || (dutyType === 'FACTORY' && !remarks && !activeRecord)}
-              className={`w-full py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 ${
-                activeRecord 
-                  ? 'bg-rose-600 text-white shadow-rose-200' 
-                  : dutyType === 'FACTORY' 
-                    ? 'bg-amber-600 text-white shadow-amber-200' 
-                    : 'bg-indigo-600 text-white shadow-indigo-200'
-              } disabled:opacity-40`}
+              onClick={() => enterCameraMode('OFFICE')}
+              className={`flex-1 h-16 rounded-[2rem] flex items-center justify-center gap-3 transition-all font-black uppercase text-[10px] tracking-widest ${activeRecord ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 active:scale-95'}`}
             >
-              {activeRecord ? <LogOut size={16}/> : <CalendarCheck size={16}/>}
-              {activeRecord ? 'Terminate Session' : dutyType === 'FACTORY' ? 'Start Factory Duty' : 'Authenticate Entry'}
+              <Building size={16} /> Office
+            </button>
+            <button 
+              onClick={() => enterCameraMode('FACTORY')}
+              className={`flex-1 h-16 rounded-[2rem] flex items-center justify-center gap-3 transition-all font-black uppercase text-[10px] tracking-widest ${activeRecord ? 'bg-slate-100 text-slate-400' : 'bg-emerald-600 text-white shadow-xl shadow-emerald-100 active:scale-95'}`}
+            >
+              <Building2 size={16} /> Factory
             </button>
           </div>
+          
+          {activeRecord && (
+            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-3xl flex items-center gap-4 animate-in slide-in-from-top-2">
+              <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white"><Clock size={18}/></div>
+              <div className="flex-1">
+                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Session Running</p>
+                 <p className="text-sm font-black text-blue-900 leading-none">Started at {activeRecord.checkIn} — {activeRecord.dutyType || 'Shift'}</p>
+              </div>
+              <button onClick={() => enterCameraMode(activeRecord.dutyType === 'FACTORY' ? 'FACTORY' : 'OFFICE')} className="px-5 py-2.5 bg-white text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">Clock Out</button>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="flex-1 overflow-auto no-scrollbar space-y-6 animate-in slide-in-from-bottom-8 duration-700">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm col-span-2 flex flex-col justify-between">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><CalendarCheck size={20} /></div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Logged</span>
-              </div>
-              <div>
-                <h4 className="text-3xl font-black text-slate-900 tabular-nums">{analytics.present}</h4>
-                <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 tracking-widest">Days Present</p>
-              </div>
-            </div>
-            
-            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div className="p-2 bg-amber-50 text-amber-600 rounded-xl w-fit mb-3"><Clock size={20} /></div>
-              <div>
-                <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.late}</h4>
-                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Late</p>
-              </div>
-            </div>
 
-            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl w-fit mb-3"><UserMinus size={20} /></div>
-              <div>
-                <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.absent}</h4>
-                <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Absent</p>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between col-span-2">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><Briefcase size={20} /></div>
-                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Balance</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                   <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.totalLeavesThisYear}</h4>
-                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Approved</p>
-                </div>
-                <div>
-                   <h4 className="text-2xl font-black text-slate-900 tabular-nums">{analytics.pendingLeaves}</h4>
-                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Pending</p>
-                </div>
-              </div>
+        {/* Summaries */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm flex items-center gap-5">
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shadow-inner"><Clock size={20} /></div>
+            <div>
+              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Start</p>
+              <p className="text-xl font-black text-slate-900 tabular-nums">{activeRecord?.checkIn || '--:--'}</p>
             </div>
           </div>
-
-          <div className="space-y-4">
-            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8">
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
-                  <History size={20} className="text-indigo-600" /> {isAdmin ? 'Global Workforce Audit' : 'My Session History'}
-                </h3>
-                {isAdmin && (
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input 
-                      type="text" 
-                      placeholder="Search name, ID or date..."
-                      className="w-full pl-12 pr-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
-                      value={adminSearch}
-                      onChange={e => setAdminSearch(e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-3">
-                {filteredAttendance.map((h, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-white hover:shadow-xl transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white shadow-sm overflow-hidden flex items-center justify-center border border-slate-100 cursor-zoom-in group-hover:scale-105 transition-transform" onClick={() => h.selfie && setPreviewSelfie(h.selfie)}>
-                        {h.selfie ? <img src={h.selfie} className="w-full h-full object-cover scale-x-[-1]" /> : <Clock size={16} className="text-slate-200" />}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                           <p className="text-xs font-black text-slate-900 tabular-nums">{new Date(h.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
-                           {isAdmin && <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-lg">{h.employeeName}</span>}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                          {h.checkIn} — {h.checkOut || <span className="text-indigo-600 animate-pulse">Running</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {getStatusBadge(h.status)}
-                      {isAdmin && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                           <button onClick={() => setEditingRecord(h)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl"><Edit2 size={14}/></button>
-                           <button onClick={() => handleAdminDelete(h.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"><Trash2 size={14}/></button>
-                        </div>
-                      )}
-                      <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                ))}
-                {filteredAttendance.length === 0 && (
-                  <div className="py-24 text-center text-slate-300 font-black uppercase text-[11px] tracking-[0.2em]">
-                    No workforce activity detected.
-                  </div>
-                )}
-              </div>
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm flex items-center gap-5">
+            <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center shadow-inner"><LogOut size={20} /></div>
+            <div>
+              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">End</p>
+              <p className="text-xl font-black text-slate-900 tabular-nums">{activeRecord?.checkOut || '--:--'}</p>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Admin Edit Modal */}
-      {editingRecord && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[160] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
-             <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
-                <div className="flex items-center gap-3">
-                  <Edit2 size={20} className="text-indigo-400" />
-                  <h3 className="text-sm font-black uppercase tracking-widest">Adjust Record</h3>
+        {/* Logs */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 px-2">
+             <History className="text-indigo-600" size={24} />
+             <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Today's Log</h3>
+          </div>
+          <div className="space-y-3">
+            {allAttendance.slice(0, 3).map((item) => (
+              <div key={item.id} className="bg-white p-5 rounded-[2.5rem] border border-slate-50 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-slate-100 rounded-full flex-shrink-0 overflow-hidden ring-4 ring-white shadow-sm">
+                    {item.selfie ? <img src={item.selfie} className="w-full h-full object-cover scale-x-[-1]" /> : <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300 font-black text-xs uppercase">{item.employeeName?.[0]}</div>}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900">{new Date(item.date).toLocaleDateString('en-GB')}</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.checkIn} — {item.checkOut || 'Active'}</p>
+                  </div>
                 </div>
-                <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-white/10 rounded-xl transition-all"><X size={24}/></button>
+                <span className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${item.status === 'LATE' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                  {item.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------- CAMERA VIEW (Separate Page) --------------------
+  return (
+    <div className="fixed inset-0 bg-[#fcfdfe] z-[9999] flex flex-col animate-in slide-in-from-bottom-6 duration-500 overflow-y-auto no-scrollbar">
+      <div className="p-8 pt-16 flex flex-col items-center relative">
+        <button onClick={exitCameraMode} className="absolute left-8 top-16 w-12 h-12 flex items-center justify-center bg-white shadow-xl text-slate-400 rounded-2xl active:scale-90 border border-slate-100"><ArrowLeft size={24} /></button>
+        <div className="text-center space-y-1">
+           <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{currentTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }).toUpperCase()}</p>
+           <p className="text-5xl font-black text-[#0f172a] tabular-nums tracking-tighter">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}</p>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-8 mt-4">
+        <div className="relative w-full max-w-[360px] aspect-[4/5] rounded-[4rem] overflow-hidden bg-slate-900 shadow-2xl ring-[14px] ring-white">
+          {stream ? (
+            <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`} />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 text-white/40">
+              {cameraError ? <><CameraOff size={48} className="text-rose-500 mb-4" /><p className="font-black uppercase text-[10px] tracking-widest">{cameraError}</p></> : <Loader2 size={48} className="text-indigo-500 animate-spin mb-4" />}
+            </div>
+          )}
+          
+          <div className="absolute inset-0 pointer-events-none flex flex-col items-center pt-10">
+             <div className="px-6 py-2.5 bg-emerald-500 rounded-full text-[10px] font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2 ring-4 ring-emerald-500/20 animate-pulse">
+                <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                Face Detected
              </div>
-             <form onSubmit={handleAdminUpdate} className="p-10 space-y-8">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Check In</label>
-                    <input type="time" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold" value={editingRecord.checkIn} onChange={e => setEditingRecord({...editingRecord, checkIn: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Check Out</label>
-                    <input type="time" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold" value={editingRecord.checkOut} onChange={e => setEditingRecord({...editingRecord, checkOut: e.target.value})} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Session Date</label>
-                  <input type="date" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold" value={editingRecord.date} onChange={e => setEditingRecord({...editingRecord, date: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Status Audit</label>
-                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none" value={editingRecord.status} onChange={e => setEditingRecord({...editingRecord, status: e.target.value as any})}>
-                    <option value="PRESENT">Standard Present</option>
-                    <option value="LATE">Verified Late</option>
-                    <option value="ABSENT">Unexcused Absent</option>
-                    <option value="EARLY_OUT">Early Departure</option>
-                  </select>
-                </div>
-                <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => setEditingRecord(null)} className="flex-1 py-5 bg-slate-100 text-slate-500 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all hover:bg-slate-200">Cancel</button>
-                  <button type="submit" disabled={status === 'loading'} className="flex-1 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-2xl flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all">
-                    {status === 'loading' ? <RefreshCw className="animate-spin" size={16}/> : <Save size={16}/>} Commit
-                  </button>
-                </div>
-             </form>
+             <div className="absolute inset-10 border-2 border-white/10 rounded-[4rem] border-dashed"></div>
           </div>
-        </div>
-      )}
 
-      {/* Selfie Preview */}
-      {previewSelfie && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-[200] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300" onClick={() => setPreviewSelfie(null)}>
-           <div className="max-w-xl w-full aspect-square rounded-[3rem] overflow-hidden border-8 border-white/10 shadow-2xl relative">
-              <img src={previewSelfie} className="w-full h-full object-cover scale-x-[-1]" />
-              <button className="absolute top-6 right-6 p-4 bg-black/60 text-white rounded-2xl hover:bg-white hover:text-black transition-all shadow-xl" onClick={() => setPreviewSelfie(null)}>
-                <X size={24} />
-              </button>
-              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
-                 <div className="flex items-center gap-3 text-white">
-                    <ShieldCheck className="text-emerald-400" />
-                    <span className="font-black uppercase tracking-widest text-xs">Biometric Verification Proof</span>
-                 </div>
-              </div>
-           </div>
+          {isMobile && (
+            <>
+              <button onClick={toggleTorch} className={`absolute top-8 left-8 w-11 h-11 backdrop-blur-md rounded-2xl flex items-center justify-center ${isTorchOn ? 'bg-amber-400 text-white' : 'bg-black/30 text-white'}`}><Flashlight size={18} /></button>
+              <button onClick={toggleCamera} className="absolute top-8 right-8 w-11 h-11 bg-black/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-white active:scale-90"><SwitchCamera size={18} /></button>
+            </>
+          )}
+
+          {status === 'success' && (
+            <div className="absolute inset-0 bg-emerald-600/95 flex flex-col items-center justify-center z-[1002] animate-in zoom-in">
+              <div className="p-6 bg-white rounded-full shadow-2xl mb-6"><CheckCircle2 size={64} className="text-emerald-500 animate-bounce" /></div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-[0.2em]">Verified</h3>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      <div className="p-10 pb-20 flex flex-col items-center gap-8">
+        <div className="w-full max-w-[360px] space-y-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+            {dutyType === 'FACTORY' && <AlertCircle size={10} className="text-emerald-500" />}
+            {dutyType} / Remarks / Notes {dutyType === 'FACTORY' && "(Mandatory)"}
+          </p>
+          <input 
+            type="text"
+            placeholder={dutyType === 'FACTORY' ? "Mention factory name & details..." : "Optional remarks..."}
+            className={`w-full px-8 py-5 bg-white border rounded-[2.5rem] text-slate-700 text-sm font-bold placeholder:text-slate-300 outline-none shadow-sm transition-all ${dutyType === 'FACTORY' && !remarks ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'}`}
+            value={remarks}
+            onChange={e => setRemarks(e.target.value)}
+          />
+        </div>
+
+        <div className="w-full max-w-[360px] flex flex-col items-center">
+          <button 
+            onClick={handlePunchSubmit}
+            disabled={!location || status !== 'idle' || !stream || (dutyType === 'FACTORY' && !remarks.trim())}
+            className={`w-full py-6 rounded-[2.5rem] font-black uppercase tracking-[0.15em] text-xs shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-4 text-white disabled:opacity-20 ${dutyType === 'FACTORY' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' : 'bg-gradient-to-r from-indigo-500 to-blue-600'}`}
+          >
+            {status === 'loading' ? <RefreshCw className="animate-spin" size={24}/> : <><Fingerprint size={24} /> {activeRecord ? 'Complete Session' : 'Begin Session'}</>}
+          </button>
+        </div>
+      </div>
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 };

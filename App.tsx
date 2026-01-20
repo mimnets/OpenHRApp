@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -108,7 +109,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex bg-slate-50 min-h-screen relative overflow-hidden">
+    <div className="flex bg-[#fcfdfe] min-h-screen relative overflow-hidden">
       {/* Mobile Sidebar Backdrop */}
       <div 
         className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -122,11 +123,12 @@ const App: React.FC = () => {
           onNavigate={handleNavigate} 
           onLogout={handleLogout} 
           role={currentUser.role} 
+          user={currentUser}
         />
       </div>
 
-      <main className="flex-1 md:ml-64 flex flex-col min-h-screen max-w-full overflow-hidden">
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 md:px-10 sticky top-0 z-40">
+      <main className="flex-1 md:ml-72 flex flex-col min-h-screen max-w-full overflow-hidden">
+        <header className="h-20 bg-white border-b border-slate-50 flex items-center justify-between px-6 md:px-10 sticky top-0 z-40">
            <div className="flex items-center gap-4">
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -136,67 +138,63 @@ const App: React.FC = () => {
               </button>
               
               <div className="flex items-center gap-2">
-                 <div className="p-1.5 bg-indigo-600 rounded-lg text-white md:hidden">
+                 <div className="p-1.5 bg-[#2563eb] rounded-lg text-white md:hidden">
                     <img src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" className="w-5 h-5 invert" alt="Logo" />
                  </div>
-                 <h2 className="font-black text-lg tracking-tighter brand-gradient md:hidden truncate max-w-[120px]">OpenHR</h2>
-                 <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50 text-slate-500 border-slate-100">
+                 <h2 className="font-black text-xl tracking-tighter text-[#2563eb] md:hidden truncate max-w-[150px]">OpenHRApp</h2>
+                 <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50 text-slate-400 border-slate-100">
                    <Database size={12} />
-                   <span className="text-[9px] font-black uppercase tracking-widest">System Cloud</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest">Cloud Node Alpha</span>
                  </div>
               </div>
            </div>
 
            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-slate-900 leading-tight truncate max-w-[150px]">{currentUser.name}</p>
-                <p className="text-[9px] font-black uppercase text-indigo-50 text-indigo-500 tracking-wider">Verified {currentUser.role}</p>
-              </div>
               <div 
                 className="cursor-pointer"
                 onClick={() => setCurrentPath('profile')}
               >
                 <img 
                   src={currentUser.avatar || `https://ui-avatars.com/api/?name=${currentUser.name}`} 
-                  className="w-10 h-10 rounded-xl bg-indigo-100 object-cover ring-2 ring-transparent hover:ring-indigo-500 transition-all shadow-sm" 
+                  className="w-10 h-10 rounded-full bg-slate-50 object-cover ring-2 ring-transparent hover:ring-blue-500 transition-all shadow-sm" 
                   alt="Profile"
                 />
               </div>
            </div>
         </header>
 
-        <div className="flex-1 p-4 md:p-10 w-full pb-24 md:pb-10 overflow-x-hidden">
-          <div className="max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-6 md:p-12 w-full pb-28 md:pb-12 overflow-x-hidden">
+          <div className="max-w-4xl mx-auto w-full">
             {renderContent()}
           </div>
         </div>
 
         {/* Mobile Navigation Bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 flex items-center justify-around p-4 z-50">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-slate-100 flex items-center justify-around p-4 z-50 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button 
             onClick={() => handleNavigate('dashboard')}
-            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'dashboard' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             <LayoutDashboard size={20} className={currentPath === 'dashboard' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Home</span>
           </button>
           <button 
             onClick={() => handleNavigate('attendance')}
-            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'attendance' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'attendance' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             <Clock size={20} className={currentPath === 'attendance' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Station</span>
           </button>
           <button 
             onClick={() => handleNavigate('leave')}
-            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'leave' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'leave' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             <CalendarDays size={20} className={currentPath === 'leave' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Leave</span>
           </button>
           <button 
             onClick={() => handleNavigate('profile')}
-            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'profile' ? 'text-indigo-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center gap-1 transition-all ${currentPath === 'profile' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             <UserCircle size={20} className={currentPath === 'profile' ? 'scale-110' : ''} />
             <span className="text-[9px] font-black uppercase tracking-tighter">Account</span>

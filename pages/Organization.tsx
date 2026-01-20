@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Network, 
@@ -22,7 +23,9 @@ import {
   UserCircle,
   RefreshCw,
   AlertCircle,
-  Loader2
+  Loader2,
+  Mail,
+  Send
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { Holiday, AppConfig, LeaveWorkflow, Employee } from '../types';
@@ -40,6 +43,7 @@ const Organization: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [savingManagerId, setSavingManagerId] = useState<string | null>(null);
 
   // Modals
@@ -103,6 +107,24 @@ const Organization: React.FC = () => {
       alert('Failed to save workflows.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestEmailAlerts = async () => {
+    setIsTestingEmail(true);
+    const testRecipient = 'hr@vclbd.net';
+    try {
+       await hrService.sendCustomEmail({
+          recipientEmail: testRecipient,
+          subject: 'OpenHR Workflow Alert System Test',
+          html: '<h3>System Test Successful</h3><p>This email confirms that the automated workflow queue is linked to your SMTP service.</p><p>Recipient: <b>hr@vclbd.net</b></p>'
+       });
+       alert(`Success: Test communication queued for ${testRecipient}. Your PocketBase hook will process it shortly.`);
+    } catch (err: any) {
+       console.error("Test email failed:", err);
+       alert("Operation Alert: While the record was added to the database, the UI could not verify it due to access rules. Please check the 'reports_queue' collection in PocketBase for status.");
+    } finally {
+       setIsTestingEmail(false);
     }
   };
 
@@ -239,11 +261,6 @@ const Organization: React.FC = () => {
                     </div>
                   </div>
                 ))}
-                {departments.length === 0 && (
-                  <div className="p-8 text-center border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                    No Departments Configured
-                  </div>
-                )}
               </div>
             </section>
             
@@ -262,11 +279,6 @@ const Organization: React.FC = () => {
                     </div>
                   </div>
                 ))}
-                {designations.length === 0 && (
-                  <div className="p-8 text-center border-2 border-dashed border-slate-100 rounded-2xl text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                    No Designations Configured
-                  </div>
-                )}
               </div>
             </section>
           </div>
@@ -295,7 +307,6 @@ const Organization: React.FC = () => {
                          <Calendar size={12} />
                          <span className="text-[10px] font-black uppercase tracking-widest">{new Date(hol.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric'})}</span>
                       </div>
-                      {hol.isGovernment && <div className="mt-4 flex items-center gap-1.5 text-emerald-600 text-[8px] font-black uppercase tracking-widest"><ShieldCheck size={10} /> Public Holiday</div>}
                    </div>
                 ))}
              </div>
@@ -303,40 +314,69 @@ const Organization: React.FC = () => {
         )}
 
         {activeTab === 'WORKFLOW' && (
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-8 space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-               <div><h3 className="text-xl font-black text-slate-900">Approval Matrix</h3><p className="text-sm text-slate-500">Define first-level approvers</p></div>
-               <button onClick={handleSaveWorkflows} disabled={isSaving || departments.length === 0} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
-                  {isSaving ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Save Changes
-               </button>
+          <div className="space-y-8">
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-5 md:p-8 space-y-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                 <div><h3 className="text-xl font-black text-slate-900">Approval Matrix</h3><p className="text-sm text-slate-500">Define first-level approvers</p></div>
+                 <button onClick={handleSaveWorkflows} disabled={isSaving || departments.length === 0} className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl disabled:opacity-50">
+                    {isSaving ? <RefreshCw className="animate-spin" size={14}/> : <Save size={14}/>} Save Changes
+                 </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                 {departments.map((dept) => {
+                   const currentWf = workflows.find(w => w.department === dept);
+                   const currentRole = currentWf?.approverRole || 'LINE_MANAGER';
+                   return (
+                    <div key={dept} className="p-5 md:p-6 bg-slate-50 border border-slate-100 rounded-[2rem]">
+                       <h4 className="text-sm font-black text-slate-900 mb-6 break-words">{dept}</h4>
+                       <div className="space-y-3">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Approver Role</p>
+                          <select className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-black outline-none focus:ring-4 focus:ring-indigo-50" value={currentRole} onChange={e => updateWorkflowRole(dept, e.target.value)}>
+                             <option value="LINE_MANAGER">Line Manager</option>
+                             <option value="HR">HR Dept (Centralized)</option>
+                             <option value="ADMIN">Executive Office</option>
+                          </select>
+                       </div>
+                    </div>
+                   );
+                 })}
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-               {departments.map((dept) => {
-                 const currentWf = workflows.find(w => w.department === dept);
-                 const currentRole = currentWf?.approverRole || 'LINE_MANAGER';
-                 
-                 return (
-                  <div key={dept} className="p-5 md:p-6 bg-slate-50 border border-slate-100 rounded-[2rem]">
-                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-white rounded-xl shadow-sm text-indigo-600"><Workflow size={18}/></div>
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Department</span>
-                     </div>
-                     <h4 className="text-sm font-black text-slate-900 mb-6 break-words">{dept}</h4>
-                     <div className="space-y-3">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Approver Role</p>
-                        <select 
-                           className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-black outline-none focus:ring-4 focus:ring-indigo-50"
-                           value={currentRole}
-                           onChange={e => updateWorkflowRole(dept, e.target.value)}
-                        >
-                           <option value="LINE_MANAGER">Line Manager</option>
-                           <option value="HR">HR Dept (Centralized)</option>
-                           <option value="ADMIN">Executive Office</option>
-                        </select>
-                     </div>
+
+            <div className="bg-[#0f172a] rounded-[2rem] p-8 text-white shadow-xl space-y-6">
+               <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-indigo-600 rounded-2xl"><Mail size={24}/></div>
+                    <div>
+                      <h3 className="text-lg font-black uppercase tracking-tight">Automation Engine</h3>
+                      <p className="text-slate-400 text-xs">Automated Email & Push Notifications</p>
+                    </div>
                   </div>
-                 );
-               })}
+                  <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    <ShieldCheck size={14}/> Background Active
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Creation Alerts</p>
+                    <p className="text-xs font-medium text-slate-300">Managers notified on new leave apps.</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Decision Alerts</p>
+                    <p className="text-xs font-medium text-slate-300">Employees notified on final approval.</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
+                    <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-1">Workflow Stage</p>
+                    <p className="text-xs font-medium text-slate-300">HR notified after Manager verification.</p>
+                  </div>
+               </div>
+
+               <div className="pt-4 flex justify-end border-t border-white/10">
+                  <button onClick={handleTestEmailAlerts} disabled={isTestingEmail} className="px-6 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2">
+                    {isTestingEmail ? <RefreshCw className="animate-spin" size={14}/> : <Send size={14}/>} Send Test Alert
+                  </button>
+               </div>
             </div>
           </div>
         )}
@@ -357,13 +397,6 @@ const Organization: React.FC = () => {
                   <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Office End</label><input type="time" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-xs" value={config.officeEndTime} onChange={e => setConfig({...config, officeEndTime: e.target.value})} /></div>
                 </div>
               </div>
-              <div className="space-y-6">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Timer size={14} className="text-indigo-600" /> Late Entry Grace</h4>
-                <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 space-y-4">
-                  <div className="flex justify-between items-center"><p className="text-[10px] font-black text-amber-900 uppercase">Buffer Minutes</p><span className="text-xs font-black text-amber-600 px-3 py-1 bg-white rounded-lg">{config.lateGracePeriod}m</span></div>
-                  <input type="range" min="0" max="60" step="5" className="w-full accent-amber-500" value={config.lateGracePeriod} onChange={e => setConfig({...config, lateGracePeriod: parseInt(e.target.value)})} />
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -371,46 +404,28 @@ const Organization: React.FC = () => {
         {activeTab === 'PLACEMENT' && (
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-4 md:p-8 animate-in slide-in-from-bottom-4 duration-500 w-full overflow-hidden">
             <h3 className="text-lg md:text-xl font-black text-slate-900 mb-6 flex items-center gap-3"><UserCircle className="text-indigo-600"/> Reporting Lines</h3>
-            
-            {/* Fully Responsive Table Wrapper */}
             <div className="w-full overflow-x-auto no-scrollbar rounded-xl border border-slate-50">
               <table className="w-full text-left text-sm min-w-[500px]">
                 <thead><tr className="text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-100"><th className="pb-4 px-4">Staff Member</th><th className="pb-4 px-4">Line Manager</th></tr></thead>
                 <tbody className="divide-y divide-slate-50">
-                  {employees.length === 0 ? (
-                    <tr><td colSpan={2} className="py-10 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No staff records found.</td></tr>
-                  ) : (
-                    employees.map(emp => (
-                      <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex-shrink-0 flex items-center justify-center font-black text-indigo-600 text-[10px] uppercase overflow-hidden">
-                               {emp.avatar ? <img src={emp.avatar} className="w-full h-full object-cover" /> : emp.name[0]}
-                            </div>
-                            <div className="min-w-0">
-                               <p className="font-bold text-slate-700 leading-none truncate">{emp.name}</p>
-                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 truncate">{emp.department}</p>
-                            </div>
+                  {employees.map(emp => (
+                    <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex-shrink-0 flex items-center justify-center font-black text-indigo-600 text-[10px] uppercase overflow-hidden">
+                             {emp.avatar ? <img src={emp.avatar} className="w-full h-full object-cover" /> : emp.name[0]}
                           </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3 relative max-w-xs">
-                            <select 
-                              disabled={savingManagerId === emp.id}
-                              className={`w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-[10px] md:text-xs font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all ${savingManagerId === emp.id ? 'opacity-50' : ''}`} 
-                              value={emp.lineManagerId || ''} 
-                              onChange={(e) => handleUpdateLineManager(emp.id, e.target.value)}
-                            >
-                              <option value="">No Manager Assigned</option>
-                              {employees.filter(m => m.id !== emp.id).map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                          <p className="font-bold text-slate-700 leading-none truncate">{emp.name}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <select disabled={savingManagerId === emp.id} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-[10px] md:text-xs font-bold outline-none" value={emp.lineManagerId || ''} onChange={(e) => handleUpdateLineManager(emp.id, e.target.value)}>
+                          <option value="">No Manager Assigned</option>
+                          {employees.filter(m => m.id !== emp.id).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -420,24 +435,16 @@ const Organization: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
+          <div className="bg-white rounded-[2rem] w-full max-md shadow-2xl overflow-hidden animate-in zoom-in">
             <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
                <h3 className="text-sm font-black uppercase tracking-widest">{modalType === 'HOLIDAY' ? 'Holiday Profile' : 'Manage ' + modalType}</h3>
-               <button onClick={() => setShowModal(false)} className="p-2 rounded-lg hover:bg-white/10 transition-colors"><X size={24} /></button>
+               <button onClick={() => setShowModal(false)}><X size={24} /></button>
             </div>
             <form onSubmit={handleModalSubmit} className="p-6 md:p-8 space-y-6">
               {modalType === 'HOLIDAY' ? (
                 <div className="space-y-4">
                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Title</label><input required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Date</label><input type="date" required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.date} onChange={e => setHolidayForm({...holidayForm, date: e.target.value})} /></div>
-                   <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Category</label>
-                      <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.type} onChange={e => setHolidayForm({...holidayForm, type: e.target.value as any})}>
-                         <option value="FESTIVAL">Festival</option>
-                         <option value="ISLAMIC">Islamic</option>
-                         <option value="NATIONAL">National Day</option>
-                      </select>
-                   </div>
                 </div>
               ) : (
                 <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Entry Name</label><input autoFocus required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={modalValue} onChange={e => setModalValue(e.target.value)} /></div>

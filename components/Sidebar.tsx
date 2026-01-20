@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -9,78 +10,88 @@ import {
   LogOut,
   ShieldCheck,
   Network,
-  UserCircle
+  UserCircle,
+  ChevronRight
 } from 'lucide-react';
+import { pb } from '../services/pocketbase';
 
 interface SidebarProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   onLogout: () => void;
   role: string;
+  user?: any;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, role }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, role, user }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'profile', label: 'My Profile', icon: UserCircle, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-    { id: 'employees', label: 'Employees', icon: Users, roles: ['ADMIN', 'HR'] },
-    { id: 'organization', label: 'Organization', icon: Network, roles: ['ADMIN', 'HR'] },
     { id: 'attendance', label: 'Attendance', icon: Clock, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'leave', label: 'Leave', icon: CalendarDays, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { id: 'employees', label: 'Employees', icon: Users, roles: ['ADMIN', 'HR'] },
+    { id: 'organization', label: 'Organization', icon: Network, roles: ['ADMIN', 'HR'] },
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'HR'] },
-    { id: 'settings', label: 'System Settings', icon: Settings, roles: ['ADMIN', 'HR'] },
+    { id: 'settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'HR'] },
   ];
 
   const filteredItems = menuItems.filter(item => item.roles.includes(role));
 
   return (
-    <aside className="w-64 bg-slate-900 h-screen flex flex-col text-white shadow-xl relative z-50 overflow-hidden">
-      <div className="p-6 flex items-center gap-3 border-b border-slate-800 flex-shrink-0">
-        <div className="bg-white p-1.5 rounded-lg shadow-lg flex-shrink-0">
-          <img src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" className="w-8 h-8 object-contain" alt="OpenHR Logo" />
+    <aside className="w-72 bg-white h-screen flex flex-col border-r border-slate-100 shadow-sm relative z-50">
+      {/* Profile Header */}
+      <div className="p-10 pb-8 flex flex-col items-center text-center">
+        <div className="relative mb-4">
+          <img 
+            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random`} 
+            className="w-24 h-24 rounded-full border-4 border-white shadow-xl bg-slate-50 object-cover" 
+            alt="Profile" 
+          />
+          <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
         </div>
-        <div className="min-w-0">
-          <h1 className="font-black text-lg leading-tight tracking-tighter truncate">
-            <span className="text-white">Open</span>
-            <span className="text-[#f59e0b]">HR</span>
-            <span className="text-[#10b981]">App</span>
-          </h1>
-          <p className="text-[8px] font-black uppercase text-slate-500 tracking-[0.2em] truncate">Open Source HR</p>
-        </div>
+        <h2 className="text-xl font-black text-slate-900 leading-tight">{user?.name || 'User Name'}</h2>
+        <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tight">{user?.designation || 'Specialist'}</p>
+        <div className="w-full h-px bg-slate-50 mt-8"></div>
       </div>
 
-      <nav className="flex-1 mt-6 px-4 space-y-2 overflow-y-auto no-scrollbar">
+      {/* Navigation */}
+      <nav className="flex-1 px-4 space-y-1">
         {filteredItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 relative group ${
               currentPath === item.id 
-                ? 'bg-indigo-600 text-white shadow-lg' 
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                ? 'bg-blue-50/50 text-[#2563eb]' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <item.icon size={20} className="flex-shrink-0" />
-            <span className="font-bold text-xs uppercase tracking-widest truncate">{item.label}</span>
+            {currentPath === item.id && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#2563eb] rounded-r-full"></div>
+            )}
+            <item.icon size={22} className={currentPath === item.id ? 'text-[#2563eb]' : 'text-slate-400'} />
+            <span className="font-bold text-sm tracking-tight">{item.label}</span>
           </button>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-800 space-y-3 flex-shrink-0">
+      {/* Footer / Sign Out */}
+      <div className="p-6 pt-0 space-y-4">
         <button 
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-rose-900/40 rounded-lg transition-all"
+          className="w-full flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-rose-50 transition-all"
         >
-          <LogOut size={20} className="flex-shrink-0" />
-          <span className="font-black text-xs uppercase tracking-widest">Sign Out</span>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-600 group-hover:text-rose-600 transition-colors">
+              <LogOut size={20} />
+            </div>
+            <span className="font-black text-sm text-slate-900 uppercase tracking-tight">Sign Out</span>
+          </div>
+          <ChevronRight size={18} className="text-slate-300 group-hover:text-rose-300 transition-colors" />
         </button>
 
-        <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
-          <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-1 uppercase font-black tracking-tight">
-            <ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" />
-            <span className="truncate">Secured</span>
-          </div>
-          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">v2.6.0-OS</p>
+        <div className="text-center">
+          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.4.0</p>
         </div>
       </div>
     </aside>

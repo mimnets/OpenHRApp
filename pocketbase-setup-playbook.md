@@ -1,3 +1,4 @@
+
 # OpenHR PocketBase Setup Playbook
 
 PocketBase is the easiest way to run OpenHR locally or on a private server.
@@ -17,6 +18,13 @@ To enable email notifications, you must add the JS hooks:
 ## 3. Creating Collections (CRITICAL)
 Create the following collections exactly as named. **Note:** Use snake_case for all field names.
 
+### settings
+- `key` (text, non-empty, unique)
+- `value` (json or text)
+**Recommended Initial Record:**
+- Key: `hr_email`
+- Value: `hr@yourcompany.com`
+
 ### users (System Collection)
 Add these fields:
 - `role` (select: ADMIN, HR, MANAGER, EMPLOYEE)
@@ -26,11 +34,7 @@ Add these fields:
 - `line_manager_id` (relation: users, single)
 - `avatar` (file)
 
-### settings
-- `key` (text, non-empty, unique)
-- `value` (json)
-
-### reports_queue (NEW - For Emails)
+### reports_queue (For Emails)
 - `recipient_email` (email, non-empty)
 - `subject` (text)
 - `html_content` (text/editor)
@@ -63,12 +67,3 @@ Add these fields:
 - `reason` (text)
 - `approver_remarks` (text)
 - `manager_remarks` (text)
-
-## 4. API Rules Matrix (Updated for line_manager_id)
-| Collection | List/View | Create | Update |
-|------------|-----------|--------|--------|
-| **users** | `@request.auth.id != ""` | Admin only | `id = @request.auth.id || @request.auth.role = "ADMIN"` |
-| **settings** | `@request.auth.id != ""` | `@request.auth.role = "ADMIN"` | `@request.auth.role = "ADMIN"` |
-| **reports_queue** | `Admin only` | `@request.auth.id != ""` | `Admin only` |
-| **attendance** | `@request.auth.id != ""` | `@request.auth.id != ""` | `@request.auth.role = "ADMIN"` |
-| **leaves** | `employee_id = @request.auth.id || line_manager_id = @request.auth.id || @request.auth.role = "ADMIN" || @request.auth.role = "HR"` | `@request.auth.id != ""` | `employee_id = @request.auth.id || line_manager_id = @request.auth.id || @request.auth.role = "ADMIN" || @request.auth.role = "HR"` |

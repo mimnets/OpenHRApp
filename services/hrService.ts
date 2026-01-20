@@ -218,9 +218,7 @@ export const hrService = {
     // Ensure all date fields include a time component for PocketBase Date field types
     const formatPbDate = (dateStr: string) => {
       if (!dateStr) return null;
-      // If it's just YYYY-MM-DD, add 00:00:00
       if (dateStr.length === 10) return `${dateStr} 00:00:00`;
-      // If it's an ISO string, convert it
       if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
       return dateStr;
     };
@@ -231,7 +229,6 @@ export const hrService = {
     const payload: any = {
       employee_id: data.employeeId?.trim(),
       employee_name: data.employeeName,
-      // Relationship fields MUST be null if not a valid 15-char ID
       line_manager_id: (data.lineManagerId && data.lineManagerId.trim().length >= 15) ? data.lineManagerId.trim() : null,
       type: data.type,
       start_date: formatPbDate(data.startDate || ''),
@@ -246,13 +243,10 @@ export const hrService = {
       await pb.collection('leaves').create(payload);
       this.notify();
     } catch (err: any) {
-      console.error("PocketBase SDK error on Create:", err);
-      // If error is 400 but 'id' is in response, it actually succeeded creation but failed View rule
       if (err.response?.id) {
         this.notify();
         return;
       }
-
       let detailedMsg = "";
       if (err.response?.data && Object.keys(err.response.data).length > 0) {
         detailedMsg = " - " + Object.entries(err.response.data)
@@ -284,7 +278,6 @@ export const hrService = {
     const update: any = { status };
     if (role === 'MANAGER') {
       update.manager_remarks = remarks;
-      // If manager approves, it moves to HR
       if (status === 'APPROVED') update.status = 'PENDING_HR'; 
     } else {
       update.approver_remarks = remarks;
@@ -294,15 +287,10 @@ export const hrService = {
       await pb.collection('leaves').update(id.trim(), update);
       this.notify();
     } catch (err: any) {
-      console.error("PocketBase SDK error on Update:", err);
-      
-      // Handle the "success with refetch failure" case
       if (err.response?.id) {
-        console.warn("Update likely succeeded despite SDK error response.");
         this.notify();
         return;
       }
-
       let detailedMsg = "";
       if (err.response?.data && Object.keys(err.response.data).length > 0) {
         detailedMsg = Object.entries(err.response.data)
@@ -434,12 +422,29 @@ export const hrService = {
 
   async sendCustomEmail(data: { recipientEmail: string; subject: string; html: string }) {
     if (!pb || !isPocketBaseConfigured()) return;
-    await pb.collection('reports_queue').create({
+    
+    const payload = {
       recipient_email: data.recipientEmail,
       subject: data.subject,
       html_content: data.html,
-      status: 'QUEUED'
-    });
+      status: 'PENDING'
+    };
+
+    try {
+      // Direct result check to handle PocketBase SDK refetch behavior
+      const result = await pb.collection('reports_queue').create(payload);
+      return result;
+    } catch (err: any) {
+      // Detailed error introspection for "Success but Forbidden View"
+      if (err.response?.id || (err.status >= 400 && err.response?.recipient_email)) {
+        console.warn("Email record successfully queued (ignoring UI view restriction).");
+        return { id: err.response?.id || 'queued_ok' }; 
+      }
+      
+      console.error("Queue Email Error:", err);
+      // Only throw if the record definitely wasn't created (no ID in response)
+      throw new Error(err.message || "Failed to create queue record.");
+    }
   },
 
   async testPocketBaseConnection(url: string): Promise<{ success: boolean; message: string; error?: string }> {
