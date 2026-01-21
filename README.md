@@ -49,3 +49,5 @@ A comprehensive Human Resources management application built with React and Type
 
 ## Contributing
 Please create a feature branch for any new features or bug fixes.
+
+## Test New Line
