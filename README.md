@@ -51,3 +51,4 @@ A comprehensive Human Resources management application built with React and Type
 Please create a feature branch for any new features or bug fixes.
 
 Now adding anosdfsdf
+adding a new line
