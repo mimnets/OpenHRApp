@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Search, 
   UserPlus, 
@@ -25,12 +25,29 @@ import { hrService } from '../services/hrService';
 import { pb } from '../services/pocketbase';
 import { Employee } from '../types';
 
+const DirectorySkeleton = () => (
+  <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 animate-pulse space-y-6">
+    <div className="flex items-start gap-4">
+      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-slate-100"></div>
+      <div className="flex-1 space-y-2">
+        <div className="h-5 bg-slate-100 rounded w-3/4"></div>
+        <div className="h-3 bg-slate-50 rounded w-1/2"></div>
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-3">
+      <div className="h-10 bg-slate-50 rounded-2xl"></div>
+      <div className="h-10 bg-slate-50 rounded-2xl"></div>
+    </div>
+  </div>
+);
+
 const EmployeeDirectory: React.FC = () => {
   const user = pb.authStore.model;
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState<Employee | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,11 +60,18 @@ const EmployeeDirectory: React.FC = () => {
   const [depts, setDepts] = useState<string[]>([]);
   const [desigs, setDesigs] = useState<string[]>([]);
 
+  // Performance: Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
       const data = await hrService.getEmployees();
-      // Filter by department if not admin
       const filteredData = isAdmin ? data : data.filter(e => e.department === user?.department);
       setEmployees(filteredData);
     } catch (err) {
@@ -101,12 +125,14 @@ const EmployeeDirectory: React.FC = () => {
 
   const [formState, setFormState] = useState(initialNewEmpState);
 
-  const filtered = employees.filter(emp => 
-    (emp.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.employeeId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return employees.filter(emp => 
+      (emp.name || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (emp.employeeId || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (emp.department || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (emp.email || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [employees, debouncedSearch]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -231,7 +257,13 @@ const EmployeeDirectory: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filtered.map((emp) => (
+        {isLoading ? (
+          <>
+            <DirectorySkeleton />
+            <DirectorySkeleton />
+            <DirectorySkeleton />
+          </>
+        ) : filtered.map((emp) => (
           <div key={emp.id} className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 transition-all group relative h-full flex flex-col hover:shadow-md cursor-pointer" onClick={() => setShowViewModal(emp)}>
             {/* Header: Avatar, Name & Quick Actions */}
             <div className="flex items-start gap-4">
@@ -286,7 +318,7 @@ const EmployeeDirectory: React.FC = () => {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && !isLoading && (
+        {!isLoading && filtered.length === 0 && (
           <div className="col-span-full py-20 text-center space-y-4">
              <AlertCircle size={48} className="mx-auto text-slate-200" />
              <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No matching personnel found.</p>
@@ -294,7 +326,7 @@ const EmployeeDirectory: React.FC = () => {
         )}
       </div>
 
-      {/* View Modal for Everyone */}
+      {/* View Modal */}
       {showViewModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">

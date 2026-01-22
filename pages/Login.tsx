@@ -146,7 +146,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Password</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Security Credentials</label>
                   <div className="relative group">
                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
                     <input 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, 
@@ -29,9 +28,21 @@ interface AttendanceLogsProps {
   viewMode?: 'MY' | 'AUDIT';
 }
 
+const LogSkeleton = () => (
+  <div className="bg-white p-6 rounded-[2.5rem] border border-slate-50 shadow-sm animate-pulse flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+    <div className="flex items-center gap-5">
+      <div className="w-16 h-16 rounded-[1.25rem] bg-slate-100 flex-shrink-0"></div>
+      <div className="space-y-2">
+        <div className="h-4 bg-slate-100 rounded w-24"></div>
+        <div className="h-3 bg-slate-50 rounded w-32"></div>
+      </div>
+    </div>
+    <div className="h-8 bg-slate-50 rounded-full w-20 hidden sm:block"></div>
+  </div>
+);
+
 const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
-  // Use AUDIT mode only if specifically requested AND the user is an admin
   const isAuditMode = viewMode === 'AUDIT' && isAdmin;
   
   const [logs, setLogs] = useState<Attendance[]>([]);
@@ -40,13 +51,11 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('ALL');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   
-  // Selection & Editing
   const [selectedLog, setSelectedLog] = useState<Attendance | null>(null);
   const [editState, setEditState] = useState<Partial<Attendance>>({});
 
@@ -116,7 +125,6 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   };
 
   const filteredAndSortedLogs = useMemo(() => {
-    // 1. Initial Filtering
     let result = [...logs];
     if (searchTerm) {
       result = result.filter(log => 
@@ -136,28 +144,19 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       }
     }
 
-    // 2. CONSOLIDATION: Group by Employee + Date
-    // Find absolute FIRST Check-in and absolute LAST Check-out per day
     const groupedMap = new Map<string, Attendance>();
-    
     result.forEach(log => {
       const key = `${log.employeeId}_${log.date}`;
       if (!groupedMap.has(key)) {
         groupedMap.set(key, { ...log });
       } else {
         const existing = groupedMap.get(key)!;
-        
-        // Update check-in to the earliest
         if (log.checkIn && (!existing.checkIn || log.checkIn < existing.checkIn)) {
           existing.checkIn = log.checkIn;
         }
-        
-        // Update check-out to the latest
         if (log.checkOut && (!existing.checkOut || log.checkOut > existing.checkOut)) {
           existing.checkOut = log.checkOut;
         }
-        
-        // Append remarks
         if (log.remarks && !existing.remarks?.includes(log.remarks)) {
           existing.remarks = existing.remarks ? `${existing.remarks} | ${log.remarks}` : log.remarks;
         }
@@ -166,7 +165,6 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
     const consolidated = Array.from(groupedMap.values());
 
-    // 3. Final Sorting
     return consolidated.sort((a, b) => {
       const dateCompare = (a.date || '').localeCompare(b.date || '');
       if (dateCompare !== 0) {
@@ -178,13 +176,6 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
     });
   }, [logs, searchTerm, employeeFilter, deptFilter, sortOrder, isAuditMode, employees]);
 
-  if (isLoading) return (
-    <div className="h-64 flex flex-col items-center justify-center text-slate-400">
-      <Loader2 className="animate-spin text-indigo-600 mb-4" size={32} />
-      <p className="text-[10px] font-black uppercase tracking-widest">Synchronizing Logs...</p>
-    </div>
-  );
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -193,14 +184,14 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
             {isAuditMode ? 'Attendance Audit' : 'My Attendance History'}
           </h1>
           <p className="text-sm text-slate-500 font-medium">
-            {isAuditMode ? `Consolidated org-wide activity (First-In / Last-Out)` : 'Your consolidated workday records'}
+            {isAuditMode ? `Consolidated org-wide activity (Earliest-In / Latest-Out)` : 'Your consolidated workday records'}
           </p>
         </div>
         <button 
           onClick={fetchInitialData}
           className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-indigo-600 transition-all"
         >
-          <RefreshCw size={20} />
+          <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
         </button>
       </header>
 
@@ -260,7 +251,13 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       </div>
 
       <div className="space-y-4">
-        {filteredAndSortedLogs.map((log) => {
+        {isLoading ? (
+          <>
+            <LogSkeleton />
+            <LogSkeleton />
+            <LogSkeleton />
+          </>
+        ) : filteredAndSortedLogs.map((log) => {
           const emp = employees.find(e => e.id === log.employeeId);
           return (
             <div 
@@ -271,7 +268,11 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.25rem] overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
                   {log.selfie ? (
-                    <img src={log.selfie} className="w-full h-full object-cover scale-x-[-1]" />
+                    <img 
+                      src={log.selfie} 
+                      loading="lazy"
+                      className="w-full h-full object-cover scale-x-[-1]" 
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-200">
                       <Camera size={24} />
@@ -318,7 +319,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
           );
         })}
 
-        {filteredAndSortedLogs.length === 0 && (
+        {!isLoading && filteredAndSortedLogs.length === 0 && (
           <div className="py-20 text-center space-y-4">
              <History size={48} className="mx-auto text-slate-100" />
              <p className="text-slate-400 font-black uppercase text-xs tracking-widest">No matching logs found.</p>
@@ -357,6 +358,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   <div className="space-y-1">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Employee Profile</p>
                     <p className="font-black text-slate-900 text-xl leading-none">
+                      {/* Fixed: Use selectedLog.employeeId instead of log.employeeId */}
                       {selectedLog.employeeName || employees.find(e => e.id === selectedLog.employeeId)?.name}
                     </p>
                     <p className="text-[10px] font-bold text-slate-500">Employee ID: {selectedLog.employeeId}</p>
@@ -399,7 +401,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Earliest In</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Earliest In</label>
                     <input 
                       type="time" 
                       readOnly={!isAuditMode}
@@ -409,7 +411,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                     />
                  </div>
                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Latest Out</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Latest Out</label>
                     <input 
                       type="time" 
                       readOnly={!isAuditMode}
@@ -441,10 +443,10 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Activity Remarks</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Activity Audit Trail</label>
                 <textarea 
                   readOnly={!isAuditMode}
-                  placeholder="Notes for this session..."
+                  placeholder="Notes for this workday..."
                   className={`w-full p-5 bg-slate-50 border border-slate-100 rounded-[2rem] text-sm font-medium min-h-[100px] outline-none ${!isAuditMode && 'opacity-70 cursor-not-allowed italic text-slate-500'}`}
                   value={editState.remarks}
                   onChange={e => setEditState({...editState, remarks: e.target.value})}
