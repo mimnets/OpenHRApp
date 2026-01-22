@@ -358,10 +358,11 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   <div className="space-y-1">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Employee Profile</p>
                     <p className="font-black text-slate-900 text-xl leading-none">
-                      {/* Fixed: Use selectedLog.employeeId instead of log.employeeId */}
                       {selectedLog.employeeName || employees.find(e => e.id === selectedLog.employeeId)?.name}
                     </p>
-                    <p className="text-[10px] font-bold text-slate-500">Employee ID: {selectedLog.employeeId}</p>
+                    <p className="text-[10px] font-bold text-slate-500">
+                      Employee ID: {selectedLog.employeeId === user.id ? user.employeeId : (employees.find(e => e.id === selectedLog.employeeId)?.employeeId || selectedLog.employeeId)}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
