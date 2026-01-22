@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
@@ -48,7 +47,7 @@ const LeaveItemSkeleton = () => (
 
 const Leave: React.FC<{ user: any }> = ({ user }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
-  const [isManager, setIsManager] = useState(false);
+  const isManager = user.role === 'MANAGER';
   
   const [showForm, setShowForm] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState<LeaveRequest | null>(null);
@@ -65,7 +64,7 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
     reason: '' 
   });
   
-  const [activeTab, setActiveTab] = useState<'MY' | 'MANAGEMENT'>( isAdmin ? 'MANAGEMENT' : 'MY');
+  const [activeTab, setActiveTab] = useState<'MY' | 'MANAGEMENT'>( (isAdmin || isManager) ? 'MANAGEMENT' : 'MY');
   const [filterMode, setFilterMode] = useState<'TASKS' | 'ALL'>('TASKS');
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [balance, setBalance] = useState<LeaveBalance | null>(null);
@@ -87,9 +86,6 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
       setLeaves(allLeaves);
       setBalance(userBalance);
       setAllEmployees(allEmps);
-
-      const managerStatus = hrService.isManagerOfSomeone(user.id, allEmps);
-      setIsManager(managerStatus);
     } catch (e) {
       console.error("Data refresh failed:", e);
     } finally {
@@ -140,18 +136,7 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
       setShowForm(false);
       setFormData({ type: 'ANNUAL', start: '', end: '', reason: '' });
     } catch (err: any) {
-      console.error("Submission error encountered:", err);
-      await refreshData();
-      
-      const latestLeaves = await hrService.getLeaves();
-      const justCreated = latestLeaves.find(l => l.employeeId === user.id && l.reason === formData.reason);
-      
-      if (justCreated) {
-        setShowForm(false);
-        setFormData({ type: 'ANNUAL', start: '', end: '', reason: '' });
-      } else {
-        setSubmissionError(err.message || "Request failed server validation.");
-      }
+      setSubmissionError(err.message || "Request failed.");
     } finally {
       setIsProcessing(false);
     }
@@ -170,16 +155,7 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
       setShowReviewModal(null);
       setReviewRemarks('');
     } catch (e: any) {
-      console.warn("Handled Action error:", e);
-      await refreshData();
-      const latest = await hrService.getLeaves();
-      const current = latest.find(l => l.id === request.id);
-      if (current && current.status !== request.status) {
-         setShowReviewModal(null);
-         setReviewRemarks('');
-      } else {
-         alert("Action failed: " + (e.message || "Access denied or validation error."));
-      }
+      alert("Action failed: " + (e.message || "Access denied."));
     } finally {
       setIsProcessing(false);
     }
@@ -193,7 +169,12 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
          l.status === 'PENDING_MANAGER'
        );
     }
-    const reportIds = allEmployees.filter(e => e.lineManagerId === user.id).map(e => e.id);
+    
+    // MANAGER FILTER
+    const reportIds = allEmployees
+      .filter(e => e.teamId === user.team_id || e.lineManagerId === user.id)
+      .map(e => e.id);
+      
     if (filterMode === 'ALL') return leaves.filter(l => reportIds.includes(l.employeeId));
     return leaves.filter(l => l.status === 'PENDING_MANAGER' && reportIds.includes(l.employeeId));
   };

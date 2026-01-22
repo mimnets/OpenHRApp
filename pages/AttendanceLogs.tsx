@@ -43,7 +43,8 @@ const LogSkeleton = () => (
 
 const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
-  const isAuditMode = viewMode === 'AUDIT' && isAdmin;
+  const isManager = user.role === 'MANAGER';
+  const isAuditMode = viewMode === 'AUDIT' && (isAdmin || isManager);
   
   const [logs, setLogs] = useState<Attendance[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -63,14 +64,27 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
     setIsLoading(true);
     try {
       const allAttendance = await hrService.getAttendance();
-      if (isAuditMode) {
-        setLogs(allAttendance);
+      
+      // For Admin/HR/Manager, we fetch employee metadata
+      if (isAdmin || isManager) {
         const [emps, depts] = await Promise.all([
           hrService.getEmployees(),
           hrService.getDepartments()
         ]);
         setEmployees(emps);
         setDepartments(depts);
+      }
+
+      if (isAuditMode) {
+        if (isAdmin) {
+          setLogs(allAttendance);
+        } else {
+          // MANAGER: Only see their team members
+          const teamMemberIds = employees
+            .filter(e => e.teamId === user.team_id || e.lineManagerId === user.id)
+            .map(e => e.id);
+          setLogs(allAttendance.filter(a => teamMemberIds.includes(a.employeeId)));
+        }
       } else {
         setLogs(allAttendance.filter(a => a.employeeId === user.id));
       }
@@ -83,7 +97,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
   useEffect(() => {
     fetchInitialData();
-  }, [user.id, isAuditMode]);
+  }, [user.id, isAuditMode, isAdmin, isManager, user.team_id]);
 
   const handleOpenDetail = (log: Attendance) => {
     setSelectedLog(log);
@@ -181,10 +195,10 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            {isAuditMode ? 'Attendance Audit' : 'My Attendance History'}
+            {isAuditMode ? (isAdmin ? 'Attendance Audit' : 'Team Attendance') : 'My Attendance History'}
           </h1>
           <p className="text-sm text-slate-500 font-medium">
-            {isAuditMode ? `Consolidated org-wide activity (Earliest-In / Latest-Out)` : 'Your consolidated workday records'}
+            {isAuditMode ? `Consolidated activity tracking` : 'Your consolidated workday records'}
           </p>
         </div>
         <button 
@@ -218,25 +232,27 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   value={employeeFilter}
                   onChange={(e) => setEmployeeFilter(e.target.value)}
                 >
-                  <option value="ALL">All Employees</option>
+                  <option value="ALL">All Managed Staff</option>
                   {employees.map(emp => (
                     <option key={emp.id} value={emp.id}>{emp.name}</option>
                   ))}
                 </select>
               </div>
-              <div className="relative flex-1">
-                <Building className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <select 
-                  className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-bold outline-none appearance-none"
-                  value={deptFilter}
-                  onChange={(e) => setDeptFilter(e.target.value)}
-                >
-                  <option value="ALL">All Departments</option>
-                  {departments.map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
+              {isAdmin && (
+                <div className="relative flex-1">
+                  <Building className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <select 
+                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-bold outline-none appearance-none"
+                    value={deptFilter}
+                    onChange={(e) => setDeptFilter(e.target.value)}
+                  >
+                    <option value="ALL">All Departments</option>
+                    {departments.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </>
           )}
 
@@ -296,6 +312,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                     {isAuditMode && (
                       <p className="text-[10px] font-black text-indigo-600 uppercase tracking-tight">
                         {log.employeeName || emp?.name || 'Unknown User'} 
+                        <span className="text-slate-300 ml-1">({emp?.employeeId || 'N/A'})</span>
                         <span className="mx-2 text-slate-300">•</span>
                         {emp?.department || 'Staff'}
                       </p>
@@ -370,15 +387,15 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Log Date</label>
                       <input 
                         type="date" 
-                        readOnly={!isAuditMode}
-                        className={`w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black ${!isAuditMode && 'opacity-70 cursor-not-allowed'}`}
+                        readOnly={!isAdmin}
+                        className={`w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black ${!isAdmin && 'opacity-70 cursor-not-allowed'}`}
                         value={editState.date}
                         onChange={e => setEditState({...editState, date: e.target.value})}
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Status</label>
-                      {isAuditMode ? (
+                      {isAdmin ? (
                         <select 
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black"
                           value={editState.status}
@@ -405,8 +422,8 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Earliest In</label>
                     <input 
                       type="time" 
-                      readOnly={!isAuditMode}
-                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAuditMode && 'opacity-70 cursor-not-allowed'}`}
+                      readOnly={!isAdmin}
+                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAdmin && 'opacity-70 cursor-not-allowed'}`}
                       value={editState.checkIn}
                       onChange={e => setEditState({...editState, checkIn: e.target.value})}
                     />
@@ -415,8 +432,8 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Latest Out</label>
                     <input 
                       type="time" 
-                      readOnly={!isAuditMode}
-                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAuditMode && 'opacity-70 cursor-not-allowed'}`}
+                      readOnly={!isAdmin}
+                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAdmin && 'opacity-70 cursor-not-allowed'}`}
                       value={editState.checkOut}
                       onChange={e => setEditState({...editState, checkOut: e.target.value})}
                     />
@@ -446,16 +463,16 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Activity Audit Trail</label>
                 <textarea 
-                  readOnly={!isAuditMode}
+                  readOnly={!isAdmin}
                   placeholder="Notes for this workday..."
-                  className={`w-full p-5 bg-slate-50 border border-slate-100 rounded-[2rem] text-sm font-medium min-h-[100px] outline-none ${!isAuditMode && 'opacity-70 cursor-not-allowed italic text-slate-500'}`}
+                  className={`w-full p-5 bg-slate-50 border border-slate-100 rounded-[2rem] text-sm font-medium min-h-[100px] outline-none ${!isAdmin && 'opacity-70 cursor-not-allowed italic text-slate-500'}`}
                   value={editState.remarks}
                   onChange={e => setEditState({...editState, remarks: e.target.value})}
                 />
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-50">
-                {isAuditMode ? (
+                {isAdmin ? (
                   <>
                     <button 
                       onClick={() => handleDelete(selectedLog.id)}

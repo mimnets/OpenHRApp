@@ -1,5 +1,4 @@
-
-import { Employee, Attendance, LeaveRequest, User, AppConfig, Holiday, LeaveWorkflow, LeaveBalance } from '../types';
+import { Employee, Attendance, LeaveRequest, User, AppConfig, Holiday, LeaveWorkflow, LeaveBalance, Team } from '../types';
 import { DEFAULT_CONFIG, BD_HOLIDAYS } from '../constants.tsx';
 import { pb, isPocketBaseConfigured } from './pocketbase';
 
@@ -10,6 +9,7 @@ let cachedConfig: AppConfig | null = null;
 let cachedDepartments: string[] | null = null;
 let cachedDesignations: string[] | null = null;
 let cachedHolidays: Holiday[] | null = null;
+let cachedTeams: Team[] | null = null;
 
 const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   const pbData: any = {};
@@ -19,6 +19,7 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.designation) pbData.designation = data.designation;
   if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
   if (data.lineManagerId !== undefined) pbData.line_manager_id = data.lineManagerId || null;
+  if (data.teamId !== undefined) pbData.team_id = data.teamId || null;
   if (data.avatar && !data.avatar.startsWith('http')) {
     pbData.avatar = data.avatar;
   }
@@ -84,7 +85,6 @@ export const hrService = {
   },
   notify() { subscribers.forEach(cb => cb()); },
 
-  // Performance: Prefetch metadata at app start
   async prefetchMetadata() {
     if (!isPocketBaseConfigured()) return;
     try {
@@ -92,7 +92,8 @@ export const hrService = {
         this.getConfig(),
         this.getDepartments(),
         this.getDesignations(),
-        this.getHolidays()
+        this.getHolidays(),
+        this.getTeams()
       ]);
     } catch (e) {
       console.warn("Metadata prefetch partial failure", e);
@@ -104,7 +105,6 @@ export const hrService = {
     try {
       const authData = await pb.collection('users').authWithPassword(email, pass);
       const m = authData.record;
-      // Trigger prefetch in background after login
       this.prefetchMetadata();
       return { user: {
         id: m.id.toString().trim(),
@@ -114,6 +114,7 @@ export const hrService = {
         role: (m.role || 'EMPLOYEE').toString().toUpperCase() as any,
         department: m.department || 'Unassigned',
         designation: m.designation || 'Staff',
+        teamId: m.team_id || undefined,
         avatar: m.avatar ? pb.files.getURL(m, m.avatar) : undefined
       }};
     } catch (err: any) { return { user: null, error: err.message || "PocketBase Login Failed" }; }
@@ -121,11 +122,11 @@ export const hrService = {
 
   async logout() { 
     if (pb) pb.authStore.clear(); 
-    // Clear cache on logout
     cachedConfig = null;
     cachedDepartments = null;
     cachedDesignations = null;
     cachedHolidays = null;
+    cachedTeams = null;
     this.notify(); 
   },
 
@@ -137,6 +138,7 @@ export const hrService = {
         id: r.id.toString().trim(),
         employeeId: r.employee_id || '', 
         lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined, 
+        teamId: r.team_id || undefined,
         name: r.name || 'No Name',
         email: r.email,
         role: (r.role || 'EMPLOYEE').toString().toUpperCase(),
@@ -304,15 +306,7 @@ export const hrService = {
         this.notify();
         return;
       }
-      let detailedMsg = "";
-      if (err.response?.data && Object.keys(err.response.data).length > 0) {
-        detailedMsg = " - " + Object.entries(err.response.data)
-          .map(([field, detail]: [string, any]) => `${field}: ${detail.message}`)
-          .join(', ');
-      } else {
-        detailedMsg = " - Access Denied (Check List/View Rules and user.role)";
-      }
-      throw new Error(`Failed to create record${detailedMsg}`);
+      throw new Error(`Failed to create record`);
     }
   },
 
@@ -348,15 +342,7 @@ export const hrService = {
         this.notify();
         return;
       }
-      let detailedMsg = "";
-      if (err.response?.data && Object.keys(err.response.data).length > 0) {
-        detailedMsg = Object.entries(err.response.data)
-          .map(([field, detail]: [string, any]) => `${field}: ${detail.message}`)
-          .join(', ');
-      } else {
-        detailedMsg = "Access Denied (Check Update Rules)";
-      }
-      throw new Error(detailedMsg);
+      throw new Error("Access Denied (Check Update Rules)");
     }
   },
 
@@ -382,7 +368,6 @@ export const hrService = {
     return employees.some(e => e.lineManagerId === userId);
   },
 
-  // Performance: Config Caching
   async getConfig(): Promise<AppConfig> {
     if (cachedConfig) return cachedConfig;
     if (!pb || !isPocketBaseConfigured()) return DEFAULT_CONFIG;
@@ -406,7 +391,6 @@ export const hrService = {
     this.notify();
   },
 
-  // Performance: Dept Caching
   async getDepartments(): Promise<string[]> {
     if (cachedDepartments) return cachedDepartments;
     if (!pb || !isPocketBaseConfigured()) return [];
@@ -430,7 +414,6 @@ export const hrService = {
     this.notify();
   },
 
-  // Performance: Desig Caching
   async getDesignations(): Promise<string[]> {
     if (cachedDesignations) return cachedDesignations;
     if (!pb || !isPocketBaseConfigured()) return [];
@@ -454,7 +437,6 @@ export const hrService = {
     this.notify();
   },
 
-  // Performance: Holiday Caching
   async getHolidays(): Promise<Holiday[]> {
     if (cachedHolidays) return cachedHolidays;
     if (!pb || !isPocketBaseConfigured()) return BD_HOLIDAYS;
@@ -474,6 +456,29 @@ export const hrService = {
     } catch (e) {
       await pb.collection('settings').create({ key: 'holidays', value: hols });
       cachedHolidays = hols;
+    }
+    this.notify();
+  },
+
+  async getTeams(): Promise<Team[]> {
+    if (cachedTeams) return cachedTeams;
+    if (!pb || !isPocketBaseConfigured()) return [];
+    try {
+      const record = await pb.collection('settings').getFirstListItem('key = "teams"');
+      cachedTeams = record.value || [];
+      return cachedTeams!;
+    } catch (e) { return []; }
+  },
+
+  async setTeams(teams: Team[]) {
+    if (!pb || !isPocketBaseConfigured()) return;
+    try {
+      const record = await pb.collection('settings').getFirstListItem('key = "teams"');
+      await pb.collection('settings').update(record.id, { value: teams });
+      cachedTeams = teams;
+    } catch (e) {
+      await pb.collection('settings').create({ key: 'teams', value: teams });
+      cachedTeams = teams;
     }
     this.notify();
   },

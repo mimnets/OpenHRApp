@@ -1,6 +1,13 @@
 export type Role = 'ADMIN' | 'MANAGER' | 'HR' | 'EMPLOYEE';
 export type WorkType = 'OFFICE' | 'FIELD';
 
+export interface Team {
+  id: string;
+  name: string;
+  leaderId: string;
+  department?: string;
+}
+
 export interface User {
   id: string;
   employeeId: string;
@@ -11,6 +18,7 @@ export interface User {
   designation: string;
   avatar?: string;
   username?: string;
+  teamId?: string;
 }
 
 export interface Employee extends User {
@@ -45,7 +53,7 @@ export interface LeaveRequest {
   id: string;
   employeeId: string;
   employeeName: string;
-  lineManagerId?: string; // New field added by user
+  lineManagerId?: string;
   type: 'ANNUAL' | 'CASUAL' | 'SICK' | 'MATERNITY' | 'PATERNITY' | 'EARNED' | 'UNPAID';
   startDate: string;
   endDate: string;

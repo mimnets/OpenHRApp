@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Search, 
@@ -23,7 +22,7 @@ import {
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { pb } from '../services/pocketbase';
-import { Employee } from '../types';
+import { Employee, Team } from '../types';
 
 const DirectorySkeleton = () => (
   <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 animate-pulse space-y-6">
@@ -44,8 +43,10 @@ const DirectorySkeleton = () => (
 const EmployeeDirectory: React.FC = () => {
   const user = pb.authStore.model;
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
+  const isManager = user?.role === 'MANAGER';
   
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -60,7 +61,6 @@ const EmployeeDirectory: React.FC = () => {
   const [depts, setDepts] = useState<string[]>([]);
   const [desigs, setDesigs] = useState<string[]>([]);
 
-  // Performance: Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -72,7 +72,22 @@ const EmployeeDirectory: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await hrService.getEmployees();
-      const filteredData = isAdmin ? data : data.filter(e => e.department === user?.department);
+      const teamsList = await hrService.getTeams();
+      setTeams(teamsList);
+      
+      let filteredData = data;
+      if (!isAdmin) {
+        // MANAGER: See people in their team OR people reporting to them
+        if (isManager) {
+          filteredData = data.filter(e => 
+            e.teamId === user?.team_id || 
+            e.lineManagerId === user?.id
+          );
+        } else {
+          // EMPLOYEE: See only teammates
+          filteredData = data.filter(e => e.teamId === user?.team_id);
+        }
+      }
       setEmployees(filteredData);
     } catch (err) {
       console.error("Error fetching employees:", err);
@@ -99,7 +114,7 @@ const EmployeeDirectory: React.FC = () => {
       fetchEmployees();
     });
     return () => { unsubscribe(); };
-  }, [isAdmin, user?.department]);
+  }, [isAdmin, isManager, user?.team_id, user?.id]);
   
   const initialNewEmpState = {
     name: '',
@@ -120,7 +135,8 @@ const EmployeeDirectory: React.FC = () => {
     employmentType: 'PERMANENT' as any,
     location: 'Dhaka',
     workType: 'OFFICE' as any,
-    lineManagerId: ''
+    lineManagerId: '',
+    teamId: ''
   };
 
   const [formState, setFormState] = useState(initialNewEmpState);
@@ -181,7 +197,8 @@ const EmployeeDirectory: React.FC = () => {
       employmentType: emp.employmentType || 'PERMANENT',
       location: emp.location || '',
       workType: emp.workType || 'OFFICE',
-      lineManagerId: emp.lineManagerId || ''
+      lineManagerId: emp.lineManagerId || '',
+      teamId: emp.teamId || ''
     });
     setShowModal(true);
   };
@@ -217,15 +234,20 @@ const EmployeeDirectory: React.FC = () => {
     }
   };
 
+  const getTeamName = (teamId?: string) => {
+    if (!teamId) return 'No Team';
+    return teams.find(t => t.id === teamId)?.name || 'Unknown Team';
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            {isAdmin ? 'Organization Directory' : 'My Team Members'}
+            {isAdmin ? 'Organization Directory' : (isManager ? 'My Team & Reports' : 'My Teammates')}
           </h1>
           <p className="text-sm text-slate-500 font-medium tracking-tight">
-            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} team members in ${user?.department}.`}
+            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} members within your managed scope.`}
           </p>
         </div>
         {isAdmin && (
@@ -297,8 +319,8 @@ const EmployeeDirectory: React.FC = () => {
             {/* Details Grid */}
             <div className="mt-6 grid grid-cols-2 gap-3 flex-1">
               <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
-                <p className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1">Employee ID</p>
-                <p className="text-[10px] font-black text-slate-700 font-mono truncate">{emp.employeeId || 'N/A'}</p>
+                <p className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1">Team</p>
+                <p className="text-[9px] font-black text-slate-700 truncate">{getTeamName(emp.teamId)}</p>
               </div>
               <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
                 <p className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1">Department</p>
@@ -362,8 +384,8 @@ const EmployeeDirectory: React.FC = () => {
                    <p className="font-black text-slate-700 truncate">{showViewModal.email}</p>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12} className="text-indigo-500" /> Designation</p>
-                   <p className="font-black text-slate-700">{showViewModal.designation}</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12} className="text-indigo-500" /> Team Name</p>
+                   <p className="font-black text-slate-700">{getTeamName(showViewModal.teamId)}</p>
                 </div>
               </div>
 
@@ -433,20 +455,16 @@ const EmployeeDirectory: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Work Email (Login Identity)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Work Email</label>
                   <input type="email" required disabled={!!editingId} className="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-sm outline-none disabled:opacity-50" value={formState.email} onChange={e => setFormState({...formState, email: e.target.value})} />
                 </div>
-                {!editingId && (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Initial Password</label>
-                    <div className="relative">
-                       <input type={showPassword ? "text" : "password"} required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.password} onChange={e => setFormState({...formState, password: e.target.value})} />
-                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400">
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                       </button>
-                    </div>
-                  </div>
-                )}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Team</label>
+                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.teamId} onChange={e => setFormState({...formState, teamId: e.target.value})}>
+                    <option value="">No Team Assigned</option>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Department</label>
                   <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.department} onChange={e => setFormState({...formState, department: e.target.value})}>

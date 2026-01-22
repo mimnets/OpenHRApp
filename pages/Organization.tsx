@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Network, 
@@ -27,20 +26,22 @@ import {
   Mail,
   Send,
   Database,
-  Server
+  Server,
+  Users
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { updatePocketBaseConfig, getPocketBaseConfig } from '../services/pocketbase';
-import { Holiday, AppConfig, LeaveWorkflow, Employee } from '../types';
+import { Holiday, AppConfig, LeaveWorkflow, Employee, Team } from '../types';
 import { DEFAULT_CONFIG } from '../constants.tsx';
 
-type OrgTab = 'STRUCTURE' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'HOLIDAYS' | 'SYSTEM';
+type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'HOLIDAYS' | 'SYSTEM';
 
 const Organization: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OrgTab>('STRUCTURE');
   const [departments, setDepartments] = useState<string[]>([]);
   const [designations, setDesignations] = useState<string[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [workflows, setWorkflows] = useState<LeaveWorkflow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -54,23 +55,25 @@ const Organization: React.FC = () => {
 
   // Modals
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'DEPT' | 'DESIG' | 'HOLIDAY'>('DEPT');
+  const [modalType, setModalType] = useState<'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM'>('DEPT');
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [modalValue, setModalValue] = useState('');
   const [holidayForm, setHolidayForm] = useState<Partial<Holiday>>({ name: '', date: '', type: 'FESTIVAL', isGovernment: true });
+  const [teamForm, setTeamForm] = useState<Partial<Team>>({ name: '', leaderId: '', department: '' });
 
   useEffect(() => { loadAllData(); }, []);
 
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [depts, desigs, hols, wfs, emps, appConfig] = await Promise.allSettled([
+      const [depts, desigs, hols, wfs, emps, appConfig, teamsList] = await Promise.allSettled([
         hrService.getDepartments(),
         hrService.getDesignations(),
         hrService.getHolidays(),
         hrService.getWorkflows(),
         hrService.getEmployees(),
-        hrService.getConfig()
+        hrService.getConfig(),
+        hrService.getTeams()
       ]);
 
       if (depts.status === 'fulfilled') setDepartments(depts.value);
@@ -79,6 +82,7 @@ const Organization: React.FC = () => {
       if (wfs.status === 'fulfilled') setWorkflows(wfs.value || []);
       if (emps.status === 'fulfilled') setEmployees(emps.value);
       if (appConfig.status === 'fulfilled') setConfig(appConfig.value);
+      if (teamsList.status === 'fulfilled') setTeams(teamsList.value);
 
     } catch (err) {
       console.error("Critical loading error:", err);
@@ -93,7 +97,7 @@ const Organization: React.FC = () => {
       await hrService.setConfig(config);
       alert('Organizational policies updated.');
     } catch (err) {
-      alert('Failed to save configuration. Ensure "settings" collection exists.');
+      alert('Failed to save configuration.');
     } finally {
       setIsSaving(false);
     }
@@ -123,12 +127,11 @@ const Organization: React.FC = () => {
        await hrService.sendCustomEmail({
           recipientEmail: testRecipient,
           subject: 'OpenHR Workflow Alert System Test',
-          html: '<h3>System Test Successful</h3><p>This email confirms that the automated workflow queue is linked to your SMTP service.</p><p>Recipient: <b>hr@vclbd.net</b></p>'
+          html: '<h3>System Test Successful</h3>'
        });
-       alert(`Success: Test communication queued for ${testRecipient}. Your PocketBase hook will process it shortly.`);
+       alert(`Success: Test communication queued.`);
     } catch (err: any) {
-       console.error("Test email failed:", err);
-       alert("Operation Alert: While the record was added to the database, the UI could not verify it due to access rules. Please check the 'reports_queue' collection in PocketBase for status.");
+       alert("Operation Alert: Verification required in PocketBase.");
     } finally {
        setIsTestingEmail(false);
     }
@@ -136,7 +139,7 @@ const Organization: React.FC = () => {
 
   const handleSaveInfrastructure = () => {
     updatePocketBaseConfig(pbConfig, false);
-    alert('Database configuration saved. The page will reload to apply changes.');
+    alert('Database configuration saved.');
     window.location.reload();
   };
 
@@ -170,17 +173,19 @@ const Organization: React.FC = () => {
       setEmployees(updatedEmps);
     } catch (err: any) {
       setEmployees(originalEmps);
-      alert(`Hierarchy Update Failed. Ensure you have ADMIN role in PocketBase.`);
+      alert(`Update Failed.`);
     } finally {
       setSavingManagerId(null);
     }
   };
 
-  const openModal = (type: 'DEPT' | 'DESIG' | 'HOLIDAY', index: number | null = null) => {
+  const openModal = (type: 'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM', index: number | null = null) => {
     setModalType(type);
     setEditIndex(index);
     if (type === 'HOLIDAY') {
       setHolidayForm(index !== null ? holidays[index] : { name: '', date: '', type: 'FESTIVAL', isGovernment: true });
+    } else if (type === 'TEAM') {
+      setTeamForm(index !== null ? teams[index] : { name: '', leaderId: '', department: '' });
     } else {
       setModalValue(index !== null ? (type === 'DEPT' ? departments[index] : designations[index]) : '');
     }
@@ -196,6 +201,12 @@ const Organization: React.FC = () => {
         else next.push({ ...holidayForm, id: 'h-' + Date.now() } as Holiday);
         setHolidays(next);
         await hrService.setHolidays(next);
+      } else if (modalType === 'TEAM') {
+        const next = [...teams];
+        if (editIndex !== null) next[editIndex] = { ...teamForm, id: next[editIndex].id } as Team;
+        else next.push({ ...teamForm, id: 't-' + Date.now() } as Team);
+        setTeams(next);
+        await hrService.setTeams(next);
       } else if (modalType === 'DEPT') {
         const next = [...departments];
         if (editIndex !== null) next[editIndex] = modalValue.trim();
@@ -211,11 +222,11 @@ const Organization: React.FC = () => {
       }
       setShowModal(false);
     } catch (err) {
-      alert('Operation failed. Check "settings" collection.');
+      alert('Operation failed.');
     }
   };
 
-  const deleteItem = async (type: 'DEPT' | 'DESIG' | 'HOLIDAY', index: number) => {
+  const deleteItem = async (type: 'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM', index: number) => {
     if (!confirm(`Confirm deletion?`)) return;
     try {
       if (type === 'DEPT') {
@@ -224,6 +235,9 @@ const Organization: React.FC = () => {
       } else if (type === 'DESIG') {
         const next = designations.filter((_, idx) => idx !== index);
         setDesignations(next); await hrService.setDesignations(next);
+      } else if (type === 'TEAM') {
+        const next = teams.filter((_, idx) => idx !== index);
+        setTeams(next); await hrService.setTeams(next);
       } else {
         const next = holidays.filter((_, idx) => idx !== index);
         setHolidays(next); await hrService.setHolidays(next);
@@ -250,7 +264,7 @@ const Organization: React.FC = () => {
       </header>
 
       <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-        {(['STRUCTURE', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
+        {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -301,6 +315,40 @@ const Organization: React.FC = () => {
                 ))}
               </div>
             </section>
+          </div>
+        )}
+
+        {activeTab === 'TEAMS' && (
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in zoom-in duration-500">
+             <div className="p-5 md:p-6 bg-indigo-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-3"><Users size={20} /><h3 className="text-xs md:text-sm font-black uppercase tracking-wider">Management Teams</h3></div>
+                <button onClick={() => openModal('TEAM')} className="w-full sm:w-auto px-6 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"><Plus size={14}/> Create Team</button>
+             </div>
+             <div className="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {teams.map((team, i) => (
+                   <div key={team.id} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] group relative hover:bg-white transition-all">
+                      <div className="flex justify-between items-start mb-4">
+                         <div className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[8px] font-black uppercase tracking-widest">
+                            {team.department || 'General'}
+                         </div>
+                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity">
+                            <button onClick={() => openModal('TEAM', i)} className="p-2 text-slate-400 hover:text-indigo-600"><Edit3 size={14} /></button>
+                            <button onClick={() => deleteItem('TEAM', i)} className="p-2 text-slate-400 hover:text-rose-500"><Trash2 size={14} /></button>
+                         </div>
+                      </div>
+                      <h4 className="font-black text-slate-900 text-lg mb-1">{team.name}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <UserCheck size={12} className="text-indigo-500" />
+                        Lead: {employees.find(e => e.id === team.leaderId)?.name || 'No Lead Assigned'}
+                      </p>
+                   </div>
+                ))}
+                {teams.length === 0 && (
+                  <div className="col-span-full py-20 text-center space-y-4">
+                    <p className="text-slate-400 font-black uppercase text-xs tracking-widest">No teams configured yet.</p>
+                  </div>
+                )}
+             </div>
           </div>
         )}
 
@@ -362,42 +410,6 @@ const Organization: React.FC = () => {
                  })}
               </div>
             </div>
-
-            <div className="bg-[#0f172a] rounded-[2rem] p-8 text-white shadow-xl space-y-6">
-               <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-indigo-600 rounded-2xl"><Mail size={24}/></div>
-                    <div>
-                      <h3 className="text-lg font-black uppercase tracking-tight">Automation Engine</h3>
-                      <p className="text-slate-400 text-xs">Automated Email & Push Notifications</p>
-                    </div>
-                  </div>
-                  <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest">
-                    <ShieldCheck size={14}/> Background Active
-                  </div>
-               </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
-                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Creation Alerts</p>
-                    <p className="text-xs font-medium text-slate-300">Managers notified on new leave apps.</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
-                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Decision Alerts</p>
-                    <p className="text-xs font-medium text-slate-300">Employees notified on final approval.</p>
-                  </div>
-                  <div className="bg-white/5 border border-white/10 p-5 rounded-2xl">
-                    <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-1">Workflow Stage</p>
-                    <p className="text-xs font-medium text-slate-300">HR notified after Manager verification.</p>
-                  </div>
-               </div>
-
-               <div className="pt-4 flex justify-end border-t border-white/10">
-                  <button onClick={handleTestEmailAlerts} disabled={isTestingEmail} className="px-6 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2">
-                    {isTestingEmail ? <RefreshCw className="animate-spin" size={14}/> : <Send size={14}/>} Send Test Alert
-                  </button>
-               </div>
-            </div>
           </div>
         )}
 
@@ -433,21 +445,6 @@ const Organization: React.FC = () => {
                         className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                         value={config.lateGracePeriod} 
                         onChange={e => setConfig({...config, lateGracePeriod: parseInt(e.target.value)})} 
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-end px-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Early Clock-out Grace</label>
-                      <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-tighter">{config.earlyOutGracePeriod} Minutes</span>
-                    </div>
-                    <div className="relative h-10 flex items-center">
-                      <input 
-                        type="range" min="0" max="60" step="5" 
-                        className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                        value={config.earlyOutGracePeriod} 
-                        onChange={e => setConfig({...config, earlyOutGracePeriod: parseInt(e.target.value)})} 
                       />
                     </div>
                   </div>
@@ -493,12 +490,11 @@ const Organization: React.FC = () => {
             <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-8">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2"><Server className="text-indigo-600" /> Infrastructure</h3>
-                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">PocketBase SDK</span>
               </div>
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Backend URL</label>
-                  <input type="text" placeholder="http://192.168.x.x:8090" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm" value={pbConfig.url} onChange={e => setPbConfig({...pbConfig, url: e.target.value})} />
+                  <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm" value={pbConfig.url} onChange={e => setPbConfig({...pbConfig, url: e.target.value})} />
                 </div>
                 <div className="flex gap-3">
                   <button onClick={testBackend} disabled={testingBackend} className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
@@ -510,21 +506,6 @@ const Organization: React.FC = () => {
                 </div>
               </div>
             </section>
-
-            <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 space-y-8">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2"><Mail className="text-indigo-600" /> Communications</h3>
-                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">SMTP Relay</span>
-              </div>
-              <div className="space-y-4">
-                <p className="text-xs font-medium text-slate-500 leading-relaxed italic">
-                  Run a diagnostic check to verify that your PocketBase SMTP configuration and JS Hooks are correctly processing emails from the server.
-                </p>
-                <button onClick={handleTestEmailAlerts} disabled={isTestingEmail} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all">
-                  {isTestingEmail ? <RefreshCw className="animate-spin" size={18}/> : <Send size={18}/>} Test SMTP Delivery
-                </button>
-              </div>
-            </section>
           </div>
         )}
       </div>
@@ -533,18 +514,46 @@ const Organization: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] w-full max-md shadow-2xl overflow-hidden animate-in zoom-in">
             <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
-               <h3 className="text-sm font-black uppercase tracking-widest">{modalType === 'HOLIDAY' ? 'Holiday Profile' : 'Manage ' + modalType}</h3>
+               <h3 className="text-sm font-black uppercase tracking-widest">
+                {modalType === 'HOLIDAY' ? 'Holiday Profile' : (modalType === 'TEAM' ? 'Team Configuration' : 'Manage ' + modalType)}
+               </h3>
                <button onClick={() => setShowModal(false)}><X size={24} /></button>
             </div>
             <form onSubmit={handleModalSubmit} className="p-6 md:p-8 space-y-6">
-              {modalType === 'HOLIDAY' ? (
+              {modalType === 'HOLIDAY' && (
                 <div className="space-y-4">
                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Title</label><input required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Date</label><input type="date" required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.date} onChange={e => setHolidayForm({...holidayForm, date: e.target.value})} /></div>
                 </div>
-              ) : (
+              )}
+              
+              {modalType === 'TEAM' && (
+                <div className="space-y-4">
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Team Name</label>
+                      <input required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} />
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Team Leader (Line Manager)</label>
+                      <select required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={teamForm.leaderId} onChange={e => setTeamForm({...teamForm, leaderId: e.target.value})}>
+                         <option value="">Select a Leader</option>
+                         {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.designation})</option>)}
+                      </select>
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Department Scope</label>
+                      <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={teamForm.department} onChange={e => setTeamForm({...teamForm, department: e.target.value})}>
+                         <option value="">All Departments</option>
+                         {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                   </div>
+                </div>
+              )}
+
+              {(modalType === 'DEPT' || modalType === 'DESIG') && (
                 <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Entry Name</label><input autoFocus required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={modalValue} onChange={e => setModalValue(e.target.value)} /></div>
               )}
+
               <div className="flex gap-3 pt-4"><button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-colors hover:bg-slate-200">Cancel</button><button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg transition-colors hover:bg-indigo-700"><Save size={16} /> Confirm</button></div>
             </form>
           </div>
