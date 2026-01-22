@@ -30,6 +30,16 @@ interface DashboardProps {
   onNavigate: (path: string, params?: any) => void;
 }
 
+const SkeletonCard = () => (
+  <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm animate-pulse flex flex-col gap-3">
+    <div className="w-10 h-10 bg-slate-100 rounded-xl"></div>
+    <div className="space-y-2">
+      <div className="h-6 bg-slate-100 rounded-lg w-3/4"></div>
+      <div className="h-3 bg-slate-50 rounded-lg w-1/2"></div>
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const [activeShift, setActiveShift] = useState<Attendance | undefined>(undefined);
@@ -46,7 +56,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       try {
         const today = new Date().toISOString().split('T')[0];
         
-        // hrService.getActiveAttendance now strictly filters for today's date
         const [active, balance, emps, leaves, hols, atts] = await Promise.all([
           hrService.getActiveAttendance(user.id),
           hrService.getLeaveBalance(user.id),
@@ -78,7 +87,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
 
       } catch (err) {
         console.error("Dashboard data fetch failed", err);
-        setActiveShift(undefined);
       } finally {
         setIsLoading(false);
       }
@@ -88,25 +96,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
 
   const totalRemaining = (userBalance?.ANNUAL || 0) + (userBalance?.CASUAL || 0) + (userBalance?.SICK || 0);
 
-  if (isLoading) return (
-    <div className="h-64 flex flex-col items-center justify-center text-slate-400">
-      <Loader2 className="animate-spin text-indigo-600 mb-4" size={32} />
-      <p className="text-[10px] font-black uppercase tracking-widest">Compiling Analytics...</p>
-    </div>
-  );
-
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      {/* Header with Direct Action Area */}
+      {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
           <p className="text-sm font-medium text-slate-400">Welcome back,</p>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">{user.name}</h1>
         </div>
         
-        {/* Functional Action Area */}
         <div className="flex items-center gap-3">
-          {activeShift ? (
+          {isLoading ? (
+            <div className="w-48 h-16 bg-slate-100 rounded-[1.5rem] animate-pulse"></div>
+          ) : activeShift ? (
             <button 
               onClick={() => onNavigate('attendance-finish')}
               className="flex items-center gap-3 px-6 py-4 bg-white border border-emerald-100 rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group active:scale-95 animate-in zoom-in"
@@ -142,30 +144,39 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
         </div>
       </header>
 
-      {/* Stats Quick Grid */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-            <CalendarDays size={20} />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900 leading-none">{leaveUsed} Days</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight">Leave Used (Approved)</p>
-          </div>
-        </div>
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3">
-          <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
-            <Gift size={20} />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900 leading-none">
-              {upcomingHoliday ? new Date(upcomingHoliday.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }) : 'N/A'}
-            </h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight truncate">
-              {upcomingHoliday?.name || 'No Upcoming Holidays'}
-            </p>
-          </div>
-        </div>
+        {isLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                <CalendarDays size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 leading-none">{leaveUsed} Days</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight">Leave Used (Approved)</p>
+              </div>
+            </div>
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3">
+              <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                <Gift size={20} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 leading-none">
+                  {upcomingHoliday ? new Date(upcomingHoliday.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }) : 'N/A'}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-tight truncate">
+                  {upcomingHoliday?.name || 'No Upcoming Holidays'}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Main Leave Card */}
@@ -177,41 +188,55 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
         
         <div className="px-8 -mt-6">
           <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-lg space-y-8">
-            <div className="flex justify-around items-center divide-x divide-slate-100">
-              <div className="text-center flex-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Annual</p>
-                <p className="text-2xl font-black text-[#2563eb]">{userBalance?.ANNUAL || 0}</p>
+            {isLoading ? (
+              <div className="space-y-6 animate-pulse">
+                 <div className="flex justify-around items-center h-12">
+                   <div className="h-8 bg-slate-50 rounded w-16"></div>
+                   <div className="h-8 bg-slate-50 rounded w-16"></div>
+                   <div className="h-8 bg-slate-50 rounded w-16"></div>
+                 </div>
+                 <div className="h-4 bg-slate-50 rounded w-3/4 mx-auto"></div>
+                 <div className="h-14 bg-slate-100 rounded-2xl w-full"></div>
               </div>
-              <div className="text-center flex-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sick</p>
-                <p className="text-2xl font-black text-[#2563eb]">{userBalance?.SICK || 0}</p>
-              </div>
-              <div className="text-center flex-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Casual</p>
-                <p className="text-2xl font-black text-[#2563eb]">{userBalance?.CASUAL || 0}</p>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-around items-center divide-x divide-slate-100">
+                  <div className="text-center flex-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Annual</p>
+                    <p className="text-2xl font-black text-[#2563eb]">{userBalance?.ANNUAL || 0}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sick</p>
+                    <p className="text-2xl font-black text-[#2563eb]">{userBalance?.SICK || 0}</p>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Casual</p>
+                    <p className="text-2xl font-black text-[#2563eb]">{userBalance?.CASUAL || 0}</p>
+                  </div>
+                </div>
 
-            <p className="text-center text-sm text-slate-500 font-medium">
-              You have <span className="font-black text-slate-900">{totalRemaining} total days</span> remaining for the current fiscal year.
-            </p>
+                <p className="text-center text-sm text-slate-500 font-medium">
+                  You have <span className="font-black text-slate-900">{totalRemaining} total days</span> remaining for the current fiscal year.
+                </p>
 
-            <button 
-              onClick={() => onNavigate('leave')}
-              className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
-            >
-              <Plus size={18} /> Apply for Leave
-            </button>
+                <button 
+                  onClick={() => onNavigate('leave')}
+                  className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+                >
+                  <Plus size={18} /> Apply for Leave
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="h-6"></div>
       </div>
 
-      {/* Team Presence - Restricted to Team only */}
+      {/* Team Presence */}
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all" onClick={() => onNavigate('employees')}>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-            <Users size={24} />
+            {isLoading ? <Loader2 size={24} className="animate-spin text-emerald-200" /> : <Users size={24} />}
           </div>
           <div>
             <h4 className="font-black text-slate-900 leading-none">Team Presence</h4>
@@ -219,8 +244,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs font-black text-emerald-600">{activeTeamMembers} Active</p>
-          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Out of {teamMembersCount}</p>
+          {isLoading ? (
+            <div className="h-6 bg-slate-50 rounded w-16 animate-pulse"></div>
+          ) : (
+            <>
+              <p className="text-xs font-black text-emerald-600">{activeTeamMembers} Active</p>
+              <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Out of {teamMembersCount}</p>
+            </>
+          )}
         </div>
       </div>
     </div>

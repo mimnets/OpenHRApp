@@ -103,6 +103,13 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
     }
   }, [user.id]);
 
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
   const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
     stopCamera();
     try {
@@ -125,6 +132,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
 
   const enterCameraMode = useCallback((type: 'OFFICE' | 'FACTORY') => {
     setDutyType(type);
+    // Performance: Start Camera and GPS in parallel
     startCamera('user');
     setFacingMode('user');
     detectLocation(true);
@@ -134,15 +142,18 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     const initData = async () => {
       setIsInitialLoading(true);
-      const active = await refreshData();
-      detectLocation();
+      
+      // Fire parallel requests for speed
+      const activePromise = refreshData();
+      detectLocation(); // non-blocking geolocation call
+      
+      const active = await activePromise;
       
       if (autoStart === 'FINISH' && active) {
         enterCameraMode(active.dutyType || 'OFFICE');
       } else if (autoStart === 'OFFICE' || autoStart === 'FACTORY') {
         enterCameraMode(autoStart);
       } else {
-        // If accessed directly without intent, go back
         if (onFinish) onFinish();
       }
       
@@ -154,13 +165,6 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
       stopCamera();
     };
   }, [refreshData, autoStart]);
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
 
   const toggleCamera = () => {
     const nextMode = facingMode === 'user' ? 'environment' : 'user';

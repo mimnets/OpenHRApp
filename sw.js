@@ -1,7 +1,18 @@
-const CACHE_NAME = 'openhr-v2.6.3';
+
+const CACHE_NAME = 'openhr-v2.8.0';
+const STATIC_CACHE = 'openhr-static-assets-v1';
+
 const ASSETS_TO_PRECACHE = [
   './index.html',
   './manifest.json'
+];
+
+// List of external CDNs we trust for caching
+const EXTERNAL_ASSETS = [
+  'https://cdn.tailwindcss.com',
+  'https://fonts.googleapis.com',
+  'https://fonts.gstatic.com',
+  'https://cdn-icons-png.flaticon.com'
 ];
 
 self.addEventListener('install', (event) => {
@@ -17,7 +28,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE) {
             return caches.delete(cacheName);
           }
         })
@@ -29,15 +40,29 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // CRITICAL: Immediately bypass everything that isn't a local resource to avoid CORS issues
-  // We only care about caching the main app shell.
-  if (!event.request.url.startsWith(self.location.origin) || 
-      url.hostname.includes('tailwindcss.com') || 
-      url.hostname.includes('pocketbase')) {
-    return; // Let browser handle it normally
+  // 1. Performance: Stale-While-Revalidate for critical UI CDNs
+  const isExternalAsset = EXTERNAL_ASSETS.some(domain => event.request.url.startsWith(domain));
+  if (isExternalAsset) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then((cache) => {
+        return cache.match(event.request).then((cachedResponse) => {
+          const fetchPromise = fetch(event.request).then((networkResponse) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+          return cachedResponse || fetchPromise;
+        });
+      })
+    );
+    return;
   }
 
-  // Handle navigation requests
+  // 2. Do not cache PocketBase API calls - let them be strictly network-based for accuracy
+  if (url.hostname.includes('pocketbase') || event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // 3. App Shell Navigation handling
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => caches.match('./index.html'))
@@ -45,7 +70,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle local assets (index.html, manifest, icons if local)
+  // 4. Default cache-first for local assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       return cachedResponse || fetch(event.request);

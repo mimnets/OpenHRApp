@@ -5,6 +5,12 @@ import { pb, isPocketBaseConfigured } from './pocketbase';
 
 const subscribers: Set<() => void> = new Set();
 
+// Internal Cache for Metadata Performance
+let cachedConfig: AppConfig | null = null;
+let cachedDepartments: string[] | null = null;
+let cachedDesignations: string[] | null = null;
+let cachedHolidays: Holiday[] | null = null;
+
 const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   const pbData: any = {};
   if (data.name) pbData.name = data.name;
@@ -78,11 +84,28 @@ export const hrService = {
   },
   notify() { subscribers.forEach(cb => cb()); },
 
+  // Performance: Prefetch metadata at app start
+  async prefetchMetadata() {
+    if (!isPocketBaseConfigured()) return;
+    try {
+      await Promise.all([
+        this.getConfig(),
+        this.getDepartments(),
+        this.getDesignations(),
+        this.getHolidays()
+      ]);
+    } catch (e) {
+      console.warn("Metadata prefetch partial failure", e);
+    }
+  },
+
   async login(email: string, pass: string): Promise<{ user: User | null; error?: string }> {
     if (!isPocketBaseConfigured() || !pb) return { user: null, error: "PocketBase is not configured." };
     try {
       const authData = await pb.collection('users').authWithPassword(email, pass);
       const m = authData.record;
+      // Trigger prefetch in background after login
+      this.prefetchMetadata();
       return { user: {
         id: m.id.toString().trim(),
         employeeId: m.employee_id || '', 
@@ -96,7 +119,15 @@ export const hrService = {
     } catch (err: any) { return { user: null, error: err.message || "PocketBase Login Failed" }; }
   },
 
-  async logout() { if (pb) pb.authStore.clear(); this.notify(); },
+  async logout() { 
+    if (pb) pb.authStore.clear(); 
+    // Clear cache on logout
+    cachedConfig = null;
+    cachedDepartments = null;
+    cachedDesignations = null;
+    cachedHolidays = null;
+    this.notify(); 
+  },
 
   async getEmployees(): Promise<Employee[]> {
     if (!pb || !isPocketBaseConfigured()) return [];
@@ -163,14 +194,12 @@ export const hrService = {
       const today = new Date().toISOString().split('T')[0];
       const config = await this.getConfig();
       
-      // 1. Fetch all unclosed sessions for this employee
       const result = await pb.collection('attendance').getList(1, 50, { 
         filter: `employee_id = "${employeeId.trim()}" && check_out = ""` 
       });
 
       let activeToday: Attendance | undefined = undefined;
 
-      // 2. Logic: If unclosed sessions from previous days exist, AUTO-CLOSE them
       for (const item of result.items) {
         if (item.date < today) {
           await pb.collection('attendance').update(item.id, {
@@ -353,11 +382,14 @@ export const hrService = {
     return employees.some(e => e.lineManagerId === userId);
   },
 
+  // Performance: Config Caching
   async getConfig(): Promise<AppConfig> {
+    if (cachedConfig) return cachedConfig;
     if (!pb || !isPocketBaseConfigured()) return DEFAULT_CONFIG;
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "app_config"');
-      return record.value || DEFAULT_CONFIG;
+      cachedConfig = record.value || DEFAULT_CONFIG;
+      return cachedConfig!;
     } catch (e) { return DEFAULT_CONFIG; }
   },
 
@@ -366,17 +398,22 @@ export const hrService = {
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "app_config"');
       await pb.collection('settings').update(record.id, { value: config });
+      cachedConfig = config;
     } catch (e) {
       await pb.collection('settings').create({ key: 'app_config', value: config });
+      cachedConfig = config;
     }
     this.notify();
   },
 
+  // Performance: Dept Caching
   async getDepartments(): Promise<string[]> {
+    if (cachedDepartments) return cachedDepartments;
     if (!pb || !isPocketBaseConfigured()) return [];
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "departments"');
-      return record.value || [];
+      cachedDepartments = record.value || [];
+      return cachedDepartments!;
     } catch (e) { return []; }
   },
 
@@ -385,17 +422,22 @@ export const hrService = {
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "departments"');
       await pb.collection('settings').update(record.id, { value: depts });
+      cachedDepartments = depts;
     } catch (e) {
       await pb.collection('settings').create({ key: 'departments', value: depts });
+      cachedDepartments = depts;
     }
     this.notify();
   },
 
+  // Performance: Desig Caching
   async getDesignations(): Promise<string[]> {
+    if (cachedDesignations) return cachedDesignations;
     if (!pb || !isPocketBaseConfigured()) return [];
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "designations"');
-      return record.value || [];
+      cachedDesignations = record.value || [];
+      return cachedDesignations!;
     } catch (e) { return []; }
   },
 
@@ -404,17 +446,22 @@ export const hrService = {
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "designations"');
       await pb.collection('settings').update(record.id, { value: desigs });
+      cachedDesignations = desigs;
     } catch (e) {
       await pb.collection('settings').create({ key: 'designations', value: desigs });
+      cachedDesignations = desigs;
     }
     this.notify();
   },
 
+  // Performance: Holiday Caching
   async getHolidays(): Promise<Holiday[]> {
+    if (cachedHolidays) return cachedHolidays;
     if (!pb || !isPocketBaseConfigured()) return BD_HOLIDAYS;
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "holidays"');
-      return record.value || BD_HOLIDAYS;
+      cachedHolidays = record.value || BD_HOLIDAYS;
+      return cachedHolidays!;
     } catch (e) { return BD_HOLIDAYS; }
   },
 
@@ -423,8 +470,10 @@ export const hrService = {
     try {
       const record = await pb.collection('settings').getFirstListItem('key = "holidays"');
       await pb.collection('settings').update(record.id, { value: hols });
+      cachedHolidays = hols;
     } catch (e) {
       await pb.collection('settings').create({ key: 'holidays', value: hols });
+      cachedHolidays = hols;
     }
     this.notify();
   },
@@ -463,10 +512,8 @@ export const hrService = {
       return result;
     } catch (err: any) {
       if (err.response?.id || (err.status >= 400 && err.response?.recipient_email)) {
-        console.warn("Email record successfully queued (ignoring UI view restriction).");
         return { id: err.response?.id || 'queued_ok' }; 
       }
-      console.error("Queue Email Error:", err);
       throw new Error(err.message || "Failed to create queue record.");
     }
   },
