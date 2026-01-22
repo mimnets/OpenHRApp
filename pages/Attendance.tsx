@@ -103,6 +103,13 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
     }
   }, [user.id]);
 
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
   const startCamera = async (mode: 'user' | 'environment' = facingMode) => {
     stopCamera();
     try {
@@ -134,18 +141,16 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     const initData = async () => {
       setIsInitialLoading(true);
-      const active = await refreshData();
+      const activePromise = refreshData();
       detectLocation();
-      
+      const active = await activePromise;
       if (autoStart === 'FINISH' && active) {
         enterCameraMode(active.dutyType || 'OFFICE');
       } else if (autoStart === 'OFFICE' || autoStart === 'FACTORY') {
         enterCameraMode(autoStart);
       } else {
-        // If accessed directly without intent, go back
         if (onFinish) onFinish();
       }
-      
       setIsInitialLoading(false);
     };
     initData();
@@ -154,13 +159,6 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
       stopCamera();
     };
   }, [refreshData, autoStart]);
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
 
   const toggleCamera = () => {
     const nextMode = facingMode === 'user' ? 'environment' : 'user';
@@ -254,78 +252,89 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   if (isInitialLoading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
 
   return (
-    <div className="fixed inset-0 bg-[#fcfdfe] z-[9999] flex flex-col animate-in slide-in-from-bottom-6 duration-500 overflow-y-auto no-scrollbar">
-      <div className="p-8 pt-16 flex flex-col items-center relative">
-        <button onClick={exitCameraMode} className="absolute left-8 top-16 w-12 h-12 flex items-center justify-center bg-white shadow-xl text-slate-400 rounded-2xl active:scale-90 border border-slate-100"><ArrowLeft size={24} /></button>
-        <div className="text-center space-y-1">
-           <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{currentTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }).toUpperCase()}</p>
-           <p className="text-5xl font-black text-[#0f172a] tabular-nums tracking-tighter">{currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}</p>
+    <div className="fixed inset-0 bg-[#fcfdfe] z-[9999] flex flex-col animate-in slide-in-from-bottom-6 duration-500 overflow-hidden">
+      {/* Header: Move up and reduce font size */}
+      <div className="px-6 pt-10 pb-2 flex flex-col items-center relative">
+        <button 
+          onClick={exitCameraMode} 
+          className="absolute left-6 top-8 w-10 h-10 flex items-center justify-center bg-white shadow-lg text-slate-400 rounded-xl active:scale-90 border border-slate-100"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="text-center">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+             {currentTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase()}
+           </p>
+           <p className="text-4xl font-black text-[#0f172a] tabular-nums tracking-tighter">
+             {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+           </p>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8 mt-4">
-        <div className="relative w-full max-w-[360px] aspect-[4/5] rounded-[4rem] overflow-hidden bg-slate-900 shadow-2xl ring-[14px] ring-white">
+      {/* Camera Window: Center and optimize aspect ratio for fit */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 min-h-0">
+        <div className="relative w-full max-w-[280px] aspect-[3/4] rounded-[2.5rem] overflow-hidden bg-slate-900 shadow-2xl ring-8 ring-white">
           {stream ? (
             <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`} />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 text-white/40">
-              {cameraError ? <><CameraOff size={48} className="text-rose-500 mb-4" /><p className="font-black uppercase text-[10px] tracking-widest">{cameraError}</p></> : <Loader2 size={48} className="text-indigo-500 animate-spin mb-4" />}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-white/40">
+              {cameraError ? <><CameraOff size={40} className="text-rose-500 mb-3" /><p className="font-black uppercase text-[9px] tracking-widest">{cameraError}</p></> : <Loader2 size={40} className="text-indigo-500 animate-spin mb-3" />}
             </div>
           )}
           
-          <div className="absolute inset-0 pointer-events-none flex flex-col items-center pt-10">
-             <div className="px-6 py-2.5 bg-emerald-500 rounded-full text-[10px] font-black text-white uppercase tracking-widest shadow-2xl flex items-center gap-2 ring-4 ring-emerald-500/20 animate-pulse">
-                <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
-                Face Detected
+          <div className="absolute inset-0 pointer-events-none flex flex-col items-center pt-6">
+             <div className="px-4 py-1.5 bg-emerald-500 rounded-full text-[8px] font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5 ring-2 ring-emerald-500/20 animate-pulse">
+                <div className="w-1 h-1 rounded-full bg-white"></div>
+                Face Ready
              </div>
              
-             <div className="mt-4 px-4 py-2 bg-black/60 backdrop-blur-md rounded-2xl flex items-center gap-2 pointer-events-auto cursor-pointer" onClick={() => detectLocation(true)}>
-                <MapPin size={12} className={location ? "text-rose-400" : "text-white/40"} />
-                <span className="text-[9px] font-black text-white uppercase tracking-wider">
+             <div className="mt-3 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl flex items-center gap-1.5 pointer-events-auto cursor-pointer" onClick={() => detectLocation(true)}>
+                <MapPin size={10} className={location ? "text-rose-400" : "text-white/40"} />
+                <span className="text-[8px] font-black text-white uppercase tracking-wider">
                   {isLocating ? 'Locating...' : (location ? location.address : 'GPS Waiting')}
                 </span>
-                {location && !isLocating && <LocateFixed size={12} className="text-emerald-400" />}
              </div>
           </div>
 
           {isMobile && (
             <>
-              <button onClick={toggleTorch} className={`absolute top-8 left-8 w-11 h-11 backdrop-blur-md rounded-2xl flex items-center justify-center ${isTorchOn ? 'bg-amber-400 text-white' : 'bg-black/30 text-white'}`}><Flashlight size={18} /></button>
-              <button onClick={toggleCamera} className="absolute top-8 right-8 w-11 h-11 bg-black/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-white active:scale-90"><SwitchCamera size={18} /></button>
+              <button onClick={toggleTorch} className={`absolute top-4 left-4 w-9 h-9 backdrop-blur-md rounded-xl flex items-center justify-center ${isTorchOn ? 'bg-amber-400 text-white' : 'bg-black/30 text-white'}`}><Flashlight size={16} /></button>
+              <button onClick={toggleCamera} className="absolute top-4 right-4 w-9 h-9 bg-black/30 backdrop-blur-md rounded-xl flex items-center justify-center text-white active:scale-90"><SwitchCamera size={16} /></button>
             </>
           )}
 
           {status === 'success' && (
             <div className="absolute inset-0 bg-emerald-600/95 flex flex-col items-center justify-center z-[1002] animate-in zoom-in">
-              <div className="p-6 bg-white rounded-full shadow-2xl mb-6"><CheckCircle2 size={64} className="text-emerald-500 animate-bounce" /></div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-[0.2em]">Verified</h3>
+              <div className="p-4 bg-white rounded-full shadow-2xl mb-4"><CheckCircle2 size={48} className="text-emerald-500 animate-bounce" /></div>
+              <h3 className="text-xl font-black text-white uppercase tracking-widest">Verified</h3>
             </div>
           )}
         </div>
       </div>
 
-      <div className="p-10 pb-20 flex flex-col items-center gap-8">
-        <div className="w-full max-w-[360px] space-y-3">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-2">
+      {/* Controls: Compact spacing and reduced padding */}
+      <div className="px-8 pt-4 pb-12 flex flex-col items-center gap-4">
+        <div className="w-full max-w-[320px] space-y-2">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-1.5">
             {dutyType === 'FACTORY' && <AlertCircle size={10} className="text-emerald-500" />}
-            {dutyType} / Remarks / Notes {dutyType === 'FACTORY' && "(Mandatory)"}
+            {dutyType} {dutyType === 'FACTORY' && "(Mandatory)"}
           </p>
           <input 
             type="text"
-            placeholder={dutyType === 'FACTORY' ? "Mention factory name & details..." : "Optional remarks..."}
-            className={`w-full px-8 py-5 bg-white border rounded-[2.5rem] text-slate-700 text-sm font-bold placeholder:text-slate-300 outline-none shadow-sm transition-all ${dutyType === 'FACTORY' && !remarks ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'}`}
+            placeholder={dutyType === 'FACTORY' ? "Factory Name & Details..." : "Optional remarks..."}
+            className={`w-full px-6 py-3.5 bg-white border rounded-2xl text-slate-700 text-xs font-bold placeholder:text-slate-300 outline-none shadow-sm transition-all ${dutyType === 'FACTORY' && !remarks ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'}`}
             value={remarks}
             onChange={e => setRemarks(e.target.value)}
           />
         </div>
 
-        <div className="w-full max-w-[360px] flex flex-col items-center">
+        <div className="w-full max-w-[320px]">
           <button 
             onClick={handlePunchSubmit}
             disabled={!location || isLocating || status !== 'idle' || !stream || (dutyType === 'FACTORY' && !remarks.trim())}
-            className={`w-full py-6 rounded-[2.5rem] font-black uppercase tracking-[0.15em] text-xs shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-4 text-white disabled:opacity-20 ${dutyType === 'FACTORY' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' : 'bg-gradient-to-r from-indigo-500 to-blue-600'}`}
+            className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.1em] text-[20px] shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3 text-white disabled:opacity-20 ${dutyType === 'FACTORY' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' : 'bg-gradient-to-r from-indigo-500 to-blue-600'}`}
           >
-            {status === 'loading' ? <RefreshCw className="animate-spin" size={24}/> : <><Fingerprint size={24} /> {activeRecord ? 'Complete Session' : 'Begin Session'}</>}
+            {status === 'loading' ? <RefreshCw className="animate-spin" size={18}/> : <><Fingerprint size={18} /> {activeRecord ? 'Complete Session' : 'Begin Session'}</>}
           </button>
         </div>
       </div>

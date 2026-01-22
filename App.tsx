@@ -47,6 +47,9 @@ const App: React.FC = () => {
         designation: model.designation || 'Staff',
         avatar: model.avatar ? pb.files.getURL(model, model.avatar) : undefined
       });
+
+      // Performance: Prefetch metadata in background
+      hrService.prefetchMetadata();
     }
 
     const hrUnsub = hrService.subscribe(() => {
@@ -80,7 +83,6 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (path: string) => {
-    // Check for quick punch intents
     if (path === 'attendance-quick-office') {
       setCurrentPath('attendance');
       setNavParams({ autoStart: 'OFFICE' });
@@ -104,7 +106,10 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <Login 
-        onLoginSuccess={(u) => setCurrentUser(u)} 
+        onLoginSuccess={(u) => {
+          setCurrentUser(u);
+          hrService.prefetchMetadata();
+        }} 
         onEnterSetup={() => setIsConfigured(false)} 
       />
     );

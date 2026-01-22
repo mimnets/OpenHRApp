@@ -23,6 +23,29 @@ import {
 import { hrService } from '../services/hrService';
 import { LeaveRequest, LeaveBalance, Employee } from '../types';
 
+const SummarySkeleton = () => (
+  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm animate-pulse">
+    <div className="flex justify-between items-start mb-4">
+      <div className="w-12 h-12 bg-slate-100 rounded-2xl"></div>
+      <div className="w-16 h-6 bg-slate-50 rounded-full"></div>
+    </div>
+    <div className="h-10 bg-slate-100 rounded-lg w-1/2"></div>
+  </div>
+);
+
+const LeaveItemSkeleton = () => (
+  <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-between animate-pulse">
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 bg-slate-200 rounded-2xl"></div>
+      <div className="space-y-2">
+        <div className="h-4 bg-slate-200 rounded w-32"></div>
+        <div className="h-3 bg-slate-100 rounded w-48"></div>
+      </div>
+    </div>
+    <div className="h-8 bg-slate-200 rounded-xl w-24"></div>
+  </div>
+);
+
 const Leave: React.FC<{ user: any }> = ({ user }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const [isManager, setIsManager] = useState(false);
@@ -120,7 +143,6 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
       console.error("Submission error encountered:", err);
       await refreshData();
       
-      // Verification logic: Did it actually save?
       const latestLeaves = await hrService.getLeaves();
       const justCreated = latestLeaves.find(l => l.employeeId === user.id && l.reason === formData.reason);
       
@@ -138,27 +160,20 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
   const handleAction = async (request: LeaveRequest, action: 'APPROVED' | 'REJECTED') => {
     setIsProcessing(true);
     let decisionRole = user.role;
-    // Determine if user is acting as a manager or HR/Admin
     if (request.status === 'PENDING_MANAGER' && !isAdmin) {
        decisionRole = 'MANAGER';
     }
 
     try {
       await hrService.updateLeaveStatus(request.id, action, reviewRemarks, decisionRole);
-      
-      // Cleanup UI
       await refreshData();
       setShowReviewModal(null);
       setReviewRemarks('');
     } catch (e: any) {
       console.warn("Handled Action error:", e);
-      
-      // Before alerting, check if the change actually took effect
       await refreshData();
       const latest = await hrService.getLeaves();
       const current = latest.find(l => l.id === request.id);
-      
-      // If the status has changed from the original request, treat as success
       if (current && current.status !== request.status) {
          setShowReviewModal(null);
          setReviewRemarks('');
@@ -187,15 +202,6 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
   const managementLeaves = getFilteredLeavesForManagement();
   const currentDisplayList = activeTab === 'MY' ? myLeaves : managementLeaves;
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-4" />
-        <p className="text-xs font-black uppercase tracking-widest">Synchronizing Records...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -217,27 +223,37 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><Calendar size={24} /></div>
-              <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Annual</span>
-           </div>
-           <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{balance?.ANNUAL || 0} <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Left</span></p>
-        </div>
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Clock size={24} /></div>
-              <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Casual</span>
-           </div>
-           <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{balance?.CASUAL || 0} <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Left</span></p>
-        </div>
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-           <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><AlertTriangle size={24} /></div>
-              <span className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1 rounded-full">Sick</span>
-           </div>
-           <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{balance?.SICK || 0} <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Left</span></p>
-        </div>
+        {isLoading ? (
+          <>
+            <SummarySkeleton />
+            <SummarySkeleton />
+            <SummarySkeleton />
+          </>
+        ) : (
+          <>
+            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><Calendar size={24} /></div>
+                  <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Annual</span>
+               </div>
+               <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{balance?.ANNUAL || 0} <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Left</span></p>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Clock size={24} /></div>
+                  <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Casual</span>
+               </div>
+               <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{balance?.CASUAL || 0} <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Left</span></p>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+               <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl"><AlertTriangle size={24} /></div>
+                  <span className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1 rounded-full">Sick</span>
+               </div>
+               <p className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{balance?.SICK || 0} <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Left</span></p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8">
@@ -253,35 +269,43 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
                  <button onClick={() => setFilterMode('ALL')} className={`px-4 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${filterMode === 'ALL' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>All History</button>
               </div>
             )}
-            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><RefreshCw size={18}/></button>
+            <button onClick={refreshData} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><RefreshCw size={18} className={isLoading ? 'animate-spin' : ''}/></button>
           </div>
         </div>
 
         <div className="space-y-4">
-          {currentDisplayList.sort((a,b) => b.appliedDate.localeCompare(a.appliedDate)).map(req => (
-            <div key={req.id} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-lg transition-all cursor-pointer" onClick={() => activeTab === 'MY' && setShowDetailsModal(req)}>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-indigo-600 shadow-sm uppercase">{req.employeeName[0]}</div>
-                <div>
-                  <h4 className="font-black text-slate-900 uppercase tracking-tighter">{activeTab === 'MY' ? req.type + ' LEAVE' : req.employeeName}</h4>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{req.startDate} — {req.endDate} ({req.totalDays} Days)</p>
+          {isLoading ? (
+            <>
+              <LeaveItemSkeleton />
+              <LeaveItemSkeleton />
+              <LeaveItemSkeleton />
+            </>
+          ) : (
+            currentDisplayList.sort((a,b) => b.appliedDate.localeCompare(a.appliedDate)).map(req => (
+              <div key={req.id} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-lg transition-all cursor-pointer" onClick={() => activeTab === 'MY' && setShowDetailsModal(req)}>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-indigo-600 shadow-sm uppercase">{req.employeeName[0]}</div>
+                  <div>
+                    <h4 className="font-black text-slate-900 uppercase tracking-tighter">{activeTab === 'MY' ? req.type + ' LEAVE' : req.employeeName}</h4>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{req.startDate} — {req.endDate} ({req.totalDays} Days)</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {activeTab === 'MANAGEMENT' && (req.status.includes('PENDING')) ? (
+                    <button onClick={(e) => { e.stopPropagation(); setShowReviewModal(req); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Review</button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${req.status === 'APPROVED' ? 'bg-emerald-500 text-white' : req.status === 'REJECTED' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                        {req.status.replace('_', ' ')}
+                      </span>
+                      {activeTab === 'MY' && <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                {activeTab === 'MANAGEMENT' && (req.status.includes('PENDING')) ? (
-                  <button onClick={(e) => { e.stopPropagation(); setShowReviewModal(req); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all">Review</button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${req.status === 'APPROVED' ? 'bg-emerald-500 text-white' : req.status === 'REJECTED' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                      {req.status.replace('_', ' ')}
-                    </span>
-                    {activeTab === 'MY' && <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {currentDisplayList.length === 0 && (
+            ))
+          )}
+          {!isLoading && currentDisplayList.length === 0 && (
             <div className="py-12 text-center space-y-4">
               <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No leave records found.</p>
             </div>
