@@ -9,7 +9,6 @@ let cachedConfig: AppConfig | null = null;
 let cachedDepartments: string[] | null = null;
 let cachedDesignations: string[] | null = null;
 let cachedHolidays: Holiday[] | null = null;
-let cachedTeams: Team[] | null = null;
 
 const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   const pbData: any = {};
@@ -18,11 +17,18 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.department) pbData.department = data.department;
   if (data.designation) pbData.designation = data.designation;
   if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
+  
+  // Handle both camelCase and snake_case for consistency
   if (data.lineManagerId !== undefined) pbData.line_manager_id = data.lineManagerId || null;
+  else if (data.line_manager_id !== undefined) pbData.line_manager_id = data.line_manager_id || null;
+  
   if (data.teamId !== undefined) pbData.team_id = data.teamId || null;
-  if (data.avatar && !data.avatar.startsWith('http')) {
+  else if (data.team_id !== undefined) pbData.team_id = data.team_id || null;
+
+  if (data.avatar && typeof data.avatar === 'string' && !data.avatar.startsWith('http')) {
     pbData.avatar = data.avatar;
   }
+
   if (!isUpdate) {
     if (data.email) pbData.email = data.email;
     if (data.password) {
@@ -126,19 +132,18 @@ export const hrService = {
     cachedDepartments = null;
     cachedDesignations = null;
     cachedHolidays = null;
-    cachedTeams = null;
     this.notify(); 
   },
 
   async getEmployees(): Promise<Employee[]> {
     if (!pb || !isPocketBaseConfigured()) return [];
     try {
-      const records = await pb.collection('users').getFullList({ sort: '-created', expand: 'line_manager_id' });
+      const records = await pb.collection('users').getFullList({ sort: '-created', expand: 'line_manager_id,team_id' });
       return records.map(r => ({
         id: r.id.toString().trim(),
         employeeId: r.employee_id || '', 
         lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined, 
-        teamId: r.team_id || undefined,
+        teamId: (r.team_id && r.team_id.length > 5) ? r.team_id : undefined,
         name: r.name || 'No Name',
         email: r.email,
         role: (r.role || 'EMPLOYEE').toString().toUpperCase(),
@@ -168,9 +173,14 @@ export const hrService = {
     this.notify();
   },
 
-  async updateProfile(id: string, updates: Partial<Employee>) {
+  async updateProfile(id: string, updates: Partial<Employee> | any) {
     if (!pb || !isPocketBaseConfigured()) return;
     const pbData = sanitizeUserPayload(updates, true);
+    
+    // Explicitly allow direct assignment of relational IDs if passed as snake_case in updates
+    if (updates.team_id !== undefined) pbData.team_id = updates.team_id || null;
+    if (updates.line_manager_id !== undefined) pbData.line_manager_id = updates.line_manager_id || null;
+
     if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
       await pb.collection('users').update(id.trim(), toFormData(pbData, 'avatar.jpg'));
     } else {
@@ -319,7 +329,7 @@ export const hrService = {
     if (updates.totalDays) pbUpdates.total_days = Number(updates.totalDays);
     if (updates.reason) pbUpdates.reason = updates.reason;
     if (updates.status) pbUpdates.status = updates.status;
-    await pb.collection('leaves').update(id.trim(), pbUpdates);
+    await pb.collection('attendance').update(id.trim(), pbUpdates);
     this.notify();
   },
 
@@ -461,25 +471,42 @@ export const hrService = {
   },
 
   async getTeams(): Promise<Team[]> {
-    if (cachedTeams) return cachedTeams;
     if (!pb || !isPocketBaseConfigured()) return [];
     try {
-      const record = await pb.collection('settings').getFirstListItem('key = "teams"');
-      cachedTeams = record.value || [];
-      return cachedTeams!;
+      const records = await pb.collection('teams').getFullList({ sort: 'name' });
+      return records.map(r => ({
+        id: r.id,
+        name: r.name,
+        leaderId: r.leader_id,
+        department: r.department
+      }));
     } catch (e) { return []; }
   },
 
-  async setTeams(teams: Team[]) {
+  async createTeam(data: Partial<Team>) {
+    if (!pb || !isPocketBaseConfigured()) return null;
+    const record = await pb.collection('teams').create({
+      name: data.name,
+      leader_id: data.leaderId,
+      department: data.department
+    });
+    this.notify();
+    return record;
+  },
+
+  async updateTeam(id: string, data: Partial<Team>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    try {
-      const record = await pb.collection('settings').getFirstListItem('key = "teams"');
-      await pb.collection('settings').update(record.id, { value: teams });
-      cachedTeams = teams;
-    } catch (e) {
-      await pb.collection('settings').create({ key: 'teams', value: teams });
-      cachedTeams = teams;
-    }
+    await pb.collection('teams').update(id, {
+      name: data.name,
+      leader_id: data.leaderId,
+      department: data.department
+    });
+    this.notify();
+  },
+
+  async deleteTeam(id: string) {
+    if (!pb || !isPocketBaseConfigured()) return;
+    await pb.collection('teams').delete(id);
     this.notify();
   },
 

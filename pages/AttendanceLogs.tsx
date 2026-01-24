@@ -44,6 +44,7 @@ const LogSkeleton = () => (
 const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER';
+  // FORCE isAuditMode to false if user is a standard EMPLOYEE, even if viewMode is AUDIT
   const isAuditMode = viewMode === 'AUDIT' && (isAdmin || isManager);
   
   const [logs, setLogs] = useState<Attendance[]>([]);
@@ -63,29 +64,41 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const allAttendance = await hrService.getAttendance();
-      
-      // For Admin/HR/Manager, we fetch employee metadata
-      if (isAdmin || isManager) {
-        const [emps, depts] = await Promise.all([
-          hrService.getEmployees(),
-          hrService.getDepartments()
-        ]);
-        setEmployees(emps);
-        setDepartments(depts);
-      }
+      // 1. Fetch data directly from service
+      const [allAttendance, fetchedEmployees, depts] = await Promise.all([
+        hrService.getAttendance(),
+        hrService.getEmployees(),
+        hrService.getDepartments()
+      ]);
 
+      // 2. APPLY JURISDICTIONAL FILTERING
       if (isAuditMode) {
         if (isAdmin) {
+          // ADMIN/HR: See everything and everyone
+          setEmployees(fetchedEmployees);
+          setDepartments(depts);
           setLogs(allAttendance);
-        } else {
-          // MANAGER: Only see their team members
-          const teamMemberIds = employees
-            .filter(e => e.teamId === user.team_id || e.lineManagerId === user.id)
-            .map(e => e.id);
-          setLogs(allAttendance.filter(a => teamMemberIds.includes(a.employeeId)));
+        } else if (isManager) {
+          // MANAGER: Strictly filter everything by Team ID or Line Manager relationship
+          const managedEmployees = fetchedEmployees.filter(e => 
+            (user.teamId && e.teamId === user.teamId) || 
+            (e.lineManagerId === user.id)
+          );
+          
+          const managedIds = managedEmployees.map(e => e.id);
+          
+          // Only store managed employees in state for the dropdown
+          setEmployees(managedEmployees);
+          // Managers usually don't need dept filter if they are team-scoped, 
+          // but we'll scope depts to those represented in their managed list
+          const relevantDepts = Array.from(new Set(managedEmployees.map(e => e.department).filter(Boolean) as string[]));
+          setDepartments(relevantDepts);
+          
+          // Filter logs only for managed IDs
+          setLogs(allAttendance.filter(a => managedIds.includes(a.employeeId)));
         }
       } else {
+        // PERSONAL VIEW: Only see own logs
         setLogs(allAttendance.filter(a => a.employeeId === user.id));
       }
     } catch (err) {
@@ -97,7 +110,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
   useEffect(() => {
     fetchInitialData();
-  }, [user.id, isAuditMode, isAdmin, isManager, user.team_id]);
+  }, [user.id, viewMode, user.role, user.teamId]);
 
   const handleOpenDetail = (log: Attendance) => {
     setSelectedLog(log);
@@ -111,6 +124,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   };
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) return;
     if (!window.confirm("Are you sure you want to permanently delete this attendance record?")) return;
     setIsProcessing(true);
     try {
@@ -125,6 +139,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   };
 
   const handleUpdate = async () => {
+    if (!isAdmin) return;
     if (!selectedLog) return;
     setIsProcessing(true);
     try {
@@ -140,12 +155,16 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
   const filteredAndSortedLogs = useMemo(() => {
     let result = [...logs];
+    
+    // Search filter (date or status)
     if (searchTerm) {
       result = result.filter(log => 
         (log.date || '').includes(searchTerm) || 
         (log.status || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+
+    // Secondary filters (Employee / Dept)
     if (isAuditMode) {
       if (employeeFilter !== 'ALL') {
         result = result.filter(log => log.employeeId === employeeFilter);
@@ -158,6 +177,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       }
     }
 
+    // Consolidated grouping (one entry per employee per day)
     const groupedMap = new Map<string, Attendance>();
     result.forEach(log => {
       const key = `${log.employeeId}_${log.date}`;
@@ -198,7 +218,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
             {isAuditMode ? (isAdmin ? 'Attendance Audit' : 'Team Attendance') : 'My Attendance History'}
           </h1>
           <p className="text-sm text-slate-500 font-medium">
-            {isAuditMode ? `Consolidated activity tracking` : 'Your consolidated workday records'}
+            {isAuditMode ? (isAdmin ? 'Consolidated organization tracking' : 'Staff activity oversight') : 'Your consolidated workday records'}
           </p>
         </div>
         <button 
@@ -232,7 +252,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   value={employeeFilter}
                   onChange={(e) => setEmployeeFilter(e.target.value)}
                 >
-                  <option value="ALL">All Managed Staff</option>
+                  <option value="ALL">{isAdmin ? 'All Organization' : 'All Managed Staff'}</option>
                   {employees.map(emp => (
                     <option key={emp.id} value={emp.id}>{emp.name}</option>
                   ))}
@@ -277,7 +297,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
           const emp = employees.find(e => e.id === log.employeeId);
           return (
             <div 
-              key={log.id} 
+              key={`${log.employeeId}-${log.date}`} 
               onClick={() => handleOpenDetail(log)}
               className="bg-white p-6 rounded-[2.5rem] border border-slate-50 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-6"
             >
@@ -351,9 +371,9 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
             <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
               <div className="space-y-1">
                 <h3 className="text-xl font-black uppercase tracking-tight">
-                  {isAuditMode ? 'Modify Audit Record' : 'Log Details'}
+                  {isAuditMode ? (isAdmin ? 'Modify Audit Record' : 'Team Member Activity') : 'Log Details'}
                 </h3>
-                {isAuditMode && <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Manual Correction Mode</p>}
+                {isAuditMode && isAdmin && <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Manual Correction Mode</p>}
               </div>
               <button onClick={() => setSelectedLog(null)} className="hover:bg-white/10 p-2 rounded-xl transition-all"><X size={28} /></button>
             </div>
@@ -375,7 +395,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   <div className="space-y-1">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Employee Profile</p>
                     <p className="font-black text-slate-900 text-xl leading-none">
-                      {selectedLog.employeeName || employees.find(e => e.id === selectedLog.employeeId)?.name}
+                      {selectedLog.employeeName || (isAdmin || isManager ? employees.find(e => e.id === selectedLog.employeeId)?.name : user.name)}
                     </p>
                     <p className="text-[10px] font-bold text-slate-500">
                       Employee ID: {selectedLog.employeeId === user.id ? user.employeeId : (employees.find(e => e.id === selectedLog.employeeId)?.employeeId || selectedLog.employeeId)}

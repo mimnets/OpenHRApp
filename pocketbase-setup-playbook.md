@@ -1,4 +1,3 @@
-
 # OpenHR PocketBase Setup Playbook
 
 PocketBase is the easiest way to run OpenHR locally or on a private server.
@@ -16,14 +15,18 @@ To enable email notifications, you must add the JS hooks:
 4. Restart your PocketBase server.
 
 ## 3. Creating Collections (CRITICAL)
-Create the following collections exactly as named. **Note:** Use snake_case for all field names.
+Create the following collections exactly as named. **Note:** Use snake_case for all field names. Set API Rules as defined below.
 
 ### settings
 - `key` (text, non-empty, unique)
 - `value` (json or text)
-**Recommended Initial Record:**
-- Key: `hr_email`
-- Value: `hr@yourcompany.com`
+- **Rules:** List/View: `@request.auth.id != ""`, Create/Update/Delete: `@request.auth.role = "ADMIN"`
+
+### teams (New)
+- `name` (text, non-empty)
+- `leader_id` (relation: users, single)
+- `department` (text)
+- **Rules:** List/View: `@request.auth.id != ""`, Create/Update/Delete: `@request.auth.role = "ADMIN" || @request.auth.role = "HR"`
 
 ### users (System Collection)
 Add these fields:
@@ -32,16 +35,16 @@ Add these fields:
 - `designation` (text)
 - `employee_id` (text)
 - `line_manager_id` (relation: users, single)
+- `team_id` (text or relation: teams)
 - `avatar` (file)
+- **Rules:** List/View: `@request.auth.id != ""`, Update: `@request.auth.id = id || @request.auth.role = "ADMIN" || @request.auth.role = "HR"`
 
 ### reports_queue (For Emails)
 - `recipient_email` (email, non-empty)
 - `subject` (text)
 - `html_content` (text/editor)
 - `status` (text) - Values: PENDING, SENT, FAILED
-- `sent_at` (date/time)
-- `failed_at` (date/time)
-- `error_message` (text)
+- **Rules:** Locked to Admin only.
 
 ### attendance
 - `employee_id` (relation: users, single)
@@ -53,6 +56,7 @@ Add these fields:
 - `selfie` (file)
 - `remarks` (text)
 - `location` (text)
+- **Rules:** List/View: `@request.auth.id = employee_id || @request.auth.role != "EMPLOYEE"`, Create: `@request.auth.id != ""`
 
 ### leaves
 - `employee_id` (relation: users, single)
@@ -67,3 +71,4 @@ Add these fields:
 - `reason` (text)
 - `approver_remarks` (text)
 - `manager_remarks` (text)
+- **Rules:** List/View: `@request.auth.id = employee_id || @request.auth.role != "EMPLOYEE"`, Update: `@request.auth.id != ""`

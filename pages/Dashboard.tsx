@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
@@ -23,7 +22,7 @@ import {
   Fingerprint
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { LeaveRequest, Attendance, LeaveBalance, Employee, Holiday } from '../types';
+import { LeaveRequest, Attendance, LeaveBalance, Employee, Holiday, Team } from '../types';
 
 interface DashboardProps {
   user: any;
@@ -42,6 +41,9 @@ const SkeletonCard = () => (
 
 const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
+  const isManager = user.role === 'MANAGER';
+  const isEmployee = !isAdmin && !isManager;
+  
   const [activeShift, setActiveShift] = useState<Attendance | undefined>(undefined);
   const [userBalance, setUserBalance] = useState<LeaveBalance | null>(null);
   const [teamMembersCount, setTeamMembersCount] = useState(0);
@@ -49,6 +51,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const [leaveUsed, setLeaveUsed] = useState(0);
   const [upcomingHoliday, setUpcomingHoliday] = useState<Holiday | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [teamInfo, setTeamInfo] = useState<Team | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,13 +59,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       try {
         const today = new Date().toISOString().split('T')[0];
         
-        const [active, balance, emps, leaves, hols, atts] = await Promise.all([
+        const [active, balance, emps, leaves, hols, atts, teams] = await Promise.all([
           hrService.getActiveAttendance(user.id),
           hrService.getLeaveBalance(user.id),
           hrService.getEmployees(),
           hrService.getLeaves(),
           hrService.getHolidays(),
-          hrService.getAttendance()
+          hrService.getAttendance(),
+          hrService.getTeams()
         ]);
 
         setActiveShift(active);
@@ -73,11 +77,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
           .reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
         setLeaveUsed(myUsedLeaves);
 
-        const team = isAdmin ? emps : emps.filter(e => e.department === user.department);
-        setTeamMembersCount(team.length);
+        // FILTER LOGIC: Strictly ensure 'unassigned' (no team) does not match 'unassigned'
+        let visibleEmployees: Employee[] = [];
+        if (isAdmin) {
+          visibleEmployees = emps;
+        } else if (isManager) {
+          // If Manager, filter by their teamId (if they have one) OR people reporting to them
+          visibleEmployees = emps.filter(e => 
+            (user.teamId && e.teamId === user.teamId) || 
+            (e.lineManagerId === user.id)
+          );
+          const myTeam = teams.find(t => t.id === user.teamId);
+          if (myTeam) setTeamInfo(myTeam);
+        } else {
+          // Employee: only see teammates if they have a team
+          visibleEmployees = emps.filter(e => user.teamId && e.teamId === user.teamId);
+        }
+        
+        setTeamMembersCount(visibleEmployees.length);
 
-        const teamIds = team.map(t => t.id);
-        const presentToday = atts.filter(a => a.date === today && teamIds.includes(a.employeeId));
+        const visibleIds = visibleEmployees.map(t => t.id);
+        const presentToday = atts.filter(a => a.date === today && visibleIds.includes(a.employeeId));
         setActiveTeamMembers(presentToday.length);
 
         const futureHols = hols
@@ -92,7 +112,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       }
     };
     fetchData();
-  }, [user.id, isAdmin, user.department]);
+  }, [user.id, isAdmin, isManager, user.teamId]);
 
   const totalRemaining = (userBalance?.ANNUAL || 0) + (userBalance?.CASUAL || 0) + (userBalance?.SICK || 0);
 
@@ -233,24 +253,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       </div>
 
       {/* Team Presence */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all" onClick={() => onNavigate('employees')}>
+      <div 
+        className={`bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between transition-all ${(isAdmin || isManager) ? 'cursor-pointer hover:bg-slate-50' : ''}`} 
+        onClick={() => (isAdmin || isManager) && onNavigate('employees')}
+      >
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
             {isLoading ? <Loader2 size={24} className="animate-spin text-emerald-200" /> : <Users size={24} />}
           </div>
           <div>
-            <h4 className="font-black text-slate-900 leading-none">Team Presence</h4>
-            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{isAdmin ? 'Organization-wide' : user.department}</p>
+            <h4 className="font-black text-slate-900 leading-none">Team Directory</h4>
+            <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+              {isAdmin ? 'Organization-wide' : (teamInfo?.name || user.department)}
+            </p>
           </div>
         </div>
         <div className="text-right">
           {isLoading ? (
             <div className="h-6 bg-slate-50 rounded w-16 animate-pulse"></div>
           ) : (
-            <>
-              <p className="text-xs font-black text-emerald-600">{activeTeamMembers} Active</p>
-              <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Out of {teamMembersCount}</p>
-            </>
+            isAdmin || isManager ? (
+              <>
+                <p className="text-xs font-black text-emerald-600">{activeTeamMembers} Active</p>
+                <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Out of {teamMembersCount}</p>
+              </>
+            ) : (
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Colleagues List</p>
+            )
           )}
         </div>
       </div>

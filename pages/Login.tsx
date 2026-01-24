@@ -17,8 +17,8 @@ const BrandLogo = () => (
       <div className="relative w-full h-full bg-[#064e3b] rounded-[1.25rem] shadow-lg flex items-center justify-center p-4 border-2 border-white">
         <img 
           src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" 
-          className="w-full h-full object-contain invert" 
-          alt="OpenHR Logo" 
+          className="w-full h-full object-contain" 
+          alt="OpenHRApp Logo" 
         />
       </div>
     </div>
