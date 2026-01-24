@@ -72,20 +72,20 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
 
   useEffect(() => {
     refreshData();
-  }, [user.id]);
+  }, [user.id, user.role, user.teamId]);
 
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const [allLeaves, userBalance, allEmps] = await Promise.all([
+      const [fetchedLeaves, userBalance, fetchedEmps] = await Promise.all([
         hrService.getLeaves(),
         hrService.getLeaveBalance(user.id),
         hrService.getEmployees()
       ]);
 
-      setLeaves(allLeaves);
+      setLeaves(fetchedLeaves);
       setBalance(userBalance);
-      setAllEmployees(allEmps);
+      setAllEmployees(fetchedEmps);
     } catch (e) {
       console.error("Data refresh failed:", e);
     } finally {
@@ -170,13 +170,15 @@ const Leave: React.FC<{ user: any }> = ({ user }) => {
        );
     }
     
-    // MANAGER FILTER
+    // MANAGER FILTER (Using immediate allEmployees data)
     const reportIds = allEmployees
-      .filter(e => e.teamId === user.team_id || e.lineManagerId === user.id)
+      .filter(e => e.teamId === user.teamId || e.lineManagerId === user.id)
       .map(e => e.id);
       
-    if (filterMode === 'ALL') return leaves.filter(l => reportIds.includes(l.employeeId));
-    return leaves.filter(l => l.status === 'PENDING_MANAGER' && reportIds.includes(l.employeeId));
+    const teamLeaves = leaves.filter(l => reportIds.includes(l.employeeId));
+
+    if (filterMode === 'ALL') return teamLeaves;
+    return teamLeaves.filter(l => l.status === 'PENDING_MANAGER');
   };
 
   const myLeaves = leaves.filter(l => l.employeeId === user.id);

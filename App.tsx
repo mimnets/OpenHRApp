@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -45,6 +44,7 @@ const App: React.FC = () => {
         role: normalizedRole,
         department: model.department || 'Unassigned',
         designation: model.designation || 'Staff',
+        teamId: model.team_id || undefined,
         avatar: model.avatar ? pb.files.getURL(model, model.avatar) : undefined
       });
 
@@ -64,6 +64,7 @@ const App: React.FC = () => {
             role: normalized,
             department: m.department || 'Unassigned',
             designation: m.designation || 'Staff',
+            teamId: m.team_id || undefined,
             avatar: m.avatar ? pb.files.getURL(m, m.avatar) : undefined
          });
        } else {
@@ -119,7 +120,7 @@ const App: React.FC = () => {
     switch (currentPath) {
       case 'dashboard': return <Dashboard user={currentUser} onNavigate={handleNavigate} />;
       case 'profile': return <Settings user={currentUser} />;
-      case 'employees': return <EmployeeDirectory />;
+      case 'employees': return <EmployeeDirectory user={currentUser} />;
       case 'attendance': 
         return <Attendance 
           user={currentUser} 

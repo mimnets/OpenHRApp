@@ -26,41 +26,21 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, role, user }) => {
-  const [attendanceExpanded, setAttendanceExpanded] = useState(currentPath.includes('attendance'));
   const isEmployee = role === 'EMPLOYEE';
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'profile', label: 'My Profile', icon: UserCircle, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-    { 
-      id: 'attendance-logs', 
-      label: 'Attendance', 
-      icon: Clock, 
-      roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'],
-      subItems: isEmployee ? undefined : [
-        { id: 'attendance-logs', label: 'My History', icon: History },
-        { id: 'attendance-audit', label: 'Attendance Audit', icon: List }
-      ]
-    },
+    { id: 'attendance-logs', label: 'My Attendance', icon: History, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { id: 'attendance-audit', label: 'Attendance Audit', icon: List, roles: ['ADMIN', 'HR', 'MANAGER'] },
     { id: 'leave', label: 'Leave', icon: CalendarDays, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
-    { id: 'employees', label: 'Team Directory', icon: Users, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { id: 'employees', label: 'Team Directory', icon: Users, roles: ['ADMIN', 'HR', 'MANAGER'] },
     { id: 'organization', label: 'Organization', icon: Network, roles: ['ADMIN', 'HR'] },
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'HR'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'HR'] },
   ];
 
   const filteredItems = menuItems.filter(item => item.roles.includes(role));
-
-  const handleItemClick = (item: any) => {
-    if (item.subItems) {
-      setAttendanceExpanded(!attendanceExpanded);
-      if (!attendanceExpanded && !currentPath.includes('attendance')) {
-        onNavigate(item.id);
-      }
-    } else {
-      onNavigate(item.id);
-    }
-  };
 
   return (
     <aside className="w-72 bg-white h-screen flex flex-col border-r border-slate-100 shadow-sm relative z-50">
@@ -84,46 +64,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
         {filteredItems.map((item) => (
           <div key={item.id} className="space-y-1">
             <button
-              onClick={() => handleItemClick(item)}
+              onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 relative group ${
-                (currentPath === item.id || (item.subItems && currentPath.includes('attendance')))
+                currentPath === item.id
                   ? 'bg-blue-50/50 text-[#2563eb]' 
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <div className="flex items-center gap-4">
-                {(currentPath === item.id || (item.subItems && currentPath.includes('attendance'))) && (
+                {currentPath === item.id && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#2563eb] rounded-r-full"></div>
                 )}
-                <item.icon size={22} className={(currentPath === item.id || (item.subItems && currentPath.includes('attendance'))) ? 'text-[#2563eb]' : 'text-slate-400'} />
+                <item.icon size={22} className={currentPath === item.id ? 'text-[#2563eb]' : 'text-slate-400'} />
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
               </div>
-              {item.subItems && (
-                <div className="text-slate-300">
-                  {attendanceExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </div>
-              )}
+              <ChevronRight size={16} className={`transition-all duration-300 ${currentPath === item.id ? 'text-[#2563eb] opacity-100 translate-x-0' : 'text-slate-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
             </button>
-            
-            {/* Sub Items */}
-            {item.subItems && attendanceExpanded && (
-              <div className="ml-8 space-y-1 animate-in slide-in-from-top-2 duration-300">
-                {item.subItems.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() => onNavigate(sub.id)}
-                    className={`w-full flex items-center gap-4 px-6 py-3 rounded-xl transition-all ${
-                      currentPath === sub.id
-                        ? 'bg-blue-50 text-[#2563eb]'
-                        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
-                    }`}
-                  >
-                    <sub.icon size={16} className={currentPath === sub.id ? 'text-[#2563eb]' : 'text-slate-300'} />
-                    <span className="font-bold text-[11px] uppercase tracking-wider">{sub.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </nav>
@@ -144,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
         </button>
 
         <div className="text-center">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.7.5</p>
+          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.8.5</p>
         </div>
       </div>
     </aside>

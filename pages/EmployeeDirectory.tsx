@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { pb } from '../services/pocketbase';
-import { Employee, Team } from '../types';
+import { Employee, Team, User } from '../types';
 
 const DirectorySkeleton = () => (
   <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 animate-pulse space-y-6">
@@ -40,8 +40,11 @@ const DirectorySkeleton = () => (
   </div>
 );
 
-const EmployeeDirectory: React.FC = () => {
-  const user = pb.authStore.model;
+interface EmployeeDirectoryProps {
+  user: User;
+}
+
+const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
   const isManager = user?.role === 'MANAGER';
   
@@ -77,15 +80,15 @@ const EmployeeDirectory: React.FC = () => {
       
       let filteredData = data;
       if (!isAdmin) {
-        // MANAGER: See people in their team OR people reporting to them
+        // MANAGER: Strictly see people in their team OR people reporting to them
         if (isManager) {
           filteredData = data.filter(e => 
-            e.teamId === user?.team_id || 
-            e.lineManagerId === user?.id
+            (user.teamId && e.teamId === user.teamId) || 
+            (e.lineManagerId === user.id)
           );
         } else {
           // EMPLOYEE: See only teammates
-          filteredData = data.filter(e => e.teamId === user?.team_id);
+          filteredData = data.filter(e => user.teamId && e.teamId === user.teamId);
         }
       }
       setEmployees(filteredData);
@@ -114,7 +117,7 @@ const EmployeeDirectory: React.FC = () => {
       fetchEmployees();
     });
     return () => { unsubscribe(); };
-  }, [isAdmin, isManager, user?.team_id, user?.id]);
+  }, [isAdmin, isManager, user?.teamId, user?.id]);
   
   const initialNewEmpState = {
     name: '',
@@ -247,7 +250,7 @@ const EmployeeDirectory: React.FC = () => {
             {isAdmin ? 'Organization Directory' : (isManager ? 'My Team & Reports' : 'My Teammates')}
           </h1>
           <p className="text-sm text-slate-500 font-medium tracking-tight">
-            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} members within your managed scope.`}
+            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} members within your team.`}
           </p>
         </div>
         {isAdmin && (
