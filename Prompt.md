@@ -93,5 +93,123 @@ Please fix Admin, HR - Reports - Data Exports - Range & Filter - Selection of De
 Please keep this settings - but remove Quality & Tech, Office Group tab.
 And on the excel reports exports, please show only first and last entry for individual employees 
 
+### 01.25.26-01:05PM
+Now we need to focus for email reports - Reports - Email Summary
+Please suggest and share your thoughts - can we implement separate smtp rely pb_hooks for send email summary, leave approval workflow - for employee send email alets, for team manager email alerts, for admin email alerts, for line manager email alerts?
+So that, we can prevents error and collision of leave workflows application alerts to employee > line manager > team manager > admin?
+Please don't change any codes without my final consent
 
+For your help, I am sharing previous codes below which partially worked:
+Pocketbase main.pb.js which works to send leave application email and also line manager:
+// 1. Helper to get your HR email from the 'settings' collection
+function getHrEmail() {
+    try {
+        // Looks for a record where the field 'key' is 'hr_email'
+        const record = $app.findFirstRecordByFilter("settings", "key = 'hr_email'");
+        return record.getString("value");
+    } catch (e) {
+        // If the collection or record doesn't exist yet, use this fallback
+        return "hr@vclbd.net"; 
+    }
+}
+
+// 2. TRIGGER: When a new Leave Request is submitted
+onRecordAfterCreateSuccess((e) => {
+    const leaveRequest = e.record;
+
+    try {
+        // Fetch User records using your field names from the image: 'employee_id' and 'line_manager_id'
+        const employee = $app.findRecordById("users", leaveRequest.getString("employee_id"));
+        const manager = $app.findRecordById("users", leaveRequest.getString("line_manager_id"));
+        
+        const mailClient = $app.newMailClient();
+        const sender = {
+            address: $app.settings().meta.senderAddress,
+            name: $app.settings().meta.senderName,
+        };
+
+        // EMAIL TO LINE MANAGER
+        mailClient.send(new MailerMessage({
+            from: sender,
+            to: [{ address: manager.email() }],
+            subject: `Action Required: Leave Request - ${leaveRequest.getString("employee_name")}`,
+            html: `
+                <h3>New Leave Application</h3>
+                <p><b>Employee:</b> ${leaveRequest.getString("employee_name")}</p>
+                <p><b>Type:</b> ${leaveRequest.getString("type")}</p>
+                <p><b>Dates:</b> ${leaveRequest.getString("start_date")} to ${leaveRequest.getString("end_date")}</p>
+                <p><b>Reason:</b> ${leaveRequest.getString("reason")}</p>
+                <p><a href="http://localhost:8090/_/">Login to Approve</a></p>
+            `,
+        }));
+
+        // CONFIRMATION TO EMPLOYEE
+        mailClient.send(new MailerMessage({
+            from: sender,
+            to: [{ address: employee.email() }],
+            subject: `Leave Request Submitted Successfully`,
+            html: `<p>Hi ${leaveRequest.getString("employee_name")}, your request has been sent to your manager for review.</p>`,
+        }));
+
+    } catch (err) {
+        console.log("CREATE_HOOK_ERROR:", err);
+    }
+    
+    // Modern PocketBase hooks do not need e.next() in the latest versions, 
+    // but keeping it is safe for compatibility.
+    return undefined; 
+}, "leaves");
+
+// 3. TRIGGER: When a Manager updates the status (Approve/Reject)
+onRecordAfterUpdateSuccess((e) => {
+    const leaveRequest = e.record;
+    const status = leaveRequest.getString("status");
+
+    // Only run if status changed from 'pending'
+    if (status === "pending" || !status) return undefined;
+
+    try {
+        const employee = $app.findRecordById("users", leaveRequest.getString("employee_id"));
+        const hrEmail = getHrEmail();
+        
+        const mailClient = $app.newMailClient();
+        const sender = {
+            address: $app.settings().meta.senderAddress,
+            name: $app.settings().meta.senderName,
+        };
+
+        // EMAIL TO EMPLOYEE (The Result)
+        mailClient.send(new MailerMessage({
+            from: sender,
+            to: [{ address: employee.email() }],
+            subject: `Update: Your Leave Request is ${status.toUpperCase()}`,
+            html: `
+                <p>Your request has been <b>${status}</b>.</p>
+                <p><b>Remarks:</b> ${leaveRequest.getString("approver_remarks") || "None"}</p>
+            `,
+        }));
+
+        // EMAIL TO HR (Only if Approved)
+        if (status === "approved") {
+            mailClient.send(new MailerMessage({
+                from: sender,
+                to: [{ address: hrEmail }],
+                subject: `Approved Leave: ${leaveRequest.getString("employee_name")}`,
+                html: `<p>Leave approved for ${leaveRequest.getString("employee_name")} (${leaveRequest.getString("start_date")} to ${leaveRequest.getString("end_date")}).</p>`,
+            }));
+        }
+    } catch (err) {
+        console.log("UPDATE_HOOK_ERROR:", err);
+    }
+    
+    return undefined;
+}, "leaves");
+
+### 01.25.26
+Attendance Reports sending by email needs to be well formated like table
+
+Please create a separate reports.pb.js files which will align with reportsemailservice.tsx for sending reports by email.
+And create separate pb.js file for employee, manager, admin and also create separate employeeleveflow.tsx, managerleaveflow.tsx, adminleaveflow.tsx to prevent codes over writing from next time we would like to change or modify anything.
+I am not sure, will this work in this way, or there might be any api restrictions by pocketbase?
+please explain
 ```

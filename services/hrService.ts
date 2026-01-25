@@ -18,7 +18,6 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.designation) pbData.designation = data.designation;
   if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
   
-  // Handle both camelCase and snake_case for consistency
   if (data.lineManagerId !== undefined) pbData.line_manager_id = data.lineManagerId || null;
   else if (data.line_manager_id !== undefined) pbData.line_manager_id = data.line_manager_id || null;
   
@@ -126,6 +125,18 @@ export const hrService = {
     } catch (err: any) { return { user: null, error: err.message || "PocketBase Login Failed" }; }
   },
 
+  // Finalize password reset using PocketBase SDK confirmPasswordReset
+  async finalizePasswordReset(token: string, newPassword: string): Promise<boolean> {
+    if (!pb || !isPocketBaseConfigured()) return false;
+    try {
+      await pb.collection('users').confirmPasswordReset(token, newPassword, newPassword);
+      return true;
+    } catch (err: any) {
+      console.error("Password reset confirmation failed:", err);
+      return false;
+    }
+  },
+
   async logout() { 
     if (pb) pb.authStore.clear(); 
     cachedConfig = null;
@@ -177,7 +188,6 @@ export const hrService = {
     if (!pb || !isPocketBaseConfigured()) return;
     const pbData = sanitizeUserPayload(updates, true);
     
-    // Explicitly allow direct assignment of relational IDs if passed as snake_case in updates
     if (updates.team_id !== undefined) pbData.team_id = updates.team_id || null;
     if (updates.line_manager_id !== undefined) pbData.line_manager_id = updates.line_manager_id || null;
 
@@ -284,17 +294,14 @@ export const hrService = {
 
   async saveLeaveRequest(data: Partial<LeaveRequest>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    
     const formatPbDate = (dateStr: string) => {
       if (!dateStr) return null;
       if (dateStr.length === 10) return `${dateStr} 00:00:00`;
       if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
       return dateStr;
     };
-
     const now = new Date();
     const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
-
     const payload: any = {
       employee_id: data.employeeId?.trim(),
       employee_name: data.employeeName,
@@ -307,35 +314,17 @@ export const hrService = {
       status: data.status || 'PENDING_MANAGER',
       applied_date: appliedAt
     };
-
     try {
       await pb.collection('leaves').create(payload);
       this.notify();
     } catch (err: any) {
-      if (err.response?.id) {
-        this.notify();
-        return;
-      }
+      if (err.response?.id) { this.notify(); return; }
       throw new Error(`Failed to create record`);
     }
   },
 
-  async modifyLeaveRequest(id: string, updates: Partial<LeaveRequest>) {
-    if (!pb || !isPocketBaseConfigured()) return;
-    const pbUpdates: any = {};
-    if (updates.type) pbUpdates.type = updates.type;
-    if (updates.startDate) pbUpdates.start_date = updates.startDate;
-    if (updates.endDate) pbUpdates.end_date = updates.endDate;
-    if (updates.totalDays) pbUpdates.total_days = Number(updates.totalDays);
-    if (updates.reason) pbUpdates.reason = updates.reason;
-    if (updates.status) pbUpdates.status = updates.status;
-    await pb.collection('attendance').update(id.trim(), pbUpdates);
-    this.notify();
-  },
-
   async updateLeaveStatus(id: string, status: string, remarks: string, role: string) {
     if (!pb || !isPocketBaseConfigured()) return;
-    
     const update: any = { status };
     if (role === 'MANAGER') {
       update.manager_remarks = remarks;
@@ -343,17 +332,10 @@ export const hrService = {
     } else {
       update.approver_remarks = remarks;
     }
-
     try {
       await pb.collection('leaves').update(id.trim(), update);
       this.notify();
-    } catch (err: any) {
-      if (err.response?.id) {
-        this.notify();
-        return;
-      }
-      throw new Error("Access Denied (Check Update Rules)");
-    }
+    } catch (err: any) { throw new Error("Access Denied"); }
   },
 
   async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
@@ -372,10 +354,6 @@ export const hrService = {
       });
       return balance;
     } catch (e) { return defaultBalance; }
-  },
-
-  isManagerOfSomeone(userId: string, employees: Employee[]): boolean {
-    return employees.some(e => e.lineManagerId === userId);
   },
 
   async getConfig(): Promise<AppConfig> {
@@ -474,33 +452,20 @@ export const hrService = {
     if (!pb || !isPocketBaseConfigured()) return [];
     try {
       const records = await pb.collection('teams').getFullList({ sort: 'name' });
-      return records.map(r => ({
-        id: r.id,
-        name: r.name,
-        leaderId: r.leader_id,
-        department: r.department
-      }));
+      return records.map(r => ({ id: r.id, name: r.name, leaderId: r.leader_id, department: r.department }));
     } catch (e) { return []; }
   },
 
   async createTeam(data: Partial<Team>) {
     if (!pb || !isPocketBaseConfigured()) return null;
-    const record = await pb.collection('teams').create({
-      name: data.name,
-      leader_id: data.leaderId,
-      department: data.department
-    });
+    const record = await pb.collection('teams').create({ name: data.name, leader_id: data.leaderId, department: data.department });
     this.notify();
     return record;
   },
 
   async updateTeam(id: string, data: Partial<Team>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    await pb.collection('teams').update(id, {
-      name: data.name,
-      leader_id: data.leaderId,
-      department: data.department
-    });
+    await pb.collection('teams').update(id, { name: data.name, leader_id: data.leaderId, department: data.department });
     this.notify();
   },
 
@@ -529,44 +494,34 @@ export const hrService = {
     this.notify();
   },
 
-  async sendCustomEmail(data: { recipientEmail: string; subject: string; html: string }) {
+  async sendCustomEmail(data: { recipientEmail: string; subject: string; html: string; type?: string }) {
     if (!pb || !isPocketBaseConfigured()) return;
-    
-    const payload = {
-      recipient_email: data.recipientEmail,
-      subject: data.subject,
-      html_content: data.html,
-      status: 'PENDING'
+    const payload = { 
+      recipient_email: data.recipientEmail.trim(), 
+      subject: data.subject.trim(), 
+      html_content: data.html, 
+      type: data.type || 'SYSTEM_REPORT', 
+      status: 'PENDING' 
     };
-
     try {
       const result = await pb.collection('reports_queue').create(payload);
       return result;
-    } catch (err: any) {
-      if (err.response?.id || (err.status >= 400 && err.response?.recipient_email)) {
-        return { id: err.response?.id || 'queued_ok' }; 
-      }
-      throw new Error(err.message || "Failed to create queue record.");
+    } catch (err: any) { 
+      // CRITICAL: Log exact field validation errors
+      console.error("[PocketBase 400 Detail]", {
+        message: err.message,
+        validationErrors: err.response?.data, // THIS WILL TELL YOU THE EXACT FIELD THAT FAILED
+        payloadSent: payload
+      });
+      throw new Error(err.message || "Failed to create queue record. Check field names in PocketBase."); 
     }
   },
 
   async testPocketBaseConnection(url: string): Promise<{ success: boolean; message: string; error?: string }> {
     try {
       const response = await fetch(`${url.replace(/\/+$/, '')}/api/health`);
-      if (response.ok) {
-        return { success: true, message: "Connected to PocketBase" };
-      }
-      return { success: false, message: "Connection failed", error: `HTTP ${response.status}` };
-    } catch (e: any) {
-      return { success: false, message: "Connection error", error: e.message };
-    }
-  },
-
-  async finalizePasswordReset(token: string, pass: string): Promise<boolean> {
-    if (!pb || !isPocketBaseConfigured()) return false;
-    try {
-      await pb.collection('users').confirmPasswordReset(token, pass, pass);
-      return true;
-    } catch (e) { return false; }
+      if (response.ok) return { success: true, message: "OK" };
+      return { success: false, message: "FAIL" };
+    } catch (e: any) { return { success: false, message: "ERR" }; }
   }
 };
