@@ -78,4 +78,14 @@ on the responsive devices - admin, hr, manager facing difficulties to navigate t
 great - on the Attendance Audit - Admin, HR role will be able to see organization wided staff and individuals staff sorting facilities with search options. but for Manager I want it should only show Managed Staff and selection with searching options. Manage will not be able to see whole organization staff.
 Please check and share your thoughts.
 
+### 01.25.26-9:58AM
+
+Please update the readme.md file by providing the step by step guide how our OpenHR App functionality works and which technology we used and what benefits can be get by using this for small organization - also specify how to setup and connect with pocketbase and also how many pocketbase collections needed including pocketbase api rules. I want to publish this reame info to the github so that people who wants to use this app will get help how to use it with step by step guides.
+
+### 01.25.26-10:15AM
+admin, hr Reports - Attendance Reports need to have a Quality & Technical category to select only Quality & Technical Departments teams attendnace reports. And for rest we may have Office Category to select and also keep Entire Organization for in some case we might needed.
+
+
+
+
 ```
