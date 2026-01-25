@@ -8,7 +8,7 @@ interface SetupProps {
 }
 
 const Setup: React.FC<SetupProps> = ({ onComplete }) => {
-  const [url, setUrl] = useState('https://pocketbase.mimnets.com');
+  const [url, setUrl] = useState('https://pbase.vclbd.net');
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -59,7 +59,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
                 <input 
                   type="text" 
                   className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
-                  placeholder="https://pocketbase.mimnets.com"
+                  placeholder="https://pbase.vclbd.net"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                 />
