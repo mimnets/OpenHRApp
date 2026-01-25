@@ -83,9 +83,15 @@ Please check and share your thoughts.
 Please update the readme.md file by providing the step by step guide how our OpenHR App functionality works and which technology we used and what benefits can be get by using this for small organization - also specify how to setup and connect with pocketbase and also how many pocketbase collections needed including pocketbase api rules. I want to publish this reame info to the github so that people who wants to use this app will get help how to use it with step by step guides.
 
 ### 01.25.26-10:15AM
-admin, hr Reports - Attendance Reports need to have a Quality & Technical category to select only Quality & Technical Departments teams attendnace reports. And for rest we may have Office Category to select and also keep Entire Organization for in some case we might needed.
+~~ admin, hr Reports - Attendance Reports need to have a Quality & Technical category to select only Quality & Technical Departments teams attendnace reports. And for rest we may have Office Category to select and also keep Entire Organization for in some case we might needed.~~
 
+### 01.25.26-10:25AM
 
+Please fix Admin, HR - Reports - Data Exports - Range & Filter - Selection of Departments should be multiple selected items and Department list will be actual Departments from pocketbase database. Currently it is not showing actual departments.
+
+### 01.25.26-10:50AM
+Please keep this settings - but remove Quality & Tech, Office Group tab.
+And on the excel reports exports, please show only first and last entry for individual employees 
 
 
 ```

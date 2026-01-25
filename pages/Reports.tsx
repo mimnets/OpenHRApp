@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, MapPin, AlertTriangle, Layout, CheckCircle2, CheckCircle, Settings2, Mail
+  FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, MapPin, AlertTriangle, Layout, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
-import { DEPARTMENTS } from '../constants.tsx';
 import { User, Employee, Attendance, LeaveRequest } from '../types';
 
 interface ReportsProps {
@@ -14,15 +13,23 @@ interface ReportsProps {
 const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<'GENERATOR' | 'CONFIG'>('GENERATOR');
   const [reportType, setReportType] = useState('ATTENDANCE');
+  
+  // Data States
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
-  const [departmentFilter, setDepartmentFilter] = useState('Entire Organization');
+  const [dbDepartments, setDbDepartments] = useState<string[]>([]);
+  
+  // Filter States
+  const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
   const [employeeFilter, setEmployeeFilter] = useState('All Employees');
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // UI States
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [enabledColumns, setEnabledColumns] = useState<Record<string, boolean>>({
     'Employee_ID': true, 'Name': true, 'Date': true, 'Status_Type': true,
@@ -44,37 +51,95 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
 
   useEffect(() => {
     const loadData = async () => {
-      const [emps, atts, lvs] = await Promise.all([
-        hrService.getEmployees(), hrService.getAttendance(), hrService.getLeaves()
-      ]);
-      setEmployees(emps); setAttendance(atts); setLeaves(lvs);
+      setIsLoading(true);
+      try {
+        const [emps, atts, lvs, depts] = await Promise.all([
+          hrService.getEmployees(), 
+          hrService.getAttendance(), 
+          hrService.getLeaves(),
+          hrService.getDepartments()
+        ]);
+        setEmployees(emps); 
+        setAttendance(atts); 
+        setLeaves(lvs);
+        setDbDepartments(depts);
+        // Initially select all
+        setSelectedDepts(depts);
+      } catch (err) {
+        console.error("Report data load failed", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadData();
   }, [user.id]);
 
+  const toggleDept = (dept: string) => {
+    setSelectedDepts(prev => 
+      prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
+    );
+  };
+
   const reportData = useMemo(() => {
     let filtered: any[] = [];
-    if (['ATTENDANCE', 'LATE', 'ABSENT'].includes(reportType)) {
-      filtered = attendance.filter(a => {
-        const isWithinDate = a.date >= startDate && a.date <= endDate;
-        const emp = employees.find(e => e.id === a.employeeId);
-        const isMatchingDept = departmentFilter === 'Entire Organization' || emp?.department === departmentFilter;
-        const isMatchingEmp = employeeFilter === 'All Employees' || a.employeeId === employeeFilter;
-        return isWithinDate && isMatchingDept && isMatchingEmp;
+    const isAttendanceReport = reportType !== 'LEAVE';
+    const sourceData = isAttendanceReport ? attendance : leaves;
+
+    filtered = sourceData.filter(item => {
+      const itemDate = (item as any).date || (item as any).startDate;
+      if (itemDate < startDate || itemDate > endDate) return false;
+
+      const emp = employees.find(e => e.id === (item as any).employeeId);
+      if (!emp) return false;
+
+      // Multi-select Department Filter
+      if (selectedDepts.length > 0 && !selectedDepts.includes(emp.department)) {
+        return false;
+      }
+
+      // Individual Employee Filter
+      if (employeeFilter !== 'All Employees' && (item as any).employeeId !== employeeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Handle Status filters for attendance logs
+    if (reportType === 'LATE') filtered = filtered.filter(a => a.status === 'LATE');
+    if (reportType === 'ABSENT') filtered = filtered.filter(a => a.status === 'ABSENT');
+
+    // CONSOLIDATION LOGIC: Group by Employee + Date to show only first and last entries
+    if (isAttendanceReport) {
+      const groupedMap = new Map<string, any>();
+      
+      filtered.forEach(log => {
+        const key = `${log.employeeId}_${log.date}`;
+        if (!groupedMap.has(key)) {
+          groupedMap.set(key, { ...log });
+        } else {
+          const existing = groupedMap.get(key)!;
+          
+          // Earliest check-in
+          if (log.checkIn && (!existing.checkIn || log.checkIn < existing.checkIn)) {
+            existing.checkIn = log.checkIn;
+          }
+          // Latest check-out
+          if (log.checkOut && (!existing.checkOut || log.checkOut > existing.checkOut)) {
+            existing.checkOut = log.checkOut;
+          }
+          // Consolidated remarks
+          if (log.remarks && !existing.remarks?.includes(log.remarks)) {
+            existing.remarks = existing.remarks ? `${existing.remarks} | ${log.remarks}` : log.remarks;
+          }
+        }
       });
-      if (reportType === 'LATE') filtered = filtered.filter(a => a.status === 'LATE');
-      if (reportType === 'ABSENT') filtered = filtered.filter(a => a.status === 'ABSENT');
-    } else if (reportType === 'LEAVE') {
-      filtered = leaves.filter(l => {
-        const isWithinDate = l.startDate >= startDate && l.startDate <= endDate;
-        const emp = employees.find(e => e.id === l.employeeId);
-        const isMatchingDept = departmentFilter === 'Entire Organization' || emp?.department === departmentFilter;
-        const isMatchingEmp = employeeFilter === 'All Employees' || l.employeeId === employeeFilter;
-        return isWithinDate && isMatchingDept && isMatchingEmp;
-      });
+      
+      filtered = Array.from(groupedMap.values());
     }
+
     return filtered;
-  }, [reportType, startDate, endDate, departmentFilter, employeeFilter, attendance, employees, leaves]);
+  }, [reportType, startDate, endDate, selectedDepts, employeeFilter, attendance, employees, leaves]);
 
   const downloadCSV = () => {
     if (reportData.length === 0) { alert("No data to export."); return; }
@@ -114,26 +179,33 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     if (reportData.length === 0) return;
     setIsEmailing(true);
     try {
-      // Find today's attendance only for a daily summary
       const today = new Date().toISOString().split('T')[0];
       const todayAtt = attendance.filter(a => a.date === today);
-      
       const config = await hrService.getConfig();
       const target = config.defaultReportRecipient || user.email;
-      
       await emailService.sendDailyAttendanceSummary(target, todayAtt);
-      alert(`Daily summary emailed to ${target}.`);
+      alert(`Summary report emailed to ${target}.`);
     } catch (err) {
-      alert("Failed to send email summary. Verify SMTP settings.");
+      alert("Email relay failed.");
     } finally {
       setIsEmailing(false);
     }
   };
 
+  if (isLoading) return (
+    <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+      <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mb-4" />
+      <p className="text-xs font-black uppercase tracking-widest text-slate-400">Initializing Reporting Engine...</p>
+    </div>
+  );
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Data Exports</h1><p className="text-slate-500 font-medium">Generate system-wide audit logs and summaries</p></div>
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Audit & Reports</h1>
+          <p className="text-slate-500 font-medium text-sm">Consolidated data extraction with multi-department support</p>
+        </div>
         <div className="flex p-1 bg-white border border-slate-100 rounded-3xl shadow-sm">
           <button onClick={() => setActiveTab('GENERATOR')} className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'GENERATOR' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Generator</button>
           <button onClick={() => setActiveTab('CONFIG')} className={`px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'CONFIG' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Columns</button>
@@ -143,46 +215,98 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2">
           {activeTab === 'GENERATOR' ? (
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-12 space-y-12 animate-in slide-in-from-left-4 duration-500">
+              
+              {/* Multi-Select Department Grid */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">1. Target Departments ({selectedDepts.length}/{dbDepartments.length})</p>
+                  <div className="flex gap-4">
+                    <button onClick={() => setSelectedDepts(dbDepartments)} className="text-[9px] font-black uppercase text-indigo-600 hover:underline">Select All</button>
+                    <button onClick={() => setSelectedDepts([])} className="text-[9px] font-black uppercase text-rose-500 hover:underline">Clear All</button>
+                  </div>
+                </div>
+                 <div className="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-slate-50 rounded-3xl py-4 bg-slate-50/30">
+                    {dbDepartments.map(dept => {
+                      const isSelected = selectedDepts.includes(dept);
+                      return (
+                        <button 
+                          key={dept}
+                          onClick={() => toggleDept(dept)}
+                          className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-indigo-200 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}
+                        >
+                          <div className={`p-1 rounded-md ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                            {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                          </div>
+                          <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-indigo-900' : 'text-slate-500'}`}>{dept}</span>
+                        </button>
+                      );
+                    })}
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
                 <div className="space-y-6">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">1. Report Category</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">2. Report Type</p>
                   <div className="space-y-3">
                     {['ATTENDANCE', 'ABSENT', 'LATE', 'LEAVE'].map((id) => (
-                      <button key={id} onClick={() => setReportType(id)} className={`w-full flex items-center gap-4 p-5 rounded-3xl border transition-all ${reportType === id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
+                      <button key={id} onClick={() => setReportType(id)} className={`w-full flex items-center gap-4 p-5 rounded-[2rem] border transition-all ${reportType === id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
                         <div className={`p-2.5 rounded-xl ${reportType === id ? 'bg-white/10' : 'bg-indigo-500 text-white'}`}><FileText size={20} /></div>
-                        <span className="font-bold text-sm uppercase tracking-tight">{id} Report</span>
+                        <span className="font-black text-xs uppercase tracking-tight">{id} Report</span>
                       </button>
                     ))}
                   </div>
                 </div>
+
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">2. Range & Filter</p>
-                    <div className="flex gap-2">
-                       <input type="date" className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                       <input type="date" className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">3. Refining Parameters</p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">From</label>
+                          <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">To</label>
+                          <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Employee Scoping</label>
+                        <select 
+                          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" 
+                          value={employeeFilter} 
+                          onChange={e => setEmployeeFilter(e.target.value)}
+                        >
+                          <option value="All Employees">All Individual Employees</option>
+                          {employees.filter(e => {
+                            if (selectedDepts.length === 0) return true;
+                            return selectedDepts.includes(e.department || '');
+                          }).map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
+                        </select>
+                      </div>
                     </div>
-                    <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs" value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)}>
-                        <option>Entire Organization</option>
-                        {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
-                     </select>
                   </div>
+
                   <div className="pt-4">
-                    <button onClick={handleEmailSummary} disabled={isEmailing} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all">
-                       {isEmailing ? <RefreshCw className="animate-spin" size={16}/> : <Mail size={16}/>} Email Today's Summary
+                    <button onClick={handleEmailSummary} disabled={isEmailing} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm">
+                       {isEmailing ? <RefreshCw className="animate-spin" size={16}/> : <Mail size={16}/>} Email Summary
                     </button>
                   </div>
                 </div>
               </div>
-              <div className="pt-10 border-t border-slate-50 mt-10">
-                <button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="w-full flex items-center justify-center gap-3 py-5 bg-indigo-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl hover:bg-indigo-700 transition-all">
-                  {isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} Generate & Download Export
+
+              <div className="pt-10 border-t border-slate-50">
+                <button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="w-full flex items-center justify-center gap-3 py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50">
+                  {isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} Generate CSV Export
                 </button>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-12">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-12 animate-in slide-in-from-right-4 duration-500">
               <h3 className="text-lg font-black text-slate-900 mb-8 flex items-center gap-3"><Settings2 className="text-indigo-500" /> Export Configuration</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {columnOptions.map((col) => (
@@ -195,17 +319,53 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
             </div>
           )}
         </div>
-        <div className="bg-[#0f172a] rounded-[3rem] p-8 text-white shadow-2xl space-y-8">
-           <h3 className="text-xl font-black flex items-center gap-3"><Search className="text-indigo-400" /> Output Preview</h3>
-           <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Records Found</p>
-              <p className="text-4xl font-black">{reportData.length}</p>
-              <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-widest">Across {departmentFilter}</p>
+
+        <div className="bg-[#0f172a] rounded-[3rem] p-8 text-white shadow-2xl space-y-8 flex flex-col sticky top-24 h-fit animate-in zoom-in duration-700">
+           <div className="flex-1 space-y-8">
+             <h3 className="text-xl font-black flex items-center gap-3"><Search className="text-indigo-400" /> Live Preview</h3>
+             
+             <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 text-center space-y-6">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Records to Export</p>
+                  <p className="text-6xl font-black text-white">{reportData.length}</p>
+                </div>
+                <div className="h-px bg-white/10 w-1/2 mx-auto"></div>
+                <div className="space-y-1">
+                  <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Departments Scoped</p>
+                  <div className="flex flex-wrap justify-center gap-1.5 px-2">
+                     {selectedDepts.length === dbDepartments.length ? (
+                       <span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">Entire Organization</span>
+                     ) : selectedDepts.length === 0 ? (
+                       <span className="text-[9px] font-bold text-rose-400">No Selection</span>
+                     ) : (
+                       selectedDepts.slice(0, 3).map(d => (
+                         <span key={d} className="text-[8px] font-black text-white bg-white/10 px-2 py-0.5 rounded-full uppercase truncate max-w-[80px]">{d}</span>
+                       ))
+                     )}
+                     {selectedDepts.length > 3 && (
+                       <span className="text-[8px] font-black text-white bg-indigo-500/20 px-2 py-0.5 rounded-full uppercase">+{selectedDepts.length - 3} More</span>
+                     )}
+                  </div>
+                </div>
+             </div>
+
+             <div className="space-y-4">
+                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <AlertTriangle size={14} className="text-amber-500" /> Export Policy
+                </div>
+                <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                  Reports show consolidated activity (earliest In, latest Out) per person per day. Access is logged.
+                </p>
+             </div>
            </div>
-           <div className="pt-4 text-center">
-              <p className="text-[10px] text-slate-500 italic leading-relaxed">
-                Report generation is processed locally. Large datasets will be formatted into a standard UTF-8 CSV with Excel compatibility (BOM enabled).
-              </p>
+
+           <div className="p-6 bg-indigo-500/10 rounded-[2rem] border border-indigo-500/20">
+              <p className="text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p>
+              <div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase">
+                <p>Format: UTF-8 CSV</p>
+                <p>Mode: First & Last Punch</p>
+                <p>Columns: {Object.values(enabledColumns).filter(Boolean).length} Active</p>
+              </div>
            </div>
         </div>
       </div>
