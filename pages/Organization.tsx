@@ -183,11 +183,12 @@ const Organization: React.FC = () => {
           teamId = newTeam?.id || '';
         }
 
-        // Fix line 193: Ensure teamId is a string and handle unknown type for team members synchronization
         if (teamId) {
           // SYNC USERS: Identify additions and removals based on ID comparison
+          // Use filter and map to get string[]
           const originalMembers: string[] = employees.filter(e => e.teamId === teamId).map(e => e.id);
-          const toAdd: string[] = Array.from(selectedEmployeeIds).filter((id: string) => !originalMembers.includes(id));
+          // FIX: Use spread operator instead of Array.from to ensure better TypeScript inference for string[]
+          const toAdd: string[] = [...selectedEmployeeIds].filter((id: string) => !originalMembers.includes(id));
           const toRemove: string[] = originalMembers.filter((id: string) => !selectedEmployeeIds.has(id));
 
           // Use explicit field names (team_id) to ensure PocketBase capturing
@@ -373,7 +374,6 @@ const Organization: React.FC = () => {
           </div>
         )}
         
-        {/* Placeholder logic for remaining tabs consistent with previous version */}
         {activeTab === 'HOLIDAYS' && (
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in zoom-in duration-500">
              <div className="p-5 md:p-6 bg-emerald-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
