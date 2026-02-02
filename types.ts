@@ -1,3 +1,4 @@
+
 export type Role = 'ADMIN' | 'MANAGER' | 'HR' | 'EMPLOYEE';
 export type WorkType = 'OFFICE' | 'FIELD';
 
@@ -72,6 +73,19 @@ export interface LeaveBalance {
   SICK: number;
 }
 
+export interface LeavePolicy {
+  defaults: {
+    ANNUAL: number;
+    CASUAL: number;
+    SICK: number;
+  };
+  overrides: Record<string, { // Key is employeeId
+    ANNUAL: number;
+    CASUAL: number;
+    SICK: number;
+  }>;
+}
+
 export interface LeaveWorkflow {
   department: string;
   approverRole: 'LINE_MANAGER' | 'HR' | 'ADMIN';
@@ -116,4 +130,5 @@ export interface AppConfig {
   earlyOutGracePeriod: number;
   defaultReportRecipient?: string;
   smtp?: RelayConfig;
+  overtimeEnabled?: boolean;
 }

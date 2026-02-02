@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Network, 
@@ -30,14 +29,22 @@ import {
   Server,
   Users,
   Search,
-  Check
+  Check,
+  Building,
+  Globe,
+  Bell,
+  CalendarClock,
+  ToggleLeft,
+  ToggleRight,
+  Sun,
+  Shield
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { updatePocketBaseConfig, getPocketBaseConfig } from '../services/pocketbase';
-import { Holiday, AppConfig, LeaveWorkflow, Employee, Team } from '../types';
+import { Holiday, AppConfig, LeaveWorkflow, Employee, Team, LeavePolicy } from '../types';
 import { DEFAULT_CONFIG } from '../constants.tsx';
 
-type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'HOLIDAYS' | 'SYSTEM';
+type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'HOLIDAYS' | 'LEAVES' | 'SYSTEM';
 
 const Organization: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OrgTab>('STRUCTURE');
@@ -48,39 +55,45 @@ const Organization: React.FC = () => {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [workflows, setWorkflows] = useState<LeaveWorkflow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [leavePolicy, setLeavePolicy] = useState<LeavePolicy>({ defaults: { ANNUAL: 15, CASUAL: 10, SICK: 14 }, overrides: {} });
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [savingManagerId, setSavingManagerId] = useState<string | null>(null);
   
   const [pbConfig, setPbConfig] = useState(getPocketBaseConfig());
-  const [testingBackend, setTestingBackend] = useState(false);
 
   // Modals
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM'>('DEPT');
+  const [modalType, setModalType] = useState<'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM' | 'LEAVE_ALLOCATION'>('DEPT');
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [modalValue, setModalValue] = useState('');
   const [holidayForm, setHolidayForm] = useState<Partial<Holiday>>({ name: '', date: '', type: 'FESTIVAL', isGovernment: true });
   const [teamForm, setTeamForm] = useState<Partial<Team>>({ name: '', leaderId: '', department: '' });
   
+  // Leave Allocation Form
+  const [allocationForm, setAllocationForm] = useState({ employeeId: '', ANNUAL: 0, CASUAL: 0, SICK: 0 });
+
   // Team Assignment State
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [teamSearchTerm, setTeamSearchTerm] = useState('');
+
+  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   useEffect(() => { loadAllData(); }, []);
 
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [depts, desigs, hols, wfs, emps, appConfig, teamsList] = await Promise.allSettled([
+      const [depts, desigs, hols, wfs, emps, appConfig, teamsList, lPolicy] = await Promise.allSettled([
         hrService.getDepartments(),
         hrService.getDesignations(),
         hrService.getHolidays(),
         hrService.getWorkflows(),
         hrService.getEmployees(),
         hrService.getConfig(),
-        hrService.getTeams()
+        hrService.getTeams(),
+        hrService.getLeavePolicy()
       ]);
 
       if (depts.status === 'fulfilled') setDepartments(depts.value);
@@ -88,8 +101,15 @@ const Organization: React.FC = () => {
       if (hols.status === 'fulfilled') setHolidays(hols.value);
       if (wfs.status === 'fulfilled') setWorkflows(wfs.value || []);
       if (emps.status === 'fulfilled') setEmployees(emps.value);
-      if (appConfig.status === 'fulfilled') setConfig(appConfig.value);
+      if (appConfig.status === 'fulfilled') {
+        const cfg = appConfig.value;
+        if (!Array.isArray(cfg.workingDays)) {
+          cfg.workingDays = DEFAULT_CONFIG.workingDays;
+        }
+        setConfig(cfg);
+      }
       if (teamsList.status === 'fulfilled') setTeams(teamsList.value);
+      if (lPolicy.status === 'fulfilled') setLeavePolicy(lPolicy.value);
 
     } catch (err) {
       console.error("Critical loading error:", err);
@@ -102,7 +122,7 @@ const Organization: React.FC = () => {
     setIsSaving(true);
     try {
       await hrService.setConfig(config);
-      alert('Organizational policies updated.');
+      alert('Organizational policies updated successfully.');
     } catch (err) {
       alert('Failed to save configuration.');
     } finally {
@@ -110,15 +130,52 @@ const Organization: React.FC = () => {
     }
   };
 
+  const handleSaveLeaveDefaults = async () => {
+     setIsSaving(true);
+     try {
+        await hrService.setLeavePolicy(leavePolicy);
+        alert('Global leave policy updated.');
+     } catch (err) {
+        alert('Failed to update leave policy.');
+     } finally {
+        setIsSaving(false);
+     }
+  };
+
+  const deleteLeaveOverride = async (empId: string) => {
+     if(!confirm("Remove custom allocation for this employee? They will revert to global defaults.")) return;
+     const newPolicy = { ...leavePolicy };
+     delete newPolicy.overrides[empId];
+     setLeavePolicy(newPolicy);
+     await hrService.setLeavePolicy(newPolicy);
+  };
+
+  const toggleWorkingDay = (day: string) => {
+    setConfig(prev => {
+      const current = prev.workingDays || [];
+      if (current.includes(day)) {
+        return { ...prev, workingDays: current.filter(d => d !== day) };
+      } else {
+        return { ...prev, workingDays: [...current, day] };
+      }
+    });
+  };
+
+  const handleUpdateWorkflowRole = (dept: string, role: string) => {
+    setWorkflows(prev => {
+      const exists = prev.some(w => w.department === dept);
+      if (exists) {
+        return prev.map(w => w.department === dept ? { ...w, approverRole: role as any } : w);
+      } else {
+        return [...prev, { department: dept, approverRole: role as any }];
+      }
+    });
+  };
+
   const handleSaveWorkflows = async () => {
     setIsSaving(true);
     try {
-      const finalWorkflows = departments.map(dept => {
-        const existing = workflows.find(w => w.department === dept);
-        return existing || { department: dept, approverRole: 'LINE_MANAGER' as const };
-      });
-      await hrService.setWorkflows(finalWorkflows);
-      setWorkflows(finalWorkflows);
+      await hrService.setWorkflows(workflows);
       alert('Leave workflows updated successfully.');
     } catch (err) {
       alert('Failed to save workflows.');
@@ -144,7 +201,7 @@ const Organization: React.FC = () => {
     }
   };
 
-  const openModal = (type: 'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM', index: number | null = null) => {
+  const openModal = (type: 'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM' | 'LEAVE_ALLOCATION', index: number | null = null, extraData?: any) => {
     setModalType(type);
     setEditIndex(index);
     setTeamSearchTerm('');
@@ -153,10 +210,17 @@ const Organization: React.FC = () => {
     } else if (type === 'TEAM') {
       const team = index !== null ? teams[index] : { name: '', leaderId: '', department: '' };
       setTeamForm(team);
-      // Pre-select members of the team based on teamId
       const targetTeamId = index !== null ? teams[index].id : '';
       const existingMembers = employees.filter(e => e.teamId === targetTeamId).map(e => e.id);
       setSelectedEmployeeIds(new Set(existingMembers));
+    } else if (type === 'LEAVE_ALLOCATION') {
+        // If editing existing override (passed via extraData as empId)
+        if (extraData) {
+           const existing = leavePolicy.overrides[extraData] || leavePolicy.defaults;
+           setAllocationForm({ employeeId: extraData, ...existing });
+        } else {
+           setAllocationForm({ employeeId: '', ...leavePolicy.defaults });
+        }
     } else {
       setModalValue(index !== null ? (type === 'DEPT' ? departments[index] : designations[index]) : '');
     }
@@ -184,24 +248,28 @@ const Organization: React.FC = () => {
         }
 
         if (teamId) {
-          // SYNC USERS: Identify additions and removals based on ID comparison
-          // Use filter and map to get string[]
           const originalMembers: string[] = employees.filter(e => e.teamId === teamId).map(e => e.id);
-          // FIX: Use spread operator instead of Array.from to ensure better TypeScript inference for string[]
           const toAdd: string[] = [...selectedEmployeeIds].filter((id: string) => !originalMembers.includes(id));
           const toRemove: string[] = originalMembers.filter((id: string) => !selectedEmployeeIds.has(id));
 
-          // Use explicit field names (team_id) to ensure PocketBase capturing
           await Promise.all([
             ...toAdd.map((id: string) => hrService.updateProfile(id, { team_id: teamId })),
             ...toRemove.map((id: string) => hrService.updateProfile(id, { team_id: null }))
           ]);
         }
 
-        // Final Refresh
         const [updatedTeams, updatedEmps] = await Promise.all([hrService.getTeams(), hrService.getEmployees()]);
         setTeams(updatedTeams);
         setEmployees(updatedEmps);
+      } else if (modalType === 'LEAVE_ALLOCATION') {
+          const newPolicy = { ...leavePolicy };
+          newPolicy.overrides[allocationForm.employeeId] = {
+             ANNUAL: Number(allocationForm.ANNUAL),
+             CASUAL: Number(allocationForm.CASUAL),
+             SICK: Number(allocationForm.SICK)
+          };
+          setLeavePolicy(newPolicy);
+          await hrService.setLeavePolicy(newPolicy);
       } else if (modalType === 'DEPT') {
         const next = [...departments];
         if (editIndex !== null) next[editIndex] = modalValue.trim();
@@ -280,7 +348,7 @@ const Organization: React.FC = () => {
       </header>
 
       <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-        {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
+        {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'LEAVES', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -373,7 +441,288 @@ const Organization: React.FC = () => {
              </div>
           </div>
         )}
-        
+
+        {activeTab === 'LEAVES' && (
+           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-in slide-in-from-bottom-8">
+              {/* Global Defaults */}
+              <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-8 bg-indigo-900 text-white flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/10 rounded-2xl"><Shield size={24}/></div>
+                        <div>
+                           <h3 className="text-xl font-black uppercase tracking-tight">Global Defaults</h3>
+                           <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Standard Quota for All Employees</p>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="p-8 space-y-6 flex-1">
+                     <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Annual</label>
+                           <input type="number" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xl text-center outline-none focus:ring-4 focus:ring-indigo-50" value={leavePolicy.defaults.ANNUAL} onChange={e => setLeavePolicy({...leavePolicy, defaults: {...leavePolicy.defaults, ANNUAL: Number(e.target.value)}})} />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Casual</label>
+                           <input type="number" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xl text-center outline-none focus:ring-4 focus:ring-indigo-50" value={leavePolicy.defaults.CASUAL} onChange={e => setLeavePolicy({...leavePolicy, defaults: {...leavePolicy.defaults, CASUAL: Number(e.target.value)}})} />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Sick</label>
+                           <input type="number" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xl text-center outline-none focus:ring-4 focus:ring-indigo-50" value={leavePolicy.defaults.SICK} onChange={e => setLeavePolicy({...leavePolicy, defaults: {...leavePolicy.defaults, SICK: Number(e.target.value)}})} />
+                        </div>
+                     </div>
+                     <button onClick={handleSaveLeaveDefaults} disabled={isSaving} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-2">
+                        {isSaving ? <RefreshCw className="animate-spin" size={16}/> : <Save size={16} />} Update Defaults
+                     </button>
+                  </div>
+              </div>
+
+              {/* Overrides */}
+              <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-8 bg-[#0f172a] text-white flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/10 rounded-2xl"><UserCheck size={24}/></div>
+                        <div>
+                           <h3 className="text-xl font-black uppercase tracking-tight">Individual Allocations</h3>
+                           <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Specific Employee Overrides</p>
+                        </div>
+                     </div>
+                     <button onClick={() => openModal('LEAVE_ALLOCATION')} className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"><Plus size={20}/></button>
+                  </div>
+                  <div className="p-6 space-y-2 flex-1 overflow-y-auto max-h-[500px] no-scrollbar">
+                     {Object.keys(leavePolicy.overrides).length === 0 ? (
+                        <div className="text-center py-12">
+                           <p className="text-slate-300 font-black uppercase text-xs tracking-widest">No individual allocations set.</p>
+                        </div>
+                     ) : Object.entries(leavePolicy.overrides).map(([empId, quota]: [string, any]) => {
+                        const emp = employees.find(e => e.id === empId);
+                        if (!emp) return null;
+                        return (
+                           <div key={empId} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-[2rem] group hover:bg-white transition-all">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center font-black text-indigo-600 text-xs">{emp.name[0]}</div>
+                                 <div>
+                                    <h4 className="font-black text-slate-900 text-sm">{emp.name}</h4>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">A: {quota.ANNUAL} • C: {quota.CASUAL} • S: {quota.SICK}</p>
+                                 </div>
+                              </div>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <button onClick={() => openModal('LEAVE_ALLOCATION', null, empId)} className="p-2 text-slate-400 hover:text-indigo-600"><Edit3 size={16}/></button>
+                                 <button onClick={() => deleteLeaveOverride(empId)} className="p-2 text-slate-400 hover:text-rose-600"><Trash2 size={16}/></button>
+                              </div>
+                           </div>
+                        );
+                     })}
+                  </div>
+              </div>
+           </div>
+        )}
+
+        {activeTab === 'TERMS' && (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-8">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="p-8 bg-[#0f172a] text-white">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/10 rounded-2xl"><Settings size={24}/></div>
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Organization Terms</h3>
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Operational Policies & Thresholds</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-10 space-y-10">
+                {/* Work Shift Control */}
+                <div className="space-y-6">
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                    <CalendarClock className="text-indigo-600" size={18} /> Work Shift Control
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Office Start Time</label>
+                      <div className="relative">
+                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                        <input 
+                          type="time" 
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50"
+                          value={config.officeStartTime}
+                          onChange={e => setConfig({...config, officeStartTime: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Office End Time</label>
+                      <div className="relative">
+                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                        <input 
+                          type="time" 
+                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50"
+                          value={config.officeEndTime}
+                          onChange={e => setConfig({...config, officeEndTime: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Working Days Selector */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Active Working Days</label>
+                    <div className="flex flex-wrap gap-2">
+                      {weekDays.map(day => {
+                        const isActive = config.workingDays?.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            onClick={() => toggleWorkingDay(day)}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                              isActive 
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' 
+                              : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                            }`}
+                          >
+                            {day.substring(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-slate-100"></div>
+
+                {/* Late & Early Policies */}
+                <div className="space-y-6">
+                  <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                    <Timer className="text-rose-500" size={18} /> Compliance Thresholds
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Late Grace Period (Minutes)</label>
+                      <input 
+                        type="number" 
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50"
+                        value={config.lateGracePeriod}
+                        onChange={e => setConfig({...config, lateGracePeriod: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Early Out Grace Period (Minutes)</label>
+                      <input 
+                        type="number" 
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50"
+                        value={config.earlyOutGracePeriod}
+                        onChange={e => setConfig({...config, earlyOutGracePeriod: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-slate-100"></div>
+
+                {/* Overtime / Early Arrival Policy */}
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                        <Sun className="text-amber-500" size={18} /> Overtime & Policy
+                      </h4>
+                      <button 
+                        onClick={() => setConfig({...config, overtimeEnabled: !config.overtimeEnabled})}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${config.overtimeEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+                      >
+                         {config.overtimeEnabled ? <ToggleRight size={20}/> : <ToggleLeft size={20}/>}
+                         {config.overtimeEnabled ? 'Calculation Active' : 'Ignored'}
+                      </button>
+                   </div>
+                   <div className="p-5 bg-slate-50 border border-slate-100 rounded-[2rem] text-xs text-slate-600 font-medium leading-relaxed">
+                      {config.overtimeEnabled 
+                        ? "The system will track early arrivals and late departures as 'Overtime'. This data will be available in attendance reports for payroll processing." 
+                        : "Early arrivals and late departures will be ignored. Attendance duration will be capped at standard office hours for reporting purposes."
+                      }
+                   </div>
+                </div>
+
+                <div className="pt-8 border-t border-slate-50 flex justify-end">
+                  <button 
+                    onClick={handleSaveConfig}
+                    disabled={isSaving}
+                    className="px-10 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl flex items-center gap-3"
+                  >
+                    {isSaving ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>} Save System Policies
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'WORKFLOW' && (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-right-8">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="p-8 bg-indigo-900 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/10 rounded-2xl"><Workflow size={24}/></div>
+                  <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Leave Workflows</h3>
+                    <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mt-1">Approval Hierarchy Per Department</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-10">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                    <div className="col-span-5">Department</div>
+                    <div className="col-span-7 text-right">Approval Entry Point</div>
+                  </div>
+                  {departments.map((dept, i) => {
+                    const wf = workflows.find(w => w.department === dept);
+                    const currentRole = wf?.approverRole || 'LINE_MANAGER';
+                    
+                    return (
+                      <div key={i} className="grid grid-cols-12 items-center px-6 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] group hover:bg-white transition-all">
+                        <div className="col-span-5 flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg text-indigo-600 shadow-sm"><Building2 size={16}/></div>
+                          <span className="font-black text-slate-900 text-sm">{dept}</span>
+                        </div>
+                        <div className="col-span-7 flex justify-end items-center gap-6">
+                          <div className="flex items-center gap-3 text-slate-400 group-hover:text-indigo-600 transition-colors">
+                            <span className="text-[10px] font-black uppercase tracking-widest">Employee</span>
+                            <ArrowRight size={14}/>
+                          </div>
+                          <select 
+                            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none shadow-sm focus:ring-4 focus:ring-indigo-50"
+                            value={currentRole}
+                            onChange={(e) => handleUpdateWorkflowRole(dept, e.target.value)}
+                          >
+                            <option value="LINE_MANAGER">Line Manager</option>
+                            <option value="HR">HR Dept (Direct)</option>
+                            <option value="ADMIN">Administrator</option>
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {departments.length === 0 && (
+                    <div className="py-20 text-center space-y-4">
+                       <AlertCircle size={48} className="mx-auto text-slate-100" />
+                       <p className="text-slate-400 font-black uppercase text-xs tracking-widest">Create departments first to configure workflows.</p>
+                    </div>
+                  )}
+                </div>
+
+                {departments.length > 0 && (
+                  <div className="pt-10 border-t border-slate-50 flex justify-end">
+                    <button 
+                      onClick={handleSaveWorkflows}
+                      disabled={isSaving}
+                      className="px-10 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl flex items-center gap-3"
+                    >
+                      {isSaving ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>} Deploy Workflows
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'HOLIDAYS' && (
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in zoom-in duration-500">
              <div className="p-5 md:p-6 bg-emerald-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -433,6 +782,73 @@ const Organization: React.FC = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'SYSTEM' && (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in zoom-in">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-10 space-y-10">
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-2xl">
+                  <Server size={40} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">System Configuration</h3>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.3em] mt-2">Core Settings & Identity</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Company Entity Name</label>
+                    <div className="relative">
+                      <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <input 
+                        type="text" 
+                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50"
+                        value={config.companyName}
+                        onChange={e => setConfig({...config, companyName: e.target.value})}
+                      />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Default Report Recipient Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <input 
+                        type="email" 
+                        placeholder="hr@company.com"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50"
+                        value={config.defaultReportRecipient}
+                        onChange={e => setConfig({...config, defaultReportRecipient: e.target.value})}
+                      />
+                    </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button 
+                    onClick={handleSaveConfig}
+                    disabled={isSaving}
+                    className="px-10 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl flex items-center gap-3"
+                  >
+                    {isSaving ? <RefreshCw className="animate-spin" size={18}/> : <Save size={18}/>} Update Details
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-slate-100"></div>
+
+              <div className="grid grid-cols-2 gap-4">
+                  <div className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-center space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Backend Source</p>
+                    <p className="text-sm font-black text-slate-700">{pbConfig.url}</p>
+                  </div>
+                  <div className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] text-center space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SDK Version</p>
+                    <p className="text-sm font-black text-slate-700">v0.25.0</p>
+                  </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -440,11 +856,46 @@ const Organization: React.FC = () => {
           <div className={`bg-white rounded-[2.5rem] w-full shadow-2xl overflow-hidden animate-in zoom-in ${modalType === 'TEAM' ? 'max-w-2xl' : 'max-w-md'}`}>
             <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
                <h3 className="text-sm font-black uppercase tracking-widest">
-                {modalType === 'HOLIDAY' ? 'Holiday Profile' : (modalType === 'TEAM' ? 'Team Configuration' : 'Manage ' + modalType)}
+                {modalType === 'HOLIDAY' ? 'Holiday Profile' : (modalType === 'TEAM' ? 'Team Configuration' : (modalType === 'LEAVE_ALLOCATION' ? 'Leave Quota Assignment' : 'Manage ' + modalType))}
                </h3>
                <button onClick={() => setShowModal(false)}><X size={24} /></button>
             </div>
             <form onSubmit={handleModalSubmit} className="p-6 md:p-8 space-y-6 max-h-[85vh] overflow-y-auto no-scrollbar">
+              {modalType === 'LEAVE_ALLOCATION' && (
+                 <div className="space-y-6">
+                    {/* If we are editing an existing override, the employeeId is fixed, otherwise we select */}
+                    {!allocationForm.employeeId || !Object.keys(leavePolicy.overrides).includes(allocationForm.employeeId) ? (
+                        <div className="space-y-1">
+                           <label className="text-[10px] font-black text-slate-400 uppercase px-1">Select Employee</label>
+                           <select required disabled={!!editIndex} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={allocationForm.employeeId} onChange={e => setAllocationForm({...allocationForm, employeeId: e.target.value})}>
+                              <option value="">-- Choose Staff Member --</option>
+                              {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
+                           </select>
+                        </div>
+                    ) : (
+                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                          <p className="text-[10px] font-black text-slate-400 uppercase">Allocating For</p>
+                          <p className="font-bold text-slate-900">{employees.find(e => e.id === allocationForm.employeeId)?.name}</p>
+                       </div>
+                    )}
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                           <label className="text-[10px] font-black text-slate-400 uppercase px-1">Annual</label>
+                           <input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center outline-none" value={allocationForm.ANNUAL} onChange={e => setAllocationForm({...allocationForm, ANNUAL: Number(e.target.value)})} />
+                        </div>
+                        <div className="space-y-1">
+                           <label className="text-[10px] font-black text-slate-400 uppercase px-1">Casual</label>
+                           <input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center outline-none" value={allocationForm.CASUAL} onChange={e => setAllocationForm({...allocationForm, CASUAL: Number(e.target.value)})} />
+                        </div>
+                        <div className="space-y-1">
+                           <label className="text-[10px] font-black text-slate-400 uppercase px-1">Sick</label>
+                           <input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center outline-none" value={allocationForm.SICK} onChange={e => setAllocationForm({...allocationForm, SICK: Number(e.target.value)})} />
+                        </div>
+                    </div>
+                 </div>
+              )}
+
               {modalType === 'HOLIDAY' && (
                 <div className="space-y-4">
                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Title</label><input required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
@@ -468,7 +919,6 @@ const Organization: React.FC = () => {
                       </div>
                    </div>
 
-                   {/* Bulk Assignment Section */}
                    <div className="space-y-4 pt-4 border-t border-slate-50">
                       <div className="flex items-center justify-between px-1">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assign Team Members</h4>

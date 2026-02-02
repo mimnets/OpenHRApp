@@ -22,7 +22,7 @@ Create the following collections exactly as named. **Note:** Use snake_case for 
 - `value` (json or text)
 - **Rules:** List/View: `@request.auth.id != ""`, Create/Update/Delete: `@request.auth.role = "ADMIN"`
 
-### teams (New)
+### teams
 - `name` (text, non-empty)
 - `leader_id` (relation: users, single)
 - `department` (text)
@@ -41,10 +41,14 @@ Add these fields:
 
 ### reports_queue (For Emails)
 - `recipient_email` (email, non-empty)
-- `subject` (text)
-- `html_content` (text/editor)
+- `subject` (text, non-empty)
+- `html_content` (text/editor, non-empty)
+- `type` (text) - e.g., SYSTEM_REPORT, LEAVE_ALERT
 - `status` (text) - Values: PENDING, SENT, FAILED
-- **Rules:** Locked to Admin only.
+- **Rules:** 
+  - **List/View:** Admin Only
+  - **Create:** `@request.auth.id != "" && (@request.auth.role = "ADMIN" || @request.auth.role = "HR")`
+  - **Update/Delete:** Admin Only
 
 ### attendance
 - `employee_id` (relation: users, single)

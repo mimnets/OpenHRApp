@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, MapPin, AlertTriangle, Layout, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square
+  FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, MapPin, AlertTriangle, Layout, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square, Activity, AlertCircle, HelpCircle
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
@@ -19,6 +19,10 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [dbDepartments, setDbDepartments] = useState<string[]>([]);
+  
+  // Log State
+  const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [isHookMissing, setIsHookMissing] = useState(false);
   
   // Filter States
   const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
@@ -49,6 +53,24 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     { key: 'Remarks', label: 'Notes', icon: FileText },
   ];
 
+  const fetchLogs = async () => {
+    try {
+      const logs = await hrService.getReportQueueLog();
+      setEmailLogs(logs);
+      
+      // Smart Detection: If we have recent logs (created in last 5 mins) that are still PENDING, the hook isn't running.
+      const now = new Date();
+      const recentPending = logs.some(l => {
+        const created = new Date(l.created);
+        const diffSeconds = (now.getTime() - created.getTime()) / 1000;
+        return l.status === 'PENDING' && diffSeconds > 10;
+      });
+      
+      setIsHookMissing(recentPending);
+
+    } catch(e) { console.warn("Failed to fetch logs"); }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -65,6 +87,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         setDbDepartments(depts);
         // Initially select all
         setSelectedDepts(depts);
+        
+        // Fetch logs
+        await fetchLogs();
       } catch (err) {
         console.error("Report data load failed", err);
       } finally {
@@ -72,6 +97,10 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       }
     };
     loadData();
+    
+    // Poll logs every 5 seconds to check status updates
+    const interval = setInterval(fetchLogs, 5000);
+    return () => clearInterval(interval);
   }, [user.id]);
 
   const toggleDept = (dept: string) => {
@@ -176,17 +205,54 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   };
 
   const handleEmailSummary = async () => {
-    if (reportData.length === 0) return;
+    if (reportData.length === 0) {
+      alert("There is no data in the current report to email. Please check your filters.");
+      return;
+    }
+    
     setIsEmailing(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const todayAtt = attendance.filter(a => a.date === today);
       const config = await hrService.getConfig();
-      const target = config.defaultReportRecipient || user.email;
-      await emailService.sendDailyAttendanceSummary(target, todayAtt);
-      alert(`Summary report emailed to ${target}.`);
-    } catch (err) {
-      alert("Email relay failed.");
+      // Handle potential multiple emails (comma separated)
+      const rawTarget = config.defaultReportRecipient || user.email;
+      
+      if (!rawTarget) {
+        throw new Error("No valid recipient email configured. Set 'Default Report Recipient' in Organization Settings.");
+      }
+
+      const targets = rawTarget.split(',').map(t => t.trim()).filter(t => t.includes('@'));
+
+      if (targets.length === 0) {
+        throw new Error("No valid email addresses found in configuration.");
+      }
+
+      // Batching Logic: Large batch size to support monthly reports (requires DB limit increase)
+      const BATCH_SIZE = 350;
+      const chunks = [];
+      for (let i = 0; i < reportData.length; i += BATCH_SIZE) {
+        chunks.push(reportData.slice(i, i + BATCH_SIZE));
+      }
+
+      // Send to all targets, all chunks
+      let totalEmails = 0;
+      for (const target of targets) {
+        for (let i = 0; i < chunks.length; i++) {
+           const chunk = chunks[i];
+           const suffix = chunks.length > 1 ? ` [Part ${i+1}/${chunks.length}]` : '';
+           await emailService.sendDailyAttendanceSummary(target, chunk as Attendance[], suffix);
+           totalEmails++;
+        }
+      }
+      
+      const chunkMsg = chunks.length > 1 ? ` (Split into ${chunks.length} parts per recipient due to size limits)` : '';
+      alert(`Report summary queued for ${targets.length} recipient(s)${chunkMsg}.`);
+      
+      // Refresh logs to show new items immediately
+      setTimeout(fetchLogs, 1000);
+    } catch (err: any) {
+      console.error("Email summary failed:", err);
+      // Ensure the user sees the specific DB limit instruction if that was the error
+      alert(err.message || "Email relay failed. Verify your SMTP settings in PocketBase.");
     } finally {
       setIsEmailing(false);
     }
@@ -292,8 +358,12 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                   </div>
 
                   <div className="pt-4">
-                    <button onClick={handleEmailSummary} disabled={isEmailing} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm">
-                       {isEmailing ? <RefreshCw className="animate-spin" size={16}/> : <Mail size={16}/>} Email Summary
+                    <button 
+                      onClick={handleEmailSummary} 
+                      disabled={isEmailing || reportData.length === 0} 
+                      className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50"
+                    >
+                       {isEmailing ? <RefreshCw className="animate-spin" size={16}/> : <Mail size={16}/>} Email Scoped Summary
                     </button>
                   </div>
                 </div>
@@ -322,7 +392,10 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
 
         <div className="bg-[#0f172a] rounded-[3rem] p-8 text-white shadow-2xl space-y-8 flex flex-col sticky top-24 h-fit animate-in zoom-in duration-700">
            <div className="flex-1 space-y-8">
-             <h3 className="text-xl font-black flex items-center gap-3"><Search className="text-indigo-400" /> Live Preview</h3>
+             <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black flex items-center gap-3"><Search className="text-indigo-400" /> Live Preview</h3>
+                <div className="p-2 bg-white/10 rounded-xl cursor-pointer hover:bg-white/20 transition-all" onClick={fetchLogs} title="Refresh Email Status"><RefreshCw size={16} /></div>
+             </div>
              
              <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 text-center space-y-6">
                 <div>
@@ -351,11 +424,45 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
 
              <div className="space-y-4">
                 <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <AlertTriangle size={14} className="text-amber-500" /> Export Policy
+                  <Activity size={14} className="text-indigo-400" /> Recent Email Activity
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
-                  Reports show consolidated activity (earliest In, latest Out) per person per day. Access is logged.
-                </p>
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-2 max-h-48 overflow-y-auto no-scrollbar space-y-1">
+                  {emailLogs.length === 0 ? (
+                    <p className="text-center text-[9px] font-black text-slate-600 uppercase py-4">No recent activity</p>
+                  ) : (
+                    emailLogs.map(log => (
+                      <div key={log.id} className="p-3 bg-white/5 rounded-2xl flex items-start justify-between gap-2">
+                         <div className="min-w-0">
+                            <p className="text-[9px] font-bold text-white truncate">{log.recipient_email}</p>
+                            <p className="text-[8px] font-medium text-slate-500 truncate">{log.subject}</p>
+                         </div>
+                         <div className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${
+                           log.status === 'SENT' ? 'bg-emerald-500/20 text-emerald-400' : 
+                           log.status === 'FAILED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'
+                         }`}>
+                           {log.status}
+                         </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {emailLogs.some(l => l.status === 'FAILED') && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex gap-2">
+                     <AlertCircle size={14} className="text-rose-400 flex-shrink-0" />
+                     <p className="text-[9px] font-medium text-rose-300 leading-tight">Some emails failed. Verify SMTP settings in Admin Panel &gt; Settings &gt; Mail.</p>
+                  </div>
+                )}
+                {isHookMissing && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2">
+                     <HelpCircle size={14} className="text-amber-400 flex-shrink-0" />
+                     <div className="space-y-1">
+                       <p className="text-[9px] font-bold text-amber-300 leading-tight uppercase">Backend Hook Not Detected</p>
+                       <p className="text-[8px] font-medium text-amber-400/80 leading-tight">
+                         Emails are stuck in PENDING. Ensure <code>main.pb.js</code> is in your PocketBase <code>pb_hooks</code> folder.
+                       </p>
+                     </div>
+                  </div>
+                )}
              </div>
            </div>
 

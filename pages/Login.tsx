@@ -11,24 +11,24 @@ interface LoginProps {
 }
 
 const BrandLogo = () => (
-  <div className="flex flex-col items-center justify-center gap-4">
-    <div className="relative w-16 h-16 md:w-20 md:h-20">
-      <div className="absolute inset-0 bg-teal-900/10 rounded-[1.5rem] blur-xl transform translate-y-2"></div>
-      <div className="relative w-full h-full bg-[#064e3b] rounded-[1.25rem] shadow-lg flex items-center justify-center p-4 border-2 border-white">
+  <div className="flex flex-col items-center justify-center gap-6">
+    <div className="relative w-24 h-24 md:w-32 md:h-32">
+      <div className="absolute inset-0 bg-teal-900/10 rounded-[2rem] blur-2xl transform translate-y-2"></div>
+      <div className="relative w-full h-full bg-[#064e3b] rounded-[1.75rem] shadow-2xl flex items-center justify-center p-5 border-4 border-white">
         <img 
-          src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" 
-          className="w-full h-full object-contain" 
+          src="./img/logo.png" 
+          className="w-full h-full object-contain drop-shadow-md" 
           alt="OpenHRApp Logo" 
         />
       </div>
     </div>
     <div className="text-center">
-      <h1 className="text-2xl md:text-3xl font-black tracking-tighter flex items-center justify-center">
+      <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center justify-center">
         <span className="text-[#2563eb]">Open</span>
         <span className="text-[#f59e0b]">HR</span>
         <span className="text-[#10b981]">App</span>
       </h1>
-      <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mt-0.5">Personnel Gateway</p>
+      <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Personnel Gateway</p>
     </div>
   </div>
 );
@@ -121,15 +121,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-teal-500/5 blur-[100px] rounded-full -z-10"></div>
       
       <div className="w-full max-w-[400px] animate-in fade-in zoom-in duration-500">
-        <div className="bg-white md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:border border-slate-100 rounded-[2rem] overflow-hidden">
+        <div className="bg-white md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] md:border border-slate-100 rounded-[2.5rem] overflow-hidden">
           
-          <div className="p-8 md:p-10 space-y-8">
+          <div className="p-8 md:p-12 space-y-10">
             {/* Brand Header */}
             <BrandLogo />
 
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-5">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
                   <div className="relative group">
