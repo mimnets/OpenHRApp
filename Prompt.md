@@ -474,3 +474,357 @@ pb_hooks/main.pb.js (I will append the cron logic to your existing email logic).
 
 ### Not right now - need to have a time to select when the system will automatically run the Cron jobs, is it possible?
 If possible, please guide me and don't make any changes without my consent.
+
+
+### AI Response:
+
+Yes, it is absolutely possible to allow you to select the exact time the Auto-Absent process runs (e.g., 6:00 PM, 8:00 PM, or 11:59 PM).
+However, because PocketBase Cron jobs are usually defined when the server starts, we cannot dynamically "move" the schedule just by changing a setting. To solve this, we use a technique called the "Minute Watcher".
+The Concept: The "Minute Watcher"
+Instead of scheduling the job for a specific time (like 11:55 PM), we schedule a lightweight check every minute.
+Every minute, the server wakes up.
+It looks at your Organization Settings to see:
+"Is Auto-Absent Enabled?"
+"What time is it scheduled for?" (e.g., 18:30)
+It compares the current server time to your setting.
+If they match (e.g., it is exactly 18:30), it executes the Auto-Absent logic.
+If they don't match, it goes back to sleep instantly.
+Implementation Guide
+Here is exactly what needs to be done. I have not applied these changes yet, per your request.
+1. Update Type Definitions (types.ts)
+We need to store the time preference in your configuration.
+code
+TypeScript
+export interface AppConfig {
+  // ... existing fields ...
+  autoAbsentEnabled?: boolean;
+  autoAbsentTime?: string; // New Field: Format "HH:mm" (24-hour)
+}
+2. Update UI (pages/Organization.tsx)
+In the Terms tab, we will add two controls:
+A Toggle Switch (Enable/Disable).
+A Time Input (only visible if enabled).
+Mockup of the logic to add:
+code
+Tsx
+<div className="space-y-4">
+  <h4 className="...">Auto-Absent Automation</h4>
+  
+  <div className="flex items-center gap-4">
+    {/* Toggle */}
+    <button onClick={() => setConfig({...config, autoAbsentEnabled: !config.autoAbsentEnabled})}>
+       {config.autoAbsentEnabled ? "ENABLED" : "DISABLED"}
+    </button>
+
+    {/* Time Selector - Only shows if enabled */}
+    {config.autoAbsentEnabled && (
+      <div className="flex items-center gap-2">
+        <label>Run At:</label>
+        <input 
+          type="time" 
+          value={config.autoAbsentTime || "23:55"} 
+          onChange={e => setConfig({...config, autoAbsentTime: e.target.value})} 
+        />
+      </div>
+    )}
+  </div>
+  <p className="text-xs">
+    When enabled, employees without attendance will be marked ABSENT at this specific time.
+  </p>
+</div>
+3. Update Backend Hook (pb_hooks/main.pb.js)
+We change the cron schedule to * * * * * (Every Minute) and add a time check at the very top.
+Draft of the Logic:
+code
+JavaScript
+// Run EVERY MINUTE to check if it's time to act
+cronAdd("* * * * *", () => {
+    // 1. Get Config
+    const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config'");
+    const config = configRecord.get("value");
+
+    // 2. Check if Enabled
+    if (!config.autoAbsentEnabled) return;
+
+    // 3. Check Time Match
+    const now = new Date();
+    // Format current server time to HH:mm
+    const currentHours = now.getHours().toString().padStart(2, '0');
+    const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+    const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+    // Compare with Setting (Default to 23:55 if not set)
+    const targetTime = config.autoAbsentTime || "23:55";
+
+    if (currentTimeStr !== targetTime) {
+        // Not the right time yet, stop.
+        return; 
+    }
+
+    // --- PROCEED WITH ABSENT MARKING LOGIC ---
+    console.log("[CRON] Time matched (" + targetTime + "). Running Auto-Absent...");
+    // ... (The logic to check holidays, working days, and insert records goes here) ...
+});
+Safety & Robustness
+To make this "bulletproof" (so it doesn't run twice in the same minute, or if the server restarts at that exact minute and misses it), we can add a last_auto_absent_run date to the database settings.
+The script checks: Is Today > Last Run Date?
+If Yes AND Current Time >= Target Time -> Run it.
+Save Today as Last Run Date.
+This ensures that even if the server is down at 6:00 PM, as soon as it turns on at 6:05 PM, it realizes "Oh, I haven't run today's check yet!" and runs it immediately.
+Should I proceed?
+If you consent, I will implement the Robust Version (UI + Backend Hook with "Last Run" safety check) so you can control exactly when people get marked absent.
+Reply "Yes" to apply these changes.
+
+### Yes, Please also add a input filed to send reports to multiple email on the Reports to send Email Scoped Summary
+
+### Pocketbase hooks error
+failed to execute main.pb.js:
+ - SyntaxError: /pb.js: Line 1:4 Unexpected token )
+Successfully saved superuser "monirzerotwo@gmail.com"!
+failed to execute main.pb.js:
+ - SyntaxError: /pb.js: Line 1:4 Unexpected token )
+
+
+### Sorry - Still same error, can we add the CRON jobs into another hook file?
+
+### AI Response:
+
+Splitting the hooks into separate files is a great idea. It makes the code easier to manage and often resolves parsing errors caused by large file sizes or hidden encoding characters at the beginning of a file.
+Here is the solution:
+pb_hooks/main.pb.js: Will now only handle Email Notifications and Leave Workflows.
+pb_hooks/cron.pb.js: A new file dedicated solely to the Auto-Absent Cron Job.
+Please create/update these two files in your pb_hooks directory.
+⚠️ Action Required
+After saving these files, restart your PocketBase server (Ctrl+C -> ./pocketbase serve) to load the new multi-file configuration.
+
+### Thanks - It seems problem fixed, but can we check if the cron will work - please guide me in details?
+
+### AI Response
+To verify the Cron Job works, I have added a Debug Log to the cron.pb.js file. This will print the Server Time to your console every minute (as long as the feature is enabled), so you can be 100% sure what time the server thinks it is vs. what you configured.
+1. Apply the Update
+This change adds the logging logic to pb_hooks/cron.pb.js.
+pb_hooks/cron.pb.js
+check_circle
+2. Detailed Testing Guide
+Once you have saved the file above, follow these steps to verify it works:
+Restart PocketBase: Stop (Ctrl+C) and start (./pocketbase serve) your server.
+Enable the Feature:
+Log in to the App as Admin.
+Go to Organization > TERMS > Auto-Absent.
+Click Enable (set it to Active).
+Click Save System Policies.
+Check the Console:
+Look at your terminal window running PocketBase.
+Within 60 seconds, you should see a log like:
+[CRON] Checking Auto-Absent. Server Time: [14:05] | Target: [23:55]
+Crucial Step: Note the Server Time shown in that log.
+Set the Trigger Time:
+Go back to the App > Organization > TERMS.
+Set the Run At time to be 2 minutes ahead of the time you saw in the console (e.g., if log said 14:05, set it to 14:07).
+Ensure "Today" is listed in your Active Working Days.
+Click Save System Policies.
+Wait:
+Watch the console. When the time hits 14:07, you will see:
+[CRON] Time matched! Starting Auto-Absent Workflow...
+[CRON] Auto-Absent Complete...
+Verify Results:
+Go to History (Attendance Logs) in the app.
+You should see absent records generated for any employee who hadn't clocked in today.
+
+### I understand - but my server time for storing records are actually in UTC time format. so, will it be cause an issue to store the absent records with GMT + 5:30 or any other time zone or formats?
+Please explain
+
+### AI Response
+This is an excellent question.
+The short answer is: No, it will not cause an issue. In fact, storing the date in your local timezone format (e.g., 2023-10-25) is mandatory for your reports to be accurate.
+The Explanation
+"Date" vs. "Timestamp":
+In your database, the date field in the attendance collection is a simple Text String (e.g., "2023-10-25"). It is not a DateTime object.
+PocketBase automatically handles created/updated times in UTC (System fields), which is fine for technical audits.
+However, your attendance.date field represents the "Business Day". If an employee in Bangladesh works a night shift and leaves at 1 AM on Tuesday, their attendance still belongs to the "Monday" shift.
+Why Local Time Matters:
+If you used UTC date, a cron job running at 11:55 PM in India (GMT+5:30) would generate a date for yesterday (because 11:55 PM India is roughly 6:25 PM UTC of the same day).
+But if the job runs at 1:00 AM India, it is 7:30 PM UTC of the previous day.
+To keep "Today" consistent with what your employees see on their calendars, the Cron Job must generate the string "2023-10-25" based on Your Office's Wall Clock, not the UTC server time.
+The Improved Code
+To ensure 100% consistency, I have updated the cron.pb.js file below.
+What is new?
+Robust Date Formatting: It manually constructs the YYYY-MM-DD string to ensure it never accidentally flips to UTC format.
+Timezone Awareness: It now attempts to read the timezone from your App Settings. If available, it calculates the "Today" date based on that timezone, even if your server is in a different country (e.g., a VPS in the US).
+
+### please fix the app installation button is not working
+
+### I wants to remove the reset and config button from the login screen, but make sure to the app the database server is correct one! how can I make this simple but the right way? 
+Please explain
+
+### Thanks - but also need a small app install button with instructions popups for iPhone, because sometimes in few android phone it doesn't show the app installation icon or button.
+
+### Please fix - When I click Install App - It shows only instructions, not showing the app installation as with PWA.
+Need to fix and I think need to add a reset button to clear and check the PWA status and logo sync with local cache.
+
+### Fix - After submit leave application it should redirect to leave page, but it re-opens the leave application form.
+
+### Install App is not showing after npm run build - please guide me step by step what files needed to upload to the web hosting site
+
+### AI Response
+This is a common issue with React/Vite/Create-React-App deployments. The "Install App" button relies on the browser finding your manifest.json and sw.js files.
+If these files are not in the correct folder before you run npm run build, they won't be copied to the final build folder, and the PWA won't work.
+Here is the step-by-step guide to fixing this and uploading the correct files.
+Step 1: Organize your Source Files
+In your project folder, you should have a folder named public. You must move your PWA files into that folder so they get copied to the build.
+Locate your public/ folder.
+Ensure the following files are inside public/:
+manifest.json
+sw.js
+img/ folder (containing logo.png and mobile-logo.png)
+Why?
+When you run npm run build, React/Vite takes everything inside public/ and copies it to the root of the output folder. If sw.js is in src/, it will disappear or be renamed, and the browser won't find it.
+Step 2: Build the Application
+Open your terminal in the project root and run:
+code
+Bash
+npm run build
+This will create a new folder called dist (or sometimes build).
+Step 3: Verify the Build
+Open the dist folder on your computer. It should look exactly like this:
+assets/ (Folder containing .js and .css files)
+img/ (Folder containing your logos)
+index.html
+manifest.json
+sw.js
+Critical Check: If sw.js or manifest.json are missing from this dist folder, go back to Step 1.
+Step 4: Upload to Web Hosting
+You need to upload the contents of the dist folder to your web host (e.g., cPanel, Vercel, Netlify, Hostinger).
+Files to Upload:
+index.html (This is your entry point)
+sw.js (Your service worker)
+manifest.json (App description)
+assets folder (Your compiled React code)
+img folder (Your icons)
+Do NOT upload:
+node_modules
+src
+package.json
+public (The source folder itself)
+Step 5: Server Requirements (Crucial)
+HTTPS is Mandatory: The "Install App" button will not show if your site is http:// (unless it is localhost). You must have an SSL certificate active (https://).
+Service Worker Scope: Ensure sw.js is at the root of your domain (e.g., yourwebsite.com/sw.js), not in a subfolder like yourwebsite.com/app/sw.js, unless you configure it specifically.
+Troubleshooting
+If the button still doesn't appear after uploading:
+Open your website in Chrome.
+Right-click -> Inspect -> Go to the Application tab.
+Click Manifest:
+If it says "No manifest detected", your index.html link is wrong or the file wasn't uploaded.
+Click Service Workers:
+It should say "Status: Activated and is running".
+If it says "Deleted" or "Redundant", there is an error in your sw.js or it's a 404 Not Found.
+
+### Wait - once I run - npm run build, it has assets folder and index.html inside the dist folder and inside the assets folder I have : index.CVIV8QK4.js
+logo-DPzmppsu.png
+manifest-B1hd1ofv.json
+mobile-logo-mAsSVtBr.png
+
+Please check and explain if something wrong
+
+
+
+### AI Response
+Yes, something is wrong.
+Your build output shows that your PWA files (manifest.json, logos, etc.) are being processed, hashed, and moved into the assets/ folder by the bundler.
+The Problem
+File Renaming: The browser is looking for manifest.json (exact name). However, your build created assets/manifest-B1hd1ofv.json. The browser will get a 404 Not Found error.
+Missing Service Worker: You didn't list sw.js in your build output. This is the most critical file for installation. It is likely missing because it wasn't in the public folder.
+Broken Links: Your manifest.json points to ./img/logo.png. But in your build, the logo is now assets/logo-DPzmppsu.png. The link is broken.
+The Solution: Use the public Folder
+Vite/React has a specific rule: Files inside the public/ folder are copied EXACTLY as-is to the build root. They are not renamed, hashed, or moved.
+Step-by-Step Fix
+Create a folder named public in your project root (if it doesn't exist).
+Move the following files from src/ (or root) into public/:
+manifest.json
+sw.js
+The entire img folder (containing logo.png and mobile-logo.png)
+Delete any copies of these files from src/ or the root to avoid confusion.
+Correct Folder Structure (Before Build)
+Your project should look like this before you run the build command:
+code
+Text
+/my-app
+  ├── public/                <--- EVERYTHING HERE IS COPIED AS-IS
+  │    ├── img/
+  │    │    ├── logo.png
+  │    │    └── mobile-logo.png
+  │    ├── manifest.json
+  │    ├── sw.js
+  │    └── vite.svg (optional)
+  ├── src/                   <--- YOUR REACT CODE
+  │    ├── App.tsx
+  │    ├── main.tsx
+  │    └── ...
+  ├── index.html             <--- KEEP AT ROOT
+  ├── package.json
+  └── vite.config.ts
+Expected Build Output (After Fix)
+Run npm run build again. Your dist folder should now look like this:
+code
+Text
+/dist
+  ├── assets/                <--- Compiled Code (Hashed files are okay here)
+  │    ├── index.js
+  │    └── index.css
+  ├── img/                   <--- CLEAN FOLDER (Copied from public)
+  │    ├── logo.png
+  │    └── mobile-logo.png
+  ├── index.html
+  ├── manifest.json          <--- NO HASH (Exact name)
+  └── sw.js                  <--- NO HASH (Exact name)
+One Code Check (index.html)
+Ensure your index.html references the files using ./ to be safe. I will update it slightly to ensure it looks for the files in the current directory relative to the HTML.
+
+
+### Sorry - I don't have any public folder - here is the location of myu app folder: /Downloads/openhr
+
+### AI Response
+Since you do not have a public folder, that is the exact reason the installation is failing.
+In React/Vite projects, the public folder is a special directory. Files inside it are not "compiled"—they are simply copied 1-to-1 into your final build folder. The browser needs to find manifest.json and sw.js at specific, predictable paths, which only happens if they are in public.
+Here is your step-by-step fix.
+Step 1: Create the Folder Structure
+Go to your project folder: /Downloads/openhr
+Create a new folder named public.
+Inside public, create a folder named img.
+Step 2: Move the Files
+You must move specific files from your main folder (root or src) into this new public folder.
+Move manifest.json → into public/
+Move sw.js → into public/
+Find your original logos (likely logo.png and mobile-logo.png).
+Move/Copy them → into public/img/
+Step 3: Verify Structure
+Your project structure must look like this before building:
+code
+Text
+/Downloads/openhr
+  ├── public/                <--- NEW FOLDER
+  │    ├── img/
+  │    │    ├── logo.png
+  │    │    └── mobile-logo.png
+  │    ├── manifest.json     <--- MOVED HERE
+  │    └── sw.js             <--- MOVED HERE
+  ├── src/
+  ├── index.html             <--- STAYS IN ROOT
+  ├── package.json
+  └── ...
+Step 4: Update Code for New Paths
+I have updated manifest.json and sw.js below.
+Cache Version Bump: I updated the version in sw.js to force the browser to see your new changes immediately.
+Start URL: Cleaned up manifest.json to launch the app cleanly.
+Apply these changes to the files now located inside your new public folder.
+public/manifest.json
+check_circle
+public/sw.js
+check_circle
+Step 5: Build and Upload
+Run npm run build again.
+Open the dist folder.
+You should now see manifest.json, sw.js and an img folder sitting right next to index.html.
+Upload all contents of dist to your web host.
+
+### Application Manifest showing error, please see the attached screenshot and guide.

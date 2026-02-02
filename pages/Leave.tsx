@@ -17,13 +17,14 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER';
   
-  const [isLoading, setIsLoading] = useState(true);
+  // Split loading state: Initial (blocking) vs Refresh (background)
+  const [isInitializing, setIsInitializing] = useState(true);
+  
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [balance, setBalance] = useState<LeaveBalance | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
 
   const refreshData = async () => {
-    setIsLoading(true);
     try {
       const [fetchedLeaves, userBalance, fetchedEmps] = await Promise.all([
         hrService.getLeaves(),
@@ -33,13 +34,26 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
       setLeaves(fetchedLeaves);
       setBalance(userBalance);
       setEmployees(fetchedEmps);
-    } catch (e) { console.error("Refresh failed", e); }
-    finally { setIsLoading(false); }
+    } catch (e) { 
+      console.error("Refresh failed", e); 
+    } finally { 
+      // Only turn off initialization on the first run
+      setIsInitializing(false); 
+    }
   };
 
-  useEffect(() => { refreshData(); }, [user.id]);
+  useEffect(() => { 
+    setIsInitializing(true);
+    refreshData(); 
+  }, [user.id]);
 
-  if (isLoading) return <div className="h-64 flex items-center justify-center text-slate-400"><Loader2 className="animate-spin text-indigo-600" size={32} /></div>;
+  if (isInitializing) {
+    return (
+      <div className="h-64 flex items-center justify-center text-slate-400">
+        <Loader2 className="animate-spin text-indigo-600" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 pb-20">

@@ -1,8 +1,9 @@
 
-const CACHE_NAME = 'openhr-v2.8.1';
-const STATIC_CACHE = 'openhr-static-assets-v2';
+const CACHE_NAME = 'openhr-v2.9.0';
+const STATIC_CACHE = 'openhr-static-assets-v2.9';
 
 const ASSETS_TO_PRECACHE = [
+  './',
   './index.html',
   './manifest.json',
   './img/logo.png',
