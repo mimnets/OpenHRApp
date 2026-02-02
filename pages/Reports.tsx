@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, MapPin, AlertTriangle, Layout, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square, Activity, AlertCircle, HelpCircle
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
-import { User, Employee, Attendance, LeaveRequest } from '../types';
+import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday } from '../types';
 
 interface ReportsProps {
   user: User;
@@ -19,6 +20,8 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [dbDepartments, setDbDepartments] = useState<string[]>([]);
+  const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   
   // Log State
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
@@ -30,6 +33,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   
+  // Recipient State
+  const [customRecipients, setCustomRecipients] = useState('');
+
   // UI States
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
@@ -75,18 +81,25 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [emps, atts, lvs, depts] = await Promise.all([
+        const [emps, atts, lvs, depts, config, hols] = await Promise.all([
           hrService.getEmployees(), 
           hrService.getAttendance(), 
           hrService.getLeaves(),
-          hrService.getDepartments()
+          hrService.getDepartments(),
+          hrService.getConfig(),
+          hrService.getHolidays()
         ]);
         setEmployees(emps); 
         setAttendance(atts); 
         setLeaves(lvs);
         setDbDepartments(depts);
+        setAppConfig(config);
+        setHolidays(hols);
         // Initially select all
         setSelectedDepts(depts);
+        
+        // Init recipients
+        setCustomRecipients(config.defaultReportRecipient || user.email || '');
         
         // Fetch logs
         await fetchLogs();
@@ -110,65 +123,117 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   };
 
   const reportData = useMemo(() => {
-    let filtered: any[] = [];
-    const isAttendanceReport = reportType !== 'LEAVE';
-    const sourceData = isAttendanceReport ? attendance : leaves;
+    let combinedData: any[] = [];
+    const isAttendanceReport = reportType === 'ATTENDANCE' || reportType === 'ABSENT' || reportType === 'LATE';
 
-    filtered = sourceData.filter(item => {
-      const itemDate = (item as any).date || (item as any).startDate;
-      if (itemDate < startDate || itemDate > endDate) return false;
-
-      const emp = employees.find(e => e.id === (item as any).employeeId);
+    // 1. Filter Existing Attendance Records
+    const filteredAttendance = attendance.filter(item => {
+      if (item.date < startDate || item.date > endDate) return false;
+      const emp = employees.find(e => e.id === item.employeeId);
       if (!emp) return false;
-
-      // Multi-select Department Filter
-      if (selectedDepts.length > 0 && !selectedDepts.includes(emp.department)) {
-        return false;
-      }
-
-      // Individual Employee Filter
-      if (employeeFilter !== 'All Employees' && (item as any).employeeId !== employeeFilter) {
-        return false;
-      }
-
+      if (selectedDepts.length > 0 && !selectedDepts.includes(emp.department)) return false;
+      if (employeeFilter !== 'All Employees' && item.employeeId !== employeeFilter) return false;
       return true;
     });
 
-    // Handle Status filters for attendance logs
-    if (reportType === 'LATE') filtered = filtered.filter(a => a.status === 'LATE');
-    if (reportType === 'ABSENT') filtered = filtered.filter(a => a.status === 'ABSENT');
+    // 2. Filter Existing Leave Records
+    const filteredLeaves = leaves.filter(item => {
+      if (item.startDate < startDate || item.startDate > endDate) return false;
+      const emp = employees.find(e => e.id === item.employeeId);
+      if (!emp) return false;
+      if (selectedDepts.length > 0 && !selectedDepts.includes(emp.department)) return false;
+      if (employeeFilter !== 'All Employees' && item.employeeId !== employeeFilter) return false;
+      return true;
+    });
 
-    // CONSOLIDATION LOGIC: Group by Employee + Date to show only first and last entries
     if (isAttendanceReport) {
-      const groupedMap = new Map<string, any>();
-      
-      filtered.forEach(log => {
+      // Consolidate Attendance (First In / Last Out)
+      const attendanceMap = new Map<string, any>();
+      filteredAttendance.forEach(log => {
         const key = `${log.employeeId}_${log.date}`;
-        if (!groupedMap.has(key)) {
-          groupedMap.set(key, { ...log });
+        if (!attendanceMap.has(key)) {
+          attendanceMap.set(key, { ...log });
         } else {
-          const existing = groupedMap.get(key)!;
-          
-          // Earliest check-in
-          if (log.checkIn && (!existing.checkIn || log.checkIn < existing.checkIn)) {
-            existing.checkIn = log.checkIn;
-          }
-          // Latest check-out
-          if (log.checkOut && (!existing.checkOut || log.checkOut > existing.checkOut)) {
-            existing.checkOut = log.checkOut;
-          }
-          // Consolidated remarks
-          if (log.remarks && !existing.remarks?.includes(log.remarks)) {
-            existing.remarks = existing.remarks ? `${existing.remarks} | ${log.remarks}` : log.remarks;
-          }
+          const existing = attendanceMap.get(key)!;
+          if (log.checkIn && (!existing.checkIn || log.checkIn < existing.checkIn)) existing.checkIn = log.checkIn;
+          if (log.checkOut && (!existing.checkOut || log.checkOut > existing.checkOut)) existing.checkOut = log.checkOut;
+          if (log.remarks && !existing.remarks?.includes(log.remarks)) existing.remarks = existing.remarks ? `${existing.remarks} | ${log.remarks}` : log.remarks;
         }
       });
-      
-      filtered = Array.from(groupedMap.values());
+
+      combinedData = Array.from(attendanceMap.values());
+
+      // 3. GAP ANALYSIS: Generate 'ABSENT' records for missing days
+      if (appConfig) {
+        const workingDays = appConfig.workingDays || [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        // Identify target employees for this report
+        const targetEmployees = employees.filter(e => {
+          if (e.status !== 'ACTIVE') return false; // Don't track inactive users
+          if (selectedDepts.length > 0 && !selectedDepts.includes(e.department)) return false;
+          if (employeeFilter !== 'All Employees' && e.id !== employeeFilter) return false;
+          return true;
+        });
+
+        // Iterate through every day in range
+        for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
+          const dateStr = dt.toISOString().split('T')[0];
+          const dayName = dt.toLocaleDateString('en-US', { weekday: 'long' });
+
+          // Skip if NOT a working day OR IS a holiday
+          const isHoliday = holidays.some(h => h.date === dateStr);
+          if (!workingDays.includes(dayName) || isHoliday) continue;
+
+          targetEmployees.forEach(emp => {
+            // Skip if employee joined AFTER this date
+            if (emp.joiningDate && emp.joiningDate > dateStr) return;
+
+            // Check if present
+            const isPresent = attendanceMap.has(`${emp.id}_${dateStr}`);
+            
+            // Check if on leave (Active and Approved)
+            const isOnLeave = filteredLeaves.some(l => 
+              l.employeeId === emp.id && 
+              l.status === 'APPROVED' && 
+              dateStr >= l.startDate.split(' ')[0] && 
+              dateStr <= l.endDate.split(' ')[0]
+            );
+
+            // IF MISSING: Add Synthetic Absent Record
+            if (!isPresent && !isOnLeave) {
+              combinedData.push({
+                id: `absent-${emp.id}-${dateStr}`,
+                employeeId: emp.id,
+                employeeName: emp.name,
+                date: dateStr,
+                status: 'ABSENT',
+                checkIn: '-',
+                checkOut: '-',
+                location: { address: 'Not Detected' },
+                remarks: 'System Generated: No punch-in detected.'
+              });
+            }
+          });
+        }
+      }
+    } else {
+      // Just Leaves
+      combinedData = filteredLeaves;
     }
 
-    return filtered;
-  }, [reportType, startDate, endDate, selectedDepts, employeeFilter, attendance, employees, leaves]);
+    // Apply Final Status Filter if selected
+    if (reportType === 'LATE') combinedData = combinedData.filter(a => a.status === 'LATE');
+    if (reportType === 'ABSENT') combinedData = combinedData.filter(a => a.status === 'ABSENT');
+
+    // Sort by Date Descending
+    return combinedData.sort((a, b) => {
+        const dateA = a.date || a.startDate;
+        const dateB = b.date || b.startDate;
+        return dateB.localeCompare(dateA);
+    });
+  }, [reportType, startDate, endDate, selectedDepts, employeeFilter, attendance, employees, leaves, appConfig, holidays]);
 
   const downloadCSV = () => {
     if (reportData.length === 0) { alert("No data to export."); return; }
@@ -212,18 +277,17 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     
     setIsEmailing(true);
     try {
-      const config = await hrService.getConfig();
-      // Handle potential multiple emails (comma separated)
-      const rawTarget = config.defaultReportRecipient || user.email;
+      // Use the local state value instead of fetching config again
+      const rawTarget = customRecipients;
       
       if (!rawTarget) {
-        throw new Error("No valid recipient email configured. Set 'Default Report Recipient' in Organization Settings.");
+        throw new Error("Please enter at least one recipient email address.");
       }
 
       const targets = rawTarget.split(',').map(t => t.trim()).filter(t => t.includes('@'));
 
       if (targets.length === 0) {
-        throw new Error("No valid email addresses found in configuration.");
+        throw new Error("No valid email addresses found.");
       }
 
       // Batching Logic: Large batch size to support monthly reports (requires DB limit increase)
@@ -353,6 +417,17 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                             return selectedDepts.includes(e.department || '');
                           }).map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
                         </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Recipient(s)</label>
+                        <input 
+                            type="text" 
+                            placeholder="email1@example.com, email2@example.com"
+                            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" 
+                            value={customRecipients} 
+                            onChange={e => setCustomRecipients(e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>

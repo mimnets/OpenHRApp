@@ -6,7 +6,7 @@ import { hrService } from '../services/hrService';
 interface SetupProps {
   onComplete: () => void;
 }
-// Priority 3: Development Fallback - https://pbase.vclbd.net / https://pocketbase.mimnets.com
+
 const Setup: React.FC<SetupProps> = ({ onComplete }) => {
   const [url, setUrl] = useState('https://pbase.vclbd.net');
   const [isTesting, setIsTesting] = useState(false);

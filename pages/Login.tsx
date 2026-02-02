@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Database, Eye, EyeOff, RotateCcw, Download, Moon, Share } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { isPocketBaseConfigured } from '../services/pocketbase';
 
 interface LoginProps {
   onLoginSuccess: (user: any) => void;
-  onEnterSetup: () => void;
   initError?: string;
 }
 
@@ -33,63 +32,72 @@ const BrandLogo = () => (
   </div>
 );
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(initError || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [isInstallable, setIsInstallable] = useState(!!(window as any).deferredPWAPrompt);
+  
+  // Install Help State
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [showIosInstructions, setShowIosInstructions] = useState(false);
+  const [canPrompt, setCanPrompt] = useState(false);
   
   const isConfigured = isPocketBaseConfigured();
 
   useEffect(() => {
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    setIsStandalone(!!isPWA);
+    // 1. Check iOS
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(ios);
 
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIphone = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
-    setIsIOS(isIphone);
+    // 2. Check Native Prompt Status (Immediate)
+    if ((window as any).deferredPWAPrompt) {
+      setCanPrompt(true);
+    }
 
-    const handleAvailable = () => setIsInstallable(true);
-    const handleInstalled = () => {
-      setIsInstallable(false);
-      setIsStandalone(true);
-    };
+    // 3. Listen for Native Prompt Event (Async)
+    const handlePwaReady = () => setCanPrompt(true);
+    window.addEventListener('pwa-install-available', handlePwaReady);
 
-    window.addEventListener('pwa-install-available', handleAvailable);
-    window.addEventListener('pwa-installed', handleInstalled);
-
-    return () => {
-      window.removeEventListener('pwa-install-available', handleAvailable);
-      window.removeEventListener('pwa-installed', handleInstalled);
-    };
+    return () => window.removeEventListener('pwa-install-available', handlePwaReady);
   }, []);
 
   const handleInstallClick = async () => {
-    if (isIOS) {
-      setShowIosInstructions(true);
-      return;
-    }
-
+    // 1. Try Native Prompt First (Android/Desktop)
     const promptEvent = (window as any).deferredPWAPrompt;
-    if (!promptEvent) return;
-    promptEvent.prompt();
-    const { outcome } = await promptEvent.userChoice;
-    if (outcome === 'accepted') {
-      (window as any).deferredPWAPrompt = null;
-      setIsInstallable(false);
+    
+    if (promptEvent) {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      console.log(`User response to install prompt: ${outcome}`);
+      
+      // We no longer need the prompt if accepted
+      if (outcome === 'accepted') {
+        (window as any).deferredPWAPrompt = null;
+        setCanPrompt(false);
+      }
+    } else {
+      // 2. Fallback to Instructions (iOS or Prompt Blocked)
+      setShowInstallHelp(true);
     }
   };
 
-  const handleReset = () => {
-    if (confirm("Reset connection settings? This will clear the PocketBase URL configuration.")) {
-      localStorage.removeItem('pocketbase_config');
-      window.location.reload();
+  const handleSystemReset = async () => {
+    if(!confirm("Reset App Cache? This will reload the application and update icons.")) return;
+    
+    // Unregister Service Workers to force update
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for(let registration of registrations) {
+        await registration.unregister();
+      }
     }
+    // Clear storage
+    localStorage.clear();
+    sessionStorage.clear();
+    // Force reload
+    window.location.reload();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -175,54 +183,38 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                disabled={isLoading} 
-                className="w-full py-4 bg-[#2563eb] text-white rounded-[1.25rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-2"
-              >
-                {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <>Continue <ArrowRight size={16} /></>}
-              </button>
-            </form>
+              <div className="space-y-4">
+                <button 
+                  type="submit" 
+                  disabled={isLoading} 
+                  className="w-full py-4 bg-[#2563eb] text-white rounded-[1.25rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-2"
+                >
+                  {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <>Continue <ArrowRight size={16} /></>}
+                </button>
 
-            {/* Action Buttons */}
-            <div className="space-y-5 pt-2">
-              {!isStandalone && (
-                <div className="w-full flex flex-col gap-3">
-                  <button 
-                    onClick={handleInstallClick}
-                    className="w-full py-3.5 bg-slate-50 border border-slate-100 text-slate-500 rounded-[1.25rem] font-black text-[10px] uppercase tracking-widest hover:bg-white hover:shadow-sm active:scale-[0.97] transition-all flex items-center justify-center gap-3"
-                  >
-                    <Download size={16} className="text-blue-500" /> 
-                    {isIOS ? 'Install on Device' : 'App Installation'}
-                  </button>
-                  
-                  {showIosInstructions && (
-                    <div className="p-5 bg-blue-50 border border-blue-100 rounded-[1.5rem] animate-in fade-in slide-in-from-top-2">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Share size={16} className="text-blue-600" />
-                        <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest">PWA Setup</p>
-                      </div>
-                      <ol className="text-[11px] font-bold text-blue-700/80 space-y-2 list-decimal pl-4">
-                        <li>Tap <span className="text-blue-900">Share</span> in Safari bottom bar.</li>
-                        <li>Choose <span className="text-blue-900">Add to Home Screen</span>.</li>
-                        <li>Tap <span className="text-blue-900">Add</span> to complete.</li>
-                      </ol>
-                      <button onClick={() => setShowIosInstructions(false)} className="mt-4 w-full py-2 bg-white text-blue-600 rounded-xl text-[9px] font-black uppercase border border-blue-100">Got it</button>
-                    </div>
-                  )}
+                {/* Utils Row: Install & Reset */}
+                <div className="flex justify-center items-center gap-4">
+                   <button 
+                     type="button"
+                     onClick={handleInstallClick}
+                     className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                   >
+                     <Download size={12} /> {canPrompt ? 'Install Now' : 'Install Guide'}
+                   </button>
+                   
+                   <div className="w-px h-3 bg-slate-200"></div>
+
+                   <button 
+                     type="button"
+                     onClick={handleSystemReset}
+                     className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 hover:text-rose-600 transition-colors"
+                     title="Clear Cache & Reload"
+                   >
+                     <RotateCcw size={12} /> Reset App
+                   </button>
                 </div>
-              )}
-
-              <div className="flex items-center justify-center gap-6 border-t border-slate-50 pt-6">
-                <button onClick={handleReset} className="text-slate-400 font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:text-rose-500 transition-colors">
-                  <RotateCcw size={12} /> Reset
-                </button>
-                <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
-                <button onClick={onEnterSetup} className="text-slate-400 font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:text-blue-600 transition-colors">
-                  <Database size={12} /> Config
-                </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
 
@@ -235,6 +227,56 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onEnterSetup, initError }
         <div className={`w-1.5 h-1.5 rounded-full ${isConfigured ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`}></div>
         <span className="text-[8px] font-black uppercase text-slate-500 tracking-[0.2em]">{isConfigured ? 'Node Connected' : 'No Connection'}</span>
       </div>
+
+      {/* Installation Instructions Popup */}
+      {showInstallHelp && (
+        <div className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200">
+           <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 border border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                   <Download size={16} className="text-indigo-600"/> Install Guide
+                 </h3>
+                 <button onClick={() => setShowInstallHelp(false)} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-900 transition-colors"><X size={16}/></button>
+              </div>
+              
+              {isIOS ? (
+                <div className="space-y-5">
+                   <p className="text-xs font-medium text-slate-500 leading-relaxed">To install this app on your iPhone or iPad, please follow these steps:</p>
+                   <div className="space-y-3">
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-500"><Share size={18} /></div>
+                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-blue-600">Share</span> button</div>
+                      </div>
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-900 font-black text-[10px]">+</div>
+                         <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Add to Home Screen</span></div>
+                      </div>
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-900 font-black text-[10px]">Add</div>
+                         <div className="text-xs font-bold text-slate-700">3. Tap <span className="text-blue-600">Add</span> (top right)</div>
+                      </div>
+                   </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                   <p className="text-xs font-medium text-slate-500 leading-relaxed">If the automatic prompt didn't appear, you can install manually:</p>
+                   <div className="space-y-3">
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-600"><MoreVertical size={18} /></div>
+                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Browser Menu</span> (3 dots)</div>
+                      </div>
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-600"><Download size={18} /></div>
+                         <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span> or <span className="text-slate-900">Add to Home Screen</span></div>
+                      </div>
+                   </div>
+                </div>
+              )}
+              
+              <button onClick={() => setShowInstallHelp(false)} className="w-full mt-6 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-200">Close Instructions</button>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

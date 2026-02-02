@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Network, 
@@ -37,7 +38,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Sun,
-  Shield
+  Shield,
+  UserX
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { updatePocketBaseConfig, getPocketBaseConfig } from '../services/pocketbase';
@@ -362,6 +364,7 @@ const Organization: React.FC = () => {
       </div>
 
       <div className="animate-in fade-in duration-300 w-full">
+        {/* ... (Existing STRUCTURE, TEAMS, LEAVES, WORKFLOW tabs) ... */}
         {activeTab === 'STRUCTURE' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
             <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
@@ -617,25 +620,61 @@ const Organization: React.FC = () => {
 
                 <div className="w-full h-px bg-slate-100"></div>
 
-                {/* Overtime / Early Arrival Policy */}
-                <div className="space-y-6">
-                   <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
-                        <Sun className="text-amber-500" size={18} /> Overtime & Policy
-                      </h4>
-                      <button 
-                        onClick={() => setConfig({...config, overtimeEnabled: !config.overtimeEnabled})}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${config.overtimeEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
-                      >
-                         {config.overtimeEnabled ? <ToggleRight size={20}/> : <ToggleLeft size={20}/>}
-                         {config.overtimeEnabled ? 'Calculation Active' : 'Ignored'}
-                      </button>
+                {/* Auto Absent & Overtime Policy */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   {/* Overtime */}
+                   <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                            <Sun className="text-amber-500" size={18} /> Overtime Policy
+                          </h4>
+                          <button 
+                            onClick={() => setConfig({...config, overtimeEnabled: !config.overtimeEnabled})}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${config.overtimeEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                             {config.overtimeEnabled ? <ToggleRight size={20}/> : <ToggleLeft size={20}/>}
+                             {config.overtimeEnabled ? 'Enabled' : 'Disabled'}
+                          </button>
+                       </div>
+                       <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                          {config.overtimeEnabled 
+                            ? "Early arrivals and late departures are flagged for payroll." 
+                            : "Attendance duration is capped at standard office hours."
+                          }
+                       </p>
                    </div>
-                   <div className="p-5 bg-slate-50 border border-slate-100 rounded-[2rem] text-xs text-slate-600 font-medium leading-relaxed">
-                      {config.overtimeEnabled 
-                        ? "The system will track early arrivals and late departures as 'Overtime'. This data will be available in attendance reports for payroll processing." 
-                        : "Early arrivals and late departures will be ignored. Attendance duration will be capped at standard office hours for reporting purposes."
-                      }
+                   
+                   {/* Auto Absent */}
+                   <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                            <UserX className="text-rose-500" size={18} /> Auto-Absent
+                          </h4>
+                          <button 
+                            onClick={() => setConfig({...config, autoAbsentEnabled: !config.autoAbsentEnabled})}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${config.autoAbsentEnabled ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                             {config.autoAbsentEnabled ? <ToggleRight size={20}/> : <ToggleLeft size={20}/>}
+                             {config.autoAbsentEnabled ? 'Active' : 'Inactive'}
+                          </button>
+                       </div>
+                       <div className="space-y-2">
+                          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                            Automatically mark employees as ABSENT if no attendance is recorded by a specific time.
+                          </p>
+                          {config.autoAbsentEnabled && (
+                            <div className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-100">
+                               <Clock size={16} className="text-rose-500" />
+                               <span className="text-[10px] font-black text-rose-700 uppercase tracking-widest">Run At:</span>
+                               <input 
+                                  type="time" 
+                                  className="bg-transparent font-bold text-sm outline-none text-rose-900 w-24"
+                                  value={config.autoAbsentTime || "23:55"}
+                                  onChange={e => setConfig({...config, autoAbsentTime: e.target.value})}
+                               />
+                            </div>
+                          )}
+                       </div>
                    </div>
                 </div>
 
@@ -723,6 +762,7 @@ const Organization: React.FC = () => {
           </div>
         )}
 
+        {/* ... (Existing HOLIDAYS, PLACEMENT, SYSTEM tabs) ... */}
         {activeTab === 'HOLIDAYS' && (
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden animate-in zoom-in duration-500">
              <div className="p-5 md:p-6 bg-emerald-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -850,7 +890,8 @@ const Organization: React.FC = () => {
           </div>
         )}
       </div>
-
+      
+      {/* ... (Existing Modal Code) ... */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className={`bg-white rounded-[2.5rem] w-full shadow-2xl overflow-hidden animate-in zoom-in ${modalType === 'TEAM' ? 'max-w-2xl' : 'max-w-md'}`}>

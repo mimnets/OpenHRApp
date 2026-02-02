@@ -112,7 +112,6 @@ const App: React.FC = () => {
           setCurrentUser(u);
           hrService.prefetchMetadata();
         }} 
-        onEnterSetup={() => setIsConfigured(false)} 
       />
     );
   }

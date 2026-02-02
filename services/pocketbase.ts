@@ -1,9 +1,14 @@
+
 import PocketBase from 'https://esm.sh/pocketbase@0.25.0';
 
 /**
  * PocketBase Configuration Service
  * Optimized for Production Builds
  */
+
+// 1. DEFINE YOUR PRODUCTION URL HERE
+// This is the "Right Way" to set it if you aren't using .env files. https://pbase.vclbd.net and https://pocketbase.mimnets.com
+const PRODUCTION_URL = 'https://pocketbase.mimnets.com'; 
 
 // Detect environment variables across different bundlers (Vite/CRA)
 const getEnvUrl = () => {
@@ -22,26 +27,15 @@ const getEnvUrl = () => {
 const ENV_POCKETBASE_URL = getEnvUrl();
 
 export const getPocketBaseConfig = () => {
-  // Priority 1: Environment Variable (Injected at Build Time)
+  // Priority 1: Environment Variable (CI/CD / Build Time)
   if (ENV_POCKETBASE_URL && ENV_POCKETBASE_URL.length > 5) {
     return { url: ENV_POCKETBASE_URL, source: 'ENV' };
   }
 
-  // Priority 2: localStorage (Manual Runtime Override)
-  const saved = localStorage.getItem('pocketbase_config');
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (parsed.url) return parsed;
-    } catch (e) {
-      console.error("Failed to parse local PocketBase config", e);
-    }
-  }
-
-  // Priority 3: Development Fallback - https://pbase.vclbd.net / https://pocketbase.mimnets.com
+  // Priority 2: Hardcoded Production URL (The "Simple" Right Way)
   return {
-    url: 'https://pbase.vclbd.net',
-    source: 'NONE'
+    url: PRODUCTION_URL,
+    source: 'HARDCODED'
   };
 };
 
@@ -74,16 +68,12 @@ if (pb) {
   pb.autoCancellation(false);
 }
 
+// In this strict mode, we always return true because the URL is hardcoded.
 export const isPocketBaseConfigured = () => {
-  const currentConfig = getPocketBaseConfig();
-  return !!(currentConfig.url && currentConfig.url.trim().length > 5);
+  return true; 
 };
 
+// This function is kept for compatibility but does nothing in Hardcoded mode
 export const updatePocketBaseConfig = (newConfig: any, shouldReload = true) => {
-  const finalConfig = {
-    ...newConfig,
-    url: getCleanUrl(newConfig.url)
-  };
-  localStorage.setItem('pocketbase_config', JSON.stringify(finalConfig));
-  if (shouldReload) window.location.reload();
+  console.log("Configuration is managed by the build, not user settings.");
 };
