@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -83,7 +84,7 @@ const App: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = (path: string, params?: any) => {
     if (path === 'attendance-quick-office') {
       setCurrentPath('attendance');
       setNavParams({ autoStart: 'OFFICE' });
@@ -95,7 +96,7 @@ const App: React.FC = () => {
       setNavParams({ autoStart: 'FINISH' });
     } else {
       setCurrentPath(path);
-      setNavParams(null);
+      setNavParams(params || null);
     }
     setIsMobileMenuOpen(false);
   };
@@ -129,7 +130,7 @@ const App: React.FC = () => {
         />;
       case 'attendance-logs': return <AttendanceLogs user={currentUser} viewMode="MY" />;
       case 'attendance-audit': return <AttendanceLogs user={currentUser} viewMode="AUDIT" />;
-      case 'leave': return <Leave user={currentUser} />;
+      case 'leave': return <Leave user={currentUser} autoOpen={navParams?.autoOpen} />;
       case 'settings': return <Settings user={currentUser} />;
       case 'reports': return <Reports user={currentUser} />;
       case 'organization': return <Organization />;
@@ -164,9 +165,9 @@ const App: React.FC = () => {
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
               
-              <div className="flex items-center gap-2">
-                 <div className="p-1.5 bg-[#2563eb] rounded-lg text-white md:hidden">
-                    <img src="https://cdn-icons-png.flaticon.com/512/9167/9167014.png" className="w-5 h-5 invert" alt="Logo" />
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-[#2563eb] rounded-xl text-white md:hidden">
+                    <img src="./img/mobile-logo.png" className="w-8 h-8 object-contain" alt="Logo" />
                  </div>
                  <h2 className="font-black text-xl tracking-tighter text-[#2563eb] md:hidden truncate max-w-[150px]">OpenHRApp</h2>
                  <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50 text-slate-400 border-slate-100">

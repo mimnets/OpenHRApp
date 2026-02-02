@@ -1,18 +1,19 @@
 
-const CACHE_NAME = 'openhr-v2.8.0';
-const STATIC_CACHE = 'openhr-static-assets-v1';
+const CACHE_NAME = 'openhr-v2.8.1';
+const STATIC_CACHE = 'openhr-static-assets-v2';
 
 const ASSETS_TO_PRECACHE = [
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './img/logo.png',
+  './img/mobile-logo.png'
 ];
 
 // List of external CDNs we trust for caching
 const EXTERNAL_ASSETS = [
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com',
-  'https://fonts.gstatic.com',
-  'https://cdn-icons-png.flaticon.com'
+  'https://fonts.gstatic.com'
 ];
 
 self.addEventListener('install', (event) => {

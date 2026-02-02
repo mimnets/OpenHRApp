@@ -38,9 +38,9 @@ export const getPocketBaseConfig = () => {
     }
   }
 
-  // Priority 3: Development Fallback
+  // Priority 3: Development Fallback - https://pbase.vclbd.net / https://pocketbase.mimnets.com
   return {
-    url: 'https://pocketbase.mimnets.com',
+    url: 'https://pbase.vclbd.net',
     source: 'NONE'
   };
 };
