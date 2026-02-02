@@ -131,4 +131,6 @@ export interface AppConfig {
   defaultReportRecipient?: string;
   smtp?: RelayConfig;
   overtimeEnabled?: boolean;
+  autoAbsentEnabled?: boolean;
+  autoAbsentTime?: string; // HH:mm
 }
