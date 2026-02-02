@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Search, 
@@ -18,7 +19,8 @@ import {
   Building2,
   Phone,
   Contact,
-  Users
+  Users,
+  Key
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { pb } from '../services/pocketbase';
@@ -186,7 +188,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       email: emp.email || '',
       employeeId: emp.employeeId || '', 
       username: emp.username || '',
-      password: '',
+      password: '', // Password intentionally empty on edit load
       nid: emp.nid || '',
       role: (emp.role || 'EMPLOYEE') as any,
       department: emp.department || '',
@@ -461,6 +463,26 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Work Email</label>
                   <input type="email" required disabled={!!editingId} className="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-sm outline-none disabled:opacity-50" value={formState.email} onChange={e => setFormState({...formState, email: e.target.value})} />
                 </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1">
+                    <Key size={10} /> {editingId ? 'Reset Password' : 'Initial Password'}
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      required={!editingId} // Required only on creation
+                      placeholder={editingId ? "Leave blank to keep current" : "Set login password"}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" 
+                      value={formState.password} 
+                      onChange={e => setFormState({...formState, password: e.target.value})} 
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Team</label>
                   <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.teamId} onChange={e => setFormState({...formState, teamId: e.target.value})}>

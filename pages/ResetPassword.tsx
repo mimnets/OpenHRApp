@@ -50,7 +50,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ initialToken, onBackToLog
         </div>
         <div className="space-y-8 max-w-md">
           <h1 className="text-5xl font-black text-white leading-tight">Identity Recovery.</h1>
-          <p className="text-slate-400 text-lg font-medium">Resetting your access credentials securely via Firebase Authentication.</p>
+          <p className="text-slate-400 text-lg font-medium">Resetting your access credentials securely via our Authentication engine.</p>
         </div>
       </div>
 

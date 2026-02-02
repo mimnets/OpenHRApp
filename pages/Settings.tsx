@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  User, ArrowLeft, Save, RefreshCw, Mail, UserCheck, Hash
+  User, ArrowLeft, Save, RefreshCw, Mail, UserCheck, Hash, Lock, Key, Eye, EyeOff
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { User as UserType, Employee } from '../types';
@@ -39,6 +39,11 @@ const ProfileSkeleton = () => (
 const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
   const [profile, setProfile] = useState<Partial<Employee> & { managerName?: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Password Change State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -74,12 +79,31 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
     setIsSaving(true);
     try {
       if (profile) {
-        await hrService.updateProfile(user.id, profile);
-        alert('Personal profile updated successfully.');
+        const updatePayload: any = {
+           name: profile.name,
+           email: profile.email
+        };
+
+        if (newPassword) {
+          if (newPassword.length < 8) {
+            alert("Password must be at least 8 characters long.");
+            setIsSaving(false);
+            return;
+          }
+          if (newPassword !== confirmPassword) {
+            alert("Passwords do not match.");
+            setIsSaving(false);
+            return;
+          }
+          updatePayload.password = newPassword;
+        }
+
+        await hrService.updateProfile(user.id, updatePayload);
+        alert('Profile updated successfully.');
         window.location.reload();
       }
-    } catch (e) {
-      alert('Operation failed. Check server connection.');
+    } catch (e: any) {
+      alert(`Operation failed: ${e.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -141,6 +165,44 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                   <input type="email" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
                 </div>
               </div>
+            </div>
+
+            {/* Password Section */}
+            <div className="pt-6 border-t border-slate-50">
+               <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 mb-4">
+                  <Lock size={16} className="text-indigo-500"/> Security Settings
+               </h4>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">New Password</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Leave blank to keep current"
+                        className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" 
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 p-1">
+                        {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Confirm New Password</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Confirm changes"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" 
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+               </div>
             </div>
 
             <div className="flex justify-end pt-4">

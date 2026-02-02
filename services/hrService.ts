@@ -1,4 +1,5 @@
-import { Employee, Attendance, LeaveRequest, User, AppConfig, Holiday, LeaveWorkflow, LeaveBalance, Team } from '../types';
+
+import { Employee, Attendance, LeaveRequest, User, AppConfig, Holiday, LeaveWorkflow, LeaveBalance, Team, LeavePolicy } from '../types';
 import { DEFAULT_CONFIG, BD_HOLIDAYS } from '../constants.tsx';
 import { pb, isPocketBaseConfigured } from './pocketbase';
 
@@ -9,6 +10,7 @@ let cachedConfig: AppConfig | null = null;
 let cachedDepartments: string[] | null = null;
 let cachedDesignations: string[] | null = null;
 let cachedHolidays: Holiday[] | null = null;
+let cachedLeavePolicy: LeavePolicy | null = null;
 
 const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   const pbData: any = {};
@@ -18,7 +20,6 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.designation) pbData.designation = data.designation;
   if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
   
-  // Handle both camelCase and snake_case for consistency
   if (data.lineManagerId !== undefined) pbData.line_manager_id = data.lineManagerId || null;
   else if (data.line_manager_id !== undefined) pbData.line_manager_id = data.line_manager_id || null;
   
@@ -29,12 +30,14 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
     pbData.avatar = data.avatar;
   }
 
+  // Password Logic: Allow update if provided, otherwise only set on create
+  if (data.password && data.password.trim().length > 0) {
+    pbData.password = data.password;
+    pbData.passwordConfirm = data.password;
+  }
+
   if (!isUpdate) {
     if (data.email) pbData.email = data.email;
-    if (data.password) {
-      pbData.password = data.password;
-      pbData.passwordConfirm = data.password;
-    }
     if (data.employeeId) {
       pbData.username = `user_${data.employeeId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     }
@@ -99,7 +102,8 @@ export const hrService = {
         this.getDepartments(),
         this.getDesignations(),
         this.getHolidays(),
-        this.getTeams()
+        this.getTeams(),
+        this.getLeavePolicy()
       ]);
     } catch (e) {
       console.warn("Metadata prefetch partial failure", e);
@@ -126,12 +130,24 @@ export const hrService = {
     } catch (err: any) { return { user: null, error: err.message || "PocketBase Login Failed" }; }
   },
 
+  async finalizePasswordReset(token: string, newPassword: string): Promise<boolean> {
+    if (!pb || !isPocketBaseConfigured()) return false;
+    try {
+      await pb.collection('users').confirmPasswordReset(token, newPassword, newPassword);
+      return true;
+    } catch (err: any) {
+      console.error("Password reset confirmation failed:", err);
+      return false;
+    }
+  },
+
   async logout() { 
     if (pb) pb.authStore.clear(); 
     cachedConfig = null;
     cachedDepartments = null;
     cachedDesignations = null;
     cachedHolidays = null;
+    cachedLeavePolicy = null;
     this.notify(); 
   },
 
@@ -177,7 +193,6 @@ export const hrService = {
     if (!pb || !isPocketBaseConfigured()) return;
     const pbData = sanitizeUserPayload(updates, true);
     
-    // Explicitly allow direct assignment of relational IDs if passed as snake_case in updates
     if (updates.team_id !== undefined) pbData.team_id = updates.team_id || null;
     if (updates.line_manager_id !== undefined) pbData.line_manager_id = updates.line_manager_id || null;
 
@@ -284,17 +299,14 @@ export const hrService = {
 
   async saveLeaveRequest(data: Partial<LeaveRequest>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    
     const formatPbDate = (dateStr: string) => {
       if (!dateStr) return null;
       if (dateStr.length === 10) return `${dateStr} 00:00:00`;
       if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
       return dateStr;
     };
-
     const now = new Date();
     const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
-
     const payload: any = {
       employee_id: data.employeeId?.trim(),
       employee_name: data.employeeName,
@@ -307,35 +319,17 @@ export const hrService = {
       status: data.status || 'PENDING_MANAGER',
       applied_date: appliedAt
     };
-
     try {
       await pb.collection('leaves').create(payload);
       this.notify();
     } catch (err: any) {
-      if (err.response?.id) {
-        this.notify();
-        return;
-      }
+      if (err.response?.id) { this.notify(); return; }
       throw new Error(`Failed to create record`);
     }
   },
 
-  async modifyLeaveRequest(id: string, updates: Partial<LeaveRequest>) {
-    if (!pb || !isPocketBaseConfigured()) return;
-    const pbUpdates: any = {};
-    if (updates.type) pbUpdates.type = updates.type;
-    if (updates.startDate) pbUpdates.start_date = updates.startDate;
-    if (updates.endDate) pbUpdates.end_date = updates.endDate;
-    if (updates.totalDays) pbUpdates.total_days = Number(updates.totalDays);
-    if (updates.reason) pbUpdates.reason = updates.reason;
-    if (updates.status) pbUpdates.status = updates.status;
-    await pb.collection('attendance').update(id.trim(), pbUpdates);
-    this.notify();
-  },
-
   async updateLeaveStatus(id: string, status: string, remarks: string, role: string) {
     if (!pb || !isPocketBaseConfigured()) return;
-    
     const update: any = { status };
     if (role === 'MANAGER') {
       update.manager_remarks = remarks;
@@ -343,27 +337,61 @@ export const hrService = {
     } else {
       update.approver_remarks = remarks;
     }
-
     try {
       await pb.collection('leaves').update(id.trim(), update);
       this.notify();
-    } catch (err: any) {
-      if (err.response?.id) {
-        this.notify();
-        return;
-      }
-      throw new Error("Access Denied (Check Update Rules)");
+    } catch (err: any) { throw new Error("Access Denied"); }
+  },
+
+  async getLeavePolicy(): Promise<LeavePolicy> {
+    if (cachedLeavePolicy) return cachedLeavePolicy;
+    const defaultPolicy: LeavePolicy = {
+      defaults: { ANNUAL: 15, CASUAL: 10, SICK: 14 },
+      overrides: {}
+    };
+    if (!pb || !isPocketBaseConfigured()) return defaultPolicy;
+    try {
+      const record = await pb.collection('settings').getFirstListItem('key = "leave_policy"');
+      cachedLeavePolicy = record.value || defaultPolicy;
+      return cachedLeavePolicy!;
+    } catch (e) {
+      return defaultPolicy;
     }
   },
 
+  async setLeavePolicy(policy: LeavePolicy) {
+    if (!pb || !isPocketBaseConfigured()) return;
+    try {
+      const record = await pb.collection('settings').getFirstListItem('key = "leave_policy"');
+      await pb.collection('settings').update(record.id, { value: policy });
+      cachedLeavePolicy = policy;
+    } catch (e) {
+      await pb.collection('settings').create({ key: 'leave_policy', value: policy });
+      cachedLeavePolicy = policy;
+    }
+    this.notify();
+  },
+
   async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
-    const defaultBalance: LeaveBalance = { employeeId, ANNUAL: 15, CASUAL: 10, SICK: 14 };
-    if (!pb || !isPocketBaseConfigured()) return defaultBalance;
+    const policy = await this.getLeavePolicy();
+    
+    // Determine quota based on policy: Specific override > Global Default
+    const quota = policy.overrides[employeeId] || policy.defaults;
+    
+    const balance: LeaveBalance = { 
+      employeeId, 
+      ANNUAL: quota.ANNUAL, 
+      CASUAL: quota.CASUAL, 
+      SICK: quota.SICK 
+    };
+
+    if (!pb || !isPocketBaseConfigured()) return balance;
+    
     try {
       const records = await pb.collection('leaves').getFullList({
         filter: `employee_id = "${employeeId.trim()}" && status = "APPROVED"`
       });
-      const balance = { ...defaultBalance };
+      
       records.forEach(r => {
         const type = r.type as string;
         if (type === 'ANNUAL') balance.ANNUAL -= (r.total_days || 0);
@@ -371,11 +399,7 @@ export const hrService = {
         else if (type === 'SICK') balance.SICK -= (r.total_days || 0);
       });
       return balance;
-    } catch (e) { return defaultBalance; }
-  },
-
-  isManagerOfSomeone(userId: string, employees: Employee[]): boolean {
-    return employees.some(e => e.lineManagerId === userId);
+    } catch (e) { return balance; }
   },
 
   async getConfig(): Promise<AppConfig> {
@@ -474,33 +498,20 @@ export const hrService = {
     if (!pb || !isPocketBaseConfigured()) return [];
     try {
       const records = await pb.collection('teams').getFullList({ sort: 'name' });
-      return records.map(r => ({
-        id: r.id,
-        name: r.name,
-        leaderId: r.leader_id,
-        department: r.department
-      }));
+      return records.map(r => ({ id: r.id, name: r.name, leaderId: r.leader_id, department: r.department }));
     } catch (e) { return []; }
   },
 
   async createTeam(data: Partial<Team>) {
     if (!pb || !isPocketBaseConfigured()) return null;
-    const record = await pb.collection('teams').create({
-      name: data.name,
-      leader_id: data.leaderId,
-      department: data.department
-    });
+    const record = await pb.collection('teams').create({ name: data.name, leader_id: data.leaderId, department: data.department });
     this.notify();
     return record;
   },
 
   async updateTeam(id: string, data: Partial<Team>) {
     if (!pb || !isPocketBaseConfigured()) return;
-    await pb.collection('teams').update(id, {
-      name: data.name,
-      leader_id: data.leaderId,
-      department: data.department
-    });
+    await pb.collection('teams').update(id, { name: data.name, leader_id: data.leaderId, department: data.department });
     this.notify();
   },
 
@@ -529,44 +540,65 @@ export const hrService = {
     this.notify();
   },
 
-  async sendCustomEmail(data: { recipientEmail: string; subject: string; html: string }) {
+  async sendCustomEmail(data: { recipientEmail: string; subject: string; html: string; type?: string }) {
     if (!pb || !isPocketBaseConfigured()) return;
-    
-    const payload = {
-      recipient_email: data.recipientEmail,
-      subject: data.subject,
-      html_content: data.html,
-      status: 'PENDING'
+    const payload = { 
+      recipient_email: data.recipientEmail.trim(), 
+      subject: data.subject.trim(), 
+      html_content: data.html, 
+      type: data.type || 'SYSTEM_REPORT', 
+      status: 'PENDING' 
     };
-
     try {
       const result = await pb.collection('reports_queue').create(payload);
       return result;
-    } catch (err: any) {
-      if (err.response?.id || (err.status >= 400 && err.response?.recipient_email)) {
-        return { id: err.response?.id || 'queued_ok' }; 
+    } catch (err: any) { 
+      // Specialized Error Handling for DB Size Limits
+      const errorMessage = err.message || JSON.stringify(err);
+      if (errorMessage.includes("html_content") && (errorMessage.includes("5000") || errorMessage.includes("length"))) {
+        throw new Error("DATABASE ERROR: Report is too large (over 5000 chars). Go to PocketBase Admin > Collections > reports_queue > html_content and change Max Characters to 0 (Unlimited).");
       }
-      throw new Error(err.message || "Failed to create queue record.");
+
+      console.error("[PocketBase 400 Detail]", {
+        message: err.message,
+        validationErrors: err.response?.data,
+        payloadSent: payload
+      });
+      
+      let errorDetails = err.message || "Failed to create record";
+      if (err.response?.data) {
+        const fieldErrors = Object.entries(err.response.data)
+          .map(([key, val]: [string, any]) => `${key}: ${val.message}`)
+          .join(', ');
+        if (fieldErrors) errorDetails = `Validation Error: ${fieldErrors}`;
+      }
+      
+      throw new Error(errorDetails); 
+    }
+  },
+
+  async getReportQueueLog(): Promise<any[]> {
+    if (!pb || !isPocketBaseConfigured()) return [];
+    try {
+      // Fetch last 10 items to show in UI
+      const records = await pb.collection('reports_queue').getList(1, 10, {
+        sort: '-created',
+      });
+      return records.items;
+    } catch (e: any) {
+      // Suppress 403 Forbidden errors to keep console clean for non-admins
+      if (e.status !== 403) {
+         console.warn("Cannot fetch report logs", e.message);
+      }
+      return [];
     }
   },
 
   async testPocketBaseConnection(url: string): Promise<{ success: boolean; message: string; error?: string }> {
     try {
       const response = await fetch(`${url.replace(/\/+$/, '')}/api/health`);
-      if (response.ok) {
-        return { success: true, message: "Connected to PocketBase" };
-      }
-      return { success: false, message: "Connection failed", error: `HTTP ${response.status}` };
-    } catch (e: any) {
-      return { success: false, message: "Connection error", error: e.message };
-    }
-  },
-
-  async finalizePasswordReset(token: string, pass: string): Promise<boolean> {
-    if (!pb || !isPocketBaseConfigured()) return false;
-    try {
-      await pb.collection('users').confirmPasswordReset(token, pass, pass);
-      return true;
-    } catch (e) { return false; }
+      if (response.ok) return { success: true, message: "OK" };
+      return { success: false, message: "FAIL" };
+    } catch (e: any) { return { success: false, message: "ERR" }; }
   }
 };
