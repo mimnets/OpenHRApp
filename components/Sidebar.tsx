@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -52,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
             className="w-24 h-24 rounded-full border-4 border-white shadow-xl bg-slate-50 object-cover" 
             alt="Profile" 
           />
-          <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
+          <div className="absolute bottom-1 right-1 w-5 h-5 bg-primary border-4 border-white rounded-full"></div>
         </div>
         <h2 className="text-xl font-black text-slate-900 leading-tight">{user?.name || 'User Name'}</h2>
         <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tight">{user?.designation || 'Specialist'}</p>
@@ -67,18 +68,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 relative group ${
                 currentPath === item.id
-                  ? 'bg-blue-50/50 text-[#2563eb]' 
+                  ? 'bg-primary-light/50 text-primary' 
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <div className="flex items-center gap-4">
                 {currentPath === item.id && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#2563eb] rounded-r-full"></div>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-primary rounded-r-full"></div>
                 )}
-                <item.icon size={22} className={currentPath === item.id ? 'text-[#2563eb]' : 'text-slate-400'} />
+                <item.icon size={22} className={currentPath === item.id ? 'text-primary' : 'text-slate-400'} />
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
               </div>
-              <ChevronRight size={16} className={`transition-all duration-300 ${currentPath === item.id ? 'text-[#2563eb] opacity-100 translate-x-0' : 'text-slate-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+              <ChevronRight size={16} className={`transition-all duration-300 ${currentPath === item.id ? 'text-primary opacity-100 translate-x-0' : 'text-slate-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
             </button>
           </div>
         ))}
@@ -100,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
         </button>
 
         <div className="text-center">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.8.5</p>
+          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.9.0</p>
         </div>
       </div>
     </aside>

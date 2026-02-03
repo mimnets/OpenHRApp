@@ -1,43 +1,13 @@
 
 import PocketBase from 'https://esm.sh/pocketbase@0.25.0';
+import { getDatabaseUrl } from '../config/database';
 
 /**
- * PocketBase Configuration Service
- * Optimized for Production Builds
+ * PocketBase Client Service
+ * 
+ * Initializes the PocketBase client using the configuration
+ * defined in config/database.ts
  */
-
-// 1. DEFINE YOUR PRODUCTION URL HERE
-// This is the "Right Way" to set it if you aren't using .env files. https://pbase.vclbd.net and https://pocketbase.mimnets.com
-const PRODUCTION_URL = 'https://pocketbase.mimnets.com'; 
-
-// Detect environment variables across different bundlers (Vite/CRA)
-const getEnvUrl = () => {
-  const metaEnv = (import.meta as any).env;
-  const procEnv = typeof process !== 'undefined' ? process.env : {};
-
-  return (
-    metaEnv?.VITE_POCKETBASE_URL || 
-    metaEnv?.REACT_APP_POCKETBASE_URL || 
-    procEnv?.VITE_POCKETBASE_URL || 
-    procEnv?.REACT_APP_POCKETBASE_URL || 
-    ''
-  );
-};
-
-const ENV_POCKETBASE_URL = getEnvUrl();
-
-export const getPocketBaseConfig = () => {
-  // Priority 1: Environment Variable (CI/CD / Build Time)
-  if (ENV_POCKETBASE_URL && ENV_POCKETBASE_URL.length > 5) {
-    return { url: ENV_POCKETBASE_URL, source: 'ENV' };
-  }
-
-  // Priority 2: Hardcoded Production URL (The "Simple" Right Way)
-  return {
-    url: PRODUCTION_URL,
-    source: 'HARDCODED'
-  };
-};
 
 const getCleanUrl = (url: string) => {
   if (!url) return '';
@@ -57,8 +27,9 @@ const getCleanUrl = (url: string) => {
   return cleaned;
 };
 
-const config = getPocketBaseConfig();
-const finalUrl = getCleanUrl(config.url);
+// Resolve Configuration from the config module
+const dbConfig = getDatabaseUrl();
+const finalUrl = getCleanUrl(dbConfig.url);
 
 // Initialize the PocketBase client
 export const pb = finalUrl ? new PocketBase(finalUrl) : null;
@@ -68,9 +39,14 @@ if (pb) {
   pb.autoCancellation(false);
 }
 
-// In this strict mode, we always return true because the URL is hardcoded.
+// In this strict mode, we always return true because the URL is hardcoded in config/database.ts
 export const isPocketBaseConfigured = () => {
   return true; 
+};
+
+// Export the config getter for UI components that need to display it
+export const getPocketBaseConfig = () => {
+  return getDatabaseUrl();
 };
 
 // This function is kept for compatibility but does nothing in Hardcoded mode

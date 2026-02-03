@@ -1,6 +1,16 @@
 
-export type Role = 'ADMIN' | 'MANAGER' | 'HR' | 'EMPLOYEE';
+export type Role = 'ADMIN' | 'MANAGER' | 'HR' | 'EMPLOYEE' | 'TEAM_LEAD' | 'MANAGEMENT';
 export type WorkType = 'OFFICE' | 'FIELD';
+
+export interface AppTheme {
+  id: string;
+  name: string;
+  colors: {
+    primary: string;
+    hover: string;
+    light: string;
+  };
+}
 
 export interface Team {
   id: string;
@@ -118,6 +128,13 @@ export interface RelayConfig {
   useDirectResend?: boolean;
 }
 
+export interface OfficeLocation {
+  name: string;
+  lat: number;
+  lng: number;
+  radius: number;
+}
+
 export interface AppConfig {
   companyName: string;
   timezone: string;
@@ -128,9 +145,12 @@ export interface AppConfig {
   officeEndTime: string;
   lateGracePeriod: number;
   earlyOutGracePeriod: number;
+  earliestCheckIn?: string; // HH:mm - Earliest allowed punch-in
+  autoSessionCloseTime?: string; // HH:mm - Auto check-out time
   defaultReportRecipient?: string;
   smtp?: RelayConfig;
   overtimeEnabled?: boolean;
   autoAbsentEnabled?: boolean;
   autoAbsentTime?: string; // HH:mm
+  officeLocations?: OfficeLocation[];
 }

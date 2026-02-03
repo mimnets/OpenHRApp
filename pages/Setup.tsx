@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Database, Server, Activity, RefreshCw, Save, ArrowRight, ShieldCheck, Globe, AlertCircle } from 'lucide-react';
 import { updatePocketBaseConfig } from '../services/pocketbase';
@@ -37,16 +38,16 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950 overflow-hidden relative">
-      <div className="absolute top-[-10%] left-[-10%] w-1/2 h-1/2 bg-indigo-500/10 blur-[120px] rounded-full"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-1/2 h-1/2 bg-primary-light blur-[120px] rounded-full opacity-20"></div>
       
       <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500 relative z-10">
         <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden">
-          <div className="bg-[#0f172a] p-10 text-white text-center">
-            <div className="inline-flex items-center justify-center p-4 bg-indigo-600 rounded-3xl mb-6 shadow-xl shadow-indigo-900/20">
+          <div className="bg-primary p-10 text-white text-center">
+            <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-3xl mb-6 shadow-xl backdrop-blur-md">
               <Database size={40} />
             </div>
             <h1 className="text-3xl font-black tracking-tight mb-2">Backend Setup</h1>
-            <p className="text-slate-400 font-medium">Link OpenHR to your PocketBase instance</p>
+            <p className="text-white/80 font-medium">Link OpenHR to your PocketBase instance</p>
           </div>
 
           <div className="p-10 space-y-8">
@@ -58,7 +59,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
                 </div>
                 <input 
                   type="text" 
-                  className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+                  className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-light transition-all"
                   placeholder="https://pbase.vclbd.net"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
@@ -91,7 +92,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
               <button 
                 onClick={handleSave}
                 disabled={!url || isTesting}
-                className="flex-[1.5] py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                className="flex-[1.5] py-5 bg-primary text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
               >
                 Save & Continue <ArrowRight size={18} />
               </button>

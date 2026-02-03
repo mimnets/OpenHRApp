@@ -1,27 +1,13 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  History, 
-  Search, 
-  RefreshCw,
-  ChevronRight,
-  ExternalLink,
-  Loader2,
-  Camera,
-  X,
-  SortAsc,
-  SortDesc,
-  Filter,
-  Users,
-  Building,
-  Trash2,
-  Save,
-  AlertCircle
+  Calendar, Clock, MapPin, History, Search, RefreshCw, ChevronRight, ExternalLink, 
+  Camera, X, SortAsc, SortDesc, Users, Building, Trash2, Save, 
+  AlertCircle, Settings, Calculator, UserX
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { Attendance, Employee } from '../types';
+import { Attendance, Employee, AppConfig } from '../types';
+import { consolidateAttendance, calculatePunctuality, calculateDuration } from '../utils/attendanceUtils';
 
 interface AttendanceLogsProps {
   user: any;
@@ -44,12 +30,13 @@ const LogSkeleton = () => (
 const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER';
-  // FORCE isAuditMode to false if user is a standard EMPLOYEE, even if viewMode is AUDIT
   const isAuditMode = viewMode === 'AUDIT' && (isAdmin || isManager);
   
   const [logs, setLogs] = useState<Attendance[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -60,45 +47,43 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   
   const [selectedLog, setSelectedLog] = useState<Attendance | null>(null);
   const [editState, setEditState] = useState<Partial<Attendance>>({});
+  
+  // Local Override State for Calculation (Not saved to DB, just for calculating status)
+  const [tempShift, setTempShift] = useState({ start: '09:00', end: '18:00', grace: 0 });
+
+  // Manual Absent State
+  const [showAbsentModal, setShowAbsentModal] = useState(false);
+  const [absentForm, setAbsentForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], remarks: 'Absent / No Show' });
 
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch data directly from service
-      const [allAttendance, fetchedEmployees, depts] = await Promise.all([
+      const [allAttendance, fetchedEmployees, depts, appConfig] = await Promise.all([
         hrService.getAttendance(),
         hrService.getEmployees(),
-        hrService.getDepartments()
+        hrService.getDepartments(),
+        hrService.getConfig()
       ]);
 
-      // 2. APPLY JURISDICTIONAL FILTERING
+      setConfig(appConfig);
+
       if (isAuditMode) {
         if (isAdmin) {
-          // ADMIN/HR: See everything and everyone
           setEmployees(fetchedEmployees);
           setDepartments(depts);
           setLogs(allAttendance);
         } else if (isManager) {
-          // MANAGER: Strictly filter everything by Team ID or Line Manager relationship
           const managedEmployees = fetchedEmployees.filter(e => 
             (user.teamId && e.teamId === user.teamId) || 
             (e.lineManagerId === user.id)
           );
-          
           const managedIds = managedEmployees.map(e => e.id);
-          
-          // Only store managed employees in state for the dropdown
           setEmployees(managedEmployees);
-          // Managers usually don't need dept filter if they are team-scoped, 
-          // but we'll scope depts to those represented in their managed list
           const relevantDepts = Array.from(new Set(managedEmployees.map(e => e.department).filter(Boolean) as string[]));
           setDepartments(relevantDepts);
-          
-          // Filter logs only for managed IDs
           setLogs(allAttendance.filter(a => managedIds.includes(a.employeeId)));
         }
       } else {
-        // PERSONAL VIEW: Only see own logs
         setLogs(allAttendance.filter(a => a.employeeId === user.id));
       }
     } catch (err) {
@@ -110,17 +95,61 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
   useEffect(() => {
     fetchInitialData();
-  }, [user.id, viewMode, user.role, user.teamId]);
+  }, [user.id, viewMode, user.role]);
+
+  // Helper to force HH:mm format (required for input type="time")
+  const ensureTimeFormat = (timeStr: string | undefined) => {
+    if (!timeStr || timeStr === '-' || timeStr.trim() === '') return '';
+    try {
+      const parts = timeStr.trim().split(':');
+      if (parts.length < 2) return ''; 
+      const h = parts[0].padStart(2, '0');
+      const m = parts[1].padStart(2, '0');
+      return `${h}:${m}`;
+    } catch (e) { return ''; }
+  };
 
   const handleOpenDetail = (log: Attendance) => {
     setSelectedLog(log);
+    
+    // Initialize Edit State with proper formatting
     setEditState({
       status: log.status,
-      checkIn: log.checkIn,
-      checkOut: log.checkOut,
+      checkIn: ensureTimeFormat(log.checkIn),
+      checkOut: ensureTimeFormat(log.checkOut),
       remarks: log.remarks,
       date: log.date
     });
+
+    // Initialize Temp Shift with proper formatting
+    setTempShift({
+      start: ensureTimeFormat(config?.officeStartTime || '09:00'),
+      end: ensureTimeFormat(config?.officeEndTime || '18:00'),
+      grace: config?.lateGracePeriod || 0
+    });
+  };
+
+  const handleManualAbsent = async () => {
+    if (!absentForm.employeeId) return;
+    setIsProcessing(true);
+    try {
+      const emp = employees.find(e => e.id === absentForm.employeeId);
+      await hrService.saveAttendance({
+        id: '',
+        employeeId: absentForm.employeeId,
+        employeeName: emp?.name,
+        date: absentForm.date,
+        checkIn: '-',
+        checkOut: '-',
+        status: 'ABSENT',
+        remarks: `[Manual Entry] ${absentForm.remarks}`,
+        location: { lat: 0, lng: 0, address: 'N/A' },
+        dutyType: 'OFFICE'
+      });
+      setShowAbsentModal(false);
+      await fetchInitialData();
+    } catch (e) { alert("Failed to save."); }
+    finally { setIsProcessing(false); }
   };
 
   const handleDelete = async (id: string) => {
@@ -143,7 +172,13 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
     if (!selectedLog) return;
     setIsProcessing(true);
     try {
-      await hrService.updateAttendance(selectedLog.id, editState);
+      // Restore '-' if empty string to maintain convention
+      const finalState = {
+        ...editState,
+        checkIn: editState.checkIn || '-',
+        checkOut: editState.checkOut || '-'
+      };
+      await hrService.updateAttendance(selectedLog.id, finalState);
       setSelectedLog(null);
       await fetchInitialData();
     } catch (err) {
@@ -153,18 +188,25 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
     }
   };
 
+  // Helper to re-calc status based on times AND local shift overrides
+  const autoCalculateStatus = () => {
+    if (!editState.checkIn) return;
+    // Use the temporary shift values for calculation
+    const newStatus = calculatePunctuality(editState.checkIn, tempShift.start, tempShift.grace);
+    setEditState(prev => ({ ...prev, status: newStatus }));
+  };
+
   const filteredAndSortedLogs = useMemo(() => {
     let result = [...logs];
     
-    // Search filter (date or status)
     if (searchTerm) {
       result = result.filter(log => 
         (log.date || '').includes(searchTerm) || 
-        (log.status || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (log.status || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.employeeName || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Secondary filters (Employee / Dept)
     if (isAuditMode) {
       if (employeeFilter !== 'ALL') {
         result = result.filter(log => log.employeeId === employeeFilter);
@@ -177,27 +219,8 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       }
     }
 
-    // Consolidated grouping (one entry per employee per day)
-    const groupedMap = new Map<string, Attendance>();
-    result.forEach(log => {
-      const key = `${log.employeeId}_${log.date}`;
-      if (!groupedMap.has(key)) {
-        groupedMap.set(key, { ...log });
-      } else {
-        const existing = groupedMap.get(key)!;
-        if (log.checkIn && (!existing.checkIn || log.checkIn < existing.checkIn)) {
-          existing.checkIn = log.checkIn;
-        }
-        if (log.checkOut && (!existing.checkOut || log.checkOut > existing.checkOut)) {
-          existing.checkOut = log.checkOut;
-        }
-        if (log.remarks && !existing.remarks?.includes(log.remarks)) {
-          existing.remarks = existing.remarks ? `${existing.remarks} | ${log.remarks}` : log.remarks;
-        }
-      }
-    });
-
-    const consolidated = Array.from(groupedMap.values());
+    // Utilize the unified consolidation logic from utils
+    const consolidated = consolidateAttendance(result);
 
     return consolidated.sort((a, b) => {
       const dateCompare = (a.date || '').localeCompare(b.date || '');
@@ -218,15 +241,25 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
             {isAuditMode ? (isAdmin ? 'Attendance Audit' : 'Team Attendance') : 'My Attendance History'}
           </h1>
           <p className="text-sm text-slate-500 font-medium">
-            {isAuditMode ? (isAdmin ? 'Consolidated organization tracking' : 'Staff activity oversight') : 'Your consolidated workday records'}
+            {isAuditMode ? 'Consolidated organization tracking (First-In / Last-Out)' : 'Your consolidated workday records'}
           </p>
         </div>
-        <button 
-          onClick={fetchInitialData}
-          className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-indigo-600 transition-all"
-        >
-          <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex gap-2">
+          {isAdmin && isAuditMode && (
+            <button 
+              onClick={() => setShowAbsentModal(true)}
+              className="p-3 bg-rose-50 border border-rose-100 rounded-2xl shadow-sm text-rose-600 hover:bg-rose-100 transition-all flex items-center gap-2"
+            >
+              <UserX size={20} /> <span className="text-xs font-bold uppercase hidden md:inline">Mark Absent</span>
+            </button>
+          )}
+          <button 
+            onClick={fetchInitialData}
+            className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-primary transition-all"
+          >
+            <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </header>
 
       {/* Filter Bar */}
@@ -236,8 +269,8 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
             <input 
               type="text" 
-              placeholder="Search by date (YYYY-MM-DD)..."
-              className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50/50"
+              placeholder="Search by name, date or status..."
+              className="w-full pl-14 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-bold outline-none focus:ring-4 focus:ring-primary-light"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -278,7 +311,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
           <button 
             onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-            className="px-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] flex items-center justify-center gap-3 text-slate-500 hover:text-indigo-600 hover:bg-white transition-all whitespace-nowrap"
+            className="px-6 py-4 bg-slate-50 border border-slate-100 rounded-[1.5rem] flex items-center justify-center gap-3 text-slate-500 hover:text-primary hover:bg-white transition-all whitespace-nowrap"
           >
             {sortOrder === 'desc' ? <SortDesc size={20} /> : <SortAsc size={20} />}
             <span className="text-[10px] font-black uppercase tracking-widest">{sortOrder === 'desc' ? 'Latest' : 'Oldest'}</span>
@@ -304,15 +337,9 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.25rem] overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
                   {log.selfie ? (
-                    <img 
-                      src={log.selfie} 
-                      loading="lazy"
-                      className="w-full h-full object-cover scale-x-[-1]" 
-                    />
+                    <img src={log.selfie} loading="lazy" className="w-full h-full object-cover scale-x-[-1]" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-200">
-                      <Camera size={24} />
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-slate-200"><Camera size={24} /></div>
                   )}
                 </div>
                 <div className="space-y-1">
@@ -330,7 +357,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   </div>
                   <div className="flex flex-col gap-1">
                     {isAuditMode && (
-                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-tight">
+                      <p className="text-[10px] font-black text-primary uppercase tracking-tight">
                         {log.employeeName || emp?.name || 'Unknown User'} 
                         <span className="text-slate-300 ml-1">({emp?.employeeId || 'N/A'})</span>
                         <span className="mx-2 text-slate-300">•</span>
@@ -339,7 +366,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                     )}
                     <div className="flex items-center gap-4 text-slate-400">
                       <div className="flex items-center gap-1.5">
-                        <Clock size={12} className="text-indigo-500" />
+                        <Clock size={12} className="text-primary" />
                         <span className="text-[10px] font-black uppercase tracking-tight">{log.checkIn || '--:--'} — {log.checkOut || 'Active'}</span>
                       </div>
                       <div className="flex items-center gap-1.5 truncate max-w-[150px]">
@@ -350,12 +377,10 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   </div>
                 </div>
               </div>
-              
-              <ChevronRight className="text-slate-200 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all hidden sm:block" size={24} />
+              <ChevronRight className="text-slate-200 group-hover:text-primary group-hover:translate-x-1 transition-all hidden sm:block" size={24} />
             </div>
           );
         })}
-
         {!isLoading && filteredAndSortedLogs.length === 0 && (
           <div className="py-20 text-center space-y-4">
              <History size={48} className="mx-auto text-slate-100" />
@@ -368,7 +393,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       {selectedLog && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+            <div className="bg-primary p-8 flex justify-between items-center text-white">
               <div className="space-y-1">
                 <h3 className="text-xl font-black uppercase tracking-tight">
                   {isAuditMode ? (isAdmin ? 'Modify Audit Record' : 'Team Member Activity') : 'Log Details'}
@@ -386,9 +411,6 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-200 bg-slate-100"><Camera size={48} /></div>
                   )}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                     <Camera className="text-white" />
-                  </div>
                 </div>
 
                 <div className="flex-1 w-full space-y-6">
@@ -398,9 +420,60 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                       {selectedLog.employeeName || (isAdmin || isManager ? employees.find(e => e.id === selectedLog.employeeId)?.name : user.name)}
                     </p>
                     <p className="text-[10px] font-bold text-slate-500">
-                      Employee ID: {selectedLog.employeeId === user.id ? user.employeeId : (employees.find(e => e.id === selectedLog.employeeId)?.employeeId || selectedLog.employeeId)}
+                      ID: {selectedLog.employeeId === user.id ? user.employeeId : (employees.find(e => e.id === selectedLog.employeeId)?.employeeId || selectedLog.employeeId)}
                     </p>
                   </div>
+
+                  {/* Enhanced Policy Context: Now Editable for Ad-Hoc Calculation */}
+                  {isAdmin && (
+                    <div className="p-4 bg-primary-light/20 border border-primary-light rounded-2xl space-y-3">
+                       <div className="flex items-center justify-between">
+                          <p className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                            <Calculator size={10} /> Calculation Parameters
+                          </p>
+                          <span className="text-[8px] font-bold text-primary-hover uppercase tracking-widest">Does not save to DB</span>
+                       </div>
+                       
+                       <div className="flex gap-2">
+                          <div className="flex-1 space-y-1">
+                             <label className="text-[8px] font-black text-primary uppercase tracking-widest">Shift Start</label>
+                             <input 
+                               type="time" 
+                               className="w-full px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900" 
+                               value={tempShift.start} 
+                               onChange={e => setTempShift({...tempShift, start: e.target.value})}
+                             />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                             <label className="text-[8px] font-black text-primary uppercase tracking-widest">Shift End</label>
+                             <input 
+                               type="time" 
+                               className="w-full px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900" 
+                               value={tempShift.end} 
+                               onChange={e => setTempShift({...tempShift, end: e.target.value})}
+                             />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                             <label className="text-[8px] font-black text-primary uppercase tracking-widest">Grace (Min)</label>
+                             <input 
+                               type="number" 
+                               className="w-full px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900" 
+                               value={tempShift.grace} 
+                               onChange={e => setTempShift({...tempShift, grace: parseInt(e.target.value) || 0})}
+                             />
+                          </div>
+                       </div>
+
+                       <div className="flex justify-between items-center pt-1">
+                          <p className="text-[10px] font-medium text-primary">
+                             Duration: {calculateDuration(editState.checkIn || '', editState.checkOut || '')} Hrs
+                          </p>
+                          <button onClick={autoCalculateStatus} className="text-[9px] font-black text-white bg-primary px-3 py-1 rounded-lg uppercase tracking-widest hover:bg-primary-hover transition-colors">
+                             Recalculate Status
+                          </button>
+                       </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -428,7 +501,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                           <option value="LEAVE">Leave</option>
                         </select>
                       ) : (
-                        <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-indigo-600 uppercase">
+                        <div className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-primary uppercase">
                           {selectedLog.status}
                         </div>
                       )}
@@ -439,22 +512,24 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Earliest In</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Actual Check-In</label>
                     <input 
                       type="time" 
+                      step="1"
                       readOnly={!isAdmin}
-                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAdmin && 'opacity-70 cursor-not-allowed'}`}
-                      value={editState.checkIn}
+                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAdmin ? 'opacity-70 cursor-not-allowed' : 'focus:ring-4 focus:ring-primary-light transition-all'}`}
+                      value={editState.checkIn || ''} 
                       onChange={e => setEditState({...editState, checkIn: e.target.value})}
                     />
                  </div>
                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Workday Latest Out</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Actual Check-Out</label>
                     <input 
                       type="time" 
+                      step="1"
                       readOnly={!isAdmin}
-                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAdmin && 'opacity-70 cursor-not-allowed'}`}
-                      value={editState.checkOut}
+                      className={`w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-sm ${!isAdmin ? 'opacity-70 cursor-not-allowed' : 'focus:ring-4 focus:ring-primary-light transition-all'}`}
+                      value={editState.checkOut || ''}
                       onChange={e => setEditState({...editState, checkOut: e.target.value})}
                     />
                  </div>
@@ -469,14 +544,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                       <p className="text-xs font-bold text-slate-700">{selectedLog.location?.address}</p>
                       <p className="text-[9px] font-mono text-slate-400 mt-1">{selectedLog.location?.lat.toFixed(6)}, {selectedLog.location?.lng.toFixed(6)}</p>
                    </div>
-                   <a 
-                    href={`https://www.google.com/maps?q=${selectedLog.location?.lat},${selectedLog.location?.lng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-3 bg-white text-indigo-600 rounded-xl shadow-sm border border-indigo-50 hover:bg-indigo-600 hover:text-white transition-all"
-                  >
-                    <ExternalLink size={18} />
-                  </a>
+                   <a href={`https://www.google.com/maps?q=${selectedLog.location?.lat},${selectedLog.location?.lng}`} target="_blank" rel="noreferrer" className="p-3 bg-white text-primary rounded-xl shadow-sm border border-slate-50 hover:bg-primary hover:text-white transition-all"><ExternalLink size={18} /></a>
                 </div>
               </div>
 
@@ -494,32 +562,44 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
               <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-slate-50">
                 {isAdmin ? (
                   <>
-                    <button 
-                      onClick={() => handleDelete(selectedLog.id)}
-                      disabled={isProcessing}
-                      className="flex-1 py-5 bg-rose-50 text-rose-600 rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-rose-100 transition-all"
-                    >
-                      <Trash2 size={16} /> Delete Record
-                    </button>
-                    <button 
-                      onClick={handleUpdate}
-                      disabled={isProcessing}
-                      className="flex-[1.5] py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-indigo-700 transition-all"
-                    >
-                      {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />} 
-                      Save Corrections
-                    </button>
+                    <button onClick={() => handleDelete(selectedLog.id)} disabled={isProcessing} className="flex-1 py-5 bg-rose-50 text-rose-600 rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-rose-100 transition-all"><Trash2 size={16} /> Delete Record</button>
+                    <button onClick={handleUpdate} disabled={isProcessing} className="flex-[1.5] py-5 bg-primary text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-xl hover:bg-primary-hover transition-all">{isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />} Save Corrections</button>
                   </>
                 ) : (
-                  <button 
-                    onClick={() => setSelectedLog(null)}
-                    className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl"
-                  >
-                    Close Log View
-                  </button>
+                  <button onClick={() => setSelectedLog(null)} className="w-full py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl">Close Log View</button>
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Absent Modal */}
+      {showAbsentModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
+             <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+               <h3 className="text-sm font-black uppercase tracking-widest">Manual Absent Entry</h3>
+               <button onClick={() => setShowAbsentModal(false)}><X size={20}/></button>
+             </div>
+             <div className="p-8 space-y-6">
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase">Employee</label>
+                 <select className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={absentForm.employeeId} onChange={e => setAbsentForm({...absentForm, employeeId: e.target.value})}>
+                   <option value="">Select Employee</option>
+                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                 </select>
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase">Date of Absence</label>
+                 <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={absentForm.date} onChange={e => setAbsentForm({...absentForm, date: e.target.value})} />
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase">Reason / Remarks</label>
+                 <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold" value={absentForm.remarks} onChange={e => setAbsentForm({...absentForm, remarks: e.target.value})} />
+               </div>
+               <button onClick={handleManualAbsent} disabled={isProcessing} className="w-full py-4 bg-rose-600 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-rose-700 transition-all">Confirm Absent Record</button>
+             </div>
           </div>
         </div>
       )}
