@@ -1171,3 +1171,28 @@ You might have a "Cleaning" department with 5 staff but no dedicated Manager wit
 Solution: Set Workflow to HR so the requests skip the manager step and go directly to the HR portal.
 UI Improvement
 To make this concept crystal clear in the app, I am updating the Workflow Tab to visually display the Approval Path based on your selection. This way, you can see exactly which steps are being enforced or skipped.
+
+
+### Can we add a module for system wide theme - like users can change their app theme including - buttons color, tables, others UI?
+
+### Please on the employee dashboard for mobile responsive My Team and reports to make in parallel and new leave button in the below make as much as small but need looks better
+
+### Great - I want you to implement the theme change with modal color with entire app wise button color change, and also heading and font color, if possible.
+
+### Employee My Application History Leave Request Pending  Manager alignment not looks good, overlapped or broken on the responsive mobile devices.
+
+### Now let's focus on leave approval email - Can we add on all leave reports queue by default hr@vclbd.net or admin email address? So, that any leave request placed by employee and manager approved or reject response will be send as email alerts to admin email, and by this admin can aware what's going on without login into the app.
+Please explain your thoughts
+
+### AI Response
+Yes, we can absolutely implement this. It is a very effective way to keep administrators in the loop without requiring them to actively check the dashboard.
+I will update the PocketBase server-side hooks (pb_hooks/main.pb.js) to include an automatic email trigger to hr@vclbd.net for:
+New Leave Requests: When an employee submits a form.
+Status Updates: When a manager or HR Approves/Rejects a request.
+This ensures you have a complete passive audit trail in your inbox.
+Specification
+Backend Hooks (pb_hooks/main.pb.js):
+Define MONITOR_EMAIL = "hr@vclbd.net".
+In onRecordAfterCreateSuccess (New Leave): Queue an email to the monitor address with the subject [Admin] New Leave Request: <Employee Name>.
+In onRecordAfterUpdateSuccess (Status Change): Queue an email to the monitor address with the subject [Admin] Leave Update: <Employee Name> -> <STATUS>.
+Include details like Leave Type, Duration, Reason, and Evaluator Remarks in the email body.
