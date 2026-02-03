@@ -12,8 +12,8 @@ interface LoginProps {
 const BrandLogo = () => (
   <div className="flex flex-col items-center justify-center gap-6">
     <div className="relative w-24 h-24 md:w-32 md:h-32">
-      <div className="absolute inset-0 bg-teal-900/10 rounded-[2rem] blur-2xl transform translate-y-2"></div>
-      <div className="relative w-full h-full bg-[#064e3b] rounded-[1.75rem] shadow-2xl flex items-center justify-center p-5 border-4 border-white">
+      <div className="absolute inset-0 bg-primary-light blur-[50px] rounded-full -z-10 opacity-50"></div>
+      <div className="relative w-full h-full bg-primary rounded-[1.75rem] shadow-2xl flex items-center justify-center p-5 border-4 border-white">
         <img 
           src="./img/logo.png" 
           className="w-full h-full object-contain drop-shadow-md" 
@@ -23,7 +23,7 @@ const BrandLogo = () => (
     </div>
     <div className="text-center">
       <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center justify-center">
-        <span className="text-[#2563eb]">Open</span>
+        <span className="text-primary">Open</span>
         <span className="text-[#f59e0b]">HR</span>
         <span className="text-[#10b981]">App</span>
       </h1>
@@ -125,7 +125,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#f8fafc] items-center justify-center p-4 relative overflow-hidden">
       {/* Dynamic Background */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 blur-[100px] rounded-full -z-10"></div>
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-light blur-[100px] rounded-full -z-10"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-teal-500/5 blur-[100px] rounded-full -z-10"></div>
       
       <div className="w-full max-w-[400px] animate-in fade-in zoom-in duration-500">
@@ -141,11 +141,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
                   <div className="relative group">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
+                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
                     <input 
                       type="email" 
                       required 
-                      className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 placeholder:text-slate-300" 
+                      className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300" 
                       value={email} 
                       onChange={e => setEmail(e.target.value)} 
                       placeholder="e.g. name@company.com" 
@@ -156,11 +156,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Security Credentials</label>
                   <div className="relative group">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10" size={18} />
+                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
                     <input 
                       type={showPassword ? "text" : "password"} 
                       required 
-                      className="w-full pl-14 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 placeholder:text-slate-300" 
+                      className="w-full pl-14 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300" 
                       value={password} 
                       onChange={e => setPassword(e.target.value)} 
                       placeholder="Your secret key" 
@@ -168,7 +168,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
                     <button 
                       type="button" 
                       onClick={() => setShowPassword(!showPassword)} 
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-blue-500 transition-colors z-10 p-1"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors z-10 p-1"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -187,7 +187,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
                 <button 
                   type="submit" 
                   disabled={isLoading} 
-                  className="w-full py-4 bg-[#2563eb] text-white rounded-[1.25rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-2"
+                  className="w-full py-4 bg-primary text-white rounded-[1.25rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary-light hover:bg-primary-hover active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-2"
                 >
                   {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <>Continue <ArrowRight size={16} /></>}
                 </button>
@@ -197,7 +197,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
                    <button 
                      type="button"
                      onClick={handleInstallClick}
-                     className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                     className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 hover:text-primary transition-colors"
                    >
                      <Download size={12} /> {canPrompt ? 'Install Now' : 'Install Guide'}
                    </button>
@@ -234,7 +234,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
            <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 border border-slate-100">
               <div className="flex justify-between items-center mb-6">
                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
-                   <Download size={16} className="text-indigo-600"/> Install Guide
+                   <Download size={16} className="text-primary"/> Install Guide
                  </h3>
                  <button onClick={() => setShowInstallHelp(false)} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-900 transition-colors"><X size={16}/></button>
               </div>
@@ -266,14 +266,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, initError }) => {
                          <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Browser Menu</span> (3 dots)</div>
                       </div>
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
-                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-indigo-600"><Download size={18} /></div>
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary"><Download size={18} /></div>
                          <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span> or <span className="text-slate-900">Add to Home Screen</span></div>
                       </div>
                    </div>
                 </div>
               )}
               
-              <button onClick={() => setShowInstallHelp(false)} className="w-full mt-6 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-200">Close Instructions</button>
+              <button onClick={() => setShowInstallHelp(false)} className="w-full mt-6 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-light">Close Instructions</button>
            </div>
         </div>
       )}

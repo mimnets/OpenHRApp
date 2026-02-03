@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { User as UserType, Employee } from '../types';
+import { ThemeSelector } from '../components/settings/ThemeSelector';
 
 interface SettingsProps {
   user: UserType;
@@ -115,11 +116,14 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         <div className="flex items-center gap-4">
           {onBack && <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>}
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Profile</h1>
-            <p className="text-slate-500 font-medium">Manage your identity and personal preferences</p>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">System & Profile</h1>
+            <p className="text-slate-500 font-medium">Manage preferences, appearance, and personal data</p>
           </div>
         </div>
       </header>
+
+      {/* Theme Selector Module */}
+      <ThemeSelector />
 
       {!profile ? (
         <ProfileSkeleton />
@@ -127,7 +131,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         <div className="max-w-3xl">
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-8 animate-in slide-in-from-left-4">
             <div className="flex items-center gap-4 border-b border-slate-50 pb-8">
-              <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-600 font-black text-2xl uppercase relative overflow-hidden">
+              <div className="w-20 h-20 bg-primary-light rounded-[2rem] flex items-center justify-center text-primary font-black text-2xl uppercase relative overflow-hidden">
                  {profile.avatar ? <img src={profile.avatar} className="w-full h-full object-cover" /> : profile.name?.[0]}
               </div>
               <div>
@@ -155,14 +159,14 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={profile.name || ''} onChange={e => setProfile({...profile, name: e.target.value})} />
+                  <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={profile.name || ''} onChange={e => setProfile({...profile, name: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Work Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="email" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
+                  <input type="email" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -170,7 +174,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             {/* Password Section */}
             <div className="pt-6 border-t border-slate-50">
                <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 mb-4">
-                  <Lock size={16} className="text-indigo-500"/> Security Settings
+                  <Lock size={16} className="text-primary"/> Security Settings
                </h4>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
@@ -180,7 +184,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                       <input 
                         type={showPassword ? "text" : "password"} 
                         placeholder="Leave blank to keep current"
-                        className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" 
+                        className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" 
                         value={newPassword}
                         onChange={e => setNewPassword(e.target.value)}
                       />
@@ -196,7 +200,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                       <input 
                         type={showPassword ? "text" : "password"} 
                         placeholder="Confirm changes"
-                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" 
+                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" 
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                       />
@@ -206,7 +210,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button onClick={handleSave} disabled={isSaving} className="px-12 py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all flex items-center gap-3">
+              <button onClick={handleSave} disabled={isSaving} className="px-12 py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all flex items-center gap-3 hover:bg-primary">
                 {isSaving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />} 
                 Update My Info
               </button>

@@ -48,7 +48,7 @@ interface EmployeeDirectoryProps {
 
 const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
-  const isManager = user?.role === 'MANAGER';
+  const isManager = user?.role === 'MANAGER' || user?.role === 'TEAM_LEAD';
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -81,15 +81,20 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       setTeams(teamsList);
       
       let filteredData = data;
+      
       if (!isAdmin) {
-        // MANAGER: Strictly see people in their team OR people reporting to them
         if (isManager) {
+          // STRICT MANAGER LOGIC: 
+          // 1. Find teams where I am the Leader
+          const myLedTeamIds = teamsList.filter(t => t.leaderId === user.id).map(t => t.id);
+          
+          // 2. Show employees who are in those teams OR report directly to me
           filteredData = data.filter(e => 
-            (user.teamId && e.teamId === user.teamId) || 
+            (e.teamId && myLedTeamIds.includes(e.teamId)) || 
             (e.lineManagerId === user.id)
           );
         } else {
-          // EMPLOYEE: See only teammates
+          // EMPLOYEE LOGIC: Only see teammates (Peers)
           filteredData = data.filter(e => user.teamId && e.teamId === user.teamId);
         }
       }
@@ -252,14 +257,14 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
             {isAdmin ? 'Organization Directory' : (isManager ? 'My Team & Reports' : 'My Teammates')}
           </h1>
           <p className="text-sm text-slate-500 font-medium tracking-tight">
-            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} members within your team.`}
+            {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} members within your scope.`}
           </p>
         </div>
         {isAdmin && (
           <div className="flex gap-2">
             <button 
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary-hover shadow-xl transition-all"
             >
               <UserPlus size={16} /> Provision New User
             </button>
@@ -273,7 +278,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
           <input 
             type="text" 
             placeholder="Search by name, ID, or designation..."
-            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary-light transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -307,13 +312,13 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                     <h3 className="font-black text-slate-900 text-sm md:text-base leading-tight break-words" title={emp.name}>
                       {emp.name}
                     </h3>
-                    <p className="text-[9px] md:text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">
+                    <p className="text-[9px] md:text-[10px] font-black text-primary uppercase tracking-widest mt-1">
                       {emp.designation || 'Staff'}
                     </p>
                   </div>
                   {isAdmin && (
                     <div className="flex gap-0.5 flex-shrink-0 bg-slate-50/80 p-1 rounded-lg" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => handleOpenEdit(emp)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"><Edit size={14} /></button>
+                      <button onClick={() => handleOpenEdit(emp)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-white rounded-md transition-all"><Edit size={14} /></button>
                       <button onClick={() => handleDelete(emp.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all"><Trash2 size={14} /></button>
                     </div>
                   )}
@@ -339,7 +344,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                 <Mail size={10} className="flex-shrink-0" />
                 <span className="text-[9px] font-bold truncate">{emp.email}</span>
               </div>
-              <span className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${emp.role === 'ADMIN' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}`}>
+              <span className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${emp.role === 'ADMIN' ? 'bg-rose-100 text-rose-700' : 'bg-primary-light text-primary'}`}>
                 {emp.role}
               </span>
             </div>
@@ -357,7 +362,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       {showViewModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+            <div className="bg-primary p-8 flex justify-between items-center text-white">
               <h3 className="text-xl font-black uppercase tracking-tight">Personnel Profile</h3>
               <button onClick={() => setShowViewModal(null)} className="hover:bg-white/10 p-2 rounded-xl transition-all"><X size={28} /></button>
             </div>
@@ -365,31 +370,31 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className="relative">
                   <img src={showViewModal.avatar || `https://ui-avatars.com/api/?name=${showViewModal.name}`} className="w-32 h-32 rounded-[2.5rem] object-cover bg-slate-100 shadow-xl border-4 border-white" />
-                  <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl border-2 border-white flex items-center justify-center ${showViewModal.role === 'ADMIN' ? 'bg-rose-500' : 'bg-indigo-500 shadow-lg'}`}>
+                  <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl border-2 border-white flex items-center justify-center ${showViewModal.role === 'ADMIN' ? 'bg-rose-500' : 'bg-primary shadow-lg'}`}>
                     <ShieldCheck size={16} className="text-white" />
                   </div>
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-900">{showViewModal.name}</h3>
-                  <p className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em]">{showViewModal.designation}</p>
+                  <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">{showViewModal.designation}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Hash size={12} className="text-indigo-500" /> Employee ID</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Hash size={12} className="text-primary" /> Employee ID</p>
                    <p className="font-black text-slate-700">{showViewModal.employeeId}</p>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Building2 size={12} className="text-indigo-500" /> Department</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Building2 size={12} className="text-primary" /> Department</p>
                    <p className="font-black text-slate-700">{showViewModal.department}</p>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Mail size={12} className="text-indigo-500" /> Work Email</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Mail size={12} className="text-primary" /> Work Email</p>
                    <p className="font-black text-slate-700 truncate">{showViewModal.email}</p>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12} className="text-indigo-500" /> Team Name</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12} className="text-primary" /> Team Name</p>
                    <p className="font-black text-slate-700">{getTeamName(showViewModal.teamId)}</p>
                 </div>
               </div>
@@ -409,7 +414,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       {showModal && isAdmin && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] w-full max-w-3xl shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
+            <div className="bg-primary p-8 flex justify-between items-center text-white">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white/10 rounded-2xl"><UserPlus size={24}/></div>
                 <h3 className="text-xl font-black uppercase tracking-tight">{editingId ? 'Modify Account' : 'Provision Account'}</h3>
@@ -440,17 +445,19 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                   <div className="md:col-span-2 space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
-                    <input type="text" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.name} onChange={e => setFormState({...formState, name: e.target.value})} />
+                    <input type="text" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.name} onChange={e => setFormState({...formState,name:e.target.value})} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1"><Hash size={10} /> Official Employee ID</label>
-                    <input type="text" placeholder="e.g. EMP-2024-001" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 border-indigo-100" value={formState.employeeId} onChange={e => setFormState({...formState, employeeId: e.target.value})} />
+                    <input type="text" placeholder="e.g. EMP-2024-001" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light border-indigo-100" value={formState.employeeId} onChange={e => setFormState({...formState, employeeId: e.target.value})} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Access Level</label>
-                    <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.role} onChange={e => setFormState({...formState, role: e.target.value as any})}>
+                    <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.role} onChange={e => setFormState({...formState, role: e.target.value as any})}>
                       <option value="EMPLOYEE">Employee</option>
                       <option value="MANAGER">Manager</option>
+                      <option value="TEAM_LEAD">Team Leader</option>
+                      <option value="MANAGEMENT">Management</option>
                       <option value="HR">HR Specialist</option>
                       <option value="ADMIN">Administrator</option>
                     </select>
@@ -473,7 +480,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                       type={showPassword ? "text" : "password"} 
                       required={!editingId} // Required only on creation
                       placeholder={editingId ? "Leave blank to keep current" : "Set login password"}
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" 
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" 
                       value={formState.password} 
                       onChange={e => setFormState({...formState, password: e.target.value})} 
                     />
@@ -485,20 +492,20 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Team</label>
-                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.teamId} onChange={e => setFormState({...formState, teamId: e.target.value})}>
+                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.teamId} onChange={e => setFormState({...formState, teamId: e.target.value})}>
                     <option value="">No Team Assigned</option>
                     {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Department</label>
-                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.department} onChange={e => setFormState({...formState, department: e.target.value})}>
+                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.department} onChange={e => setFormState({...formState, department: e.target.value})}>
                     {depts.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Designation</label>
-                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50" value={formState.designation} onChange={e => setFormState({...formState, designation: e.target.value})}>
+                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.designation} onChange={e => setFormState({...formState, designation: e.target.value})}>
                     {desigs.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
@@ -506,7 +513,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
 
               <div className="pt-8 border-t border-slate-50 flex flex-col sm:flex-row gap-4">
                 <button type="button" disabled={isSubmitting} onClick={() => setShowModal(false)} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[2rem] font-black uppercase text-[11px] tracking-widest">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-1 py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-[11px] tracking-widest shadow-2xl flex items-center justify-center gap-3">
+                <button type="submit" disabled={isSubmitting} className="flex-1 py-5 bg-primary text-white rounded-[2rem] font-black uppercase text-[11px] tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:bg-primary-hover">
                    {isSubmitting ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />}
                    {editingId ? 'Update Profile' : 'Provision User'}
                 </button>

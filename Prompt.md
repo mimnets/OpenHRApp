@@ -727,7 +727,6 @@ mobile-logo-mAsSVtBr.png
 Please check and explain if something wrong
 
 
-
 ### AI Response
 Yes, something is wrong.
 Your build output shows that your PWA files (manifest.json, logos, etc.) are being processed, hashed, and moved into the assets/ folder by the bundler.
@@ -828,3 +827,347 @@ You should now see manifest.json, sw.js and an img folder sitting right next to 
 Upload all contents of dist to your web host.
 
 ### Application Manifest showing error, please see the attached screenshot and guide.
+
+# 03.02.26
+
+### Please share current app structure like module and component wise and also share your thoughts and ideas how to divide our codes where long codes with so many functions are there which cause the code breaks and UI, and logic breaks when we tries to implement new features.
+
+For example until yesterday our auto session close was works fine, but yesterday we implement few new features and that breaks the auto employee active session when the timer was sets.
+
+So, for this reason I want you to divide our app code into small chunks and blocks or components for UI, Theme, Functions, Modules etc
+
+### AI Response
+Here is the analysis of your current structure and the strategy to fix the fragility issues you are experiencing (like the auto-session bug).
+1. Current App Structure Analysis
+Your current structure is "Page-Centric". You have massive files where UI, Business Logic, Data Fetching, and Helper functions are all mixed together.
+Current Structure:
+code
+Text
+/src
+  ├── components/          (Contains mixed UI elements)
+  ├── pages/               (HUGE files: Organization.tsx, Attendance.tsx)
+  ├── services/            (hrService.ts is a "God Object" doing too much)
+  ├── types.ts             (Good, centralized types)
+  └── App.tsx              (Router logic)
+Why it breaks (The Diagnosis):
+"God" Components: Organization.tsx handles Departments, Teams, Holidays, and Settings. If you edit the Holiday logic, you might accidentally break the Team logic because they share the same state variables and useEffect hooks.
+Fragile useEffect chains: In Attendance.tsx, your auto-session logic likely broke because it depends on state variables that change too often (like stream or location). When you added new features, you likely triggered a re-render that reset the timer or the session check.
+Tight Coupling: hrService.ts contains Auth, Employee management, and Reporting. If you change a function signature for Reporting, it shouldn't risk breaking Auth, but currently, it might.
+2. The Refactoring Plan
+To fix this, we need to move to a Feature-Based or Domain-Based structure.
+Proposed Structure:
+code
+Text
+/src
+  ├── components/
+  │    ├── ui/             <-- Reusable "Dumb" UI (Buttons, Cards, Modals)
+  │    ├── attendance/     <-- Attendance specific components (Camera, Map)
+  │    └── organization/   <-- Organization sub-tabs (Structure, Teams)
+  ├── hooks/               <-- LOGIC ONLY. (useCamera, useLocation, useSession)
+  ├── pages/               <-- Thin wrappers that just assemble components
+  └── services/
+3. Implementation
+I will now perform the following changes to satisfy your request:
+Fix Attendance.tsx: I will extract the complex logic (Camera & Location) into custom Hooks. This isolates the "Auto Session" logic so UI changes (like adding a flashlight button) don't break the logic.
+Refactor Organization.tsx: I will break this massive file into smaller components (OrgStructure, OrgTeams), making it much easier to maintain.
+
+
+### Looks good, but there are two components folders i have found - why
+
+### here is the curent app folders and file structure:
+
+/src
+
+  ├── components/          (Contains mixed UI elements)
+
+  ├── pages/               (HUGE files: Organization.tsx, Attendance.tsx)
+
+  ├── services/            (hrService.ts is a "God Object" doing too much)
+
+  ├── types.ts             (Good, centralized types)
+
+  └── App.tsx              (Router logic)
+
+
+
+And then migrate to :
+
+/src
+
+  ├── components/
+
+  │    ├── ui/             <-- Reusable "Dumb" UI (Buttons, Cards, Modals)
+
+  │    ├── attendance/     <-- Attendance specific components (Camera, Map)
+
+  │    └── organization/   <-- Organization sub-tabs (Structure, Teams)
+
+  ├── hooks/               <-- LOGIC ONLY. (useCamera, useLocation, useSession)
+
+  ├── pages/               <-- Thin wrappers that just assemble components
+
+  └── services/
+
+
+
+please explain how can we improve more and please share what files should move or keep into which folders?
+
+### AI Response
+
+This is a fantastic step in the right direction. Moving from a "file-per-page" monolithic structure to a Feature-First Architecture is exactly how scalable React apps are built.Here is how you can improve your proposed structure further, along with a concrete guide on exactly which files should move where.1. The Missing Pieces: What to AddYour proposed structure is great, but it lacks a few "glue" layers that professional apps need. I recommend adding these three folders:src/layouts/: App.tsx should usually just handle routing. The actual "shell" of your app (Sidebar, Navbar, Footer wrapper) should live here.src/utils/: Where do you put date formatters, math helpers, or string manipulators? If you don't have a folder for them, they end up cluttering your components.src/context/: For global state that isn't URL-based (like AuthContext for user login sessions or ThemeContext).2. Migration Guide: What Moves Where?Here is the breakdown of how to dismantle your current "HUGE files" and "God Objects."A. The "God Object" (hrService.ts)Problem: A single file handling all API calls makes it impossible to find code and creates merge conflicts.Solution: Split by Domain Entity.Move: src/services/hrService.ts $\rightarrow$ Split into src/services/auth.service.ts: Login, logout, token refresh.employee.service.ts: Fetch employees, update profiles, onboard new hires.attendance.service.ts: Clock-in, clock-out, fetch logs, location validation.organization.service.ts: Fetch org charts, department lists.api.client.ts: (New file) A centralized generic setup (like Axios instance) with interceptors that all other services use.B. The Bloated Page (Attendance.tsx)Problem: It likely holds state (isLoading, userLocation, cameraPermission), logic (distance calculation), and UI (Maps, Camera view).Solution: Extract Logic to Hooks and UI to Components.Logic Moves to: src/hooks/attendance/useGeoLocation.ts: Handles getting browser coordinates and error handling.useCamera.ts: Handles requesting camera access and taking a snapshot.useAttendanceSubmit.ts: Connects to attendance.service.ts to post data.UI Moves to: src/components/attendance/AttendanceMap.tsx: Just renders the map (dumb component).CameraFeed.tsx: Just renders the video stream.StatusCard.tsx: Shows "On Time" or "Late".What stays in pages/Attendance.tsx?Only the "wiring." It calls the hooks and passes the data into the components. It should be less than 50 lines of code.C. The Bloated Page (Organization.tsx)Problem: likely contains huge lists, tree structures for the org chart, and complex filtering.Solution:Logic Moves to: src/hooks/organization/useOrgHierarchy.ts: Fetches data and transforms flat SQL-like data into a Tree structure for the UI.UI Moves to: src/components/organization/OrgChart.tsx: The visual tree renderer.DepartmentList.tsx: A table or list view of departments.EmployeeCard.tsx: The small card showing an employee's face and role.3. The Final "Gold Standard" StructureHere is the recommended final folder tree for your HR App:Plaintext/src
+  ├── assets/                 <-- Images, global CSS, logos
+  ├── components/
+  │    ├── ui/                <-- "Dumb" atoms (Button, Input, Card, Modal)
+  │    ├── attendance/        <-- Feature: CameraFeed, MapView, CheckInButton
+  │    ├── organization/      <-- Feature: OrgChart, EmployeeCard, DeptList
+  │    └── layout/            <-- Sidebar, Header, PageWrapper
+  ├── context/                <-- Global State (AuthContext.tsx, ThemeContext.tsx)
+  ├── hooks/
+  │    ├── common/            <-- Generic (useClickOutside, useWindowSize)
+  │    └── features/          <-- Domain specific (useEmployeeData, useCheckIn)
+  ├── layouts/                <-- DashboardLayout.tsx (contains Sidebar + Outlet)
+  ├── pages/                  <-- Routes (Dashboard.tsx, Attendance.tsx)
+  ├── services/               <-- API calls (attendance.api.ts, employee.api.ts)
+  ├── utils/                  <-- Helpers (dateFormatter.ts, distanceCalc.ts)
+  ├── types/                  <-- Split types if types.ts gets too big
+  ├── App.tsx                 <-- Providers + Router only
+  └── main.tsx
+4. How to start (Don't do it all at once)Refactoring everything at once will break the app. Do it in this order:Extract the "UI" components first. Move Buttons, Cards, and Inputs to components/ui. Replace them in your big pages.Break the Service. Split hrService.ts into smaller files. Update imports.Tackle one Page. Take Attendance.tsx, move the logic to a custom hook, and move the sub-sections to components.
+
+### Please create a separate module or folder to manage the pocketbase database url
+
+### Migration Guide: What Moves Where?Here is the breakdown of how to dismantle your current "HUGE files" and "God Objects."A. The "God Object" (hrService.ts)Problem: A single file handling all API calls makes it impossible to find code and creates merge conflicts.Solution: Split by Domain Entity.Move: src/services/hrService.ts 
+ Split into src/services/auth.service.ts: Login, logout, token refresh.employee.service.ts: Fetch employees, update profiles, onboard new hires.attendance.service.ts: Clock-in, clock-out, fetch logs, location validation.organization.service.ts: Fetch org charts, department lists.api.client.ts: (New file) A centralized generic setup (like Axios instance) with interceptors that all other services use.
+
+### AI Response
+
+I will restructure the services/hrService.ts "God Object" into focused, domain-specific services as requested. This will modularize the application logic and make it scalable.
+services/api.client.ts: Handles the core PocketBase instance, helper utilities, and the event subscription bus.
+services/auth.service.ts: Manages authentication sessions, logins, and password resets.
+services/employee.service.ts: Handles employee CRUD operations.
+services/attendance.service.ts: Manages attendance records and logic.
+services/leave.service.ts: Separated leave management logic for better organization.
+services/organization.service.ts: Handles configuration, departments, teams, holidays, and system emails.
+services/hrService.ts: Refactored to act as a Facade, re-exporting the functionality from the new services to maintain backward compatibility with the rest of the app.
+
+### B. The Bloated Page (Attendance.tsx)
+Problem: It likely holds state (isLoading, userLocation, cameraPermission), logic (distance calculation), and UI (Maps, Camera view). Solution: Extract Logic to Hooks and UI to Components.
+
+Logic Moves to: src/hooks/attendance/
+
+useGeoLocation.ts: Handles getting browser coordinates and error handling.
+
+useCamera.ts: Handles requesting camera access and taking a snapshot.
+
+useAttendanceSubmit.ts: Connects to attendance.service.ts to post data.
+
+What stays in pages/Attendance.tsx?
+
+Only the "wiring." It calls the hooks and passes the data into the components. It should be less than 50 lines of code.
+
+C. The Bloated Page (Organization.tsx)
+Problem: likely contains huge lists, tree structures for the org chart, and complex filtering. Solution:
+
+Logic Moves to: src/hooks/organization/
+
+useOrgHierarchy.ts: Fetches data and transforms flat SQL-like data into a Tree structure for the UI.
+
+UI Moves to: src/components/organization/
+
+OrgChart.tsx: The visual tree renderer.
+
+DepartmentList.tsx: A table or list view of departments.
+
+EmployeeCard.tsx: The small card showing an employee's face and role.
+
+### AI Response
+
+I will implement the requested refactoring to modularize the Attendance and Organization domains. This involves extracting logic into dedicated hooks folders and cleaning up the page components to focus solely on UI composition.
+Changes Summary
+Attendance Domain:
+Created hooks/attendance/useCamera.ts: Manages hardware camera access, streams, and torch.
+Created hooks/attendance/useGeoLocation.ts: Handles GPS coordinates and geofencing against office locations.
+Created hooks/attendance/useAttendance.ts: Encapsulates fetching current status, calculating punch status (Late/Present), and submitting records.
+Refactored pages/Attendance.tsx: Now purely "glues" these hooks to the UI components.
+Organization Domain:
+Created hooks/organization/useOrganization.ts: Consolidates the fetching and CRUD logic for Departments, Teams, Holidays, and Settings into a single hook.
+Refactored pages/Organization.tsx: Simplified to use the hook, removing ~100 lines of state management code from the view.
+
+### Thanks - as you re-constructed the files and folders refactoring - Please create a md files with details step by step what folders and what files are created for what reason and what functions and features are on it.
+So, that any one can easily have an idea when they needs to learn about our systems.
+And also check entire app structures carefully by every files and folders then share a reports which files or folders are unnecessary.
+
+This will help us to clean the app 
+
+### Please help Placement, Terms, Workflow, Leaves (missing assignment to employee), Holidays tabs showing: Tab content hidden for brevity in refactor example.
+
+### Can we implement on the Terms:
+Field Name	Example Data
+Shift Start	09:00:00
+Shift End	18:30:00
+Actual Check-in	08:45:00 (Early)
+Actual Check-out	19:00:00 (OT)
+Effective Hours	9.5 Hours
+
+And also include when auto session close will be impact, if employee forget to check out, because sometimes it is not mandatory to follow strict check out, so include an options if follow strict check in and check out
+
+### Great - But need to admin can edit modify the shift start and shift end along with actual check -in, actual check-out.
+and also must a have grace period for check in and check out.
+
+Also be-careful for reporting first check-in and last check-out, because employee might be check-in and check-out multiple times.
+
+And can we add an option turn on or off, if someone didn't check-in by intentionally and or by mistake there will be certain options to select if employee forgets to check-in then it stores to database as absent as like auto session close?
+
+If need to add as module or features as there might lots of function, please separate for clean and safe coding.
+
+### Still unable to edit the shift start and shift end time and actual check in time
+
+### Please add a Actual Check-in and check out form filed to for admin to change
+
+### Please remove policy impact preview from Terms
+and add modifiable by admin:
+Actual Check-in	Field
+Actual Check-out Field
+as like office start and end time
+If you don't understand, please ask
+
+### Thanks - Please think and modify: Rename Test Check-in and Test Check-out to actual check-in actual check-out or allowed check-in and allowed max check-out if someone wants to check in early and someone check-out even after office time over. remember if max clock out set at anytime it should work as auto close session.
+
+Can you implement this, if you don't understand please ask
+
+
+### Yes - This is the features I want. Please remove Policy simulator and strict attendance mode too and make sure for attendance reports to records in the database if anyone check in after office start time including grace period then the employee attendance records will be late.
+
+And also please check if the Allowed Max Check-Out & Auto-close session time is actually works! Because I have set the time at 2:26PM and start a check in session at 2:24PM and when it clock hits to 2:26PM the session didn't closed.
+Need to fix this
+
+### That's awesome - could you please add a separate files as module or feature with the name terms - this will keep all the terms related to attendance, shift, etc. So, that this won't change if we make changes in side the organizations. please provide your opinion.
+
+### This looks great - I need you to shift as module for rest of the Organization Items or Tabs - Structure, Teams, Placement, Workflow, Leaves, Holidays.
+Please be careful to keep all the features and settings are as it is.
+
+### I want same for Dashboard Separate Module for Admin & HR, and also for Employee, and Manager, if they are not separated.
+Please share your opinion.
+
+### For employee dashboard new leave request button, team details, office and factory button can be little small so that on responsive devices the would window will within a screen frame, I mean so user no need to scroll. Please share your thoughts.
+
+### Please explain step by step for my understandings - check the entire systems codes one by one and tell me how our leave workflow will works?
+As we have team and departments and there are no line manager selection options.
+If you think we can go with only team or department wise then guide me step by step and also guide me if is there any possibilities for adding modules for well structured coding?
+
+### AI Response
+Here is the step-by-step breakdown of how the Leave Workflow functions in your current codebase, identifying the gaps and how we can fix them to work seamlessly with your Teams and Departments structure.
+1. Current Workflow Analysis
+Currently, there is a disconnection between Teams and Leave Requests.
+Organization Setup: You create a Team (e.g., "Developers") and assign a Team Lead.
+Employee Setup: You create an Employee and assign them to the "Developers" Team.
+The Gap: Currently, assigning a team does not automatically tell the database that the "Team Lead" is the "Line Manager". The line_manager_id field in the database remains empty.
+Leave Submission: An employee submits a leave.
+The Logic: The code sets the status to PENDING_MANAGER.
+Manager Dashboard: The manager logs in.
+The Issue: The manager looks for leaves where line_manager_id matches their ID. Since it was never set, they might not see the request, or the code falls back to checking "Same Team ID", which is reliable only if the Manager is also a member of that team (not just the leader).
+2. The Solution: Automating "Team Lead = Line Manager"
+Since you don't want a manual "Select Line Manager" dropdown (which is tedious), we should automate this.
+The Logic we will implement:
+When you save a Team in the Organization tab:
+The system identifies the Team Lead.
+The system identifies all Members.
+It automatically updates every Member's profile in the database, setting their line_manager_id to the Team Lead.
+This makes the workflow:
+Admin sets up Team & Lead.
+Employee submits Leave -> System knows exactly who the Lead is.
+Lead (Manager) sees the request instantly.
+3. Implementation Plan
+I will update two files to perfect this workflow:
+useOrganization.ts: Update the saveTeam function. When a team is saved, it will forcefully update every member's line_manager_id to match the Team Leader.
+leave.service.ts: Update the save logic to check the Approval Matrix. If your Department is set to "HR Only" approval, it should skip the Manager and go straight to PENDING_HR.
+
+### Please fix - if no leave is assigned like annual, casual, sick it should check if assigned or entitled then can apply for it. I can apply for annual leave whereas I have no entitled annual leave.
+
+Please check and share your opinion.
+
+### There something not okay for leave workflow - Please make separate modules for employee, team leader, line manager, management, admin & hr.
+and have specific guidelines for all and share and guide me
+
+### AI Response
+This is a significant architectural improvement. To support a robust, multi-tier hierarchy (Employee → Team Lead → Manager → Management → HR), we need to modularize the Leave System.
+Here is the strategy to implement distinct modules and specific guidelines:
+1. Conceptual Hierarchy
+Since your database uses a line_manager_id field, we will use a Chain of Command logic. This allows a single "Approver" module to serve Team Leaders, Line Managers, and Upper Management dynamically:
+Employee: Submits request.
+Team Leader: If the Employee reports to them, they approve first.
+Line Manager: If a Team Lead reports to them, they approve the Team Lead's request.
+Management: If a Manager reports to them, they approve.
+HR: Final verification step for all approved requests before payroll.
+Admin: Configuration and overrides.
+2. Implementation Plan
+I will separate the Leave.tsx page into distinct, clean modules and add a Guidelines System that explains the rules to the user.
+Changes Overview:
+types.ts: Add MANAGEMENT and TEAM_LEAD to roles for clarity.
+Leave.tsx: The main controller that decides which module to load based on role.
+LeaveGuidelines.tsx: A new component showing the specific rules for the logged-in user.
+EmployeeLeaveModule.tsx: Focuses purely on application and personal history.
+ManagerialLeaveModule.tsx: Handles approvals for Team Leads, Managers, and Management.
+HRLeaveModule.tsx: Handles final processing and reporting.
+
+
+### please clear the teams and workflow concept for leave approval and why a non team members showing in the team directory from team managers portal?
+
+### AI Response
+
+Here is the explanation of the concept and the fix for the visibility issue.
+1. The Leave Workflow & Team Concept
+To ensure the system works logically, you must understand the relationship between Membership and Leadership.
+The Setup Flow:
+Create Team: In Organization > Teams, you create a team (e.g., "Developers") and assign a Leader (e.g., "John Doe").
+Assign Members: You add employees to this team.
+The Automation: When you save, the system updates every member's profile:
+team_id = ID of "Developers" team.
+line_manager_id = ID of "John Doe".
+The Approval Workflow:
+Application: Employee applies for leave.
+Routing: The system checks the employee's line_manager_id.
+Manager View: John Doe logs in. The system queries: "Show me leave requests where line_manager_id is John Doe".
+Approval: John Doe approves.
+HR Stage: The status changes to PENDING_HR. HR sees all requests with this status and finalizes them.
+2. Why were you seeing non-team members? (The Bug)
+The Issue:
+The previous logic checked: "Is this employee in the same team ID as the logged-in user?"
+The Problem Scenario:
+Imagine "John Doe" is the Manager of the Sales Team, but John Doe himself belongs to the Management Team (where other managers sit).
+The old code looked at John's team_id (Management Team) and showed him all other Managers.
+It should have looked for teams where John is the Leader, not the member.
+3. The Fix
+I am updating two files (EmployeeDirectory.tsx and useDashboard.ts) to fix this logic.
+New Logic for Managers:
+fetch all Teams.
+Identify Teams where Leader ID == Current User ID.
+Show employees who belong to those teams OR report directly to the user.
+
+
+### Then there is no use of Workflow Tab with Team and line manager?
+Please explain
+
+
+### AI Response
+The Workflow Tab is not useless; it serves as the "Traffic Controller" for your organization, whereas the Teams feature acts as the "Org Chart".
+Here is the distinction:
+Teams & Line Manager (The "Who"):
+This defines relationships. "John reports to Sarah."
+It tells the system who the specific manager is.
+Workflow Tab (The "Rules"):
+This defines the process. "Does the Engineering department require Sarah's approval, or does it go straight to HR?"
+It allows you to create exceptions.
+Why you need the Workflow Tab (Examples):
+The "HR Department" Paradox:
+HR employees usually report to an HR Manager.
+However, for Leave, you might want HR requests to go straight to the Admin to prevent the HR Manager from approving their own friends' leaves without oversight.
+Solution: Set HR Department Workflow to ADMIN.
+Executive/Management Bypass:
+The CEO or Directors (Management Team) often don't have a "Line Manager" above them in the system.
+Solution: Set Management Department Workflow to HR or ADMIN, ensuring their requests don't get stuck in "Pending Manager" limbo.
+Small Departments:
+You might have a "Cleaning" department with 5 staff but no dedicated Manager with a login.
+Solution: Set Workflow to HR so the requests skip the manager step and go directly to the HR portal.
+UI Improvement
+To make this concept crystal clear in the app, I am updating the Workflow Tab to visually display the Approval Path based on your selection. This way, you can see exactly which steps are being enforced or skipped.
