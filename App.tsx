@@ -15,11 +15,15 @@ import Reports from './pages/Reports';
 import Organization from './pages/Organization';
 import Login from './pages/Login';
 import Setup from './pages/Setup';
+import RegisterOrganization from './pages/RegisterOrganization'; // New Import
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isConfigured, setConfigured, login } = useAuth();
   const [currentPath, setCurrentPath] = useState('dashboard');
   const [navParams, setNavParams] = useState<any>(null);
+  
+  // New State for Public Pages
+  const [showRegister, setShowRegister] = useState(false);
 
   const handleNavigate = (path: string, params?: any) => {
     if (path === 'attendance-quick-office') {
@@ -50,10 +54,14 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <Login onLoginSuccess={login} />;
+    // Public Page Routing
+    if (showRegister) {
+      return <RegisterOrganization onBack={() => setShowRegister(false)} onSuccess={login} />;
+    }
+    return <Login onLoginSuccess={login} onRegisterClick={() => setShowRegister(true)} />;
   }
 
-  // Routing Logic
+  // Authenticated Routing
   const renderContent = () => {
     switch (currentPath) {
       case 'dashboard': return <Dashboard user={user} onNavigate={handleNavigate} />;

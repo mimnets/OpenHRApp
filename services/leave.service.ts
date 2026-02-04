@@ -22,7 +22,8 @@ export const leaveService = {
         reason: r.reason || "",
         status: (r.status || 'PENDING_MANAGER').toString().trim().toUpperCase() as any,
         managerRemarks: r.manager_remarks || "",
-        approverRemarks: r.approver_remarks || ""
+        approverRemarks: r.approver_remarks || "",
+        organizationId: r.organization_id
       }));
     } catch (e) { return []; }
   },
@@ -68,6 +69,7 @@ export const leaveService = {
     
     const now = new Date();
     const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
+    const orgId = apiClient.getOrganizationId();
     
     const payload: any = {
       employee_id: data.employeeId?.trim(),
@@ -79,7 +81,8 @@ export const leaveService = {
       total_days: Number(data.totalDays) || 0,
       reason: data.reason || "",
       status: initialStatus,
-      applied_date: appliedAt
+      applied_date: appliedAt,
+      organization_id: orgId
     };
     
     try {

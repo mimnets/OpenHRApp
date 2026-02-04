@@ -7,7 +7,7 @@
  */
 
 // 1. DEFINE YOUR PRODUCTION URL HERE: https://pocketbase.mimnets.com and https://pbase.vclbd.net
-export const PRODUCTION_URL = 'https://pbase.vclbd.net';
+export const PRODUCTION_URL = 'https://pocketbase.mimnets.com';
 
 // 2. Environment Variable Detection
 export const getEnvUrl = () => {

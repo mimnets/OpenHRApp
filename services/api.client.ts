@@ -17,6 +17,11 @@ export const apiClient = {
     subscribers.forEach(cb => cb());
   },
 
+  // Helper to get current Organization ID
+  getOrganizationId(): string | undefined {
+    return pb?.authStore.model?.organization_id;
+  },
+
   // Helpers
   dataURLtoBlob(dataurl: string) {
     const arr = dataurl.split(',');

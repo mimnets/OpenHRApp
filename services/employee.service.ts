@@ -32,6 +32,10 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
       pbData.username = `user_${data.employeeId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     }
     pbData.emailVisibility = true;
+    
+    // Inject Organization ID
+    const orgId = apiClient.getOrganizationId();
+    if (orgId) pbData.organization_id = orgId;
   }
   return pbData;
 };
@@ -46,6 +50,7 @@ export const employeeService = {
         employeeId: r.employee_id || '', 
         lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined, 
         teamId: (r.team_id && r.team_id.length > 5) ? r.team_id : undefined,
+        organizationId: r.organization_id,
         name: r.name || 'No Name',
         email: r.email,
         role: (r.role || 'EMPLOYEE').toString().toUpperCase(),

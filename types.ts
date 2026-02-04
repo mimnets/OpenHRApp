@@ -12,11 +12,19 @@ export interface AppTheme {
   };
 }
 
+export interface Organization {
+  id: string;
+  name: string;
+  address?: string;
+  logo?: string;
+}
+
 export interface Team {
   id: string;
   name: string;
   leaderId: string;
   department?: string;
+  organizationId?: string;
 }
 
 export interface User {
@@ -30,6 +38,7 @@ export interface User {
   avatar?: string;
   username?: string;
   teamId?: string;
+  organizationId?: string;
 }
 
 export interface Employee extends User {
@@ -58,6 +67,7 @@ export interface Attendance {
   remarks?: string;
   selfie?: string;
   dutyType?: 'OFFICE' | 'FACTORY';
+  organizationId?: string;
 }
 
 export interface LeaveRequest {
@@ -74,6 +84,7 @@ export interface LeaveRequest {
   appliedDate: string;
   approverRemarks?: string;
   managerRemarks?: string;
+  organizationId?: string;
 }
 
 export interface LeaveBalance {

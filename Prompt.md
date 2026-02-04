@@ -1213,3 +1213,14 @@ As we will have multiple organization, we must have a HR only registration proce
 
 Please read the requirements carefully and guide me step by step with details and make md file. Also make md files for pocketbase if need to make any changes.
 
+### AI Response
+Please see the POCKETBASE_V2_SCHEMA.md and MULTI_TENANCY_IMPLEMENTATION.md files
+
+### Yes, Please proceed with caution and with care to prevent any active codes, features, modules.
+
+### Thanks - Tried to register a new organization
+On the organization collections id, name, subcription_status saved to the pocketbase, but on the registration UI showing error:
+Failed to create record.
+No users records created.
+
+Please check carefully and guide me if need to check the api rules

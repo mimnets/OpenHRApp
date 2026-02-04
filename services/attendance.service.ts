@@ -18,7 +18,8 @@ const mapAttendance = (r: any): Attendance => ({
   },
   selfie: r.selfie ? apiClient.pb?.files.getURL(r, r.selfie) : undefined,
   remarks: r.remarks || "",
-  dutyType: r.duty_type as any
+  dutyType: r.duty_type as any,
+  organizationId: r.organization_id
 });
 
 export const attendanceService = {
@@ -80,6 +81,7 @@ export const attendanceService = {
 
   async saveAttendance(data: Attendance) {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
+    const orgId = apiClient.getOrganizationId();
     const payload: any = {
       employee_id: data.employeeId.trim(),
       employee_name: data.employeeName,
@@ -90,7 +92,8 @@ export const attendanceService = {
       location: data.location?.address || "",
       latitude: parseFloat(String(data.location?.lat || 0)),
       longitude: parseFloat(String(data.location?.lng || 0)),
-      duty_type: data.dutyType
+      duty_type: data.dutyType,
+      organization_id: orgId
     };
     if (data.selfie) payload.selfie = data.selfie;
     await apiClient.pb.collection('attendance').create(apiClient.toFormData(payload, 'selfie.jpg'));

@@ -14,6 +14,7 @@ export const hrService = {
   login: authService.login,
   logout: authService.logout,
   finalizePasswordReset: authService.finalizePasswordReset,
+  registerOrganization: authService.registerOrganization, // New Feature
   
   // Employee
   getEmployees: employeeService.getEmployees,
