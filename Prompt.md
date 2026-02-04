@@ -1196,3 +1196,20 @@ Define MONITOR_EMAIL = "hr@vclbd.net".
 In onRecordAfterCreateSuccess (New Leave): Queue an email to the monitor address with the subject [Admin] New Leave Request: <Employee Name>.
 In onRecordAfterUpdateSuccess (Status Change): Queue an email to the monitor address with the subject [Admin] Leave Update: <Employee Name> -> <STATUS>.
 Include details like Leave Type, Duration, Reason, and Evaluator Remarks in the email body.
+
+# 04.02.26 - Prompt for integrade multiple Organization as HR to register
+Please check the entire codebase, files, features, modules one by one and guide me step by step for my understanding as I wants
+to implement a feature or options like: multiple organization can register on the HR app and then they can use this HR app for their organization daily attendance and leave workflow.
+
+I want your thoughts and process how can we implement this.
+
+My thoughts and idea:
+As in our pocketbase app we already have users collection where all Admin, HR, Employee information stored. We need to think a
+mechanism to differentiate the organization. Suppose adding a prefix before creating the records.
+
+So, that whenever a new organization register their organization data will be store with their specific prefix.
+
+As we will have multiple organization, we must have a HR only registration process with verification. Please think of it and guide the best and easy approache which is more authentic.
+
+Please read the requirements carefully and guide me step by step with details and make md file. Also make md files for pocketbase if need to make any changes.
+

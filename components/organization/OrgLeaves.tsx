@@ -38,7 +38,8 @@ export const OrgLeaves: React.FC<Props> = ({ policy, employees, onUpdatePolicy, 
               <button onClick={onAddOverride} className="px-4 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white/20 transition-all"><Plus size={14}/> Add Custom Policy</button>
            </div>
            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(policy.overrides).map(([empId, quota]) => {
+              {Object.entries(policy.overrides).map(([empId, quotaValue]) => {
+                 const quota = quotaValue as { ANNUAL: number; CASUAL: number; SICK: number };
                  const empName = employees.find(e => e.id === empId)?.name || 'Unknown User';
                  return (
                     <div key={empId} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100 flex justify-between items-center group hover:bg-white transition-all">
