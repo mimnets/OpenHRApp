@@ -62,6 +62,8 @@ Apply `organization_id` relation to **ALL** the following collections:
 *   **List/View:** `@request.auth.organization_id = organization_id`
 *   **Create:** `@request.data.organization_id = @request.auth.organization_id`
     *(Security: Ensure a user cannot maliciously create a record for another org)*
+*   **Update:** `(employee_id = @request.auth.id || @request.auth.role = "ADMIN" || @request.auth.role = "HR") && @request.auth.organization_id = organization_id`
+    *As per Claude AI*
 
 ---
 
