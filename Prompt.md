@@ -1224,3 +1224,165 @@ Failed to create record.
 No users records created.
 
 Please check carefully and guide me if need to check the api rules
+
+### AI Response
+The issue is that the API Rule for the users collection is too strict. It currently requires an authenticated Admin to create any user. During registration, the user is anonymous, so the request is rejected by PocketBase.
+Here is the fix. You must update your PocketBase API Rules and I have improved the error handling code.
+1. Update PocketBase API Rules (Action Required in PB Admin)
+Go to PocketBase Admin > Collections > users > API Rules.
+Change the Create Rule to:
+code
+Text
+(@request.auth.id = "" && @request.data.role = "ADMIN") || (@request.auth.role = "ADMIN" && @request.auth.organization_id = @request.data.organization_id)
+Why? This allows two scenarios:
+Registration: An anonymous user (@request.auth.id = "") can create a user ONLY if they set the role to ADMIN.
+Management: An existing Admin can create users ONLY within their own organization.
+2. Code Updates
+I have updated the Schema documentation to reflect this change and updated auth.service.ts to give you better error messages (e.g., if the email is invalid) and to clean up "orphan" organizations if the user creation fails.
+
+### Can't add the API rules with: 
+(@request.auth.id = "" && @request.data.role = "ADMIN") || (@request.auth.role = "ADMIN" && @request.auth.organization_id = @request.data.organization_id)
+
+Getting error: Invalid rule. Raw error: invalid left operand "@request.data.role" - failed to resolve field "@request.data.role".
+
+### I have role as you specify, but still getting error:
+(@request.auth.id = "" && @request.data.role = "ADMIN") || (@request.auth.role = "ADMIN" && @request.auth.organization_id = @request.data.organization_id)
+Error: Invalid rule. Raw error: invalid left operand "@request.data.role" - failed to resolve field "@request.data.role".
+
+### Not fixed yet, I have remove the create API rules and then only able to register wtih a new organization.
+Please tell if it safe, and also wants to implement options for new organization that if not verified they cannot login to the system.
+And need to have a new organization verification system
+
+### AI Response
+4. Recommendation for API Rules
+Now that registration is handled via the server-side endpoint /api/openhr/register, you must lock down the users and organizations collections to prevent public access.
+Action Required in PocketBase Admin:
+Collection: users
+Create Rule: id = @request.auth.id || @request.auth.role = "ADMIN"
+(This prevents public/anonymous users from creating accounts directly via the API)
+Collection: organizations
+Create Rule: @request.auth.role = "SUPER_ADMIN" (or just lock it completely so only the JS hook can create them).
+(If you don't have a SUPER_ADMIN role, you can set this to empty/Admin only, effectively disabling public creation).
+This setup is now Secure and enforces Mandatory Email Verification.
+
+### Please explain /api/openhr/register
+
+### AI Response
+The endpoint /api/openhr/register is a custom Server-Side API route defined in your PocketBase backend via the pb_hooks/main.pb.js file.
+It acts as a secure "factory" that builds a new tenant (organization) from scratch. Because it runs on the server (inside PocketBase), it bypasses the standard API Rules (ACLs), allowing unauthenticated users to sign up without exposing your database to open write access.
+Here is the step-by-step breakdown of what happens when the frontend calls this endpoint:
+1. Validation Phase
+Input Check: It verifies that orgName, adminName, email, and password are present.
+Duplicate Check: It queries the database to ensure the email isn't already registered. If it is, it throws a "Bad Request" error immediately.
+2. Organization Creation
+It creates a new record in the organizations collection.
+It sets the status to TRIAL (or ACTIVE depending on your logic).
+Crucial: It captures the id of this new organization record (e.g., org_abc123).
+3. Admin User Creation
+It creates the first user for this organization.
+Linking: It sets the user's organization_id to the ID captured in step 2. This effectively "owns" the organization.
+Role: It hardcodes the role to ADMIN.
+Security: It sets verified: false so the user cannot log in immediately (enforced by the new login hook).
+4. Environment Initialization (Bootstrapping)
+A new organization needs data to function. The script automatically inserts default records into the settings collection, scoped to this new organization ID:
+app_config: Sets the Company Name to what was registered.
+departments: Adds defaults like "Engineering", "HR", "Sales".
+designations: Adds defaults like "Manager", "Associate".
+5. Email Verification
+Finally, it calls $app.newMailClient().sendUserVerification(user).
+This triggers PocketBase's built-in email system to send a unique link to the user's email address.
+Why is this necessary?
+Without this endpoint, you would have to leave the create API Rule for the users collection open to the public (""). This is dangerous because:
+A hacker could create a user with role: "ADMIN" for an existing organization if they guessed the ID.
+A hacker could create thousands of spam users.
+By moving this logic to a custom endpoint, you can lock down the standard create rules so only authenticated Admins can add employees, while still allowing the public to register new organizations via this controlled gate.
+
+### PB HOOK Error
+2026/02/04 14:16:46 Server started at http://0.0.0.0:8090
+├─ REST API:  http://0.0.0.0:8090/api/
+└─ Dashboard: http://0.0.0.0:8090/_/
+2026/02/04 14:16:51 [HOOKS] Loading OpenHR System Hooks...
+failed to execute main.pb.js:
+ - ReferenceError: onRecordBeforeAuthWithPasswordRequest is not defined at /pb.js:77:38(14)
+Successfully saved superuser "monir.it@vclbd.net"!
+2026/02/04 14:16:52 [HOOKS] Loading OpenHR System Hooks...
+failed to execute main.pb.js:
+ - ReferenceError: onRecordBeforeAuthWithPasswordRequest is not defined at /pb.js:77:38(14)
+2026/02/04 14:16:52 Server started at http://0.0.0.0:8090
+├─ REST API:  http://0.0.0.0:8090/api/
+└─ Dashboard: http://0.0.0.0:8090/_/
+
+# 09.02.2026
+
+### Please check the error code from google dev tool console logs and the location server UI when try to register as a new organization.
+auth.service.ts:82 Registration Error Raw: ClientResponseError 400: Something went wrong while processing your request.
+    at async Object.registerOrganization (auth.service.ts:74:7)
+    at async handleSubmit (RegisterOrganization.tsx:37:20)
+registerOrganization	@	auth.service.ts:82
+
+Something went wrong while processing your request.
+
+Please ask me question and go with feedback to resolve the issue befor making any changes.
+
+### My pocketbase server is running on the local docker:
+Here is the logs, please guide me how to know the termina logs:
+File /pb_hooks/.main.pb.js.swp changed, restarting...
+2026/02/09 15:38:05 [HOOKS] Loading OpenHR System Hooks...
+2026/02/09 15:38:05 [HOOKS] Compatibility Mode: 'onRecordBeforeAuthWithPasswordRequest' not found. Using 'onRecordAuthRequest'.
+2026/02/09 15:38:05 Server started at http://0.0.0.0:8090
+├─ REST API:  http://0.0.0.0:8090/api/
+└─ Dashboard: http://0.0.0.0:8090/_/
+
+### Please see the dev tools network headers:
+Request URL
+https://pocketbase.mimnets.com/api/openhr/register
+Request Method
+POST
+Status Code
+400 Bad Request
+Remote Address
+172.67.193.137:443
+Referrer Policy
+strict-origin-when-cross-origin
+
+### Pocketbase admin logs are:
+Log details
+id	3dw2zpu5gyjc8pp
+level	
+ERROR (8)
+created	2026-02-09 09:55:04.909 UTC
+data.execTime	0.300281ms
+data.type	request
+data.auth	N/A
+data.status	0
+data.method	POST
+data.url	/api/openhr/register
+data.referer	http://192.168.22.150:3000/
+data.remoteIP	193.122.151.142
+data.userIP	163.47.35.97
+data.userAgent	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+data.error	TypeError: Object has no member 'dao' at /pb.js:2:25(3)
+
+### I got this error on the docker logs -f pocketbase when submit to register a new organization:
+2026/02/09 16:00:13 [REGISTER] CRITICAL ERROR: TypeError: Object has no member 'requestInfo'
+
+### Please check the error now:
+2026/02/09 16:08:20 [REGISTER] CRITICAL ERROR: TypeError: Object has no member 'bind'
+
+And also ask me if need the organizations collection api rules?
+
+### Create API rules can't save using "" is giving error:
+Invalid rule. Raw error: invalid or incomplete filter expression.
+
+### Now get this error:
+2026/02/09 16:21:01 [REGISTER] CRITICAL ERROR: TypeError: Object has no member 'formValue'
+
+### Now no erro on the pocketbase server - get error on the orgamization registration UI
+Invalid JSON body: ReferenceError: $io is not defined
+
+### I am sorry - you may stuck in the loop, you can't figure it out where is the problem.
+Can you please make the registration hook and front end file seperately? 
+For identify the problem and fix the issue?
+
+### I have updated the pocketbase server version to PocketBase v0.36.2
+Kindly check the manual and fix the current problem.

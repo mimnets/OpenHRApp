@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { isPocketBaseConfigured } from '../services/pocketbase';
 
@@ -39,6 +39,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, initErro
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(initError || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
   
   // Install Help State
   const [showInstallHelp, setShowInstallHelp] = useState(false);
@@ -101,6 +102,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, initErro
     window.location.reload();
   };
 
+  const handleResendVerification = async () => {
+    if (!email) return;
+    try {
+      await hrService.requestVerificationEmail(email);
+      alert("A new verification link has been sent to your email.");
+      setShowResend(false);
+      setError("");
+    } catch (e) {
+      alert("Failed to send verification email.");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConfigured) {
@@ -109,12 +122,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, initErro
     }
     setIsLoading(true);
     setError('');
+    setShowResend(false);
+    
     try {
       const result = await hrService.login(email, password);
       if (result.user) {
         onLoginSuccess(result.user);
       } else {
-        setError(result.error || 'Verification Failed. Check credentials.');
+        const msg = result.error || 'Verification Failed. Check credentials.';
+        setError(msg);
+        if (msg.toLowerCase().includes('verified') || msg.toLowerCase().includes('verification')) {
+          setShowResend(true);
+        }
       }
     } catch (err: any) {
       setError(`System Error: ${err.message}`);
@@ -178,9 +197,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, initErro
               </div>
 
               {error && (
-                <div className="p-3.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center gap-3 border border-rose-100 animate-in shake">
-                  <AlertCircle size={14} className="flex-shrink-0" />
-                  <span>{error}</span>
+                <div className="p-3.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wider rounded-xl flex flex-col md:flex-row items-start md:items-center gap-3 border border-rose-100 animate-in shake">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle size={14} className="flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {showResend && (
+                    <button 
+                      type="button" 
+                      onClick={handleResendVerification} 
+                      className="ml-auto flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm text-rose-600 hover:text-rose-800 transition-colors"
+                    >
+                      <Send size={10} /> Resend Link
+                    </button>
+                  )}
                 </div>
               )}
 

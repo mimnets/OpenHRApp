@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2, MailCheck } from 'lucide-react';
 import { hrService } from '../services/hrService';
 
 interface Props {
@@ -18,6 +18,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack, onSuccess }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,19 +42,32 @@ const RegisterOrganization: React.FC<Props> = ({ onBack, onSuccess }) => {
     });
 
     if (result.success) {
-      // Auto-login happens in service, just trigger success flow
-      const loginResult = await hrService.login(formData.email, formData.password);
-      if (loginResult.user) {
-        onSuccess(loginResult.user);
-      } else {
-        setError("Registration successful, but auto-login failed. Please sign in manually.");
-        setIsSubmitting(false);
-      }
+      setIsSuccess(true);
     } else {
       setError(result.error || "Registration failed.");
       setIsSubmitting(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[#f8fafc]">
+        <div className="w-full max-w-lg bg-white rounded-[3rem] shadow-xl border border-slate-100 p-10 text-center animate-in zoom-in">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <MailCheck size={40} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Registration Successful!</h2>
+          <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+            We have sent a verification link to <strong>{formData.email}</strong>.<br/>
+            Please verify your email address to activate your organization account.
+          </p>
+          <button onClick={onBack} className="w-full py-4 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-primary transition-all">
+            Return to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[#f8fafc] relative overflow-hidden">
