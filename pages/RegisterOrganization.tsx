@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2, MailCheck } from 'lucide-react';
+import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { hrService } from '../services/hrService';
+import { RegistrationVerificationPage } from '../components/registration/RegistrationVerificationPage';
 
 interface Props {
   onBack: () => void;
@@ -51,21 +52,10 @@ const RegisterOrganization: React.FC<Props> = ({ onBack, onSuccess }) => {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[#f8fafc]">
-        <div className="w-full max-w-lg bg-white rounded-[3rem] shadow-xl border border-slate-100 p-10 text-center animate-in zoom-in">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <MailCheck size={40} />
-          </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2">Registration Successful!</h2>
-          <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-            We have sent a verification link to <strong>{formData.email}</strong>.<br/>
-            Please verify your email address to activate your organization account.
-          </p>
-          <button onClick={onBack} className="w-full py-4 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl hover:bg-primary transition-all">
-            Return to Login
-          </button>
-        </div>
-      </div>
+      <RegistrationVerificationPage 
+        email={formData.email} 
+        onVerificationComplete={onBack} 
+      />
     );
   }
 

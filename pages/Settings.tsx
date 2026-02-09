@@ -6,6 +6,7 @@ import {
 import { hrService } from '../services/hrService';
 import { User as UserType, Employee } from '../types';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
+import { AdminVerificationPanel } from '../components/admin/AdminVerificationPanel';
 
 interface SettingsProps {
   user: UserType;
@@ -45,6 +46,8 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const isAdmin = user.role === 'ADMIN';
 
   useEffect(() => {
     const load = async () => {
@@ -216,6 +219,16 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Admin Verification Panel */}
+      {isAdmin && (
+        <div className="max-w-3xl animate-in slide-in-from-bottom-8">
+          <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-6 flex items-center gap-2">
+            <UserCheck size={24} className="text-emerald-500" /> Admin Tools
+          </h3>
+          <AdminVerificationPanel />
         </div>
       )}
     </div>
