@@ -13,11 +13,12 @@
     "react-dom": "^19.2.3",
     "lucide-react": "0.460.0",
     "recharts": "2.13.3",
-    "pocketbase": "0.25.0",
-    "firebase": "^12.7.0"
+    "pocketbase": "0.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
