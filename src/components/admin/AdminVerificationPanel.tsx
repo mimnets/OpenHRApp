@@ -15,6 +15,7 @@ export const AdminVerificationPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [featureAvailable, setFeatureAvailable] = useState(true);
 
   useEffect(() => {
     loadUnverifiedUsers();
@@ -26,15 +27,22 @@ export const AdminVerificationPanel: React.FC = () => {
   const loadUnverifiedUsers = async () => {
     setLoading(true);
     const result = await verificationService.getUnverifiedUsers();
-    
+
     if (result.success) {
       setUsers(result.users);
       setMessage('');
+      setFeatureAvailable(true);
     } else {
-      setMessage(`Error: ${result.error}`);
+      // If unauthorized/forbidden, the feature is not available (hooks not deployed)
+      if (result.error?.includes('Unauthorized') || result.error?.includes('Forbidden') || result.error?.includes('404')) {
+        setFeatureAvailable(false);
+        setMessage('');
+      } else {
+        setMessage(`Error: ${result.error}`);
+      }
       setUsers([]);
     }
-    
+
     setLoading(false);
   };
 
@@ -64,6 +72,11 @@ export const AdminVerificationPanel: React.FC = () => {
       minute: '2-digit'
     });
   };
+
+  // Don't render if feature is not available
+  if (!featureAvailable && !loading) {
+    return null;
+  }
 
   return (
     <div style={styles.container}>

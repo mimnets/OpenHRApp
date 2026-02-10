@@ -13,7 +13,6 @@ export const RegistrationVerificationPage: React.FC<RegistrationVerificationPage
   const [message, setMessage] = useState('');
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [showManualOption, setShowManualOption] = useState(false);
-  const [testingEmail, setTestingEmail] = useState(false);
 
   // Auto-check for verification every 10 seconds
   useEffect(() => {
@@ -45,21 +44,6 @@ export const RegistrationVerificationPage: React.FC<RegistrationVerificationPage
     } else {
       setMessage('❌ ' + result.message);
     }
-  };
-
-  const handleTestEmail = async () => {
-    setTestingEmail(true);
-    setMessage('Testing email configuration...');
-
-    const result = await verificationService.testEmailConfiguration(email);
-    
-    if (result.success) {
-      setMessage('✅ ' + result.message);
-    } else {
-      setMessage('⚠️ Email not configured: ' + result.message);
-    }
-    
-    setTestingEmail(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -117,26 +101,14 @@ export const RegistrationVerificationPage: React.FC<RegistrationVerificationPage
           <div style={styles.actions}>
             <button
               onClick={handleResendEmail}
-              disabled={status === 'resending' || testingEmail}
+              disabled={status === 'resending'}
               style={{
                 ...styles.button,
                 ...styles.buttonSecondary,
-                opacity: (status === 'resending' || testingEmail) ? 0.6 : 1
+                opacity: status === 'resending' ? 0.6 : 1
               }}
             >
-              🔄 Resend Email
-            </button>
-
-            <button
-              onClick={handleTestEmail}
-              disabled={status === 'resending' || testingEmail}
-              style={{
-                ...styles.button,
-                ...styles.buttonSecondary,
-                opacity: (status === 'resending' || testingEmail) ? 0.6 : 1
-              }}
-            >
-              🧪 Test Email Config
+              🔄 Resend Verification Email
             </button>
           </div>
 
