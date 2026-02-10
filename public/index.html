@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,14 +14,14 @@
   <meta name="apple-mobile-web-app-title" content="OpenHR">
   
   <!-- High Quality Icons for iOS -->
-  <link rel="apple-touch-icon" href="/img/logo.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="/img/logo.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/img/logo.png">
-  <link rel="apple-touch-icon" sizes="167x167" href="/img/logo.png">
+  <link rel="apple-touch-icon" href="./img/logo.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="./img/logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./img/logo.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="./img/logo.png">
   
-  <link rel="icon" type="image/png" href="/img/mobile-logo.png">
+  <link rel="icon" type="image/png" href="./img/mobile-logo.png">
   <!-- Vital: Link to manifest at the root level -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="./manifest.json">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -85,14 +86,15 @@
 <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@19.2.3",
-    "react-dom": "https://esm.sh/react-dom@19.2.3",
-    "react-dom/client": "https://esm.sh/react-dom@19.2.3/client",
-    "react/": "https://esm.sh/react@19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@19.2.3/",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0",
     "recharts": "https://esm.sh/recharts@2.13.3",
-    "pocketbase": "https://esm.sh/pocketbase@0.25.0"
+    "pocketbase": "https://esm.sh/pocketbase@0.25.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
   }
 }
 </script>
@@ -100,6 +102,6 @@
 </head>
 <body class="bg-[#fcfdfe] text-slate-900">
   <div id="root"></div>
-<script type="module" src="/src/index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
