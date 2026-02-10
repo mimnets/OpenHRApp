@@ -109,9 +109,11 @@ routerAdd("POST", "/api/openhr/register", (e) => {
         try {
             console.log("[REGISTER] Sending verification email to: " + email);
 
-            // Use PocketBase's built-in requestVerification
-            // This generates a proper token and sends email using admin-configured template
-            $app.newMailClient().sendUserVerification(user);
+            // Re-fetch the user record to ensure it's fully saved before sending email
+            const savedUser = $app.findRecordById("users", user.id);
+
+            // Use PocketBase's mails helper to send verification email
+            $mails.sendRecordVerification($app, savedUser);
 
             console.log("[REGISTER] Verification email sent successfully to: " + email);
         } catch (err) {
