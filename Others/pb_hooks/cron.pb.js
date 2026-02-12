@@ -327,3 +327,122 @@ cronAdd("daily_attendance_report", "0 23 * * *", () => {
         console.log("[CRON] Error in daily attendance report: " + err.toString());
     }
 });
+
+/* ============================================================
+   SELFIE RETENTION CLEANUP
+   Job ID: "selfie_cleanup"
+   Schedule: "0 2 * * *" (Every day at 2 AM)
+   Purpose: Delete old attendance selfies to save storage
+   ============================================================ */
+cronAdd("selfie_cleanup", "0 2 * * *", () => {
+    console.log("[CRON] Running selfie retention cleanup...");
+
+    try {
+        // Get global retention setting (default 30 days)
+        let retentionDays = 30;
+        try {
+            // Check for global platform setting first
+            const globalSetting = $app.findFirstRecordByFilter("settings", "key = 'selfie_retention_days'");
+            if (globalSetting) {
+                const value = globalSetting.get("value");
+                retentionDays = parseInt(value) || 30;
+            }
+        } catch (e) {
+            // Use default if not found
+        }
+
+        // Calculate cutoff date
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+        const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
+        console.log("[CRON] Cleaning selfies older than:", cutoffStr, "(retention:", retentionDays, "days)");
+
+        // Find old attendance records with selfies (batch process)
+        let totalCleaned = 0;
+        let totalErrors = 0;
+        const BATCH_SIZE = 500;
+
+        try {
+            const records = $app.findRecordsByFilter(
+                "attendance",
+                "date < '" + cutoffStr + "' && (selfie_in != '' || selfie_out != '')",
+                "-date",
+                BATCH_SIZE,
+                0
+            );
+
+            console.log("[CRON] Found", records.length, "records with selfies to clean");
+
+            for (let i = 0; i < records.length; i++) {
+                const record = records[i];
+                try {
+                    // Clear selfie fields (PocketBase auto-deletes orphaned files)
+                    record.set("selfie_in", "");
+                    record.set("selfie_out", "");
+                    $app.save(record);
+                    totalCleaned++;
+                } catch (saveErr) {
+                    totalErrors++;
+                    console.log("[CRON] Failed to clear selfie for record", record.id, ":", saveErr.toString());
+                }
+            }
+        } catch (findErr) {
+            console.log("[CRON] Error finding records:", findErr.toString());
+        }
+
+        // Log cleanup stats to a system record for Super Admin visibility
+        try {
+            // Find or create cleanup log setting
+            let logSetting = null;
+            try {
+                logSetting = $app.findFirstRecordByFilter("settings", "key = 'selfie_cleanup_log'");
+            } catch (e) {}
+
+            const logData = {
+                lastRun: new Date().toISOString(),
+                recordsCleaned: totalCleaned,
+                errors: totalErrors,
+                retentionDays: retentionDays,
+                cutoffDate: cutoffStr
+            };
+
+            if (logSetting) {
+                logSetting.set("value", logData);
+                $app.save(logSetting);
+            } else {
+                // Create new log record (in __SYSTEM__ org or first available)
+                try {
+                    let systemOrgId = null;
+                    try {
+                        const sysOrg = $app.findFirstRecordByFilter("organizations", "name = '__SYSTEM__'");
+                        systemOrgId = sysOrg.id;
+                    } catch (e) {
+                        // Use any super admin org
+                        const superAdmin = $app.findFirstRecordByFilter("users", "role = 'SUPER_ADMIN'");
+                        if (superAdmin) {
+                            systemOrgId = superAdmin.getString("organization_id");
+                        }
+                    }
+
+                    if (systemOrgId) {
+                        const settingsCollection = $app.findCollectionByNameOrId("settings");
+                        const newLog = new Record(settingsCollection);
+                        newLog.set("key", "selfie_cleanup_log");
+                        newLog.set("value", logData);
+                        newLog.set("organization_id", systemOrgId);
+                        $app.save(newLog);
+                    }
+                } catch (createErr) {
+                    console.log("[CRON] Could not save cleanup log:", createErr.toString());
+                }
+            }
+        } catch (logErr) {
+            console.log("[CRON] Error logging cleanup stats:", logErr.toString());
+        }
+
+        console.log("[CRON] Selfie cleanup completed. Cleaned:", totalCleaned, "| Errors:", totalErrors);
+    } catch (err) {
+        console.log("[CRON] Error in selfie cleanup: " + err.toString());
+    }
+});
