@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor
+  CreditCard, Monitor, HardDrive
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
 import { Organization, Employee, PlatformStats, User, UpgradeRequest } from '../types';
 import AdManagement from '../components/superadmin/AdManagement';
+import StorageManagement from '../components/superadmin/StorageManagement';
 
 interface SuperAdminProps {
   user: User;
@@ -15,7 +16,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -310,6 +311,14 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         >
           <Monitor size={18} /> Ad Management
         </button>
+        <button
+          onClick={() => setActiveTab('storage')}
+          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'storage' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <HardDrive size={18} /> Storage
+        </button>
       </div>
 
       {/* Upgrade Requests Tab */}
@@ -399,6 +408,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Ad Management Tab */}
       {activeTab === 'ads' && (
         <AdManagement onMessage={setMessage} />
+      )}
+
+      {/* Storage Management Tab */}
+      {activeTab === 'storage' && (
+        <StorageManagement onMessage={setMessage} />
       )}
 
       {/* Organizations Tab - Stats Cards */}
