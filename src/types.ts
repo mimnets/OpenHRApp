@@ -1,6 +1,11 @@
 
-export type Role = 'ADMIN' | 'MANAGER' | 'HR' | 'EMPLOYEE' | 'TEAM_LEAD' | 'MANAGEMENT';
+export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'HR' | 'EMPLOYEE' | 'TEAM_LEAD' | 'MANAGEMENT';
 export type WorkType = 'OFFICE' | 'FIELD';
+export type SubscriptionStatus = 'ACTIVE' | 'TRIAL' | 'EXPIRED' | 'SUSPENDED' | 'AD_SUPPORTED';
+
+export type UpgradeRequestType = 'DONATION' | 'TRIAL_EXTENSION' | 'AD_SUPPORTED';
+export type UpgradeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type DonationTier = 'TIER_3MO' | 'TIER_6MO' | 'TIER_1YR' | 'TIER_LIFETIME';
 
 export interface AppTheme {
   id: string;
@@ -17,6 +22,53 @@ export interface Organization {
   name: string;
   address?: string;
   logo?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  trialEndDate?: string;
+  created?: string;
+  updated?: string;
+  // Computed fields
+  userCount?: number;
+  adminEmail?: string;
+}
+
+export interface SubscriptionInfo {
+  status: SubscriptionStatus;
+  trialEndDate?: string;
+  daysRemaining?: number;
+  isSuperAdmin: boolean;
+  isReadOnly: boolean;  // true for EXPIRED
+  isBlocked: boolean;   // true for SUSPENDED
+  showAds: boolean;     // true for AD_SUPPORTED
+}
+
+export interface UpgradeRequest {
+  id: string;
+  organizationId: string;
+  organizationName?: string;
+  requestType: UpgradeRequestType;
+  status: UpgradeRequestStatus;
+  // Donation fields
+  donationAmount?: number;
+  donationTier?: DonationTier;
+  donationReference?: string;
+  donationScreenshot?: string;
+  // Extension fields
+  extensionReason?: string;
+  extensionDays?: number;
+  // Processing fields
+  adminNotes?: string;
+  processedBy?: string;
+  processedAt?: string;
+  created?: string;
+}
+
+export interface PlatformStats {
+  totalOrganizations: number;
+  totalUsers: number;
+  activeOrganizations: number;
+  trialOrganizations: number;
+  expiredOrganizations: number;
+  recentRegistrations: number;
 }
 
 export interface Team {

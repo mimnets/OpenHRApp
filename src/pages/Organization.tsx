@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import {
-  Loader2, Save, X, RefreshCw, MapPin
+  Loader2, Save, X, RefreshCw, MapPin, AlertTriangle
 } from 'lucide-react';
 import { useOrganization } from '../hooks/organization/useOrganization';
 import { Holiday, Team, OfficeLocation, LeaveWorkflow } from '../types';
+import { useSubscription } from '../context/SubscriptionContext';
 
 // Import sub-components
 import { OrgStructure } from '../components/organization/OrgStructure';
@@ -22,9 +23,13 @@ const Organization: React.FC = () => {
   const {
       departments, designations, holidays, teams, employees, leavePolicy, config, workflows,
       isLoading, isSaving,
-      updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam, 
+      updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam,
       updateLeavePolicy, saveConfig, updateWorkflows
   } = useOrganization();
+
+  // Subscription check
+  const { canPerformAction, subscription } = useSubscription();
+  const canWrite = canPerformAction('write');
 
   const [activeTab, setActiveTab] = useState<OrgTab>('STRUCTURE');
 
@@ -68,6 +73,10 @@ const Organization: React.FC = () => {
 
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) {
+      alert('Your subscription does not allow modifications. Please upgrade to continue.');
+      return;
+    }
     try {
       if (modalType === 'HOLIDAY') {
         const next = [...holidays];
@@ -161,6 +170,18 @@ const Organization: React.FC = () => {
           <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 md:px-6 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>{tab.replace('_', ' ')}</button>
         ))}
       </div>
+
+      {/* Subscription Warning */}
+      {!canWrite && (
+        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">
+            {subscription?.status === 'EXPIRED'
+              ? 'Your trial has expired. Organization settings are read-only. Please upgrade to make changes.'
+              : 'Your account is suspended. Please contact support.'}
+          </span>
+        </div>
+      )}
 
       <div className="animate-in fade-in duration-300 w-full pb-20">
         {activeTab === 'STRUCTURE' && (

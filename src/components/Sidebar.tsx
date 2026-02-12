@@ -11,8 +11,10 @@ import {
   UserCircle,
   ChevronRight,
   List,
-  History
+  History,
+  Shield
 } from 'lucide-react';
+import { AdBanner } from './ads';
 
 interface SidebarProps {
   currentPath: string;
@@ -23,7 +25,15 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, role, user }) => {
-  const menuItems = [
+  const isSuperAdmin = role === 'SUPER_ADMIN';
+
+  // Super Admin has a different menu
+  const superAdminMenuItems = [
+    { id: 'super-admin', label: 'Organizations', icon: Shield, roles: ['SUPER_ADMIN'] },
+    { id: 'profile', label: 'My Profile', icon: UserCircle, roles: ['SUPER_ADMIN'] },
+  ];
+
+  const regularMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'profile', label: 'My Profile', icon: UserCircle, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'attendance-logs', label: 'My Attendance', icon: History, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
@@ -35,10 +45,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'HR'] },
   ];
 
+  const menuItems = isSuperAdmin ? superAdminMenuItems : regularMenuItems;
   const filteredItems = menuItems.filter(item => item.roles.includes(role));
 
   return (
-    <aside className="w-72 bg-white h-screen flex flex-col border-r border-slate-100 shadow-sm relative z-50">
+    <aside className="w-80 bg-white h-screen flex flex-col border-r border-slate-100 shadow-sm relative z-50">
       {/* Profile Header */}
       <div className="p-10 pb-8 flex flex-col items-center text-center">
         <div className="relative mb-4">
@@ -79,9 +90,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
         ))}
       </nav>
 
+      {/* Ad Banner (for AD_SUPPORTED orgs) */}
+      <div className="px-2 pb-2 flex justify-center">
+        <AdBanner slot="sidebar" className="rounded-xl overflow-hidden" />
+      </div>
+
       {/* Footer / Sign Out */}
       <div className="p-6 pt-0 space-y-4">
-        <button 
+        <button
           onClick={onLogout}
           className="w-full flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-rose-50 transition-all"
         >

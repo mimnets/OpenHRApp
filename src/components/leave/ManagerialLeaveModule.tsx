@@ -9,9 +9,10 @@ interface Props {
   requests: LeaveRequest[];
   onRefresh: () => void;
   roleLabel: string; // "Team Lead" | "Manager" | "Director"
+  readOnly?: boolean;
 }
 
-const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, roleLabel }) => {
+const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, roleLabel, readOnly = false }) => {
   const [showReview, setShowReview] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -23,7 +24,7 @@ const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, rol
   );
 
   const handleAction = async (action: 'APPROVED' | 'REJECTED') => {
-    if (!showReview) return;
+    if (!showReview || readOnly) return;
     setIsProcessing(true);
     try {
       await hrService.updateLeaveStatus(showReview.id, action, remarks, 'MANAGER');
@@ -60,7 +61,15 @@ const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, rol
                   </div>
                 </div>
               </div>
-              <button onClick={() => setShowReview(req)} className="px-8 py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-hover transition-all shadow-lg flex items-center justify-center gap-2">
+              <button
+                onClick={() => !readOnly && setShowReview(req)}
+                disabled={readOnly}
+                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 ${
+                  readOnly
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary-hover'
+                }`}
+              >
                 Evaluate <ArrowRight size={14}/>
               </button>
             </div>
