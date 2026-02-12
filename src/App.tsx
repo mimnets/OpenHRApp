@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import MainLayout from './layouts/MainLayout';
 
 import Dashboard from './pages/Dashboard';
@@ -16,10 +17,14 @@ import Organization from './pages/Organization';
 import Login from './pages/Login';
 import Setup from './pages/Setup';
 import RegisterOrganization from './pages/RegisterOrganization';
-import { VerifyAccount } from './pages/VerifyAccount'; // Import the new page
+import SuperAdmin from './pages/SuperAdmin';
+import Upgrade from './pages/Upgrade';
+import { VerifyAccount } from './pages/VerifyAccount';
+import { SuspendedPage } from './components/subscription';
 
 const AppContent: React.FC = () => {
-  const { user, isLoading, isConfigured, setConfigured, login } = useAuth();
+  const { user, isLoading, isConfigured, setConfigured, login, logout } = useAuth();
+  const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
   const [currentPath, setCurrentPath] = useState('dashboard');
   const [navParams, setNavParams] = useState<any>(null);
   
@@ -97,17 +102,33 @@ const AppContent: React.FC = () => {
     return <Login onLoginSuccess={login} onRegisterClick={() => setShowRegister(true)} />;
   }
 
+  // Check if Super Admin
+  const isSuperAdmin = user.role === 'SUPER_ADMIN';
+
+  // Priority 2.5: Check if organization is suspended (show lockout screen)
+  // Wait for subscription to load before checking
+  if (!isSuperAdmin && !isSubscriptionLoading && subscription?.isBlocked) {
+    return <SuspendedPage onLogout={logout} />;
+  }
+
   // Priority 3: Authenticated App
   const renderContent = () => {
+    // Super Admin has a dedicated dashboard
+    if (isSuperAdmin && (currentPath === 'dashboard' || currentPath === 'super-admin')) {
+      return <SuperAdmin user={user} onNavigate={handleNavigate} />;
+    }
+
     switch (currentPath) {
       case 'dashboard': return <Dashboard user={user} onNavigate={handleNavigate} />;
+      case 'super-admin': return <SuperAdmin user={user} onNavigate={handleNavigate} />;
+      case 'upgrade': return <Upgrade onBack={() => handleNavigate('dashboard')} />;
       case 'profile': return <Settings user={user} onBack={() => handleNavigate('dashboard')} />;
       case 'employees': return <EmployeeDirectory user={user} />;
-      case 'attendance': 
-        return <Attendance 
-          user={user} 
-          autoStart={navParams?.autoStart} 
-          onFinish={() => handleNavigate('dashboard')} 
+      case 'attendance':
+        return <Attendance
+          user={user}
+          autoStart={navParams?.autoStart}
+          onFinish={() => handleNavigate('dashboard')}
         />;
       case 'attendance-logs': return <AttendanceLogs user={user} viewMode="MY" />;
       case 'attendance-audit': return <AttendanceLogs user={user} viewMode="AUDIT" />;
@@ -133,9 +154,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
+      <SubscriptionProvider>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   );
 };

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Database, Menu, X, LayoutDashboard, Clock, CalendarDays, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { SubscriptionBanner } from '../components/subscription';
+import { AdBanner } from '../components/ads';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -45,7 +47,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 md:ml-72 flex flex-col min-h-screen max-w-full overflow-hidden">
+      <main className="flex-1 md:ml-80 flex flex-col min-h-screen max-w-full overflow-hidden">
         {/* Header */}
         <header className="h-20 bg-white border-b border-slate-50 flex items-center justify-between px-6 md:px-10 sticky top-0 z-40">
            <div className="flex items-center gap-4">
@@ -82,10 +84,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
            </div>
         </header>
 
+        {/* Subscription Banner - visible to all org users */}
+        <SubscriptionBanner onUpgradeClick={() => handleNavigate('upgrade')} />
+
         {/* Content */}
         <div className="flex-1 p-6 md:p-12 w-full pb-28 md:pb-12 overflow-x-hidden">
           <div className="max-w-4xl mx-auto w-full">
             {children}
+          </div>
+
+          {/* Footer Ad Banner (for AD_SUPPORTED orgs) */}
+          <div className="max-w-4xl mx-auto mt-8 hidden md:flex justify-center">
+            <AdBanner slot="footer" className="rounded-xl overflow-hidden" />
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { Network, User, Plus, ArrowRight } from 'lucide-react';
 import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
+import { AdBanner } from '../ads';
 
 interface Props {
   data: DashboardData;
@@ -27,6 +28,11 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
         upcomingHoliday={data.upcomingHoliday} 
         isLoading={isLoading} 
       />
+
+      {/* Dashboard Ad Banner (for AD_SUPPORTED orgs) */}
+      <div className="hidden md:flex justify-center">
+        <AdBanner slot="dashboard" className="rounded-xl overflow-hidden" />
+      </div>
 
       {/* Employee Specific Content - Mobile Optimized Grid */}
       {!isLoading && (
