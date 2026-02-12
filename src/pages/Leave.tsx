@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { LeaveRequest, LeaveBalance } from '../types';
+import { useSubscription } from '../context/SubscriptionContext';
 
 // New Modules
 import { LeaveGuidelines } from '../components/leave/LeaveGuidelines';
@@ -18,7 +19,11 @@ interface LeaveProps {
 const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER' || user.role === 'TEAM_LEAD' || user.role === 'MANAGEMENT';
-  
+
+  // Subscription check
+  const { canPerformAction, subscription } = useSubscription();
+  const canWrite = canPerformAction('write');
+
   const [isInitializing, setIsInitializing] = useState(true);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [balance, setBalance] = useState<LeaveBalance | null>(null);
@@ -53,27 +58,41 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      
+
+      {/* Subscription Warning */}
+      {!canWrite && (
+        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">
+            {subscription?.status === 'EXPIRED'
+              ? 'Your trial has expired. Leave requests and approvals are disabled. You can still view existing records.'
+              : 'Your account is suspended. Please contact support.'}
+          </span>
+        </div>
+      )}
+
       {/* 1. Global Guidelines Display */}
       <LeaveGuidelines role={user.role} />
 
       {/* 2. Employee Module (Everyone gets this) */}
-      <EmployeeLeaveModule 
-        user={user} 
-        balance={balance} 
+      <EmployeeLeaveModule
+        user={user}
+        balance={balance}
         history={leaves.filter(l => l.employeeId === user.id)}
         onRefresh={refreshData}
         initialOpen={autoOpen}
+        readOnly={!canWrite}
       />
 
       {/* 3. Managerial Module (Team Leads, Managers, Directors) */}
       {isManager && (
         <div className="pt-12 border-t border-slate-100">
-          <ManagerialLeaveModule 
-            user={user} 
+          <ManagerialLeaveModule
+            user={user}
             requests={leaves}
             onRefresh={refreshData}
             roleLabel={user.role === 'TEAM_LEAD' ? 'Team Lead' : user.role === 'MANAGEMENT' ? 'Director' : 'Manager'}
+            readOnly={!canWrite}
           />
         </div>
       )}
@@ -81,10 +100,11 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
       {/* 4. HR/Admin Module (Compliance) */}
       {isAdmin && (
         <div className="pt-12 border-t border-slate-100">
-          <HRLeaveModule 
-            user={user} 
+          <HRLeaveModule
+            user={user}
             requests={leaves}
             onRefresh={refreshData}
+            readOnly={!canWrite}
           />
         </div>
       )}

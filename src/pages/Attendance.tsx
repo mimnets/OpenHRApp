@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 // Hooks
 import { useCamera } from '../hooks/attendance/useCamera';
 import { useGeoLocation } from '../hooks/attendance/useGeoLocation';
 import { useAttendance } from '../hooks/attendance/useAttendance';
+import { useSubscription } from '../context/SubscriptionContext';
 
 // UI Components
 import { AttendanceHeader } from '../components/attendance/AttendanceHeader';
@@ -21,18 +22,22 @@ interface AttendanceProps {
 
 const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) => {
   // 1. Logic Hooks
-  const { 
-    currentTime, activeRecord, isLoading, status, submitPunch 
+  const {
+    currentTime, activeRecord, isLoading, status, submitPunch
   } = useAttendance(user, onFinish);
 
-  const { 
-    videoRef, stream, error: cameraError, facingMode, isTorchOn, 
-    startCamera, stopCamera, toggleCamera, toggleTorch, takeSelfie 
+  const {
+    videoRef, stream, error: cameraError, facingMode, isTorchOn,
+    startCamera, stopCamera, toggleCamera, toggleTorch, takeSelfie
   } = useCamera();
 
-  const { 
-    location, isLocating, detectLocation 
+  const {
+    location, isLocating, detectLocation
   } = useGeoLocation();
+
+  // Subscription check for write access
+  const { canPerformAction, subscription } = useSubscription();
+  const canPunch = canPerformAction('write');
 
   // 2. Local UI State
   const [remarks, setRemarks] = useState('');
@@ -61,6 +66,16 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
 
   // 4. Handlers
   const handlePunchSubmit = async () => {
+    // Check subscription status
+    if (!canPunch) {
+      if (subscription?.status === 'EXPIRED') {
+        alert('Your trial has expired. Please upgrade to continue punching attendance.');
+      } else if (subscription?.status === 'SUSPENDED') {
+        alert('Your account is suspended. Please contact support.');
+      }
+      return;
+    }
+
     if (dutyType === 'FACTORY' && !remarks.trim()) {
       alert("Mandatory: Please mention the Factory Name and details in remarks.");
       return;
@@ -108,14 +123,26 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
         </CameraFeed>
       </div>
 
-      <AttendanceActions 
+      {/* Subscription Warning Banner */}
+      {!canPunch && (
+        <div className="px-4 py-3 bg-red-50 border-t border-red-200 flex items-center gap-2 text-red-700">
+          <AlertTriangle className="w-5 h-5" />
+          <span className="text-sm font-medium">
+            {subscription?.status === 'EXPIRED'
+              ? 'Your trial has expired. Attendance punching is disabled.'
+              : 'Your account is suspended. Please contact support.'}
+          </span>
+        </div>
+      )}
+
+      <AttendanceActions
         dutyType={dutyType}
         remarks={remarks}
         setRemarks={setRemarks}
         onSubmit={handlePunchSubmit}
         status={status}
         activeRecord={activeRecord}
-        isDisabled={!location || isLocating || status !== 'idle' || !stream || (dutyType === 'FACTORY' && !remarks.trim())}
+        isDisabled={!canPunch || !location || isLocating || status !== 'idle' || !stream || (dutyType === 'FACTORY' && !remarks.trim())}
       />
       
       <canvas ref={canvasRef} className="hidden" />

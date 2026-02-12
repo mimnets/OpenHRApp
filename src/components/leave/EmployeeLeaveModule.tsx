@@ -11,9 +11,10 @@ interface Props {
   history: LeaveRequest[];
   onRefresh: () => void;
   initialOpen?: boolean;
+  readOnly?: boolean;
 }
 
-const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen }) => {
+const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen, readOnly = false }) => {
   const [showForm, setShowForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +123,15 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-black text-slate-900">Personal Leave Dashboard</h3>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-indigo-700 transition-all">
+        <button
+          onClick={() => setShowForm(true)}
+          disabled={readOnly}
+          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl transition-all ${
+            readOnly
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+          }`}
+        >
           <Plus size={18} /> Apply Leave
         </button>
       </div>

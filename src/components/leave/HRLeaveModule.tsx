@@ -8,9 +8,10 @@ interface Props {
   user: any;
   requests: LeaveRequest[];
   onRefresh: () => void;
+  readOnly?: boolean;
 }
 
-export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh }) => {
+export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly = false }) => {
   const [showVerify, setShowVerify] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -18,7 +19,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh }) => {
   const pendingHR = requests.filter(r => r.status === 'PENDING_HR');
 
   const handleVerify = async (action: 'APPROVED' | 'REJECTED') => {
-    if (!showVerify) return;
+    if (!showVerify || readOnly) return;
     setIsProcessing(true);
     try {
       await hrService.updateLeaveStatus(showVerify.id, action, remarks, 'HR');
@@ -55,7 +56,15 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh }) => {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setShowVerify(req)} className="px-8 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg flex items-center justify-center gap-2">
+              <button
+                onClick={() => !readOnly && setShowVerify(req)}
+                disabled={readOnly}
+                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 ${
+                  readOnly
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                }`}
+              >
                 Verify <ArrowRight size={14}/>
               </button>
             </div>

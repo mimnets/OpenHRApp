@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { Employee, Team, User } from '../types';
+import { useSubscription } from '../context/SubscriptionContext';
 
 const DirectorySkeleton = () => (
   <div className="bg-white rounded-[2.5rem] p-6 md:p-8 shadow-sm border border-slate-100 animate-pulse space-y-6">
@@ -46,6 +47,10 @@ interface EmployeeDirectoryProps {
 const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
   const isManager = user?.role === 'MANAGER' || user?.role === 'TEAM_LEAD';
+
+  // Subscription check
+  const { canPerformAction } = useSubscription();
+  const canWrite = canPerformAction('write');
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -259,9 +264,14 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
         </div>
         {isAdmin && (
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary-hover shadow-xl transition-all"
+              disabled={!canWrite}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl transition-all ${
+                canWrite
+                  ? 'bg-primary text-white hover:bg-primary-hover'
+                  : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+              }`}
             >
               <UserPlus size={16} /> Provision New User
             </button>
