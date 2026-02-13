@@ -782,6 +782,138 @@ routerAdd("POST", "/api/openhr/contact", (e) => {
 });
 
 /* ============================================================
+   2I. PUBLIC BLOG ENDPOINTS (No Auth Required)
+   ============================================================ */
+
+// GET /api/openhr/blog/posts - List all published blog posts
+routerAdd("GET", "/api/openhr/blog/posts", (e) => {
+    try {
+        console.log("[BLOG] Fetching published posts...");
+
+        const requestInfo = e.requestInfo();
+        const page = parseInt(requestInfo.query.page || "1") || 1;
+        const limit = parseInt(requestInfo.query.limit || "10") || 10;
+        const offset = (page - 1) * limit;
+
+        let posts = [];
+        try {
+            const records = $app.findRecordsByFilter(
+                "blog_posts",
+                "status = 'PUBLISHED'",
+                "-published_at",
+                limit,
+                offset
+            );
+
+            for (let i = 0; i < records.length; i++) {
+                const r = records[i];
+                let coverUrl = "";
+                const coverFile = r.getString("cover_image");
+                if (coverFile) {
+                    try {
+                        const appURL = $app.settings().meta.appURL || "";
+                        coverUrl = appURL + "/api/files/" + r.collection().name + "/" + r.id + "/" + coverFile;
+                    } catch (urlErr) {
+                        console.log("[BLOG] Cover URL error:", urlErr.toString());
+                    }
+                }
+
+                posts.push({
+                    id: r.id,
+                    title: r.getString("title"),
+                    slug: r.getString("slug"),
+                    excerpt: r.getString("excerpt"),
+                    cover_image: coverUrl,
+                    author_name: r.getString("author_name"),
+                    published_at: r.getString("published_at"),
+                    created: r.get("created"),
+                    updated: r.get("updated")
+                });
+            }
+        } catch (err) {
+            // No records found is not an error
+            console.log("[BLOG] No published posts found or error:", err.toString());
+        }
+
+        // Get total count for pagination
+        let totalPosts = 0;
+        try {
+            const allPublished = $app.findRecordsByFilter("blog_posts", "status = 'PUBLISHED'", "-published_at", 0, 0);
+            totalPosts = allPublished.length;
+        } catch (countErr) {
+            totalPosts = posts.length;
+        }
+
+        return e.json(200, {
+            success: true,
+            posts: posts,
+            page: page,
+            limit: limit,
+            totalPosts: totalPosts,
+            totalPages: Math.ceil(totalPosts / limit)
+        });
+
+    } catch (globalErr) {
+        console.log("[BLOG] Global error:", globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+// GET /api/openhr/blog/posts/:slug - Get single published blog post by slug
+routerAdd("GET", "/api/openhr/blog/posts/{slug}", (e) => {
+    try {
+        const slug = e.request.pathValue("slug");
+        console.log("[BLOG] Fetching post by slug:", slug);
+
+        if (!slug) {
+            return e.json(400, { message: "Slug parameter is required" });
+        }
+
+        let post = null;
+        try {
+            const r = $app.findFirstRecordByFilter(
+                "blog_posts",
+                "slug = '" + slug.replace(/'/g, "\\'") + "' && status = 'PUBLISHED'"
+            );
+
+            let coverUrl = "";
+            const coverFile = r.getString("cover_image");
+            if (coverFile) {
+                try {
+                    const appURL = $app.settings().meta.appURL || "";
+                    coverUrl = appURL + "/api/files/" + r.collection().name + "/" + r.id + "/" + coverFile;
+                } catch (urlErr) {
+                    console.log("[BLOG] Cover URL error:", urlErr.toString());
+                }
+            }
+
+            post = {
+                id: r.id,
+                title: r.getString("title"),
+                slug: r.getString("slug"),
+                content: r.getString("content"),
+                excerpt: r.getString("excerpt"),
+                cover_image: coverUrl,
+                author_name: r.getString("author_name"),
+                published_at: r.getString("published_at"),
+                created: r.get("created"),
+                updated: r.get("updated")
+            };
+
+        } catch (err) {
+            console.log("[BLOG] Post not found for slug:", slug);
+            return e.json(404, { success: false, message: "Blog post not found" });
+        }
+
+        return e.json(200, { success: true, post: post });
+
+    } catch (globalErr) {
+        console.log("[BLOG] Global error:", globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+/* ============================================================
    3. EMAIL NOTIFICATIONS (Queued)
    ============================================================ */
 try {
