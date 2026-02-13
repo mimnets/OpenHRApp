@@ -7,7 +7,13 @@ const AD_SLOTS: { id: AdSlot; name: string; description: string; size: string }[
   { id: 'sidebar', name: 'Sidebar', description: 'Bottom of sidebar navigation', size: '300x250' },
   { id: 'dashboard', name: 'Dashboard', description: 'Below dashboard stats', size: '728x90' },
   { id: 'reports', name: 'Reports', description: 'Reports page sidebar', size: '300x250' },
-  { id: 'footer', name: 'Footer', description: 'Footer area on all pages', size: '728x90' }
+  { id: 'footer', name: 'Footer', description: 'Footer area on all pages', size: '728x90' },
+  { id: 'landing-hero', name: 'Landing Hero', description: 'Below hero section on landing page', size: '728x90' },
+  { id: 'landing-mid', name: 'Landing Mid', description: 'Between sections on landing page', size: '728x90' },
+  { id: 'blog-header', name: 'Blog Header', description: 'Top of blog listing page', size: '728x90' },
+  { id: 'blog-feed', name: 'Blog Feed', description: 'Below blog post grid', size: '728x90' },
+  { id: 'blog-post-top', name: 'Blog Post Top', description: 'Top of blog post page', size: '728x90' },
+  { id: 'blog-post-content', name: 'Blog Post Content', description: 'Inside blog post content area', size: '300x250' }
 ];
 
 const DEFAULT_CONFIG: Omit<AdConfig, 'id' | 'slot'> = {

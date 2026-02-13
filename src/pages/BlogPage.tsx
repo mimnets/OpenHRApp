@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowLeft, Calendar, User } from 'lucide-react';
 import { blogService } from '../services/blog.service';
 import { BlogPost } from '../types';
+import { PublicAdBanner } from '../components/ads';
 
 interface BlogPageProps {
   onBack: () => void;
@@ -63,6 +64,11 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
         </div>
       </div>
 
+      {/* Ad - Blog Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex justify-center">
+        <PublicAdBanner slot="blog-header" />
+      </div>
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isLoading ? (
@@ -115,6 +121,11 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
                   </div>
                 </article>
               ))}
+            </div>
+
+            {/* Ad - Blog Feed */}
+            <div className="mt-10 flex justify-center">
+              <PublicAdBanner slot="blog-feed" />
             </div>
 
             {/* Pagination */}
