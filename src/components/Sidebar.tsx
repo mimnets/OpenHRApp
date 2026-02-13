@@ -90,8 +90,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
         ))}
       </nav>
 
-      {/* Ad Banner (for AD_SUPPORTED orgs) */}
-      <div className="px-2 pb-2 flex justify-center">
+      {/* Ad Banner (for AD_SUPPORTED orgs) - hidden on short screens to preserve sign-out button */}
+      <div className="px-2 pb-2 justify-center hidden md:flex">
         <AdBanner slot="sidebar" className="rounded-xl overflow-hidden" />
       </div>
 

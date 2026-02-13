@@ -95,7 +95,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
           </div>
 
           {/* Footer Ad Banner (for AD_SUPPORTED orgs) */}
-          <div className="max-w-4xl mx-auto mt-8 hidden md:flex justify-center">
+          <div className="max-w-4xl mx-auto mt-8 mb-20 md:mb-0 flex justify-center">
             <AdBanner slot="footer" className="rounded-xl overflow-hidden" />
           </div>
         </div>
