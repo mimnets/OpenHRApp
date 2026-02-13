@@ -83,12 +83,26 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
     loadAdConfig();
   }, [slot, shouldShowAds, subscription]);
 
-  // Don't render if not ad-supported or ad is disabled
-  if (!shouldShowAds || isLoading) return null;
-  if (!adConfig?.enabled) return null;
+  // Don't render if not ad-supported
+  if (!shouldShowAds) return null;
 
   const size = SLOT_SIZES[slot];
   const aspectRatio = size.width / size.height;
+
+  if (isLoading) {
+    return (
+      <div
+        className={`${className} animate-pulse rounded-lg bg-slate-100`}
+        style={{
+          width: '100%',
+          maxWidth: size.width,
+          aspectRatio: `${aspectRatio}`,
+        }}
+      />
+    );
+  }
+
+  if (!adConfig?.enabled) return null;
 
   // Render based on ad type
   const renderAd = () => {

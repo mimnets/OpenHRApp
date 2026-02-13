@@ -126,7 +126,7 @@ const AppContent: React.FC = () => {
     if (blogRoute.type === 'post' && blogRoute.slug) {
       return <BlogPostPage slug={blogRoute.slug} onBack={() => { window.location.hash = '/blog'; }} />;
     }
-    return <BlogPage onBack={() => { window.location.hash = ''; setBlogRoute(null); }} />;
+    return <BlogPage onBack={() => { window.history.pushState(null, '', window.location.pathname); setBlogRoute(null); }} />;
   }
 
   // Priority 1: Verification Flow

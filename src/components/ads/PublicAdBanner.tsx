@@ -40,10 +40,23 @@ export const PublicAdBanner: React.FC<PublicAdBannerProps> = ({ slot, className 
     loadAdConfig();
   }, [slot]);
 
-  if (isLoading || !adConfig?.enabled) return null;
-
   const size = SLOT_SIZES[slot] || { width: 728, height: 90 };
   const aspectRatio = size.width / size.height;
+
+  if (isLoading) {
+    return (
+      <div
+        className={`${className} mx-auto animate-pulse rounded-lg bg-slate-100`}
+        style={{
+          width: '100%',
+          maxWidth: size.width,
+          aspectRatio: `${aspectRatio}`,
+        }}
+      />
+    );
+  }
+
+  if (!adConfig?.enabled) return null;
 
   const renderAd = () => {
     switch (adConfig.adType) {

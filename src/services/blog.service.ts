@@ -51,7 +51,9 @@ export const blogService = {
       return null;
     }
     try {
-      const response = await apiClient.pb.send(`/api/openhr/blog/posts/${encodeURIComponent(slug)}`, { method: 'GET' });
+      // Sanitize slug to ensure clean URL path (lowercase, alphanumeric + hyphens only)
+      const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/(^-|-$)/g, '');
+      const response = await apiClient.pb.send(`/api/openhr/blog/posts/${cleanSlug}`, { method: 'GET' });
       if (!response.success || !response.post) return null;
       const p = response.post;
       return {
