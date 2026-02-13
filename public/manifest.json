@@ -1,8 +1,8 @@
 
 {
   "id": "openhr-mobile-app-v2.9",
-  "name": "ASSURER-HR App",
-  "short_name": "AssurerHR",
+  "name": "Open HR App",
+  "short_name": "OpenHRAPP",
   "description": "Smart Open-Source HR Management System",
   "start_url": "/",
   "scope": "/",
