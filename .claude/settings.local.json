@@ -10,7 +10,8 @@
       "Bash(ls:*)",
       "WebSearch",
       "Bash(curl:*)",
-      "Bash(npx pocketbase --help:*)"
+      "Bash(npx pocketbase --help:*)",
+      "Bash(npx vite build)"
     ]
   }
 }
