@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
       title: 'Company',
       links: [
         { label: 'About', action: () => scrollTo('features') },
-        { label: 'Contact', action: () => scrollTo('faq') },
+        { label: 'Contact', action: () => scrollTo('contact') },
       ],
     },
   ];

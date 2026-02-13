@@ -5,6 +5,7 @@ import FeaturesSection from '../components/landing/FeaturesSection';
 import HowItWorksSection from '../components/landing/HowItWorksSection';
 import TestimonialsSection from '../components/landing/TestimonialsSection';
 import FAQSection from '../components/landing/FAQSection';
+import ContactSection from '../components/landing/ContactSection';
 import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
 
@@ -30,6 +31,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
       <HowItWorksSection />
       <TestimonialsSection />
       <FAQSection />
+      <ContactSection />
       <CTASection onRegisterClick={onRegisterClick} />
       <Footer />
     </div>

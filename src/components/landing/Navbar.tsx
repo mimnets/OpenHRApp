@@ -25,6 +25,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
     { label: 'Features', id: 'features' },
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'FAQ', id: 'faq' },
+    { label: 'Contact', id: 'contact' },
   ];
 
   return (
