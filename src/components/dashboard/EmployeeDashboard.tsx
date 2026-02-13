@@ -30,7 +30,7 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
       />
 
       {/* Dashboard Ad Banner (for AD_SUPPORTED orgs) */}
-      <div className="hidden md:flex justify-center">
+      <div className="flex justify-center">
         <AdBanner slot="dashboard" className="rounded-xl overflow-hidden" />
       </div>
 

@@ -1,5 +1,5 @@
 {
-  "name": "OPEN-HR-App",
+  "name": "OPEN-HR-APP",
   "description": "A comprehensive HR management system tailored for Bangladesh-based organizations (100-500 employees), featuring local compliance, attendance tracking, and leave management.",
   "requestFramePermissions": [
     "camera",
