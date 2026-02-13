@@ -675,6 +675,245 @@ routerAdd("GET", "/api/openhr/ad-config/{slot}", (e) => {
 });
 
 /* ============================================================
+   2H. CONTACT FORM ENDPOINT (Public)
+   Method: POST /api/openhr/contact
+   Body: JSON { name, email, subject, message }
+   ============================================================ */
+routerAdd("POST", "/api/openhr/contact", (e) => {
+    try {
+        console.log("[CONTACT] Request received.");
+
+        let data = {};
+        try {
+            const requestInfo = e.requestInfo();
+            if (requestInfo && requestInfo.body && typeof requestInfo.body === 'object') {
+                data = requestInfo.body;
+            } else {
+                return e.json(400, { message: "Invalid request body structure" });
+            }
+        } catch (parseErr) {
+            return e.json(400, { message: "Invalid request body: " + parseErr.toString() });
+        }
+
+        const name = (data.name || "").trim();
+        const email = (data.email || "").trim();
+        const subject = (data.subject || "").trim();
+        const message = (data.message || "").trim();
+
+        // Validate required fields
+        if (!name) {
+            return e.json(400, { message: "Name is required." });
+        }
+        if (!email) {
+            return e.json(400, { message: "Email is required." });
+        }
+        if (!message) {
+            return e.json(400, { message: "Message is required." });
+        }
+
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return e.json(400, { message: "Please provide a valid email address." });
+        }
+
+        // Find all Super Admins
+        let superAdmins = [];
+        try {
+            superAdmins = $app.findRecordsByFilter("users", "role = 'SUPER_ADMIN'");
+        } catch (err) {
+            console.log("[CONTACT] No super admins found: " + err.toString());
+            return e.json(500, { message: "Unable to process your message at this time. Please try again later." });
+        }
+
+        if (superAdmins.length === 0) {
+            console.log("[CONTACT] No super admin users exist.");
+            return e.json(500, { message: "Unable to process your message at this time. Please try again later." });
+        }
+
+        // Send email to each Super Admin
+        const settings = $app.settings();
+        const meta = settings.meta || {};
+        const senderAddress = meta.senderAddress || "noreply@openhr.app";
+        const senderName = meta.senderName || "OpenHR System";
+
+        const displaySubject = subject || "No Subject";
+        const emailSubject = "Contact Form: " + displaySubject;
+
+        let sentCount = 0;
+        for (let i = 0; i < superAdmins.length; i++) {
+            const sa = superAdmins[i];
+            const saEmail = sa.getString("email");
+
+            try {
+                const mailMessage = new MailerMessage({
+                    from: { address: senderAddress, name: senderName },
+                    to: [{ address: saEmail }],
+                    subject: emailSubject,
+                    html: "<h2>New Contact Form Message</h2>" +
+                          "<p>A message was submitted via the contact form:</p>" +
+                          "<table style='border-collapse:collapse; margin:16px 0;'>" +
+                          "<tr><td style='padding:8px;border:1px solid #ddd;'><strong>Name</strong></td><td style='padding:8px;border:1px solid #ddd;'>" + name + "</td></tr>" +
+                          "<tr><td style='padding:8px;border:1px solid #ddd;'><strong>Email</strong></td><td style='padding:8px;border:1px solid #ddd;'><a href='mailto:" + email + "'>" + email + "</a></td></tr>" +
+                          "<tr><td style='padding:8px;border:1px solid #ddd;'><strong>Subject</strong></td><td style='padding:8px;border:1px solid #ddd;'>" + displaySubject + "</td></tr>" +
+                          "<tr><td style='padding:8px;border:1px solid #ddd;'><strong>Message</strong></td><td style='padding:8px;border:1px solid #ddd;'>" + message.replace(/\n/g, "<br>") + "</td></tr>" +
+                          "</table>" +
+                          "<p style='margin-top:16px; color:#666; font-size:12px;'>You can reply directly to <a href='mailto:" + email + "'>" + email + "</a></p>"
+                });
+                $app.newMailClient().send(mailMessage);
+                sentCount++;
+                console.log("[CONTACT] Super Admin notified: " + saEmail);
+            } catch (mailErr) {
+                console.log("[CONTACT] Failed to notify Super Admin " + saEmail + ": " + mailErr.toString());
+            }
+        }
+
+        if (sentCount === 0) {
+            return e.json(500, { message: "Failed to send your message. Please try again later." });
+        }
+
+        console.log("[CONTACT] Message sent to " + sentCount + " super admin(s).");
+        return e.json(200, { success: true, message: "Your message has been sent successfully. We'll get back to you soon!" });
+
+    } catch (globalErr) {
+        console.log("[CONTACT] Global error: " + globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+/* ============================================================
+   2I. PUBLIC BLOG ENDPOINTS (No Auth Required)
+   ============================================================ */
+
+// GET /api/openhr/blog/posts - List all published blog posts
+routerAdd("GET", "/api/openhr/blog/posts", (e) => {
+    try {
+        console.log("[BLOG] Fetching published posts...");
+
+        const requestInfo = e.requestInfo();
+        const page = parseInt(requestInfo.query.page || "1") || 1;
+        const limit = parseInt(requestInfo.query.limit || "10") || 10;
+        const offset = (page - 1) * limit;
+
+        let posts = [];
+        try {
+            const records = $app.findRecordsByFilter(
+                "blog_posts",
+                "status = 'PUBLISHED'",
+                "-published_at",
+                limit,
+                offset
+            );
+
+            for (let i = 0; i < records.length; i++) {
+                const r = records[i];
+                let coverUrl = "";
+                const coverFile = r.getString("cover_image");
+                if (coverFile) {
+                    try {
+                        const appURL = $app.settings().meta.appURL || "";
+                        coverUrl = appURL + "/api/files/" + r.collection().name + "/" + r.id + "/" + coverFile;
+                    } catch (urlErr) {
+                        console.log("[BLOG] Cover URL error:", urlErr.toString());
+                    }
+                }
+
+                posts.push({
+                    id: r.id,
+                    title: r.getString("title"),
+                    slug: r.getString("slug"),
+                    excerpt: r.getString("excerpt"),
+                    cover_image: coverUrl,
+                    author_name: r.getString("author_name"),
+                    published_at: r.getString("published_at"),
+                    created: r.get("created"),
+                    updated: r.get("updated")
+                });
+            }
+        } catch (err) {
+            // No records found is not an error
+            console.log("[BLOG] No published posts found or error:", err.toString());
+        }
+
+        // Get total count for pagination
+        let totalPosts = 0;
+        try {
+            const allPublished = $app.findRecordsByFilter("blog_posts", "status = 'PUBLISHED'", "-published_at", 0, 0);
+            totalPosts = allPublished.length;
+        } catch (countErr) {
+            totalPosts = posts.length;
+        }
+
+        return e.json(200, {
+            success: true,
+            posts: posts,
+            page: page,
+            limit: limit,
+            totalPosts: totalPosts,
+            totalPages: Math.ceil(totalPosts / limit)
+        });
+
+    } catch (globalErr) {
+        console.log("[BLOG] Global error:", globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+// GET /api/openhr/blog/posts/:slug - Get single published blog post by slug
+routerAdd("GET", "/api/openhr/blog/posts/{slug}", (e) => {
+    try {
+        const slug = e.request.pathValue("slug");
+        console.log("[BLOG] Fetching post by slug:", slug);
+
+        if (!slug) {
+            return e.json(400, { message: "Slug parameter is required" });
+        }
+
+        let post = null;
+        try {
+            const r = $app.findFirstRecordByFilter(
+                "blog_posts",
+                "slug = '" + slug.replace(/'/g, "\\'") + "' && status = 'PUBLISHED'"
+            );
+
+            let coverUrl = "";
+            const coverFile = r.getString("cover_image");
+            if (coverFile) {
+                try {
+                    const appURL = $app.settings().meta.appURL || "";
+                    coverUrl = appURL + "/api/files/" + r.collection().name + "/" + r.id + "/" + coverFile;
+                } catch (urlErr) {
+                    console.log("[BLOG] Cover URL error:", urlErr.toString());
+                }
+            }
+
+            post = {
+                id: r.id,
+                title: r.getString("title"),
+                slug: r.getString("slug"),
+                content: r.getString("content"),
+                excerpt: r.getString("excerpt"),
+                cover_image: coverUrl,
+                author_name: r.getString("author_name"),
+                published_at: r.getString("published_at"),
+                created: r.get("created"),
+                updated: r.get("updated")
+            };
+
+        } catch (err) {
+            console.log("[BLOG] Post not found for slug:", slug);
+            return e.json(404, { success: false, message: "Blog post not found" });
+        }
+
+        return e.json(200, { success: true, post: post });
+
+    } catch (globalErr) {
+        console.log("[BLOG] Global error:", globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+/* ============================================================
    3. EMAIL NOTIFICATIONS (Queued)
    ============================================================ */
 try {

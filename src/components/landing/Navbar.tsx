@@ -25,6 +25,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
     { label: 'Features', id: 'features' },
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'FAQ', id: 'faq' },
+    { label: 'Contact', id: 'contact' },
+    { label: 'Blog', id: 'blog-link' },
   ];
 
   return (
@@ -48,7 +50,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
             {navLinks.map(link => (
               <button
                 key={link.id}
-                onClick={() => scrollTo(link.id)}
+                onClick={() => {
+                  if (link.id === 'blog-link') {
+                    window.location.hash = '/blog';
+                  } else {
+                    scrollTo(link.id);
+                  }
+                }}
                 className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
               >
                 {link.label}
@@ -89,7 +97,14 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
             {navLinks.map(link => (
               <button
                 key={link.id}
-                onClick={() => scrollTo(link.id)}
+                onClick={() => {
+                  if (link.id === 'blog-link') {
+                    setMobileOpen(false);
+                    window.location.hash = '/blog';
+                  } else {
+                    scrollTo(link.id);
+                  }
+                }}
                 className="block w-full text-left px-4 py-3 text-sm font-semibold text-slate-600 hover:text-primary hover:bg-slate-50 rounded-xl transition-colors"
               >
                 {link.label}

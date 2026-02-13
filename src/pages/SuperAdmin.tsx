@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor, HardDrive
+  CreditCard, Monitor, HardDrive, FileText
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
 import { Organization, Employee, PlatformStats, User, UpgradeRequest } from '../types';
 import AdManagement from '../components/superadmin/AdManagement';
 import StorageManagement from '../components/superadmin/StorageManagement';
+import BlogManagement from '../components/superadmin/BlogManagement';
 
 interface SuperAdminProps {
   user: User;
@@ -16,7 +17,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads' | 'storage';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -319,6 +320,14 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         >
           <HardDrive size={18} /> Storage
         </button>
+        <button
+          onClick={() => setActiveTab('blog')}
+          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'blog' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <FileText size={18} /> Blog
+        </button>
       </div>
 
       {/* Upgrade Requests Tab */}
@@ -413,6 +422,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Storage Management Tab */}
       {activeTab === 'storage' && (
         <StorageManagement onMessage={setMessage} />
+      )}
+
+      {/* Blog Management Tab */}
+      {activeTab === 'blog' && (
+        <BlogManagement onMessage={setMessage} />
       )}
 
       {/* Organizations Tab - Stats Cards */}
