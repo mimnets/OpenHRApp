@@ -17,6 +17,7 @@ import Organization from './pages/Organization';
 import Login from './pages/Login';
 import Setup from './pages/Setup';
 import RegisterOrganization from './pages/RegisterOrganization';
+import LandingPage from './pages/LandingPage';
 import SuperAdmin from './pages/SuperAdmin';
 import Upgrade from './pages/Upgrade';
 import { VerifyAccount } from './pages/VerifyAccount';
@@ -29,6 +30,7 @@ const AppContent: React.FC = () => {
   const [navParams, setNavParams] = useState<any>(null);
   
   // Public Pages State
+  const [showLanding, setShowLanding] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
 
@@ -94,12 +96,20 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Priority 2: Public Login/Register
+  // Priority 2: Public Landing/Login/Register
   if (!user) {
     if (showRegister) {
-      return <RegisterOrganization onBack={() => setShowRegister(false)} onSuccess={login} />;
+      return <RegisterOrganization onBack={() => { setShowRegister(false); setShowLanding(true); }} onSuccess={login} />;
     }
-    return <Login onLoginSuccess={login} onRegisterClick={() => setShowRegister(true)} />;
+    if (!showLanding) {
+      return <Login onLoginSuccess={login} onRegisterClick={() => setShowRegister(true)} onBackToLanding={() => setShowLanding(true)} />;
+    }
+    return (
+      <LandingPage
+        onLoginClick={() => setShowLanding(false)}
+        onRegisterClick={() => { setShowLanding(false); setShowRegister(true); }}
+      />
+    );
   }
 
   // Check if Super Admin
