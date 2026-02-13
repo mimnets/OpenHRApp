@@ -2,6 +2,29 @@
 import { apiClient } from './api.client';
 import { BlogPost } from '../types';
 
+// Build correct file URL using PocketBase base URL (not appURL from backend)
+const buildFileUrl = (collectionName: string, recordId: string, fileName: string): string => {
+  if (!fileName || !apiClient.pb) return '';
+  const baseUrl = apiClient.pb.baseURL || '';
+  return `${baseUrl}/api/files/${collectionName}/${recordId}/${fileName}`;
+};
+
+// Extract just the filename from a full URL or return as-is if already a filename
+const extractFileName = (coverValue: string): string => {
+  if (!coverValue) return '';
+  // If it's a full URL, extract just the filename (last path segment)
+  if (coverValue.startsWith('http://') || coverValue.startsWith('https://')) {
+    try {
+      const url = new URL(coverValue);
+      const segments = url.pathname.split('/');
+      return segments[segments.length - 1] || '';
+    } catch {
+      return coverValue;
+    }
+  }
+  return coverValue;
+};
+
 export const blogService = {
   // =============================================
   // PUBLIC METHODS (no auth required)
@@ -19,20 +42,23 @@ export const blogService = {
     }
     try {
       const response = await apiClient.pb.send(`/api/openhr/blog/posts?page=${page}&limit=${limit}`, { method: 'GET' });
-      const posts: BlogPost[] = (response.posts || []).map((p: any) => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        content: '',
-        excerpt: p.excerpt,
-        coverImage: p.cover_image || '',
-        status: 'PUBLISHED' as const,
-        authorId: '',
-        authorName: p.author_name || '',
-        publishedAt: p.published_at || '',
-        created: p.created || '',
-        updated: p.updated || '',
-      }));
+      const posts: BlogPost[] = (response.posts || []).map((p: any) => {
+        const fileName = extractFileName(p.cover_image || '');
+        return {
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          content: '',
+          excerpt: p.excerpt,
+          coverImage: fileName ? buildFileUrl('blog_posts', p.id, fileName) : '',
+          status: 'PUBLISHED' as const,
+          authorId: '',
+          authorName: p.author_name || '',
+          publishedAt: p.published_at || '',
+          created: p.created || '',
+          updated: p.updated || '',
+        };
+      });
       return {
         posts,
         page: response.page || 1,
@@ -56,13 +82,14 @@ export const blogService = {
       const response = await apiClient.pb.send(`/api/openhr/blog/posts/${cleanSlug}`, { method: 'GET' });
       if (!response.success || !response.post) return null;
       const p = response.post;
+      const fileName = extractFileName(p.cover_image || '');
       return {
         id: p.id,
         title: p.title,
         slug: p.slug,
         content: p.content || '',
         excerpt: p.excerpt || '',
-        coverImage: p.cover_image || '',
+        coverImage: fileName ? buildFileUrl('blog_posts', p.id, fileName) : '',
         status: 'PUBLISHED',
         authorId: '',
         authorName: p.author_name || '',
@@ -115,24 +142,41 @@ export const blogService = {
   }): Promise<{ success: boolean; message: string }> {
     if (!apiClient.pb) return { success: false, message: 'PocketBase not configured' };
     try {
-      const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('slug', data.slug);
-      formData.append('content', data.content);
-      formData.append('excerpt', data.excerpt);
-      formData.append('status', data.status);
-      formData.append('author_name', data.authorName);
+      // Build plain record data
+      const record: Record<string, any> = {
+        title: data.title,
+        slug: data.slug,
+        content: data.content,
+        excerpt: data.excerpt,
+        status: data.status,
+        author_name: data.authorName,
+      };
       if (data.status === 'PUBLISHED') {
-        formData.append('published_at', new Date().toISOString());
+        record.published_at = new Date().toISOString();
       }
+
+      // If there's a file, use FormData; otherwise use plain object
       if (data.coverImage) {
+        const formData = new FormData();
+        Object.entries(record).forEach(([key, val]) => {
+          if (val !== undefined && val !== null) formData.append(key, val);
+        });
         formData.append('cover_image', data.coverImage);
+        await apiClient.pb.collection('blog_posts').create(formData);
+      } else {
+        await apiClient.pb.collection('blog_posts').create(record);
       }
-      await apiClient.pb.collection('blog_posts').create(formData);
+
       apiClient.notify();
       return { success: true, message: 'Blog post created successfully' };
     } catch (e: any) {
-      console.error('[BlogService] Failed to create post:', e?.message || e);
+      console.error('[BlogService] Failed to create post:', e);
+      // Extract PocketBase field validation errors if available
+      const fieldErrors = e?.data?.data;
+      if (fieldErrors) {
+        const details = Object.entries(fieldErrors).map(([k, v]: [string, any]) => `${k}: ${v?.message || v}`).join(', ');
+        return { success: false, message: `Validation error: ${details}` };
+      }
       return { success: false, message: e?.message || 'Failed to create blog post' };
     }
   },
@@ -149,22 +193,38 @@ export const blogService = {
   }): Promise<{ success: boolean; message: string }> {
     if (!apiClient.pb) return { success: false, message: 'PocketBase not configured' };
     try {
-      const formData = new FormData();
-      if (data.title !== undefined) formData.append('title', data.title);
-      if (data.slug !== undefined) formData.append('slug', data.slug);
-      if (data.content !== undefined) formData.append('content', data.content);
-      if (data.excerpt !== undefined) formData.append('excerpt', data.excerpt);
-      if (data.status !== undefined) formData.append('status', data.status);
-      if (data.authorName !== undefined) formData.append('author_name', data.authorName);
-      if (data.publishedAt !== undefined) formData.append('published_at', data.publishedAt);
+      // Build plain record data — only include fields that are defined
+      const record: Record<string, any> = {};
+      if (data.title !== undefined) record.title = data.title;
+      if (data.slug !== undefined) record.slug = data.slug;
+      if (data.content !== undefined) record.content = data.content;
+      if (data.excerpt !== undefined) record.excerpt = data.excerpt;
+      if (data.status !== undefined) record.status = data.status;
+      if (data.authorName !== undefined) record.author_name = data.authorName;
+      if (data.publishedAt !== undefined) record.published_at = data.publishedAt;
+
+      // If there's a new file, use FormData; otherwise use plain object
       if (data.coverImage) {
+        const formData = new FormData();
+        Object.entries(record).forEach(([key, val]) => {
+          if (val !== undefined && val !== null) formData.append(key, String(val));
+        });
         formData.append('cover_image', data.coverImage);
+        await apiClient.pb.collection('blog_posts').update(id, formData);
+      } else {
+        await apiClient.pb.collection('blog_posts').update(id, record);
       }
-      await apiClient.pb.collection('blog_posts').update(id, formData);
+
       apiClient.notify();
       return { success: true, message: 'Blog post updated successfully' };
     } catch (e: any) {
-      console.error('[BlogService] Failed to update post:', e?.message || e);
+      console.error('[BlogService] Failed to update post:', e);
+      // Extract PocketBase field validation errors if available
+      const fieldErrors = e?.data?.data;
+      if (fieldErrors) {
+        const details = Object.entries(fieldErrors).map(([k, v]: [string, any]) => `${k}: ${v?.message || v}`).join(', ');
+        return { success: false, message: `Validation error: ${details}` };
+      }
       return { success: false, message: e?.message || 'Failed to update blog post' };
     }
   },
