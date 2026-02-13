@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  User, ArrowLeft, Save, RefreshCw, Mail, UserCheck, Hash, Lock, Key, Eye, EyeOff
+import {
+  User, ArrowLeft, Save, RefreshCw, Mail, UserCheck, Hash, Lock, Key, Eye, EyeOff,
+  Send, Loader2, CheckCircle, AlertCircle, MessageSquare
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { User as UserType, Employee } from '../types';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { AdminVerificationPanel } from '../components/admin/AdminVerificationPanel';
+import { contactService } from '../services/contact.service';
 
 interface SettingsProps {
   user: UserType;
@@ -47,6 +49,12 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [isContactSubmitting, setIsContactSubmitting] = useState(false);
+  const [contactResult, setContactResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [contactInitialized, setContactInitialized] = useState(false);
+
   const isAdmin = user.role === 'ADMIN';
 
   useEffect(() => {
@@ -78,6 +86,39 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
     };
     load();
   }, [user.id, user.name, user.email, user.role, user.department, user.designation, user.employeeId]);
+
+  // Pre-fill contact form with user info
+  useEffect(() => {
+    if (!contactInitialized && user.name && user.email) {
+      setContactForm(prev => ({ ...prev, name: user.name || '', email: user.email || '' }));
+      setContactInitialized(true);
+    }
+  }, [user.name, user.email, contactInitialized]);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactResult(null);
+
+    if (!contactForm.message.trim()) {
+      setContactResult({ type: 'error', message: 'Please enter a message.' });
+      return;
+    }
+
+    setIsContactSubmitting(true);
+    try {
+      const response = await contactService.submitContactForm(contactForm);
+      if (response.success) {
+        setContactResult({ type: 'success', message: response.message });
+        setContactForm(prev => ({ ...prev, subject: '', message: '' }));
+      } else {
+        setContactResult({ type: 'error', message: response.message });
+      }
+    } catch {
+      setContactResult({ type: 'error', message: 'Something went wrong. Please try again later.' });
+    } finally {
+      setIsContactSubmitting(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -231,6 +272,93 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
           <AdminVerificationPanel />
         </div>
       )}
+
+      {/* Contact Support */}
+      <div className="max-w-3xl animate-in slide-in-from-bottom-8">
+        <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-6 flex items-center gap-2">
+          <MessageSquare size={24} className="text-primary" /> Contact Support
+        </h3>
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+          <p className="text-sm text-slate-500">Have a question, feedback, or need help? Send us a message and we'll get back to you.</p>
+          <form onSubmit={handleContactSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Name</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <input
+                    type="text"
+                    value={contactForm.name}
+                    onChange={e => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <input
+                    type="email"
+                    value={contactForm.email}
+                    onChange={e => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Subject</label>
+              <input
+                type="text"
+                value={contactForm.subject}
+                onChange={e => setContactForm(prev => ({ ...prev, subject: e.target.value }))}
+                placeholder="What is this about?"
+                className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                Message <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={contactForm.message}
+                onChange={e => setContactForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Tell us what's on your mind..."
+                rows={4}
+                className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light resize-none"
+              />
+            </div>
+
+            {contactResult && (
+              <div className={`flex items-start gap-3 p-4 rounded-2xl text-sm font-medium ${
+                contactResult.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                  : 'bg-red-50 text-red-700 border border-red-100'
+              }`}>
+                {contactResult.type === 'success' ? <CheckCircle size={18} className="mt-0.5 flex-shrink-0" /> : <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />}
+                <span>{contactResult.message}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isContactSubmitting}
+                className="px-10 py-4 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all flex items-center gap-3 hover:bg-primary disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isContactSubmitting ? (
+                  <><Loader2 size={18} className="animate-spin" /> Sending...</>
+                ) : (
+                  <><Send size={18} /> Send Message</>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

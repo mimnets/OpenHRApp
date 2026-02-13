@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
+    "lucide-react": "0.460.0",
+    "pocketbase": "0.25.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "lucide-react": "0.460.0",
-    "recharts": "2.13.3",
-    "pocketbase": "0.25.0"
+    "recharts": "2.13.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

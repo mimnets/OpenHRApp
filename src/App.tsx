@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -167,6 +168,7 @@ const App: React.FC = () => {
       <SubscriptionProvider>
         <ThemeProvider>
           <AppContent />
+          <Analytics />
         </ThemeProvider>
       </SubscriptionProvider>
     </AuthProvider>

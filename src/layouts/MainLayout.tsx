@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { SubscriptionBanner } from '../components/subscription';
 import { AdBanner } from '../components/ads';
 
+
 interface MainLayoutProps {
   children: React.ReactNode;
   currentPath: string;
