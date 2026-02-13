@@ -23,6 +23,8 @@ import SuperAdmin from './pages/SuperAdmin';
 import Upgrade from './pages/Upgrade';
 import { VerifyAccount } from './pages/VerifyAccount';
 import { SuspendedPage } from './components/subscription';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isConfigured, setConfigured, login, logout } = useAuth();
@@ -34,9 +36,29 @@ const AppContent: React.FC = () => {
   const [showLanding, setShowLanding] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(null);
 
-  // Check URL for verification token on mount
+  // Parse blog route from hash
+  const parseBlogRoute = (hash: string) => {
+    if (hash === '#/blog' || hash === '#/blog/') {
+      return { type: 'list' as const };
+    }
+    const match = hash.match(/^#\/blog\/(.+)$/);
+    if (match && match[1]) {
+      return { type: 'post' as const, slug: match[1] };
+    }
+    return null;
+  };
+
+  // Check URL for verification token and blog routes on mount
   useEffect(() => {
+    // Check for blog route first
+    const blogMatch = parseBlogRoute(window.location.hash);
+    if (blogMatch) {
+      setBlogRoute(blogMatch);
+      return;
+    }
+
     let token: string | null = null;
 
     // 1. Check Search Params (Standard: /?token=...)
@@ -64,6 +86,21 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
+  // Listen for hash changes (blog navigation)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      const blogMatch = parseBlogRoute(hash);
+      if (blogMatch) {
+        setBlogRoute(blogMatch);
+      } else if (!hash || hash === '#' || hash === '#/') {
+        setBlogRoute(null);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const handleNavigate = (path: string, params?: any) => {
     if (path === 'attendance-quick-office') {
       setCurrentPath('attendance');
@@ -82,6 +119,14 @@ const AppContent: React.FC = () => {
 
   if (!isConfigured) {
     return <Setup onComplete={() => setConfigured(true)} />;
+  }
+
+  // Priority 0: Public Blog (accessible regardless of auth)
+  if (blogRoute) {
+    if (blogRoute.type === 'post' && blogRoute.slug) {
+      return <BlogPostPage slug={blogRoute.slug} onBack={() => { window.location.hash = '/blog'; }} />;
+    }
+    return <BlogPage onBack={() => { window.location.hash = ''; setBlogRoute(null); }} />;
   }
 
   // Priority 1: Verification Flow

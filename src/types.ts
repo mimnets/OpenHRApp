@@ -198,6 +198,21 @@ export interface OfficeLocation {
   radius: number;
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  coverImage: string;
+  status: 'DRAFT' | 'PUBLISHED';
+  authorId: string;
+  authorName: string;
+  publishedAt: string;
+  created: string;
+  updated: string;
+}
+
 export interface AppConfig {
   companyName: string;
   timezone: string;

@@ -12,6 +12,7 @@ const Footer: React.FC = () => {
         { label: 'Features', action: () => scrollTo('features') },
         { label: 'How It Works', action: () => scrollTo('how-it-works') },
         { label: 'FAQ', action: () => scrollTo('faq') },
+        { label: 'Blog', action: () => { window.location.hash = '/blog'; } },
       ],
     },
     {
