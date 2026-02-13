@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send, Home } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { isPocketBaseConfigured } from '../services/pocketbase';
 
 interface LoginProps {
   onLoginSuccess: (user: any) => void;
-  onRegisterClick: () => void; // New prop
+  onRegisterClick: () => void;
+  onBackToLanding?: () => void;
   initError?: string;
 }
 
@@ -33,7 +34,7 @@ const BrandLogo = () => (
   </div>
 );
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, initError }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackToLanding, initError }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -231,19 +232,30 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, initErro
                   <Building2 size={14} /> Register New Organization
                 </button>
 
+                {/* Back to Home */}
+                {onBackToLanding && (
+                  <button
+                    type="button"
+                    onClick={onBackToLanding}
+                    className="w-full py-2.5 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Home size={12} /> Back to Home
+                  </button>
+                )}
+
                 {/* Utils Row: Install & Reset */}
                 <div className="flex justify-center items-center gap-4 pt-4 border-t border-slate-50">
-                   <button 
+                   <button
                      type="button"
                      onClick={handleInstallClick}
                      className="flex items-center gap-2 px-4 py-2 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors"
                    >
                      <Download size={12} /> {canPrompt ? 'Install App' : 'App Guide'}
                    </button>
-                   
+
                    <div className="w-px h-3 bg-slate-200"></div>
 
-                   <button 
+                   <button
                      type="button"
                      onClick={handleSystemReset}
                      className="flex items-center gap-2 px-4 py-2 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-rose-600 transition-colors"
