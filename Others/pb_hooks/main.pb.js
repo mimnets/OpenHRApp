@@ -675,6 +675,88 @@ routerAdd("GET", "/api/openhr/ad-config/{slot}", (e) => {
 });
 
 /* ============================================================
+   2G-PUBLIC. GET PUBLIC AD CONFIG ENDPOINT (No auth required)
+   For landing page, blog, and other public pages.
+   Only serves whitelisted public slots to prevent data leakage.
+   ============================================================ */
+console.log("[HOOKS] Registering public-ad-config endpoint...");
+routerAdd("GET", "/api/openhr/public-ad-config/{slot}", (e) => {
+    try {
+        const slot = e.request.pathValue("slot");
+        console.log("[PUBLIC-AD-CONFIG] Request received for slot:", slot);
+
+        if (!slot) {
+            return e.json(400, { message: "Slot parameter required" });
+        }
+
+        // Only allow public-facing ad slots
+        const PUBLIC_SLOTS = [
+            "landing-hero", "landing-mid",
+            "blog-header", "blog-feed",
+            "blog-post-top", "blog-post-content"
+        ];
+
+        if (PUBLIC_SLOTS.indexOf(slot) === -1) {
+            return e.json(403, { message: "Slot not available publicly" });
+        }
+
+        // Find ad config organization (same logic as authenticated endpoint)
+        let adConfigOrgId = null;
+
+        try {
+            const systemOrg = $app.findFirstRecordByFilter("organizations", "name = '__SYSTEM__'");
+            if (systemOrg) {
+                adConfigOrgId = systemOrg.id;
+            }
+        } catch (err) {}
+
+        if (!adConfigOrgId) {
+            try {
+                const platformOrg = $app.findFirstRecordByFilter("organizations", "name = 'Platform'");
+                if (platformOrg) {
+                    adConfigOrgId = platformOrg.id;
+                }
+            } catch (err) {}
+        }
+
+        if (!adConfigOrgId) {
+            try {
+                const adSetting = $app.findFirstRecordByFilter("settings", "key ~ 'ad_config_%'");
+                if (adSetting) {
+                    adConfigOrgId = adSetting.getString("organization_id");
+                }
+            } catch (err) {
+                return e.json(200, { enabled: false, reason: "No ad config org" });
+            }
+        }
+
+        if (!adConfigOrgId) {
+            return e.json(200, { enabled: false, reason: "No ad config org found" });
+        }
+
+        // Fetch ad config
+        try {
+            const setting = $app.findFirstRecordByFilter(
+                "settings",
+                "key = 'ad_config_" + slot + "' && organization_id = '" + adConfigOrgId + "'"
+            );
+
+            if (setting) {
+                const config = setting.get("value");
+                return e.json(200, config || { enabled: false });
+            }
+        } catch (err) {
+            // Config not found
+        }
+
+        return e.json(200, { enabled: false, reason: "Config not found" });
+    } catch (globalErr) {
+        console.log("[PUBLIC-AD-CONFIG] Error:", globalErr.toString());
+        return e.json(500, { message: "Internal error" });
+    }
+});
+
+/* ============================================================
    2H. CONTACT FORM ENDPOINT (Public)
    Method: POST /api/openhr/contact
    Body: JSON { name, email, subject, message }

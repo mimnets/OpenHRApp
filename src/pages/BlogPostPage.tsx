@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, ArrowLeft, Calendar, User } from 'lucide-react';
 import { blogService } from '../services/blog.service';
 import { BlogPost } from '../types';
+import { PublicAdBanner } from '../components/ads';
 
 interface BlogPostPageProps {
   slug: string;
@@ -89,6 +90,11 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
             </div>
           )}
 
+          {/* Ad - Blog Post Top */}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex justify-center">
+            <PublicAdBanner slot="blog-post-top" />
+          </div>
+
           {/* Article Content */}
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">
@@ -119,6 +125,11 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
               className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-img:rounded-xl"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
+
+            {/* Ad - Blog Post Content */}
+            <div className="mt-8 flex justify-center">
+              <PublicAdBanner slot="blog-post-content" />
+            </div>
 
             {/* Back to blog */}
             <div className="mt-12 pt-8 border-t border-slate-200">

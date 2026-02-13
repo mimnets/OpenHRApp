@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { apiClient } from '../../services/api.client';
 
-export type AdSlot = 'sidebar' | 'dashboard' | 'reports' | 'footer';
+export type AdSlot = 'sidebar' | 'dashboard' | 'reports' | 'footer' | 'landing-hero' | 'landing-mid' | 'blog-header' | 'blog-feed' | 'blog-post-top' | 'blog-post-content';
 export type AdSize = '300x250' | '728x90' | '320x100' | 'text';
 
 export interface AdConfig {
@@ -28,10 +28,16 @@ interface AdBannerProps {
 
 // Standard IAB ad sizes
 const SLOT_SIZES: Record<AdSlot, { width: number; height: number }> = {
-  sidebar: { width: 300, height: 250 },   // Medium Rectangle (IAB standard)
-  dashboard: { width: 728, height: 90 },  // Leaderboard (IAB standard)
-  reports: { width: 300, height: 250 },   // Medium Rectangle
-  footer: { width: 728, height: 90 }      // Leaderboard
+  sidebar: { width: 300, height: 250 },          // Medium Rectangle (IAB standard)
+  dashboard: { width: 728, height: 90 },         // Leaderboard (IAB standard)
+  reports: { width: 300, height: 250 },          // Medium Rectangle
+  footer: { width: 728, height: 90 },            // Leaderboard
+  'landing-hero': { width: 728, height: 90 },    // Leaderboard below hero
+  'landing-mid': { width: 728, height: 90 },     // Leaderboard mid-page
+  'blog-header': { width: 728, height: 90 },     // Leaderboard on blog listing
+  'blog-feed': { width: 728, height: 90 },       // Leaderboard in blog feed
+  'blog-post-top': { width: 728, height: 90 },   // Leaderboard on blog post
+  'blog-post-content': { width: 300, height: 250 } // Medium Rectangle in post
 };
 
 
