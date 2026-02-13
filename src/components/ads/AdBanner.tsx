@@ -82,6 +82,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
   if (!adConfig?.enabled) return null;
 
   const size = SLOT_SIZES[slot];
+  const aspectRatio = size.width / size.height;
 
   // Render based on ad type
   const renderAd = () => {
@@ -91,7 +92,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
         return (
           <ins
             className="adsbygoogle"
-            style={{ display: 'block', width: size.width, height: size.height }}
+            style={{ display: 'block', width: '100%', height: '100%' }}
             data-ad-client={adConfig.adsenseClient}
             data-ad-slot={adConfig.adsenseSlot}
             data-ad-format="auto"
@@ -104,7 +105,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
         return (
           <div
             dangerouslySetInnerHTML={{ __html: adConfig.customHtml }}
-            style={{ width: size.width, height: size.height }}
+            style={{ width: '100%', height: '100%', overflow: 'hidden' }}
           />
         );
 
@@ -114,7 +115,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
           <img
             src={adConfig.imageUrl}
             alt={adConfig.altText || 'Advertisement'}
-            style={{ width: size.width, height: size.height, objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             className="rounded-lg"
           />
         );
@@ -129,6 +130,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
               href={finalUrl}
               target="_blank"
               rel="noopener noreferrer sponsored"
+              className="block w-full h-full"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(finalUrl, '_blank', 'noopener,noreferrer');
@@ -149,16 +151,13 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
   const adContent = renderAd();
   if (!adContent) return null;
 
-  // Make leaderboard ads (728x90) responsive on smaller screens
-  const isLeaderboard = slot === 'dashboard' || slot === 'footer';
-
   return (
     <div
-      className={`ad-banner ad-slot-${slot} ${className} relative ${isLeaderboard ? 'max-w-full overflow-hidden' : ''}`}
+      className={`ad-banner ad-slot-${slot} ${className} relative overflow-hidden`}
       style={{
-        width: size.width,
-        maxWidth: isLeaderboard ? '100%' : size.width,
-        minHeight: size.height,
+        width: '100%',
+        maxWidth: size.width,
+        aspectRatio: `${aspectRatio}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
@@ -177,7 +176,7 @@ export const AdPlaceholder: React.FC<{ slot: AdSlot; onClick?: () => void }> = (
   return (
     <div
       onClick={onClick}
-      className="border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary-light/20 transition-all"
+      className="border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary-light/20 transition-all max-w-full"
       style={{ width: size.width, height: size.height }}
     >
       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ad Slot</span>
