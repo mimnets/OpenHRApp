@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Edit, Trash2, Eye, EyeOff, Save, Loader2, Image, ArrowLeft } from 'lucide-react';
 import { blogService } from '../../services/blog.service';
 import { BlogPost } from '../../types';
+import RichTextEditor from '../blog/RichTextEditor';
 
 interface BlogManagementProps {
   onMessage: (msg: { type: 'success' | 'error'; text: string }) => void;
@@ -11,9 +12,11 @@ type ViewMode = 'list' | 'create' | 'edit';
 
 const generateSlug = (title: string): string => {
   return title
+    .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+    .replace(/[^a-z0-9]+/g, '-')  // Replace non-alphanumeric chars with hyphens
+    .replace(/-{2,}/g, '-')        // Collapse multiple consecutive hyphens
+    .replace(/(^-|-$)/g, '');      // Remove leading/trailing hyphens
 };
 
 const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
@@ -402,15 +405,13 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
             />
           </div>
 
-          {/* Content (HTML) */}
+          {/* Content */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Content (HTML)</label>
-            <textarea
+            <label className="block text-sm font-bold text-slate-700 mb-2">Content</label>
+            <RichTextEditor
               value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-primary text-slate-900 font-mono text-sm resize-vertical"
-              rows={12}
-              placeholder="<h2>Your content here...</h2><p>Write HTML content...</p>"
+              onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+              placeholder="Start writing your blog post..."
             />
           </div>
 
