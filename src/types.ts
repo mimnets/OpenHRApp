@@ -90,6 +90,7 @@ export interface User {
   avatar?: string;
   username?: string;
   teamId?: string;
+  shiftId?: string;
   organizationId?: string;
 }
 
@@ -211,6 +212,28 @@ export interface BlogPost {
   publishedAt: string;
   created: string;
   updated: string;
+}
+
+export interface Shift {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  lateGracePeriod: number;
+  earlyOutGracePeriod: number;
+  earliestCheckIn: string;
+  autoSessionCloseTime: string;
+  workingDays: string[];
+  isDefault: boolean;
+}
+
+export interface ShiftOverride {
+  id: string;
+  employeeId: string;
+  shiftId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
 }
 
 export interface AppConfig {

@@ -16,6 +16,9 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.teamId !== undefined) pbData.team_id = data.teamId || null;
   else if (data.team_id !== undefined) pbData.team_id = data.team_id || null;
 
+  if (data.shiftId !== undefined) pbData.shift_id = data.shiftId || null;
+  else if (data.shift_id !== undefined) pbData.shift_id = data.shift_id || null;
+
   if (data.avatar && typeof data.avatar === 'string' && !data.avatar.startsWith('http')) {
     pbData.avatar = data.avatar;
   }
@@ -55,6 +58,7 @@ export const employeeService = {
         employeeId: r.employee_id || '',
         lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
         teamId: (r.team_id && r.team_id.length > 5) ? r.team_id : undefined,
+        shiftId: r.shift_id || undefined,
         organizationId: r.organization_id,
         name: r.name || 'No Name',
         email: r.email,

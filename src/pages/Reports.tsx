@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
-import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday } from '../types';
+import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday, Shift } from '../types';
 import { consolidateAttendance } from '../utils/attendanceUtils';
 
 interface ReportsProps {
@@ -24,7 +24,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   const [dbDepartments, setDbDepartments] = useState<string[]>([]);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shiftOverrides, setShiftOverrides] = useState<any[]>([]);
+
   // Log State
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [isHookMissing, setIsHookMissing] = useState(false);
@@ -79,20 +81,24 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [emps, atts, lvs, depts, config, hols] = await Promise.all([
-          hrService.getEmployees(), 
-          hrService.getAttendance(), 
+        const [emps, atts, lvs, depts, config, hols, shiftsList, overridesList] = await Promise.all([
+          hrService.getEmployees(),
+          hrService.getAttendance(),
           hrService.getLeaves(),
           hrService.getDepartments(),
           hrService.getConfig(),
-          hrService.getHolidays()
+          hrService.getHolidays(),
+          hrService.getShifts(),
+          hrService.getShiftOverrides()
         ]);
-        setEmployees(emps); 
-        setAttendance(atts); 
+        setEmployees(emps);
+        setAttendance(atts);
         setLeaves(lvs);
         setDbDepartments(depts);
         setAppConfig(config);
         setHolidays(hols);
+        setShifts(shiftsList);
+        setShiftOverrides(overridesList);
         setSelectedDepts(depts);
         setCustomRecipients(config.defaultReportRecipient || user.email || '');
         await fetchLogs();
@@ -141,18 +147,40 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       // This ensures Min(CheckIn) and Max(CheckOut) are used
       combinedData = consolidateAttendance(filteredAttendance);
 
-      // Gap Analysis
+      // Gap Analysis — per-employee shift working days
       if (appConfig) {
-        const workingDays = appConfig.workingDays || [];
+        const globalWorkingDays = appConfig.workingDays || [];
+        const defaultShift = shifts.find(s => s.isDefault);
         const start = new Date(startDate);
         const end = new Date(endDate);
 
         const targetEmployees = employees.filter(e => {
-          if (e.status !== 'ACTIVE') return false; 
+          if (e.status !== 'ACTIVE') return false;
           if (selectedDepts.length > 0 && !selectedDepts.includes(e.department)) return false;
           if (employeeFilter !== 'All Employees' && e.id !== employeeFilter) return false;
           return true;
         });
+
+        // Helper to resolve shift working days for an employee on a given date
+        const getWorkingDays = (emp: Employee, dateStr: string): string[] => {
+          // Check overrides first
+          const override = shiftOverrides.find(
+            (o: any) => o.employeeId === emp.id && dateStr >= o.startDate && dateStr <= o.endDate
+          );
+          if (override) {
+            const oShift = shifts.find(s => s.id === override.shiftId);
+            if (oShift) return oShift.workingDays;
+          }
+          // Employee assignment
+          if (emp.shiftId) {
+            const aShift = shifts.find(s => s.id === emp.shiftId);
+            if (aShift) return aShift.workingDays;
+          }
+          // Default shift
+          if (defaultShift) return defaultShift.workingDays;
+          // Global fallback
+          return globalWorkingDays;
+        };
 
         // Use a set for quick lookup
         const presentSet = new Set(combinedData.map(d => `${d.employeeId}_${d.date}`));
@@ -161,14 +189,18 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           const dateStr = dt.toISOString().split('T')[0];
           const dayName = dt.toLocaleDateString('en-US', { weekday: 'long' });
           const isHoliday = holidays.some(h => h.date === dateStr);
-          
-          if (!workingDays.includes(dayName) || isHoliday) continue;
+
+          if (isHoliday) continue;
 
           targetEmployees.forEach(emp => {
             if (emp.joiningDate && emp.joiningDate > dateStr) return;
+
+            const empWorkingDays = getWorkingDays(emp, dateStr);
+            if (!empWorkingDays.includes(dayName)) return;
+
             const isPresent = presentSet.has(`${emp.id}_${dateStr}`);
-            const isOnLeave = filteredLeaves.some(l => 
-              l.employeeId === emp.id && l.status === 'APPROVED' && 
+            const isOnLeave = filteredLeaves.some(l =>
+              l.employeeId === emp.id && l.status === 'APPROVED' &&
               dateStr >= l.startDate.split(' ')[0] && dateStr <= l.endDate.split(' ')[0]
             );
 

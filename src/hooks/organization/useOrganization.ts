@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { hrService } from '../../services/hrService';
-import { Holiday, AppConfig, LeaveWorkflow, Employee, Team, LeavePolicy } from '../../types';
+import { Holiday, AppConfig, LeaveWorkflow, Employee, Team, LeavePolicy, Shift, ShiftOverride } from '../../types';
 import { DEFAULT_CONFIG } from '../../constants';
 
 export const useOrganization = () => {
@@ -13,17 +13,19 @@ export const useOrganization = () => {
   const [workflows, setWorkflows] = useState<LeaveWorkflow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [leavePolicy, setLeavePolicy] = useState<LeavePolicy>({ defaults: { ANNUAL: 15, CASUAL: 10, SICK: 14 }, overrides: {} });
-  
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shiftOverrides, setShiftOverrides] = useState<ShiftOverride[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [depts, desigs, hols, wfs, emps, appConfig, teamsList, lPolicy] = await Promise.allSettled([
+      const [depts, desigs, hols, wfs, emps, appConfig, teamsList, lPolicy, shiftsList, shiftOverridesList] = await Promise.allSettled([
         hrService.getDepartments(), hrService.getDesignations(), hrService.getHolidays(),
         hrService.getWorkflows(), hrService.getEmployees(), hrService.getConfig(),
-        hrService.getTeams(), hrService.getLeavePolicy()
+        hrService.getTeams(), hrService.getLeavePolicy(), hrService.getShifts(), hrService.getShiftOverrides()
       ]);
 
       if (depts.status === 'fulfilled') setDepartments(depts.value);
@@ -38,6 +40,8 @@ export const useOrganization = () => {
       }
       if (teamsList.status === 'fulfilled') setTeams(teamsList.value);
       if (lPolicy.status === 'fulfilled') setLeavePolicy(lPolicy.value);
+      if (shiftsList.status === 'fulfilled') setShifts(shiftsList.value);
+      if (shiftOverridesList.status === 'fulfilled') setShiftOverrides(shiftOverridesList.value);
     } catch (err) { 
       console.error("Critical loading error:", err); 
     } finally { 
@@ -159,9 +163,24 @@ export const useOrganization = () => {
       setIsSaving(false);
   };
 
+  const updateShifts = async (newShifts: Shift[]) => {
+      setIsSaving(true);
+      await hrService.setShifts(newShifts);
+      setShifts(newShifts);
+      setIsSaving(false);
+  };
+
+  const updateShiftOverrides = async (newOverrides: ShiftOverride[]) => {
+      setIsSaving(true);
+      await hrService.setShiftOverrides(newOverrides);
+      setShiftOverrides(newOverrides);
+      setIsSaving(false);
+  };
+
   return {
-    departments, designations, holidays, teams, config, workflows, employees, leavePolicy,
+    departments, designations, holidays, teams, config, workflows, employees, leavePolicy, shifts, shiftOverrides,
     isLoading, isSaving,
-    saveConfig, updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam, updateLeavePolicy, updateWorkflows
+    saveConfig, updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam, updateLeavePolicy, updateWorkflows,
+    updateShifts, updateShiftOverrides
   };
 };

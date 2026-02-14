@@ -1,6 +1,7 @@
 import { apiClient } from './api.client';
 import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow } from '../types';
 import { DEFAULT_CONFIG, BD_HOLIDAYS } from '../constants';
+import { shiftService } from './shift.service';
 
 // Internal Cache
 let cachedConfig: AppConfig | null = null;
@@ -55,19 +56,24 @@ export const organizationService = {
     cachedDesignations = null;
     cachedHolidays = null;
     cachedLeavePolicy = null;
+    shiftService.clearCache();
   },
 
   async prefetchMetadata() {
     if (!apiClient.isConfigured()) return;
     try {
-      await Promise.all([
+      const results = await Promise.all([
         organizationService.getConfig(),
         organizationService.getDepartments(),
         organizationService.getDesignations(),
         organizationService.getHolidays(),
         organizationService.getTeams(),
-        organizationService.getLeavePolicy()
+        organizationService.getLeavePolicy(),
+        shiftService.getShifts()
       ]);
+      // Auto-migrate AppConfig → Default Shift (lazy, idempotent)
+      const config = results[0] as AppConfig;
+      await shiftService.migrateFromAppConfig(config);
     } catch (e) {
       console.warn("Metadata prefetch partial failure", e);
     }

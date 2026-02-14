@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, Clock, AlertTriangle, Send, RefreshCw, X, AlertCircle, Info } from 'lucide-react';
 import { employeeService } from '../../services/employeeService';
 import { hrService } from '../../services/hrService';
-import { LeaveBalance, LeaveRequest, Holiday, AppConfig } from '../../types';
+import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift } from '../../types';
 
 interface Props {
   user: any;
@@ -12,6 +12,11 @@ interface Props {
   onRefresh: () => void;
   initialOpen?: boolean;
 }
+
+const resolveWorkingDays = (config: AppConfig, employeeShift: Shift | null): string[] => {
+  if (employeeShift) return employeeShift.workingDays;
+  return config.workingDays || [];
+};
 
 const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen }) => {
   const [showForm, setShowForm] = useState(false);
@@ -22,6 +27,7 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
   // Smart Calculation State
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const [employeeShift, setEmployeeShift] = useState<Shift | null>(null);
   const [calculatedDays, setCalculatedDays] = useState(0);
   const [calculationDetails, setCalculationDetails] = useState<string>('');
 
@@ -37,6 +43,9 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
       ]);
       setHolidays(hols);
       setConfig(cfg);
+      // Resolve employee's shift
+      const shift = await hrService.resolveShiftForEmployee(user.id, user.shiftId);
+      setEmployeeShift(shift);
     };
     loadMeta();
   }, [initialOpen]);
@@ -51,10 +60,11 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
       setCalculatedDays(0);
       setCalculationDetails('');
     }
-  }, [formData.start, formData.end, config, holidays]);
+  }, [formData.start, formData.end, config, holidays, employeeShift]);
 
   const calculateNetDays = (startStr: string, endStr: string) => {
     if (!config) return { days: 0, details: '' };
+    const workingDays = resolveWorkingDays(config, employeeShift);
 
     let count = 0;
     let holidaysFound = 0;
@@ -73,8 +83,8 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
       const dayName = iterator.toLocaleDateString('en-US', { weekday: 'long' });
       const dateStr = iterator.toISOString().split('T')[0];
 
-      // 1. Check if it is a defined Working Day (e.g. is "Friday" in ["Monday", ...])
-      const isWorkDay = config.workingDays.includes(dayName);
+      // 1. Check if it is a defined Working Day (per-employee shift > global config)
+      const isWorkDay = workingDays.includes(dayName);
 
       // 2. Check if it matches a Public Holiday
       const isPublicHoliday = holidays.some(h => h.date === dateStr);

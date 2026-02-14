@@ -5,6 +5,7 @@ import { attendanceService } from './attendance.service';
 import { leaveService } from './leave.service';
 import { organizationService } from './organization.service';
 import { verificationService } from './verification.service';
+import { shiftService } from './shift.service';
 import { apiClient } from './api.client';
 
 export const hrService = {
@@ -58,5 +59,13 @@ export const hrService = {
   setLeavePolicy: organizationService.setLeavePolicy,
   sendCustomEmail: organizationService.sendCustomEmail,
   getReportQueueLog: organizationService.getReportQueueLog,
-  testPocketBaseConnection: organizationService.testPocketBaseConnection
+  testPocketBaseConnection: organizationService.testPocketBaseConnection,
+
+  // Shifts
+  getShifts: shiftService.getShifts.bind(shiftService),
+  setShifts: shiftService.setShifts.bind(shiftService),
+  getShiftOverrides: shiftService.getShiftOverrides.bind(shiftService),
+  setShiftOverrides: shiftService.setShiftOverrides.bind(shiftService),
+  resolveShiftForEmployee: shiftService.resolveShiftForEmployee.bind(shiftService),
+  migrateShiftsFromAppConfig: shiftService.migrateFromAppConfig.bind(shiftService)
 };

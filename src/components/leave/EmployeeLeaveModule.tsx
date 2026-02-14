@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Send, RefreshCw, X, AlertCircle, Info } from 'lucide-react';
 import { employeeService } from '../../services/employeeService';
 import { hrService } from '../../services/hrService';
-import { LeaveBalance, LeaveRequest, Holiday, AppConfig } from '../../types';
+import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift } from '../../types';
 
 interface Props {
   user: any;
@@ -14,6 +14,11 @@ interface Props {
   readOnly?: boolean;
 }
 
+const resolveWorkingDays = (config: AppConfig, employeeShift: Shift | null): string[] => {
+  if (employeeShift) return employeeShift.workingDays;
+  return config.workingDays || [];
+};
+
 const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen, readOnly = false }) => {
   const [showForm, setShowForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -22,6 +27,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
   
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const [employeeShift, setEmployeeShift] = useState<Shift | null>(null);
   const [calculatedDays, setCalculatedDays] = useState(0);
   const [calculationDetails, setCalculationDetails] = useState<string>('');
 
@@ -34,6 +40,9 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
       ]);
       setHolidays(hols);
       setConfig(cfg);
+      // Resolve employee's shift
+      const shift = await hrService.resolveShiftForEmployee(user.id, user.shiftId);
+      setEmployeeShift(shift);
     };
     loadMeta();
   }, [initialOpen]);
@@ -47,23 +56,24 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
       setCalculatedDays(0);
       setCalculationDetails('');
     }
-  }, [formData.start, formData.end, config, holidays]);
+  }, [formData.start, formData.end, config, holidays, employeeShift]);
 
   const calculateNetDays = (startStr: string, endStr: string) => {
     if (!config) return { days: 0, details: '' };
+    const workingDays = resolveWorkingDays(config, employeeShift);
     let count = 0;
     let weekendsFound = 0;
     let holidaysFound = 0;
     const cur = new Date(startStr);
     const stop = new Date(endStr);
-    
+
     if (cur > stop) return { days: 0, details: 'Invalid Date Range' };
 
     const iterator = new Date(cur);
     while (iterator <= stop) {
       const dayName = iterator.toLocaleDateString('en-US', { weekday: 'long' });
       const dateStr = iterator.toISOString().split('T')[0];
-      const isWorkDay = config.workingDays.includes(dayName);
+      const isWorkDay = workingDays.includes(dayName);
       const isPublicHoliday = holidays.some(h => h.date === dateStr);
 
       if (!isWorkDay) weekendsFound++;
