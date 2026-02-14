@@ -22,6 +22,7 @@ export interface Organization {
   name: string;
   address?: string;
   logo?: string;
+  country?: string;
   subscriptionStatus?: SubscriptionStatus;
   trialEndDate?: string;
   created?: string;
@@ -254,4 +255,14 @@ export interface AppConfig {
   autoAbsentEnabled?: boolean;
   autoAbsentTime?: string; // HH:mm
   officeLocations?: OfficeLocation[];
+}
+
+export interface RegistrationData {
+  orgName: string;
+  adminName: string;
+  email: string;
+  password: string;
+  country: string;
+  address?: string;
+  logo?: File | null;
 }

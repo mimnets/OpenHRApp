@@ -1,0 +1,90 @@
+export interface Country {
+  code: string;
+  name: string;
+  phoneCode: string;
+}
+
+// Flag emoji helper — converts ISO code to flag emoji via Unicode regional indicators
+export const getFlagEmoji = (code: string): string => {
+  return code
+    .toUpperCase()
+    .split('')
+    .map(char => String.fromCodePoint(0x1F1E6 + char.charCodeAt(0) - 65))
+    .join('');
+};
+
+export const COUNTRIES: Country[] = [
+  { code: 'AF', name: 'Afghanistan', phoneCode: '+93' },
+  { code: 'AL', name: 'Albania', phoneCode: '+355' },
+  { code: 'DZ', name: 'Algeria', phoneCode: '+213' },
+  { code: 'AR', name: 'Argentina', phoneCode: '+54' },
+  { code: 'AU', name: 'Australia', phoneCode: '+61' },
+  { code: 'AT', name: 'Austria', phoneCode: '+43' },
+  { code: 'BH', name: 'Bahrain', phoneCode: '+973' },
+  { code: 'BD', name: 'Bangladesh', phoneCode: '+880' },
+  { code: 'BE', name: 'Belgium', phoneCode: '+32' },
+  { code: 'BR', name: 'Brazil', phoneCode: '+55' },
+  { code: 'BN', name: 'Brunei', phoneCode: '+673' },
+  { code: 'KH', name: 'Cambodia', phoneCode: '+855' },
+  { code: 'CA', name: 'Canada', phoneCode: '+1' },
+  { code: 'CL', name: 'Chile', phoneCode: '+56' },
+  { code: 'CN', name: 'China', phoneCode: '+86' },
+  { code: 'CO', name: 'Colombia', phoneCode: '+57' },
+  { code: 'HR', name: 'Croatia', phoneCode: '+385' },
+  { code: 'CZ', name: 'Czech Republic', phoneCode: '+420' },
+  { code: 'DK', name: 'Denmark', phoneCode: '+45' },
+  { code: 'EG', name: 'Egypt', phoneCode: '+20' },
+  { code: 'ET', name: 'Ethiopia', phoneCode: '+251' },
+  { code: 'FI', name: 'Finland', phoneCode: '+358' },
+  { code: 'FR', name: 'France', phoneCode: '+33' },
+  { code: 'DE', name: 'Germany', phoneCode: '+49' },
+  { code: 'GH', name: 'Ghana', phoneCode: '+233' },
+  { code: 'GR', name: 'Greece', phoneCode: '+30' },
+  { code: 'HK', name: 'Hong Kong', phoneCode: '+852' },
+  { code: 'HU', name: 'Hungary', phoneCode: '+36' },
+  { code: 'IN', name: 'India', phoneCode: '+91' },
+  { code: 'ID', name: 'Indonesia', phoneCode: '+62' },
+  { code: 'IQ', name: 'Iraq', phoneCode: '+964' },
+  { code: 'IE', name: 'Ireland', phoneCode: '+353' },
+  { code: 'IL', name: 'Israel', phoneCode: '+972' },
+  { code: 'IT', name: 'Italy', phoneCode: '+39' },
+  { code: 'JP', name: 'Japan', phoneCode: '+81' },
+  { code: 'JO', name: 'Jordan', phoneCode: '+962' },
+  { code: 'KE', name: 'Kenya', phoneCode: '+254' },
+  { code: 'KR', name: 'South Korea', phoneCode: '+82' },
+  { code: 'KW', name: 'Kuwait', phoneCode: '+965' },
+  { code: 'LB', name: 'Lebanon', phoneCode: '+961' },
+  { code: 'MY', name: 'Malaysia', phoneCode: '+60' },
+  { code: 'MV', name: 'Maldives', phoneCode: '+960' },
+  { code: 'MX', name: 'Mexico', phoneCode: '+52' },
+  { code: 'MA', name: 'Morocco', phoneCode: '+212' },
+  { code: 'MM', name: 'Myanmar', phoneCode: '+95' },
+  { code: 'NP', name: 'Nepal', phoneCode: '+977' },
+  { code: 'NL', name: 'Netherlands', phoneCode: '+31' },
+  { code: 'NZ', name: 'New Zealand', phoneCode: '+64' },
+  { code: 'NG', name: 'Nigeria', phoneCode: '+234' },
+  { code: 'NO', name: 'Norway', phoneCode: '+47' },
+  { code: 'OM', name: 'Oman', phoneCode: '+968' },
+  { code: 'PK', name: 'Pakistan', phoneCode: '+92' },
+  { code: 'PH', name: 'Philippines', phoneCode: '+63' },
+  { code: 'PL', name: 'Poland', phoneCode: '+48' },
+  { code: 'PT', name: 'Portugal', phoneCode: '+351' },
+  { code: 'QA', name: 'Qatar', phoneCode: '+974' },
+  { code: 'RO', name: 'Romania', phoneCode: '+40' },
+  { code: 'RU', name: 'Russia', phoneCode: '+7' },
+  { code: 'SA', name: 'Saudi Arabia', phoneCode: '+966' },
+  { code: 'SG', name: 'Singapore', phoneCode: '+65' },
+  { code: 'ZA', name: 'South Africa', phoneCode: '+27' },
+  { code: 'ES', name: 'Spain', phoneCode: '+34' },
+  { code: 'LK', name: 'Sri Lanka', phoneCode: '+94' },
+  { code: 'SE', name: 'Sweden', phoneCode: '+46' },
+  { code: 'CH', name: 'Switzerland', phoneCode: '+41' },
+  { code: 'TW', name: 'Taiwan', phoneCode: '+886' },
+  { code: 'TH', name: 'Thailand', phoneCode: '+66' },
+  { code: 'TR', name: 'Turkey', phoneCode: '+90' },
+  { code: 'AE', name: 'United Arab Emirates', phoneCode: '+971' },
+  { code: 'GB', name: 'United Kingdom', phoneCode: '+44' },
+  { code: 'US', name: 'United States', phoneCode: '+1' },
+  { code: 'VN', name: 'Vietnam', phoneCode: '+84' },
+  { code: 'ZW', name: 'Zimbabwe', phoneCode: '+263' },
+];

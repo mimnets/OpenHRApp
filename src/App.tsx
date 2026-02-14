@@ -131,7 +131,7 @@ const AppContent: React.FC = () => {
 
   // Priority 1: Verification Flow
   if (verificationToken) {
-    return <VerifyAccount token={verificationToken} onFinished={() => setVerificationToken(null)} />;
+    return <VerifyAccount token={verificationToken} onFinished={() => { setVerificationToken(null); setShowLanding(false); setShowRegister(false); }} />;
   }
 
   if (isLoading) {
