@@ -4,27 +4,27 @@ import {
   Loader2, Save, X, RefreshCw, MapPin, AlertTriangle
 } from 'lucide-react';
 import { useOrganization } from '../hooks/organization/useOrganization';
-import { Holiday, Team, OfficeLocation, LeaveWorkflow } from '../types';
+import { Holiday, Team, OfficeLocation, LeaveWorkflow, Shift, ShiftOverride } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 
 // Import sub-components
 import { OrgStructure } from '../components/organization/OrgStructure';
 import { OrgTeams } from '../components/organization/OrgTeams';
-import { OrgTerms } from '../components/organization/OrgTerms';
 import { OrgPlacement } from '../components/organization/OrgPlacement';
 import { OrgWorkflow } from '../components/organization/OrgWorkflow';
 import { OrgLeaves } from '../components/organization/OrgLeaves';
 import { OrgHolidays } from '../components/organization/OrgHolidays';
 import { OrgSystem } from '../components/organization/OrgSystem';
+import { OrgShifts } from '../components/organization/OrgShifts';
 
-type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'TERMS' | 'WORKFLOW' | 'LEAVES' | 'HOLIDAYS' | 'SYSTEM';
+type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'SHIFTS' | 'WORKFLOW' | 'LEAVES' | 'HOLIDAYS' | 'SYSTEM';
 
 const Organization: React.FC = () => {
   const {
-      departments, designations, holidays, teams, employees, leavePolicy, config, workflows,
+      departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shifts, shiftOverrides,
       isLoading, isSaving,
       updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam,
-      updateLeavePolicy, saveConfig, updateWorkflows
+      updateLeavePolicy, saveConfig, updateWorkflows, updateShifts, updateShiftOverrides
   } = useOrganization();
 
   // Subscription check
@@ -35,7 +35,7 @@ const Organization: React.FC = () => {
 
   // Modals Local State
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM' | 'LOCATION' | 'OVERRIDE'>('DEPT');
+  const [modalType, setModalType] = useState<'DEPT' | 'DESIG' | 'HOLIDAY' | 'TEAM' | 'LOCATION' | 'OVERRIDE' | 'SHIFT' | 'SHIFT_OVERRIDE'>('DEPT');
   const [editIndex, setEditIndex] = useState<number | null>(null);
   
   // Forms Local State
@@ -45,6 +45,8 @@ const Organization: React.FC = () => {
   const [locationForm, setLocationForm] = useState<Partial<OfficeLocation>>({ name: '', lat: 0, lng: 0, radius: 500 });
   const [overrideForm, setOverrideForm] = useState({ employeeId: '', ANNUAL: leavePolicy.defaults.ANNUAL, CASUAL: leavePolicy.defaults.CASUAL, SICK: leavePolicy.defaults.SICK });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
+  const [shiftForm, setShiftForm] = useState<Partial<Shift>>({ name: '', startTime: '09:00', endTime: '18:00', lateGracePeriod: 5, earlyOutGracePeriod: 15, earliestCheckIn: '06:00', autoSessionCloseTime: '23:59', workingDays: ['Monday','Tuesday','Wednesday','Thursday','Sunday'], isDefault: false });
+  const [shiftOverrideForm, setShiftOverrideForm] = useState({ employeeId: '', shiftId: '', startDate: '', endDate: '', reason: '' });
 
   // --- Handlers ---
 
@@ -63,8 +65,15 @@ const Organization: React.FC = () => {
       const loc = (config.officeLocations && index !== null) ? config.officeLocations[index] : { name: '', lat: 23.8103, lng: 90.4125, radius: 500 };
       setLocationForm(loc);
     } else if (type === 'OVERRIDE') {
-      // Index for override is just 0 or null, we use state
       setOverrideForm({ employeeId: '', ANNUAL: leavePolicy.defaults.ANNUAL, CASUAL: leavePolicy.defaults.CASUAL, SICK: leavePolicy.defaults.SICK });
+    } else if (type === 'SHIFT') {
+      if (index !== null) {
+        setShiftForm({ ...shifts[index] });
+      } else {
+        setShiftForm({ name: '', startTime: '09:00', endTime: '18:00', lateGracePeriod: 5, earlyOutGracePeriod: 15, earliestCheckIn: '06:00', autoSessionCloseTime: '23:59', workingDays: ['Monday','Tuesday','Wednesday','Thursday','Sunday'], isDefault: false });
+      }
+    } else if (type === 'SHIFT_OVERRIDE') {
+      setShiftOverrideForm({ employeeId: '', shiftId: shifts[0]?.id || '', startDate: '', endDate: '', reason: '' });
     } else {
       setModalValue(index !== null ? (type === 'DEPT' ? departments[index] : designations[index]) : '');
     }
@@ -110,6 +119,23 @@ const Organization: React.FC = () => {
           SICK: overrideForm.SICK
         };
         await updateLeavePolicy(next);
+      } else if (modalType === 'SHIFT') {
+        const next = [...shifts];
+        if (shiftForm.isDefault) {
+          next.forEach(s => s.isDefault = false);
+        }
+        if (editIndex !== null) {
+          next[editIndex] = { ...next[editIndex], ...shiftForm } as Shift;
+        } else {
+          next.push({ ...shiftForm, id: 'shift_' + Date.now() } as Shift);
+        }
+        if (!next.some(s => s.isDefault) && next.length > 0) next[0].isDefault = true;
+        await updateShifts(next);
+      } else if (modalType === 'SHIFT_OVERRIDE') {
+        if (!shiftOverrideForm.employeeId || !shiftOverrideForm.shiftId) return;
+        const next = [...shiftOverrides];
+        next.push({ ...shiftOverrideForm, id: 'so_' + Date.now() } as ShiftOverride);
+        await updateShiftOverrides(next);
       }
       setShowModal(false);
     } catch (err) { alert('Operation failed.'); }
@@ -132,6 +158,13 @@ const Organization: React.FC = () => {
       } else if (type === 'LOCATION') {
         const next = (config.officeLocations || []).filter((_, idx) => idx !== index);
         await saveConfig({ ...config, officeLocations: next });
+      } else if (type === 'SHIFT' as any) {
+        const next = shifts.filter((_, idx) => idx !== index);
+        if (!next.some(s => s.isDefault) && next.length > 0) next[0].isDefault = true;
+        await updateShifts(next);
+      } else if (type === 'SHIFT_OVERRIDE' as any) {
+        const next = shiftOverrides.filter((_, idx) => idx !== index);
+        await updateShiftOverrides(next);
       }
     } catch (err) { alert('Delete failed.'); }
   };
@@ -166,7 +199,7 @@ const Organization: React.FC = () => {
       </header>
 
       <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-        {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'TERMS', 'WORKFLOW', 'LEAVES', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
+        {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'SHIFTS', 'WORKFLOW', 'LEAVES', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 md:px-6 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>{tab.replace('_', ' ')}</button>
         ))}
       </div>
@@ -207,8 +240,17 @@ const Organization: React.FC = () => {
            />
         )}
 
-        {activeTab === 'TERMS' && (
-           <OrgTerms config={config} onSave={saveConfig} />
+        {activeTab === 'SHIFTS' && (
+           <OrgShifts
+             shifts={shifts}
+             overrides={shiftOverrides}
+             employees={employees}
+             onAddShift={() => openModal('SHIFT')}
+             onEditShift={(i) => openModal('SHIFT', i)}
+             onDeleteShift={(i) => handleDelete('SHIFT' as any, i)}
+             onAddOverride={() => openModal('SHIFT_OVERRIDE')}
+             onDeleteOverride={(i) => handleDelete('SHIFT_OVERRIDE' as any, i)}
+           />
         )}
 
         {activeTab === 'WORKFLOW' && (
@@ -246,7 +288,7 @@ const Organization: React.FC = () => {
       {/* Shared Modal Logic */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className={`bg-white rounded-[2.5rem] w-full shadow-2xl overflow-hidden animate-in zoom-in ${modalType === 'TEAM' || modalType === 'LOCATION' || modalType === 'OVERRIDE' ? 'max-w-xl' : 'max-w-md'}`}>
+          <div className={`bg-white rounded-[2.5rem] w-full shadow-2xl overflow-hidden animate-in zoom-in ${modalType === 'TEAM' || modalType === 'LOCATION' || modalType === 'OVERRIDE' || modalType === 'SHIFT' || modalType === 'SHIFT_OVERRIDE' ? 'max-w-xl' : 'max-w-md'}`}>
             <div className="bg-primary p-6 flex justify-between items-center text-white">
                <h3 className="text-sm font-black uppercase tracking-widest">{modalType} Configuration</h3>
                <button onClick={() => setShowModal(false)}><X size={24} /></button>
@@ -303,6 +345,102 @@ const Organization: React.FC = () => {
                     <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Team Lead</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.leaderId} onChange={e => setTeamForm({...teamForm, leaderId: e.target.value})}><option value="">-- Assign Lead --</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
                     <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Members ({selectedEmployeeIds.size})</label><div className="h-40 overflow-y-auto border border-slate-200 rounded-xl p-2 grid grid-cols-2 gap-2 bg-slate-50/50">{employees.map(e => (<div key={e.id} onClick={() => { const next = new Set(selectedEmployeeIds); if (next.has(e.id)) next.delete(e.id); else next.add(e.id); setSelectedEmployeeIds(next); }} className={`p-2 rounded-lg text-xs font-bold cursor-pointer border ${selectedEmployeeIds.has(e.id) ? 'bg-primary-light border-primary text-primary' : 'bg-white border-slate-100 text-slate-500'}`}>{e.name}</div>))}</div></div>
                  </div>
+              )}
+
+              {modalType === 'SHIFT' && (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Shift Name</label>
+                    <input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={shiftForm.name} onChange={e => setShiftForm({...shiftForm, name: e.target.value})} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Start Time</label>
+                      <input type="time" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.startTime} onChange={e => setShiftForm({...shiftForm, startTime: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">End Time</label>
+                      <input type="time" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.endTime} onChange={e => setShiftForm({...shiftForm, endTime: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Late Grace (min)</label>
+                      <input type="number" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.lateGracePeriod} onChange={e => setShiftForm({...shiftForm, lateGracePeriod: parseInt(e.target.value) || 0})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Early Out Grace (min)</label>
+                      <input type="number" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.earlyOutGracePeriod} onChange={e => setShiftForm({...shiftForm, earlyOutGracePeriod: parseInt(e.target.value) || 0})} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Earliest Check-In</label>
+                      <input type="time" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.earliestCheckIn} onChange={e => setShiftForm({...shiftForm, earliestCheckIn: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Auto Session Close</label>
+                      <input type="time" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.autoSessionCloseTime} onChange={e => setShiftForm({...shiftForm, autoSessionCloseTime: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Working Days</label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                      {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            const days = shiftForm.workingDays || [];
+                            setShiftForm({
+                              ...shiftForm,
+                              workingDays: days.includes(day) ? days.filter(d => d !== day) : [...days, day]
+                            });
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${(shiftForm.workingDays || []).includes(day) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+                        >
+                          {day.slice(0, 3)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100 cursor-pointer">
+                    <input type="checkbox" checked={shiftForm.isDefault || false} onChange={e => setShiftForm({...shiftForm, isDefault: e.target.checked})} className="w-4 h-4 accent-amber-500" />
+                    <span className="text-xs font-bold text-amber-700">Set as Default Shift (auto-assigned to new employees)</span>
+                  </label>
+                </div>
+              )}
+
+              {modalType === 'SHIFT_OVERRIDE' && (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Select Employee</label>
+                    <select required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm" value={shiftOverrideForm.employeeId} onChange={e => setShiftOverrideForm({...shiftOverrideForm, employeeId: e.target.value})}>
+                      <option value="">-- Choose Staff --</option>
+                      {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Assign to Shift</label>
+                    <select required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm" value={shiftOverrideForm.shiftId} onChange={e => setShiftOverrideForm({...shiftOverrideForm, shiftId: e.target.value})}>
+                      {shifts.map(s => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Start Date</label>
+                      <input type="date" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftOverrideForm.startDate} onChange={e => setShiftOverrideForm({...shiftOverrideForm, startDate: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">End Date</label>
+                      <input type="date" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftOverrideForm.endDate} onChange={e => setShiftOverrideForm({...shiftOverrideForm, endDate: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Reason (Optional)</label>
+                    <input className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="e.g. Ramadan shift" value={shiftOverrideForm.reason} onChange={e => setShiftOverrideForm({...shiftOverrideForm, reason: e.target.value})} />
+                  </div>
+                </div>
               )}
 
               <div className="flex gap-3 pt-4 border-t border-slate-50">

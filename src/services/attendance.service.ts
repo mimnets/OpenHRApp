@@ -2,6 +2,7 @@
 import { apiClient } from './api.client';
 import { Attendance } from '../types';
 import { organizationService } from './organization.service';
+import { shiftService } from './shift.service';
 
 const mapAttendance = (r: any): Attendance => ({
   id: r.id.toString().trim(),
@@ -44,15 +45,25 @@ export const attendanceService = {
     try {
       const today = new Date().toISOString().split('T')[0];
       const config = await organizationService.getConfig();
-      
-      const result = await apiClient.pb.collection('attendance').getList(1, 50, { 
-        filter: `employee_id = "${employeeId.trim()}" && check_out = ""` 
+
+      // Try to get the employee record to find their shiftId
+      let employeeShiftId: string | undefined;
+      try {
+        const empRecord = await apiClient.pb.collection('users').getOne(employeeId.trim());
+        employeeShiftId = empRecord.shift_id || undefined;
+      } catch { /* ignore - fallback to global config */ }
+
+      // Resolve employee's effective shift
+      const shift = await shiftService.resolveShiftForEmployee(employeeId, employeeShiftId, today);
+
+      const result = await apiClient.pb.collection('attendance').getList(1, 50, {
+        filter: `employee_id = "${employeeId.trim()}" && check_out = ""`
       });
 
       let activeToday: Attendance | undefined = undefined;
 
-      // Determine auto-close time (default to 23:59 if not set)
-      const autoCloseTime = config.autoSessionCloseTime || "23:59";
+      // Determine auto-close time: shift > global config > 23:59
+      const autoCloseTime = shift?.autoSessionCloseTime || config.autoSessionCloseTime || "23:59";
       
       // Calculate current time string HH:mm for comparison
       const now = new Date();

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Clock, Timer, Settings2, Info } from 'lucide-react';
+import { Clock, Timer, Settings2, Info, ArrowRight } from 'lucide-react';
 import { AppConfig } from '../../types';
 
 interface OrgTermsProps {
@@ -15,7 +15,19 @@ export const OrgTerms: React.FC<OrgTermsProps> = ({ config, onSave }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      {/* Legacy Defaults Banner */}
+      <div className="flex items-center gap-3 p-5 bg-amber-50 border border-amber-200 rounded-[2rem]">
+        <Info size={18} className="text-amber-500 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-xs font-bold text-amber-800">
+            These are legacy global defaults. For per-employee shift management with custom timings and working days, use the <span className="font-black">SHIFTS</span> tab.
+          </p>
+        </div>
+        <ArrowRight size={16} className="text-amber-400 flex-shrink-0" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* 1. Shift Policy Module */}
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 relative overflow-hidden group hover:shadow-md transition-all">
          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
@@ -128,6 +140,7 @@ export const OrgTerms: React.FC<OrgTermsProps> = ({ config, onSave }) => {
                </p>
             </div>
          </div>
+      </div>
       </div>
     </div>
   );

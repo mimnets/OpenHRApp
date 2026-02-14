@@ -21,7 +21,7 @@ import {
   Key
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { Employee, Team, User } from '../types';
+import { Employee, Team, User, Shift } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 
 const DirectorySkeleton = () => (
@@ -67,6 +67,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   
   const [depts, setDepts] = useState<string[]>([]);
   const [desigs, setDesigs] = useState<string[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -112,12 +113,14 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     const loadInitialData = async () => {
       await fetchEmployees();
       if (isAdmin) {
-        const [departmentsList, designationsList] = await Promise.all([
+        const [departmentsList, designationsList, shiftsList] = await Promise.all([
           hrService.getDepartments(),
-          hrService.getDesignations()
+          hrService.getDesignations(),
+          hrService.getShifts()
         ]);
         setDepts(departmentsList);
         setDesigs(designationsList);
+        setShifts(shiftsList);
       }
     };
     loadInitialData();
@@ -148,7 +151,8 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     location: 'Dhaka',
     workType: 'OFFICE' as any,
     lineManagerId: '',
-    teamId: ''
+    teamId: '',
+    shiftId: ''
   };
 
   const [formState, setFormState] = useState(initialNewEmpState);
@@ -177,10 +181,12 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     if (!isAdmin) return;
     setEditingId(null);
     setFormError(null);
+    const defaultShift = shifts.find(s => s.isDefault);
     setFormState({
       ...initialNewEmpState,
       department: depts[0] || 'Unassigned',
-      designation: desigs[0] || 'New Employee'
+      designation: desigs[0] || 'New Employee',
+      shiftId: defaultShift?.id || ''
     });
     setShowModal(true);
   };
@@ -210,7 +216,8 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       location: emp.location || '',
       workType: emp.workType || 'OFFICE',
       lineManagerId: emp.lineManagerId || '',
-      teamId: emp.teamId || ''
+      teamId: emp.teamId || '',
+      shiftId: emp.shiftId || ''
     });
     setShowModal(true);
   };
@@ -504,6 +511,15 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                     {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
+                {shifts.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Shift</label>
+                    <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.shiftId} onChange={e => setFormState({...formState, shiftId: e.target.value})}>
+                      <option value="">No Shift Assigned</option>
+                      {shifts.map(s => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime}){s.isDefault ? ' *' : ''}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Department</label>
                   <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.department} onChange={e => setFormState({...formState, department: e.target.value})}>

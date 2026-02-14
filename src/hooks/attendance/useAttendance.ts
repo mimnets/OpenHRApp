@@ -1,12 +1,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { hrService } from '../../services/hrService';
-import { Attendance, AppConfig } from '../../types';
+import { Attendance, AppConfig, Shift } from '../../types';
 
 export const useAttendance = (user: any, onFinish?: () => void) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeRecord, setActiveRecord] = useState<Attendance | undefined>(undefined);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+  const [employeeShift, setEmployeeShift] = useState<Shift | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
 
@@ -23,17 +24,21 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
         hrService.getActiveAttendance(user.id),
         hrService.getConfig()
       ]);
-      
+
       if (active && active.date !== today) {
-        setActiveRecord(undefined); 
+        setActiveRecord(undefined);
       } else {
         setActiveRecord(active);
       }
       setAppConfig(config);
+
+      // Resolve employee's effective shift
+      const shift = await hrService.resolveShiftForEmployee(user.id, user.shiftId);
+      setEmployeeShift(shift);
     } catch (e) {
       console.error('Data sync failed', e);
     }
-  }, [user.id]);
+  }, [user.id, user.shiftId]);
 
   useEffect(() => {
     const init = async () => {
@@ -63,13 +68,16 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
         let punchStatus: Attendance['status'] = 'PRESENT';
         
         // Late Calculation Logic (Strict Mode Enforced)
-        if (dutyType === 'OFFICE' && appConfig) {
+        // Priority: employee shift > global appConfig
+        const shiftStart = employeeShift?.startTime || appConfig?.officeStartTime;
+        const shiftGrace = employeeShift?.lateGracePeriod ?? appConfig?.lateGracePeriod ?? 0;
+
+        if (dutyType === 'OFFICE' && shiftStart) {
           const [pH, pM] = punchTime.split(':').map(Number);
-          const [sH, sM] = appConfig.officeStartTime.split(':').map(Number);
-          const grace = appConfig.lateGracePeriod || 0;
-          
+          const [sH, sM] = shiftStart.split(':').map(Number);
+
           const punchMins = pH * 60 + pM;
-          const startMins = sH * 60 + sM + grace;
+          const startMins = sH * 60 + sM + shiftGrace;
 
           if (punchMins > startMins) {
             punchStatus = 'LATE';

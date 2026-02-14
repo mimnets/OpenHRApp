@@ -109,9 +109,9 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
     } catch (e) { return ''; }
   };
 
-  const handleOpenDetail = (log: Attendance) => {
+  const handleOpenDetail = async (log: Attendance) => {
     setSelectedLog(log);
-    
+
     // Initialize Edit State with proper formatting
     setEditState({
       status: log.status,
@@ -121,11 +121,15 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       date: log.date
     });
 
-    // Initialize Temp Shift with proper formatting
+    // Resolve per-employee shift for this log's employee
+    const emp = employees.find(e => e.id === log.employeeId);
+    const shift = await hrService.resolveShiftForEmployee(log.employeeId, emp?.shiftId, log.date);
+
+    // Initialize Temp Shift: per-employee shift > global config
     setTempShift({
-      start: ensureTimeFormat(config?.officeStartTime || '09:00'),
-      end: ensureTimeFormat(config?.officeEndTime || '18:00'),
-      grace: config?.lateGracePeriod || 0
+      start: ensureTimeFormat(shift?.startTime || config?.officeStartTime || '09:00'),
+      end: ensureTimeFormat(shift?.endTime || config?.officeEndTime || '18:00'),
+      grace: shift?.lateGracePeriod ?? config?.lateGracePeriod ?? 0
     });
   };
 
