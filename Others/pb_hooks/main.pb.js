@@ -1,10 +1,10 @@
 
-console.log("[HOOKS] Loading OpenHR System Hooks (v0.36+)...");
+console.log("[HOOKS] Loading OpenHR System Hooks (v0.37 - Employee Verification Email Support)...");
 
 /* ============================================================
    1. SECURE REGISTRATION ENDPOINT (Public)
    Method: POST /api/openhr/register
-   Body: JSON { orgName, adminName, email, password }
+   Body: FormData { orgName, adminName, email, password, country, address (optional), logo (optional) }
    ============================================================ */
 routerAdd("POST", "/api/openhr/register", (e) => {
     try {
@@ -15,6 +15,9 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             const requestInfo = e.requestInfo();
             if (requestInfo && requestInfo.body && typeof requestInfo.body === 'object') {
                 data = requestInfo.body;
+            } else if (requestInfo && requestInfo.data) {
+                // FormData comes through requestInfo.data
+                data = requestInfo.data;
             } else {
                 return e.json(400, { message: "Invalid request body structure" });
             }
@@ -26,12 +29,20 @@ routerAdd("POST", "/api/openhr/register", (e) => {
         const adminName = data.adminName;
         const email = data.email;
         const password = data.password;
+        const country = data.country || 'BD'; // Default to Bangladesh
+        const address = data.address || '';
 
         if (!email || !password || !orgName) {
             return e.json(400, { message: "Missing required fields: orgName, email, or password." });
         }
         if (password.length < 8) {
             return e.json(400, { message: "Password must be at least 8 characters." });
+        }
+        if (!country) {
+            return e.json(400, { message: "Country is required." });
+        }
+        if (country.length !== 2) {
+            return e.json(400, { message: "Invalid country code. Must be 2-letter ISO code (e.g., BD, US, IN)." });
         }
 
         // 2. Check if email exists
@@ -48,7 +59,20 @@ routerAdd("POST", "/api/openhr/register", (e) => {
         const orgCollection = $app.findCollectionByNameOrId("organizations");
         const org = new Record(orgCollection);
         org.set("name", orgName);
+        org.set("country", country);
+        org.set("address", address);
         org.set("subscription_status", "TRIAL");
+
+        // Handle logo file upload if provided
+        try {
+            const requestInfo = e.requestInfo();
+            if (requestInfo && requestInfo.files && requestInfo.files.logo && requestInfo.files.logo.length > 0) {
+                org.set("logo", requestInfo.files.logo[0]);
+                console.log("[REGISTER] Logo uploaded for org:", orgName);
+            }
+        } catch (logoErr) {
+            console.log("[REGISTER] Logo upload skipped or failed (non-fatal):", logoErr.toString());
+        }
 
         // Set trial end date to 14 days from now
         const trialEndDate = new Date();
@@ -57,6 +81,7 @@ routerAdd("POST", "/api/openhr/register", (e) => {
 
         try {
             $app.save(org);
+            console.log("[REGISTER] Organization created:", org.id, "Country:", country);
         } catch (err) {
             return e.json(400, { message: "Database Error (Organization): " + err.message });
         }
@@ -85,10 +110,10 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             return e.json(400, { message: "Database Error (User): " + err.message });
         }
 
-        // 5. Initialize Default Settings
+        // 5. Initialize Default Settings with Country-Based Defaults
         try {
             const settingsCollection = $app.findCollectionByNameOrId("settings");
-            
+
             function createSetting(key, val) {
                 const s = new Record(settingsCollection);
                 s.set("key", key);
@@ -97,14 +122,44 @@ routerAdd("POST", "/api/openhr/register", (e) => {
                 $app.save(s);
             }
 
-            createSetting("app_config", { 
-                companyName: orgName, 
-                workingDays: ["Monday","Tuesday","Wednesday","Thursday","Sunday"],
+            // Get country-based defaults
+            const countryDefaults = getCountryDefaults(country);
+
+            // Initialize app_config with country-specific settings
+            createSetting("app_config", {
+                companyName: orgName,
+                currency: countryDefaults.currency,
+                timezone: countryDefaults.timezone,
+                dateFormat: countryDefaults.dateFormat,
+                workingDays: countryDefaults.workingDays,
                 officeStartTime: "09:00",
-                officeEndTime: "18:00"
+                officeEndTime: "18:00",
+                lateGracePeriod: 15,
+                earlyOutGracePeriod: 15,
+                earliestCheckIn: "06:00",
+                autoSessionCloseTime: "23:59",
+                autoAbsentEnabled: true,
+                autoAbsentTime: "23:55"
             });
-            createSetting("departments", ["Engineering", "HR", "Sales", "Marketing"]);
-            createSetting("designations", ["Manager", "Lead", "Associate", "Intern"]);
+
+            // Initialize country-based holidays
+            const holidays = loadHolidaysForCountry(country);
+            if (holidays && holidays.length > 0) {
+                createSetting("holidays", holidays);
+                console.log("[REGISTER] Initialized", holidays.length, "holidays for country:", country);
+            } else {
+                createSetting("holidays", []);
+                console.log("[REGISTER] No predefined holidays for country:", country);
+            }
+
+            createSetting("departments", ["Engineering", "HR", "Sales", "Marketing", "Operations", "Finance", "Management"]);
+            createSetting("designations", ["Manager", "Lead", "Senior", "Associate", "Junior", "Intern"]);
+            createSetting("leave_policy", {
+                defaults: { ANNUAL: 15, CASUAL: 10, SICK: 14 },
+                overrides: {}
+            });
+
+            console.log("[REGISTER] Settings initialized with country defaults for:", country);
         } catch (err) {
             console.error("[REGISTER] Settings Init Failed (Non-fatal): " + err);
         }
@@ -334,16 +389,82 @@ routerAdd("POST", "/api/openhr/admin-verify-user", (e) => {
             
             user.set("verified", true);
             $app.save(user);
-            
+
+            // Send professional verification confirmation email
             try {
+                const userName = user.getString("name") || "Team Member";
+                const userEmail = user.getString("email");
+                const settings = $app.settings();
+                const meta = settings.meta || {};
+                const senderAddress = meta.senderAddress || "noreply@openhr.app";
+                const senderName = meta.senderName || "OpenHR System";
+
+                // Get organization details for better email context
+                let orgName = "Your Organization";
+                try {
+                    const org = $app.findRecordById("organizations", adminOrgId);
+                    orgName = org.getString("name") || orgName;
+                } catch(e) {}
+
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                            .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+                            .success-icon { font-size: 48px; margin-bottom: 10px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <div class="success-icon">✓</div>
+                                <h1 style="margin: 0;">Account Verified!</h1>
+                            </div>
+                            <div class="content">
+                                <p>Hello <strong>${userName}</strong>,</p>
+
+                                <p>Great news! Your account has been verified by your administrator at <strong>${orgName}</strong>.</p>
+
+                                <p><strong>What's next?</strong></p>
+                                <ul>
+                                    <li>You now have full access to all features</li>
+                                    <li>You can log in and start using the system</li>
+                                    <li>Your manager can assign you to teams and projects</li>
+                                </ul>
+
+                                <div style="text-align: center;">
+                                    <a href="${$app.settings().meta.appUrl || 'https://app.openhr.com'}/login" class="button">Log In Now</a>
+                                </div>
+
+                                <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                                    If you have any questions, please contact your HR administrator.
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <p>This is an automated message from OpenHR System.<br/>Please do not reply to this email.</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
                 const message = new MailerMessage({
-                    from: { address: "noreply@openhr.app", name: "OpenHR System" },
-                    to: [{ address: user.getString("email") }],
-                    subject: "Account Verified",
-                    html: "<p>Your account has been verified by your admin.</p>",
+                    from: { address: senderAddress, name: senderName },
+                    to: [{ address: userEmail }],
+                    subject: "✓ Your Account Has Been Verified - " + orgName,
+                    html: htmlContent,
                 });
                 $app.newMailClient().send(message);
-            } catch (notifyErr) {}
+                console.log("[ADMIN-VERIFY] Verification confirmation email sent to:", userEmail);
+            } catch (notifyErr) {
+                console.error("[ADMIN-VERIFY] Failed to send confirmation email:", notifyErr.toString());
+            }
             
             return e.json(200, { success: true, message: "Verified successfully." });
         } catch (dbErr) {
@@ -1266,3 +1387,142 @@ try {
         }
     }, "leaves");
 } catch(e) {}
+
+/* ============================================================
+   6. EMPLOYEE VERIFICATION EMAIL (When Admin Creates Employee)
+   ============================================================ */
+try {
+    onRecordAfterCreateSuccess((e) => {
+        const user = e.record;
+        const role = user.getString("role");
+        const email = user.getString("email");
+        const isVerified = user.get("verified");
+
+        // Skip if user is already verified (e.g., during registration)
+        // Only send verification email for newly created employees by admin
+        if (isVerified) {
+            return;
+        }
+
+        // Skip if this is an admin or super admin (they verify during registration flow)
+        if (role === "ADMIN" || role === "SUPER_ADMIN") {
+            return;
+        }
+
+        try {
+            console.log("[EMPLOYEE-CREATE] Sending verification email to new employee:", email);
+
+            // Use PocketBase's built-in verification email
+            // This ensures proper token generation and uses the configured email template
+            $mails.sendRecordVerification($app, user);
+
+            console.log("[EMPLOYEE-CREATE] Verification email sent successfully to:", email);
+        } catch (emailErr) {
+            console.error("[EMPLOYEE-CREATE] Failed to send verification email:", emailErr.toString());
+            // Non-fatal: Employee can request verification email resend
+        }
+    }, "users");
+} catch(e) {
+    console.error("[EMPLOYEE-CREATE-HOOK] Failed to register hook:", e.toString());
+}
+
+/* ============================================================
+   HELPER FUNCTIONS - Country-Based Defaults
+   ============================================================ */
+
+// Helper function to load country-based holidays
+function loadHolidaysForCountry(countryCode) {
+    const holidayData = {
+        "BD": [
+            { id: "bd-h1", date: "2026-02-21", name: "International Mother Language Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bd-h2", date: "2026-03-17", name: "Sheikh Mujibur Rahman's Birthday", isGovernment: true, type: "NATIONAL" },
+            { id: "bd-h3", date: "2026-03-26", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bd-h4", date: "2026-04-14", name: "Pohela Boishakh (Bengali New Year)", isGovernment: true, type: "FESTIVAL" },
+            { id: "bd-h5", date: "2026-05-01", name: "May Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bd-h6", date: "2026-08-15", name: "National Mourning Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bd-h7", date: "2026-12-16", name: "Victory Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bd-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "US": [
+            { id: "us-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h2", date: "2026-01-19", name: "Martin Luther King Jr. Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h3", date: "2026-02-16", name: "Presidents' Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h4", date: "2026-05-25", name: "Memorial Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h5", date: "2026-07-04", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h6", date: "2026-09-07", name: "Labor Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h7", date: "2026-10-12", name: "Columbus Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h8", date: "2026-11-11", name: "Veterans Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h9", date: "2026-11-26", name: "Thanksgiving Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "IN": [
+            { id: "in-h1", date: "2026-01-26", name: "Republic Day", isGovernment: true, type: "NATIONAL" },
+            { id: "in-h2", date: "2026-03-11", name: "Holi", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h3", date: "2026-04-02", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h4", date: "2026-08-15", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "in-h5", date: "2026-10-02", name: "Gandhi Jayanti", isGovernment: true, type: "NATIONAL" },
+            { id: "in-h6", date: "2026-10-22", name: "Dussehra", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h7", date: "2026-11-11", name: "Diwali", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "GB": [
+            { id: "gb-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "gb-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "gb-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "gb-h4", date: "2026-05-04", name: "Early May Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "gb-h5", date: "2026-05-25", name: "Spring Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "gb-h6", date: "2026-08-31", name: "Summer Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "gb-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "gb-h8", date: "2026-12-28", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "AE": [
+            { id: "ae-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ae-h2", date: "2026-12-02", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ae-h3", date: "2026-12-03", name: "National Day Holiday", isGovernment: true, type: "NATIONAL" }
+        ],
+        "SA": [
+            { id: "sa-h1", date: "2026-09-23", name: "Saudi National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "sa-h2", date: "2026-02-22", name: "Foundation Day", isGovernment: true, type: "NATIONAL" }
+        ]
+    };
+
+    return holidayData[countryCode] || [];
+}
+
+// Helper function to get country defaults
+function getCountryDefaults(countryCode) {
+    const defaults = {
+        "BD": { currency: "BDT", timezone: "Asia/Dhaka", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "US": { currency: "USD", timezone: "America/New_York", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
+        "IN": { currency: "INR", timezone: "Asia/Kolkata", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], dateFormat: "DD/MM/YYYY" },
+        "GB": { currency: "GBP", timezone: "Europe/London", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "AE": { currency: "AED", timezone: "Asia/Dubai", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "SA": { currency: "SAR", timezone: "Asia/Riyadh", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "PK": { currency: "PKR", timezone: "Asia/Karachi", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], dateFormat: "DD/MM/YYYY" },
+        "MY": { currency: "MYR", timezone: "Asia/Kuala_Lumpur", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "SG": { currency: "SGD", timezone: "Asia/Singapore", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "PH": { currency: "PHP", timezone: "Asia/Manila", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
+        "NG": { currency: "NGN", timezone: "Africa/Lagos", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "EG": { currency: "EGP", timezone: "Africa/Cairo", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "AU": { currency: "AUD", timezone: "Australia/Sydney", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "CA": { currency: "CAD", timezone: "America/Toronto", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
+        "DE": { currency: "EUR", timezone: "Europe/Berlin", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
+        "FR": { currency: "EUR", timezone: "Europe/Paris", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "JP": { currency: "JPY", timezone: "Asia/Tokyo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
+        "KR": { currency: "KRW", timezone: "Asia/Seoul", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
+        "BR": { currency: "BRL", timezone: "America/Sao_Paulo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "QA": { currency: "QAR", timezone: "Asia/Qatar", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "KW": { currency: "KWD", timezone: "Asia/Kuwait", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "BH": { currency: "BHD", timezone: "Asia/Bahrain", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "OM": { currency: "OMR", timezone: "Asia/Muscat", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" }
+    };
+
+    return defaults[countryCode] || {
+        currency: "USD",
+        timezone: "UTC",
+        workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        dateFormat: "DD/MM/YYYY"
+    };
+}
+
+console.log("[HOOKS] OpenHR System Hooks loaded successfully with country-based registration support.");

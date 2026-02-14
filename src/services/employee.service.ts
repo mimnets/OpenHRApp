@@ -9,15 +9,27 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.department) pbData.department = data.department;
   if (data.designation) pbData.designation = data.designation;
   if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
-  
-  if (data.lineManagerId !== undefined) pbData.line_manager_id = data.lineManagerId || null;
-  else if (data.line_manager_id !== undefined) pbData.line_manager_id = data.line_manager_id || null;
-  
-  if (data.teamId !== undefined) pbData.team_id = data.teamId || null;
-  else if (data.team_id !== undefined) pbData.team_id = data.team_id || null;
 
-  if (data.shiftId !== undefined) pbData.shift_id = data.shiftId || null;
-  else if (data.shift_id !== undefined) pbData.shift_id = data.shift_id || null;
+  // Handle lineManagerId (both camelCase and snake_case)
+  if (data.lineManagerId !== undefined) {
+    pbData.line_manager_id = data.lineManagerId === '' ? null : data.lineManagerId;
+  } else if (data.line_manager_id !== undefined) {
+    pbData.line_manager_id = data.line_manager_id === '' ? null : data.line_manager_id;
+  }
+
+  // Handle teamId (both camelCase and snake_case)
+  if (data.teamId !== undefined) {
+    pbData.team_id = data.teamId === '' ? null : data.teamId;
+  } else if (data.team_id !== undefined) {
+    pbData.team_id = data.team_id === '' ? null : data.team_id;
+  }
+
+  // Handle shiftId (both camelCase and snake_case)
+  if (data.shiftId !== undefined) {
+    pbData.shift_id = data.shiftId === '' ? null : data.shiftId;
+  } else if (data.shift_id !== undefined) {
+    pbData.shift_id = data.shift_id === '' ? null : data.shift_id;
+  }
 
   if (data.avatar && typeof data.avatar === 'string' && !data.avatar.startsWith('http')) {
     pbData.avatar = data.avatar;
@@ -84,6 +96,10 @@ export const employeeService = {
   async addEmployee(emp: Partial<Employee>) {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
     const pbData = sanitizeUserPayload(emp, false);
+
+    console.log('[EmployeeService] Creating employee with data:', pbData);
+    console.log('[EmployeeService] Original input:', { teamId: emp.teamId, shiftId: emp.shiftId });
+
     if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
       await apiClient.pb.collection('users').create(apiClient.toFormData(pbData, 'avatar.jpg'));
     } else {
@@ -95,15 +111,18 @@ export const employeeService = {
   async updateProfile(id: string, updates: Partial<Employee> | any) {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
     const pbData = sanitizeUserPayload(updates, true);
-    
-    if (updates.team_id !== undefined) pbData.team_id = updates.team_id || null;
-    if (updates.line_manager_id !== undefined) pbData.line_manager_id = updates.line_manager_id || null;
+
+    console.log('[EmployeeService] Updating employee:', id);
+    console.log('[EmployeeService] Input data:', { teamId: updates.teamId, shiftId: updates.shiftId, lineManagerId: updates.lineManagerId });
+    console.log('[EmployeeService] Processed data:', { team_id: pbData.team_id, shift_id: pbData.shift_id, line_manager_id: pbData.line_manager_id });
 
     if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
-      await apiClient.pb.collection('users').update(id.trim(), apiClient.toFormData(pbData, 'avatar.jpg'));
+      const result = await apiClient.pb.collection('users').update(id.trim(), apiClient.toFormData(pbData, 'avatar.jpg'));
+      console.log('[EmployeeService] Update result:', result);
     } else {
-      delete pbData.avatar; 
-      await apiClient.pb.collection('users').update(id.trim(), pbData);
+      delete pbData.avatar;
+      const result = await apiClient.pb.collection('users').update(id.trim(), pbData);
+      console.log('[EmployeeService] Update result:', result);
     }
     apiClient.notify();
   },

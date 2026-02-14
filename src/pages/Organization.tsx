@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Loader2, Save, X, RefreshCw, MapPin, AlertTriangle
 } from 'lucide-react';
 import { useOrganization } from '../hooks/organization/useOrganization';
+import { hrService } from '../services/hrService';
 import { Holiday, Team, OfficeLocation, LeaveWorkflow, Shift, ShiftOverride } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 
@@ -21,11 +22,22 @@ type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'SHIFTS' | 'WORKFLOW' | 'LEA
 
 const Organization: React.FC = () => {
   const {
-      departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shifts, shiftOverrides,
+      departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shiftOverrides,
       isLoading, isSaving,
       updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam,
-      updateLeavePolicy, saveConfig, updateWorkflows, updateShifts, updateShiftOverrides
+      updateLeavePolicy, saveConfig, updateWorkflows, updateShiftOverrides
   } = useOrganization();
+
+  // Shifts managed locally with dedicated collection CRUD
+  const [shifts, setShifts] = useState<Shift[]>([]);
+
+  useEffect(() => {
+    const loadShifts = async () => {
+      const shiftsData = await hrService.getShifts();
+      setShifts(shiftsData);
+    };
+    loadShifts();
+  }, []);
 
   // Subscription check
   const { canPerformAction, subscription } = useSubscription();
@@ -120,17 +132,14 @@ const Organization: React.FC = () => {
         };
         await updateLeavePolicy(next);
       } else if (modalType === 'SHIFT') {
-        const next = [...shifts];
-        if (shiftForm.isDefault) {
-          next.forEach(s => s.isDefault = false);
-        }
         if (editIndex !== null) {
-          next[editIndex] = { ...next[editIndex], ...shiftForm } as Shift;
+          const shiftId = shifts[editIndex].id;
+          await hrService.updateShift(shiftId, shiftForm);
         } else {
-          next.push({ ...shiftForm, id: 'shift_' + Date.now() } as Shift);
+          await hrService.createShift(shiftForm);
         }
-        if (!next.some(s => s.isDefault) && next.length > 0) next[0].isDefault = true;
-        await updateShifts(next);
+        const updatedShifts = await hrService.getShifts();
+        setShifts(updatedShifts);
       } else if (modalType === 'SHIFT_OVERRIDE') {
         if (!shiftOverrideForm.employeeId || !shiftOverrideForm.shiftId) return;
         const next = [...shiftOverrides];
@@ -159,9 +168,10 @@ const Organization: React.FC = () => {
         const next = (config.officeLocations || []).filter((_, idx) => idx !== index);
         await saveConfig({ ...config, officeLocations: next });
       } else if (type === 'SHIFT' as any) {
-        const next = shifts.filter((_, idx) => idx !== index);
-        if (!next.some(s => s.isDefault) && next.length > 0) next[0].isDefault = true;
-        await updateShifts(next);
+        const shiftId = shifts[index].id;
+        await hrService.deleteShift(shiftId);
+        const updatedShifts = await hrService.getShifts();
+        setShifts(updatedShifts);
       } else if (type === 'SHIFT_OVERRIDE' as any) {
         const next = shiftOverrides.filter((_, idx) => idx !== index);
         await updateShiftOverrides(next);
@@ -198,9 +208,9 @@ const Organization: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm">
         {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'SHIFTS', 'WORKFLOW', 'LEAVES', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 md:px-6 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>{tab.replace('_', ' ')}</button>
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-3 md:px-5 lg:px-6 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>{tab.replace('_', ' ')}</button>
         ))}
       </div>
 

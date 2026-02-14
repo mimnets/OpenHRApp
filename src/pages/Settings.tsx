@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, ArrowLeft, Save, RefreshCw, Mail, UserCheck, Hash, Lock, Key, Eye, EyeOff,
-  Send, Loader2, CheckCircle, AlertCircle, MessageSquare
+  Send, Loader2, CheckCircle, AlertCircle, MessageSquare, Clock, Users
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { User as UserType, Employee } from '../types';
+import { User as UserType, Employee, Shift } from '../types';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { AdminVerificationPanel } from '../components/admin/AdminVerificationPanel';
 import { contactService } from '../services/contact.service';
@@ -56,19 +56,37 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
   const [contactInitialized, setContactInitialized] = useState(false);
 
   const isAdmin = user.role === 'ADMIN';
+  const [myShift, setMyShift] = useState<Shift | null>(null);
+  const [myTeamName, setMyTeamName] = useState<string>('No Team');
 
   useEffect(() => {
     const load = async () => {
       try {
-        const employees = await hrService.getEmployees();
+        const [employees, shifts, teams] = await Promise.all([
+          hrService.getEmployees(),
+          hrService.getShifts(),
+          hrService.getTeams()
+        ]);
         const myData = employees.find(e => e.id === user.id);
-        
+
         if (myData) {
           const manager = employees.find(e => e.id === myData.lineManagerId);
           setProfile({
             ...myData,
             managerName: manager ? manager.name : 'No Direct Manager'
           });
+
+          // Resolve shift
+          if (myData.shiftId) {
+            const shift = shifts.find(s => s.id === myData.shiftId);
+            setMyShift(shift || null);
+          }
+
+          // Resolve team
+          if (myData.teamId) {
+            const team = teams.find(t => t.id === myData.teamId);
+            setMyTeamName(team ? team.name : 'No Team');
+          }
         } else {
           setProfile({
             name: user.name,
@@ -197,6 +215,20 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                 <div className="relative">
                   <UserCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                   <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={profile.managerName || 'No Direct Manager'} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Team</label>
+                <div className="relative">
+                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={myTeamName} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Shift</label>
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={myShift ? `${myShift.name} (${myShift.startTime} - ${myShift.endTime})` : 'No Shift Assigned'} />
                 </div>
               </div>
               <div className="space-y-1.5">
