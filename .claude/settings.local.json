@@ -11,7 +11,14 @@
       "WebSearch",
       "Bash(curl:*)",
       "Bash(npx pocketbase --help:*)",
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "Bash(for file in \"api.client\" \"attendance.service\" \"auth.service\" \"blog.service\" \"contact.service\" \"emailService\" \"employee.service\" \"employeeService\" \"googleDriveService\" \"hrService\" \"leave.service\" \"managerService\" \"organization.service\" \"pocketbase\" \"reportsEmailService\" \"shift.service\" \"superadmin.service\" \"upgrade.service\" \"verification.service\")",
+      "Bash(do echo \"=== Searching for $file ===\" grep -r \"$file\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" --include=\"*.jsx\")",
+      "Bash(done)",
+      "Bash(for hook in \"useAttendance\" \"useCamera\" \"useGeoLocation\" \"useDashboard\" \"useOrganization\" \"useAttendanceLogic\" \"useCameraLocation\")",
+      "Bash(do echo \"=== $hook ===\" grep -r \"$hook\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(for comp in \"LeaveGuidelines\" \"OrgPlacement\" \"OrgTerms\")",
+      "Bash(do echo \"=== $comp ===\" grep -r \"$comp\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")"
     ]
   }
 }
