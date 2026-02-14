@@ -177,7 +177,11 @@ const AppContent: React.FC = () => {
     switch (currentPath) {
       case 'dashboard': return <Dashboard user={user} onNavigate={handleNavigate} />;
       case 'super-admin': return <SuperAdmin user={user} onNavigate={handleNavigate} />;
-      case 'upgrade': return <Upgrade onBack={() => handleNavigate('dashboard')} />;
+      case 'upgrade':
+        if (user.role === 'ADMIN' || user.role === 'HR') {
+          return <Upgrade onBack={() => handleNavigate('dashboard')} />;
+        }
+        return <Dashboard user={user} onNavigate={handleNavigate} />;
       case 'profile': return <Settings user={user} onBack={() => handleNavigate('dashboard')} />;
       case 'employees': return <EmployeeDirectory user={user} />;
       case 'attendance':

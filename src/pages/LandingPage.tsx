@@ -8,6 +8,7 @@ import FAQSection from '../components/landing/FAQSection';
 import ContactSection from '../components/landing/ContactSection';
 import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
+import ShowcaseSection from '../components/landing/ShowcaseSection';
 import { PublicAdBanner } from '../components/ads';
 
 interface LandingPageProps {
@@ -33,6 +34,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
       <HowItWorksSection />
       <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-mid" /></div>
       <TestimonialsSection />
+      <ShowcaseSection />
       <FAQSection />
       <ContactSection />
       <CTASection onRegisterClick={onRegisterClick} />
