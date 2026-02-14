@@ -86,7 +86,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
         </header>
 
         {/* Subscription Banner - visible to all org users */}
-        <SubscriptionBanner onUpgradeClick={() => handleNavigate('upgrade')} />
+        <SubscriptionBanner onUpgradeClick={() => handleNavigate('upgrade')} userRole={user.role} />
 
         {/* Content */}
         <div className="flex-1 p-6 md:p-12 w-full pb-28 md:pb-12 overflow-x-hidden">
