@@ -64,34 +64,39 @@ export const authService = {
     }
   },
 
-  async registerOrganization(data: { orgName: string, adminName: string, email: string, password: string }): Promise<{ success: boolean, error?: string }> {
+  async registerOrganization(data: { orgName: string, adminName: string, email: string, password: string, country: string, address?: string, logo?: File | null }): Promise<{ success: boolean, error?: string }> {
     if (!apiClient.pb || !apiClient.isConfigured()) return { success: false, error: "System offline" };
-    
+
     try {
       console.log("[AUTH] Registration initiated for org: " + data.orgName);
 
-      // SECURITY: Send only what's needed, password should never be logged
-      const payload = {
-        orgName: data.orgName,
-        adminName: data.adminName,
-        email: data.email,
-        password: data.password
-      };
+      // Create FormData to handle file upload
+      const formData = new FormData();
+      formData.append('orgName', data.orgName);
+      formData.append('adminName', data.adminName);
+      formData.append('email', data.email);
+      formData.append('password', data.password);
+      formData.append('country', data.country);
+      if (data.address) {
+        formData.append('address', data.address);
+      }
+      if (data.logo) {
+        formData.append('logo', data.logo);
+      }
 
       await apiClient.pb.send("/api/openhr/register", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          // Don't set Content-Type - browser will set it with boundary for multipart/form-data
           // Prevent caching of this request
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
           "Pragma": "no-cache",
           "Expires": "0"
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       // SECURITY: Clear the password from memory immediately after sending
-      payload.password = '';
       data.password = '';
 
       return { success: true };
@@ -99,7 +104,7 @@ export const authService = {
     } catch (err: any) {
       console.error("[AUTH] Registration Error (detailed message only, no payload logged)");
       let finalMsg = "Registration failed.";
-      
+
       if (err.response && typeof err.response === 'object') {
          if (err.response.message) finalMsg = err.response.message;
          else if (err.response.code) finalMsg = `Error Code: ${err.response.code}`;
@@ -108,7 +113,7 @@ export const authService = {
       } else if (err.message) {
         finalMsg = err.message;
       }
-      
+
       return { success: false, error: finalMsg };
     }
   }

@@ -182,12 +182,20 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     setEditingId(null);
     setFormError(null);
     const defaultShift = shifts.find(s => s.isDefault);
-    setFormState({
+
+    console.log('[EmployeeDirectory] Opening add employee form');
+    console.log('[EmployeeDirectory] Available shifts:', shifts.length);
+    console.log('[EmployeeDirectory] Default shift found:', defaultShift?.name, 'ID:', defaultShift?.id);
+
+    const newFormState = {
       ...initialNewEmpState,
       department: depts[0] || 'Unassigned',
       designation: desigs[0] || 'New Employee',
       shiftId: defaultShift?.id || ''
-    });
+    };
+
+    console.log('[EmployeeDirectory] Setting initial form state with shiftId:', newFormState.shiftId);
+    setFormState(newFormState);
     setShowModal(true);
   };
 
@@ -238,15 +246,25 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     if (!isAdmin) return;
     setIsSubmitting(true);
     setFormError(null);
-    
+
+    console.log('[EmployeeDirectory] Submitting form with state:', {
+      name: formState.name,
+      teamId: formState.teamId,
+      shiftId: formState.shiftId,
+      isEdit: !!editingId
+    });
+
     try {
       if (editingId) {
+        console.log('[EmployeeDirectory] Updating employee:', editingId);
         await hrService.updateProfile(editingId, formState as any);
       } else {
+        console.log('[EmployeeDirectory] Creating new employee');
         await hrService.addEmployee(formState as any);
       }
       setShowModal(false);
     } catch (err: any) {
+      console.error('[EmployeeDirectory] Submit error:', err);
       setFormError(err.message || 'Operation failed. Check server logs.');
     } finally {
       setIsSubmitting(false);
@@ -256,6 +274,13 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   const getTeamName = (teamId?: string) => {
     if (!teamId) return 'No Team';
     return teams.find(t => t.id === teamId)?.name || 'Unknown Team';
+  };
+
+  const getShiftName = (shiftId?: string) => {
+    if (!shiftId) return 'No Shift Assigned';
+    const shift = shifts.find(s => s.id === shiftId);
+    if (!shift) return 'Unknown Shift';
+    return `${shift.name} (${shift.startTime}-${shift.endTime})`;
   };
 
   return (
@@ -411,6 +436,15 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users size={12} className="text-primary" /> Team Name</p>
                    <p className="font-black text-slate-700">{getTeamName(showViewModal.teamId)}</p>
                 </div>
+                {shifts.length > 0 && (
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-1 md:col-span-2">
+                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                       Assigned Shift
+                     </p>
+                     <p className="font-black text-slate-700">{getShiftName(showViewModal.shiftId)}</p>
+                  </div>
+                )}
               </div>
 
               <button 
@@ -506,7 +540,17 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Team</label>
-                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.teamId} onChange={e => setFormState({...formState, teamId: e.target.value})}>
+                  <select
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+                    value={formState.teamId}
+                    onChange={e => {
+                      const selectedTeamId = e.target.value;
+                      const selectedTeam = teams.find(t => t.id === selectedTeamId);
+                      const leaderId = selectedTeam?.leaderId || '';
+                      console.log('[EmployeeDirectory] Team changed to:', selectedTeamId, '| Auto-setting line manager:', leaderId);
+                      setFormState({...formState, teamId: selectedTeamId, lineManagerId: leaderId});
+                    }}
+                  >
                     <option value="">No Team Assigned</option>
                     {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
@@ -514,7 +558,14 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                 {shifts.length > 0 && (
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Shift</label>
-                    <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formState.shiftId} onChange={e => setFormState({...formState, shiftId: e.target.value})}>
+                    <select
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+                      value={formState.shiftId}
+                      onChange={e => {
+                        console.log('[EmployeeDirectory] Shift changed to:', e.target.value);
+                        setFormState({...formState, shiftId: e.target.value});
+                      }}
+                    >
                       <option value="">No Shift Assigned</option>
                       {shifts.map(s => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime}){s.isDefault ? ' *' : ''}</option>)}
                     </select>

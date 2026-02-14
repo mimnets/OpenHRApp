@@ -62,7 +62,7 @@ export const organizationService = {
   async prefetchMetadata() {
     if (!apiClient.isConfigured()) return;
     try {
-      const results = await Promise.all([
+      await Promise.all([
         organizationService.getConfig(),
         organizationService.getDepartments(),
         organizationService.getDesignations(),
@@ -71,9 +71,6 @@ export const organizationService = {
         organizationService.getLeavePolicy(),
         shiftService.getShifts()
       ]);
-      // Auto-migrate AppConfig → Default Shift (lazy, idempotent)
-      const config = results[0] as AppConfig;
-      await shiftService.migrateFromAppConfig(config);
     } catch (e) {
       console.warn("Metadata prefetch partial failure", e);
     }

@@ -63,9 +63,10 @@ export const hrService = {
 
   // Shifts
   getShifts: shiftService.getShifts.bind(shiftService),
-  setShifts: shiftService.setShifts.bind(shiftService),
+  createShift: shiftService.createShift.bind(shiftService),
+  updateShift: shiftService.updateShift.bind(shiftService),
+  deleteShift: shiftService.deleteShift.bind(shiftService),
   getShiftOverrides: shiftService.getShiftOverrides.bind(shiftService),
   setShiftOverrides: shiftService.setShiftOverrides.bind(shiftService),
-  resolveShiftForEmployee: shiftService.resolveShiftForEmployee.bind(shiftService),
-  migrateShiftsFromAppConfig: shiftService.migrateFromAppConfig.bind(shiftService)
+  resolveShiftForEmployee: shiftService.resolveShiftForEmployee.bind(shiftService)
 };

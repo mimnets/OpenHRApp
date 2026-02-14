@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2, Globe, MapPin, Upload } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { RegistrationVerificationPage } from '../components/registration/RegistrationVerificationPage';
+import { COUNTRIES, getFlagEmoji } from '../data/countries';
 
 interface Props {
   onBack: () => void;
@@ -15,11 +16,36 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
     adminName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    country: 'BD', // Default to Bangladesh
+    address: '',
+    logo: null as File | null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        setError("Logo file size must be less than 2MB.");
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError("Logo must be an image file.");
+        return;
+      }
+      setFormData({ ...formData, logo: file });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +65,10 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
       orgName: formData.orgName,
       adminName: formData.adminName,
       email: formData.email,
-      password: formData.password
+      password: formData.password,
+      country: formData.country,
+      address: formData.address,
+      logo: formData.logo
     });
 
     if (result.success) {
@@ -86,6 +115,43 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
               <div className="relative">
                 <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                 <input required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. Acme Corp" value={formData.orgName} onChange={e => setFormData({...formData, orgName: e.target.value})} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Country</label>
+                <div className="relative">
+                  <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <select required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all appearance-none" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}>
+                    {COUNTRIES.map(country => (
+                      <option key={country.code} value={country.code}>
+                        {getFlagEmoji(country.code)} {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Logo (Optional)</label>
+                <div className="relative">
+                  <Upload className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <input type="file" accept="image/*" className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200" onChange={handleLogoChange} />
+                </div>
+                {logoPreview && (
+                  <div className="mt-2 flex justify-center">
+                    <img src={logoPreview} alt="Logo preview" className="h-16 w-16 object-contain rounded-xl border-2 border-indigo-100" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Address (Optional)</label>
+              <div className="relative">
+                <MapPin className="absolute left-5 top-5 text-slate-300" size={18} />
+                <textarea className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all resize-none" rows={2} placeholder="e.g. 123 Main Street, City, State, ZIP" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
               </div>
             </div>
 
