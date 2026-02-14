@@ -42,7 +42,7 @@ const BlogFooter: React.FC = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4 cursor-pointer" onClick={goHome}>
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center p-1.5">
-                <img src="./img/logo.png" className="w-full h-full object-contain" alt="OpenHRApp" />
+                <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
               </div>
               <span className="text-base font-black tracking-tight">
                 <span className="text-primary">Open</span>
