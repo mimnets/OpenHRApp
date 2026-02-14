@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor, HardDrive, FileText
+  CreditCard, Monitor, HardDrive, FileText, Star
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
@@ -10,6 +10,7 @@ import { Organization, Employee, PlatformStats, User, UpgradeRequest } from '../
 import AdManagement from '../components/superadmin/AdManagement';
 import StorageManagement from '../components/superadmin/StorageManagement';
 import BlogManagement from '../components/superadmin/BlogManagement';
+import ShowcaseManagement from '../components/superadmin/ShowcaseManagement';
 
 interface SuperAdminProps {
   user: User;
@@ -17,7 +18,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog' | 'showcase';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -328,6 +329,14 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         >
           <FileText size={18} /> Blog
         </button>
+        <button
+          onClick={() => setActiveTab('showcase')}
+          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'showcase' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Star size={18} /> Showcase
+        </button>
       </div>
 
       {/* Upgrade Requests Tab */}
@@ -427,6 +436,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Blog Management Tab */}
       {activeTab === 'blog' && (
         <BlogManagement onMessage={setMessage} />
+      )}
+
+      {/* Showcase Management Tab */}
+      {activeTab === 'showcase' && (
+        <ShowcaseManagement onMessage={setMessage} />
       )}
 
       {/* Organizations Tab - Stats Cards */}
