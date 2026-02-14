@@ -18,7 +18,8 @@
       "Bash(for hook in \"useAttendance\" \"useCamera\" \"useGeoLocation\" \"useDashboard\" \"useOrganization\" \"useAttendanceLogic\" \"useCameraLocation\")",
       "Bash(do echo \"=== $hook ===\" grep -r \"$hook\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(for comp in \"LeaveGuidelines\" \"OrgPlacement\" \"OrgTerms\")",
-      "Bash(do echo \"=== $comp ===\" grep -r \"$comp\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")"
+      "Bash(do echo \"=== $comp ===\" grep -r \"$comp\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(node scripts/convert-to-webp.mjs:*)"
     ]
   }
 }

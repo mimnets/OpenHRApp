@@ -29,7 +29,7 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
               <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center p-1.5">
-                <img src="./img/logo.png" className="w-full h-full object-contain" alt="OpenHRApp" />
+                <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
               </div>
               <span className="text-lg font-black tracking-tight">
                 <span className="text-primary">Open</span>
