@@ -74,8 +74,9 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             console.log("[REGISTER] Logo upload skipped or failed (non-fatal):", logoErr.toString());
         }
 
-        // Set trial end date to 14 days from now
+        // Set trial end date to 14 days from now (normalized to start of day for consistent day counting)
         const trialEndDate = new Date();
+        trialEndDate.setUTCHours(0, 0, 0, 0); // normalize today to midnight UTC
         trialEndDate.setDate(trialEndDate.getDate() + 14);
         org.set("trial_end_date", trialEndDate.toISOString());
 
@@ -306,7 +307,10 @@ routerAdd("GET", "/api/openhr/subscription-status", (e) => {
             if (status === "TRIAL" && trialEndDate) {
                 const endDate = new Date(trialEndDate);
                 const now = new Date();
-                daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                // Compare calendar dates only (ignore time) for consistent day counting
+                const endDay = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+                const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+                daysRemaining = Math.round((endDay - today) / (1000 * 60 * 60 * 24));
                 if (daysRemaining < 0) daysRemaining = 0;
             }
 
