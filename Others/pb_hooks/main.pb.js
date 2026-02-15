@@ -1337,60 +1337,8 @@ try {
 
 /* ============================================================
    6. LEAVE NOTIFICATIONS
+   → MOVED to leave_notifications.pb.js (separate file for safety)
    ============================================================ */
-try {
-    onRecordAfterCreateSuccess((e) => {
-        const leave = e.record;
-        const empId = leave.getString("employee_id");
-        const managerId = leave.getString("line_manager_id");
-        
-        function queueEmail(recipient, subject, htmlBody) {
-            if (!recipient || !recipient.includes("@")) return;
-            try {
-                const col = $app.findCollectionByNameOrId("reports_queue");
-                const rec = new Record(col);
-                rec.set("recipient_email", recipient);
-                rec.set("subject", subject);
-                rec.set("html_content", htmlBody);
-                rec.set("status", "PENDING"); 
-                rec.set("type", "LEAVE_ALERT");
-                rec.set("organization_id", leave.getString("organization_id"));
-                $app.save(rec);
-            } catch (err) {}
-        }
-
-        try {
-            const employee = $app.findRecordById("users", empId);
-            const type = leave.getString("type");
-            
-            if (managerId) {
-                const manager = $app.findRecordById("users", managerId);
-                queueEmail(manager.getString("email"), "New Leave Request: " + type, "<p><strong>" + employee.getString("name") + "</strong> has requested " + type + " leave.</p>");
-            }
-        } catch (err) {}
-    }, "leaves");
-
-    onRecordAfterUpdateSuccess((e) => {
-        const leave = e.record;
-        const status = leave.getString("status");
-        const empId = leave.getString("employee_id");
-
-        if (status === "APPROVED" || status === "REJECTED") {
-            try {
-                const employee = $app.findRecordById("users", empId);
-                const col = $app.findCollectionByNameOrId("reports_queue");
-                const rec = new Record(col);
-                rec.set("recipient_email", employee.getString("email"));
-                rec.set("subject", "Leave Request " + status);
-                rec.set("html_content", "<p>Your leave request has been <strong>" + status + "</strong>.</p>");
-                rec.set("status", "PENDING");
-                rec.set("type", "LEAVE_DECISION");
-                rec.set("organization_id", leave.getString("organization_id"));
-                $app.save(rec);
-            } catch(err) {}
-        }
-    }, "leaves");
-} catch(e) {}
 
 /* ============================================================
    6. EMPLOYEE VERIFICATION EMAIL (When Admin Creates Employee)

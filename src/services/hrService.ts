@@ -38,6 +38,9 @@ export const hrService = {
   saveLeaveRequest: leaveService.saveLeaveRequest,
   updateLeaveStatus: leaveService.updateLeaveStatus,
   getLeaveBalance: leaveService.getLeaveBalance,
+  adminCreateLeave: leaveService.adminCreateLeave,
+  adminUpdateLeave: leaveService.adminUpdateLeave,
+  adminDeleteLeave: leaveService.adminDeleteLeave,
 
   // Organization & Config
   prefetchMetadata: organizationService.prefetchMetadata,

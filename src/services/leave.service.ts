@@ -106,7 +106,10 @@ export const leaveService = {
     const update: any = { status };
     if (role === 'MANAGER') {
       update.manager_remarks = remarks;
-      if (status === 'APPROVED') update.status = 'PENDING_HR'; 
+      if (status === 'APPROVED') update.status = 'PENDING_HR';
+    } else if (role === 'ADMIN' || role === 'HR') {
+      update.approver_remarks = remarks;
+      // Admin/HR can approve at any stage — force final status
     } else {
       update.approver_remarks = remarks;
     }
@@ -114,6 +117,96 @@ export const leaveService = {
       await apiClient.pb.collection('leaves').update(id.trim(), update);
       apiClient.notify();
     } catch (err: any) { throw new Error("Access Denied"); }
+  },
+
+  async adminCreateLeave(data: {
+    employeeId: string;
+    employeeName: string;
+    type: string;
+    startDate: string;
+    endDate: string;
+    totalDays: number;
+    reason: string;
+    status: string;
+    remarks: string;
+  }) {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    const formatPbDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      if (dateStr.length === 10) return `${dateStr} 00:00:00`;
+      if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
+      return dateStr;
+    };
+    const now = new Date();
+    const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
+    const orgId = apiClient.getOrganizationId();
+
+    const payload: any = {
+      employee_id: data.employeeId.trim(),
+      employee_name: data.employeeName,
+      type: data.type,
+      start_date: formatPbDate(data.startDate),
+      end_date: formatPbDate(data.endDate),
+      total_days: Number(data.totalDays) || 0,
+      reason: data.reason || '',
+      status: data.status || 'APPROVED',
+      approver_remarks: data.remarks || '',
+      applied_date: appliedAt,
+      organization_id: orgId
+    };
+
+    try {
+      await apiClient.pb.collection('leaves').create(payload);
+      apiClient.notify();
+    } catch (err: any) {
+      if (err.response?.id) { apiClient.notify(); return; }
+      throw new Error('Failed to create leave record');
+    }
+  },
+
+  async adminUpdateLeave(id: string, data: {
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+    totalDays?: number;
+    reason?: string;
+    status?: string;
+    managerRemarks?: string;
+    approverRemarks?: string;
+  }) {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    const formatPbDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      if (dateStr.length === 10) return `${dateStr} 00:00:00`;
+      if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
+      return dateStr;
+    };
+    const update: any = {};
+    if (data.type !== undefined) update.type = data.type;
+    if (data.startDate !== undefined) update.start_date = formatPbDate(data.startDate);
+    if (data.endDate !== undefined) update.end_date = formatPbDate(data.endDate);
+    if (data.totalDays !== undefined) update.total_days = Number(data.totalDays);
+    if (data.reason !== undefined) update.reason = data.reason;
+    if (data.status !== undefined) update.status = data.status;
+    if (data.managerRemarks !== undefined) update.manager_remarks = data.managerRemarks;
+    if (data.approverRemarks !== undefined) update.approver_remarks = data.approverRemarks;
+
+    try {
+      await apiClient.pb.collection('leaves').update(id.trim(), update);
+      apiClient.notify();
+    } catch (err: any) {
+      throw new Error('Failed to update leave record');
+    }
+  },
+
+  async adminDeleteLeave(id: string) {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    try {
+      await apiClient.pb.collection('leaves').delete(id.trim());
+      apiClient.notify();
+    } catch (err: any) {
+      throw new Error('Failed to delete leave record');
+    }
   },
 
   async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
