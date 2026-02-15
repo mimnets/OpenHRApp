@@ -65,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
         <div className="w-full h-px bg-slate-50 mt-8"></div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation + Sign Out (all scrollable) */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
         {filteredItems.map((item) => (
           <div key={item.id} className="space-y-1">
@@ -73,7 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
               onClick={() => onNavigate(item.id)}
               className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 relative group ${
                 currentPath === item.id
-                  ? 'bg-primary-light/50 text-primary' 
+                  ? 'bg-primary-light/50 text-primary'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
@@ -88,32 +88,32 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
             </button>
           </div>
         ))}
-      </nav>
 
-      {/* Ad Banner (for AD_SUPPORTED orgs) - hidden on short screens to preserve sign-out button */}
-      <div className="px-2 pb-2 justify-center hidden md:flex">
-        <AdBanner slot="sidebar" className="rounded-xl overflow-hidden" />
-      </div>
-
-      {/* Footer / Sign Out */}
-      <div className="p-6 pt-0 space-y-4">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-rose-50 transition-all"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-600 group-hover:text-rose-600 transition-colors">
-              <LogOut size={20} />
-            </div>
-            <span className="font-black text-sm text-slate-900 uppercase tracking-tight">Sign Out</span>
-          </div>
-          <ChevronRight size={18} className="text-slate-300 group-hover:text-rose-300 transition-colors" />
-        </button>
-
-        <div className="text-center">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.9.0</p>
+        {/* Ad Banner (for AD_SUPPORTED orgs) */}
+        <div className="px-2 pt-4 pb-2 justify-center hidden md:flex">
+          <AdBanner slot="sidebar" className="rounded-xl overflow-hidden" />
         </div>
-      </div>
+
+        {/* Sign Out */}
+        <div className="pt-4 pb-2 space-y-4">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl group hover:bg-rose-50 transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-600 group-hover:text-rose-600 transition-colors">
+                <LogOut size={20} />
+              </div>
+              <span className="font-black text-sm text-slate-900 uppercase tracking-tight">Sign Out</span>
+            </div>
+            <ChevronRight size={18} className="text-slate-300 group-hover:text-rose-300 transition-colors" />
+          </button>
+
+          <div className="text-center">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.9.0</p>
+          </div>
+        </div>
+      </nav>
     </aside>
   );
 };
