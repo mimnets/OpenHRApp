@@ -79,6 +79,90 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
         }
 
         console.log("[CRON] Trial auto-expiration completed");
+
+        // --- TRIAL EXPIRATION REMINDERS (7 days, 3 days, 1 day before) ---
+        const reminderDays = [7, 3, 1];
+
+        for (let r = 0; r < reminderDays.length; r++) {
+            const daysLeft = reminderDays[r];
+
+            // Calculate the target trial_end_date for this reminder
+            // Orgs whose trial ends exactly `daysLeft` days from today should get notified
+            const targetDate = new Date();
+            targetDate.setUTCHours(0, 0, 0, 0);
+            targetDate.setDate(targetDate.getDate() + daysLeft);
+            const targetStart = targetDate.toISOString();
+            targetDate.setDate(targetDate.getDate() + 1);
+            const targetEnd = targetDate.toISOString();
+
+            let orgsToRemind = [];
+            try {
+                orgsToRemind = $app.findRecordsByFilter(
+                    "organizations",
+                    "subscription_status = 'TRIAL' && trial_end_date != '' && trial_end_date >= '" + targetStart + "' && trial_end_date < '" + targetEnd + "'"
+                );
+            } catch (findErr) {
+                // No orgs found for this reminder window
+                continue;
+            }
+
+            console.log("[CRON] Found " + orgsToRemind.length + " orgs with " + daysLeft + " day(s) left on trial");
+
+            for (let i = 0; i < orgsToRemind.length; i++) {
+                const org = orgsToRemind[i];
+                const orgName = org.getString("name");
+                const orgId = org.id;
+
+                try {
+                    const admins = $app.findRecordsByFilter(
+                        "users",
+                        "organization_id = '" + orgId + "' && role = 'ADMIN'"
+                    );
+
+                    if (admins.length > 0) {
+                        const admin = admins[0];
+                        const adminEmail = admin.getString("email");
+                        const adminName = admin.getString("name");
+
+                        const settings = $app.settings();
+                        const meta = settings.meta || {};
+                        const senderAddress = meta.senderAddress || "noreply@openhr.app";
+                        const senderName = meta.senderName || "OpenHR System";
+
+                        const isUrgent = daysLeft <= 3;
+                        const subject = isUrgent
+                            ? "Urgent: Your OpenHR Trial Expires in " + daysLeft + " Day" + (daysLeft > 1 ? "s" : "") + " - " + orgName
+                            : "Your OpenHR Trial Expires in " + daysLeft + " Days - " + orgName;
+
+                        const message = new MailerMessage({
+                            from: { address: senderAddress, name: senderName },
+                            to: [{ address: adminEmail }],
+                            subject: subject,
+                            html: "<h2>Trial Expiration Reminder</h2>" +
+                                  "<p>Dear " + adminName + ",</p>" +
+                                  "<p>Your 14-day trial for <strong>" + orgName + "</strong> will expire in <strong>" + daysLeft + " day" + (daysLeft > 1 ? "s" : "") + "</strong>.</p>" +
+                                  (isUrgent
+                                      ? "<p style='color:#dc2626;font-weight:bold;'>After expiration, your account will switch to read-only mode and you will not be able to create or modify any data.</p>"
+                                      : "<p>After expiration, your account will switch to read-only mode.</p>") +
+                                  "<p>To continue using all features, you can:</p>" +
+                                  "<ul>" +
+                                  "<li><strong>Support via donation</strong> - Get extended access</li>" +
+                                  "<li><strong>Request a trial extension</strong> - Need more time to evaluate</li>" +
+                                  "<li><strong>Switch to ad-supported mode</strong> - Free, instant activation</li>" +
+                                  "</ul>" +
+                                  "<p>Log in to your OpenHR account and visit the Upgrade page to choose an option.</p>" +
+                                  "<p>Thank you for using OpenHR!</p>"
+                        });
+                        $app.newMailClient().send(message);
+                        console.log("[CRON] Trial reminder (" + daysLeft + "d) sent to: " + adminEmail + " for org: " + orgName);
+                    }
+                } catch (emailErr) {
+                    console.log("[CRON] Failed to send reminder for org " + orgName + ": " + emailErr.toString());
+                }
+            }
+        }
+
+        console.log("[CRON] Trial reminders completed");
     } catch (err) {
         console.log("[CRON] Error in auto-expiration: " + err.toString());
     }
