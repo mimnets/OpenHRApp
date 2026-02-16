@@ -7,6 +7,15 @@ export type UpgradeRequestType = 'DONATION' | 'TRIAL_EXTENSION' | 'AD_SUPPORTED'
 export type UpgradeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type DonationTier = 'TIER_3MO' | 'TIER_6MO' | 'TIER_1YR' | 'TIER_LIFETIME';
 
+export interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  displayOrder: number;
+  isActive: boolean;
+  created?: string;
+}
+
 export interface ShowcaseOrganization {
   id: string;
   name: string;

@@ -64,6 +64,22 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
             </div>
           </div>
 
+          {/* Video Intro */}
+          <div className="relative max-w-4xl mx-auto mb-16">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6">See OpenHR in Action</h2>
+            <div className="rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10 border border-slate-200/60">
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full"
+                  src="https://www.youtube.com/embed/Wb-4mt90IFU"
+                  title="OpenHR App Introduction"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          </div>
+
           {/* Screenshot Preview */}
           <div className="relative max-w-5xl mx-auto">
             <div className="absolute inset-0 bg-gradient-to-t from-[#f8fafc] via-transparent to-transparent z-10 pointer-events-none"></div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor, HardDrive, FileText, Star
+  CreditCard, Monitor, HardDrive, FileText, Star, Share2
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
@@ -11,6 +11,7 @@ import AdManagement from '../components/superadmin/AdManagement';
 import StorageManagement from '../components/superadmin/StorageManagement';
 import BlogManagement from '../components/superadmin/BlogManagement';
 import ShowcaseManagement from '../components/superadmin/ShowcaseManagement';
+import SocialLinksManagement from '../components/superadmin/SocialLinksManagement';
 
 interface SuperAdminProps {
   user: User;
@@ -18,7 +19,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog' | 'showcase';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog' | 'showcase' | 'social';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -337,6 +338,14 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         >
           <Star size={18} /> Showcase
         </button>
+        <button
+          onClick={() => setActiveTab('social')}
+          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'social' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Share2 size={18} /> Social Links
+        </button>
       </div>
 
       {/* Upgrade Requests Tab */}
@@ -441,6 +450,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Showcase Management Tab */}
       {activeTab === 'showcase' && (
         <ShowcaseManagement onMessage={setMessage} />
+      )}
+
+      {/* Social Links Management Tab */}
+      {activeTab === 'social' && (
+        <SocialLinksManagement onMessage={setMessage} />
       )}
 
       {/* Organizations Tab - Stats Cards */}
