@@ -2,7 +2,7 @@
 {
   "id": "openhr-mobile-app-v2.9",
   "name": "Open HR App",
-  "short_name": "OpenHRAPP",
+  "short_name": "OpenHRApp",
   "description": "Smart Open-Source HR Management System",
   "start_url": "/",
   "scope": "/",
