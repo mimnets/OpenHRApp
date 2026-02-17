@@ -237,6 +237,23 @@ export interface BlogPost {
   updated: string;
 }
 
+export interface Tutorial {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  coverImage: string;
+  status: 'DRAFT' | 'PUBLISHED';
+  authorName: string;
+  displayOrder: number;
+  parentId: string;
+  category: string;
+  publishedAt: string;
+  created: string;
+  updated: string;
+}
+
 export interface Shift {
   id: string;
   name: string;

@@ -1,26 +1,25 @@
 import React, { useState } from 'react';
-import { Menu, X, Home, BookOpen } from 'lucide-react';
+import { Menu, X, Home, BookOpen, FileText } from 'lucide-react';
 
-interface BlogNavbarProps {
+interface TutorialsNavbarProps {
   onBack: () => void;
 }
 
-const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
+const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const goToBlog = () => {
-    window.location.hash = '/blog';
-    setMobileOpen(false);
-  };
 
   const goToTutorials = () => {
     window.location.hash = '/how-to-use';
     setMobileOpen(false);
   };
 
+  const goToBlog = () => {
+    window.location.hash = '/blog';
+    setMobileOpen(false);
+  };
+
   const goHome = () => {
     setMobileOpen(false);
-    // Use pushState for clean URL without trailing #
     window.history.pushState(null, '', window.location.pathname);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     onBack();
@@ -53,13 +52,13 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
               </button>
               <button
                 onClick={goToBlog}
-                className="text-sm font-semibold text-primary transition-colors"
+                className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
               >
                 Blog
               </button>
               <button
                 onClick={goToTutorials}
-                className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+                className="text-sm font-semibold text-primary transition-colors"
               >
                 Guides
               </button>
@@ -103,13 +102,13 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
               </button>
               <button
                 onClick={goToBlog}
-                className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm font-semibold text-primary bg-primary/5 rounded-xl transition-colors"
+                className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm font-semibold text-slate-600 hover:text-primary hover:bg-slate-50 rounded-xl transition-colors"
               >
-                <BookOpen size={16} /> Blog
+                <FileText size={16} /> Blog
               </button>
               <button
                 onClick={goToTutorials}
-                className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm font-semibold text-slate-600 hover:text-primary hover:bg-slate-50 rounded-xl transition-colors"
+                className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm font-semibold text-primary bg-primary/5 rounded-xl transition-colors"
               >
                 <BookOpen size={16} /> Guides
               </button>
@@ -137,4 +136,4 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
   );
 };
 
-export default BlogNavbar;
+export default TutorialsNavbar;

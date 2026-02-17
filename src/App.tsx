@@ -26,6 +26,8 @@ import { VerifyAccount } from './pages/VerifyAccount';
 import { SuspendedPage } from './components/subscription';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import TutorialsPage from './pages/TutorialsPage';
+import TutorialPage from './pages/TutorialPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isConfigured, setConfigured, login, logout } = useAuth();
@@ -38,6 +40,7 @@ const AppContent: React.FC = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(null);
+  const [tutorialRoute, setTutorialRoute] = useState<{ type: 'list' | 'single'; slug?: string } | null>(null);
 
   // Parse blog route from hash
   const parseBlogRoute = (hash: string) => {
@@ -51,9 +54,28 @@ const AppContent: React.FC = () => {
     return null;
   };
 
-  // Check URL for verification token and blog routes on mount
+  // Parse tutorial route from hash
+  const parseTutorialRoute = (hash: string) => {
+    if (hash === '#/how-to-use' || hash === '#/how-to-use/') {
+      return { type: 'list' as const };
+    }
+    const match = hash.match(/^#\/how-to-use\/(.+)$/);
+    if (match && match[1]) {
+      return { type: 'single' as const, slug: match[1] };
+    }
+    return null;
+  };
+
+  // Check URL for verification token and blog/tutorial routes on mount
   useEffect(() => {
-    // Check for blog route first
+    // Check for tutorial route first
+    const tutorialMatch = parseTutorialRoute(window.location.hash);
+    if (tutorialMatch) {
+      setTutorialRoute(tutorialMatch);
+      return;
+    }
+
+    // Check for blog route
     const blogMatch = parseBlogRoute(window.location.hash);
     if (blogMatch) {
       setBlogRoute(blogMatch);
@@ -87,15 +109,28 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // Listen for hash changes (blog navigation)
+  // Listen for hash changes (blog/tutorial navigation)
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
+
+      const tutorialMatch = parseTutorialRoute(hash);
+      if (tutorialMatch) {
+        setTutorialRoute(tutorialMatch);
+        setBlogRoute(null);
+        return;
+      }
+
       const blogMatch = parseBlogRoute(hash);
       if (blogMatch) {
         setBlogRoute(blogMatch);
-      } else if (!hash || hash === '#' || hash === '#/') {
+        setTutorialRoute(null);
+        return;
+      }
+
+      if (!hash || hash === '#' || hash === '#/') {
         setBlogRoute(null);
+        setTutorialRoute(null);
       }
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -120,6 +155,14 @@ const AppContent: React.FC = () => {
 
   if (!isConfigured) {
     return <Setup onComplete={() => setConfigured(true)} />;
+  }
+
+  // Priority 0a: Public Tutorials (accessible regardless of auth)
+  if (tutorialRoute) {
+    if (tutorialRoute.type === 'single' && tutorialRoute.slug) {
+      return <TutorialPage slug={tutorialRoute.slug} onBack={() => { window.location.hash = '/how-to-use'; }} />;
+    }
+    return <TutorialsPage onBack={() => { window.history.pushState(null, '', window.location.pathname); setTutorialRoute(null); }} />;
   }
 
   // Priority 0: Public Blog (accessible regardless of auth)
