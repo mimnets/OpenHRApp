@@ -27,6 +27,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
     { label: 'FAQ', id: 'faq' },
     { label: 'Contact', id: 'contact' },
     { label: 'Blog', id: 'blog-link' },
+    { label: 'Guides', id: 'tutorials-link' },
   ];
 
   return (
@@ -53,6 +54,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 onClick={() => {
                   if (link.id === 'blog-link') {
                     window.location.hash = '/blog';
+                  } else if (link.id === 'tutorials-link') {
+                    window.location.hash = '/how-to-use';
                   } else {
                     scrollTo(link.id);
                   }
@@ -101,6 +104,9 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                   if (link.id === 'blog-link') {
                     setMobileOpen(false);
                     window.location.hash = '/blog';
+                  } else if (link.id === 'tutorials-link') {
+                    setMobileOpen(false);
+                    window.location.hash = '/how-to-use';
                   } else {
                     scrollTo(link.id);
                   }

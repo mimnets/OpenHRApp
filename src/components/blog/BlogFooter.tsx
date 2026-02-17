@@ -10,6 +10,10 @@ const BlogFooter: React.FC = () => {
     window.location.hash = '/blog';
   };
 
+  const goToTutorials = () => {
+    window.location.hash = '/how-to-use';
+  };
+
   const columns = [
     {
       title: 'Product',
@@ -21,7 +25,7 @@ const BlogFooter: React.FC = () => {
     {
       title: 'Resources',
       links: [
-        { label: 'Documentation', action: () => window.open('https://github.com/openhrapp', '_blank') },
+        { label: 'Guides', action: goToTutorials },
         { label: 'GitHub', action: () => window.open('https://github.com/mimnets/openhrapp', '_blank') },
       ],
     },
