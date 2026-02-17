@@ -1121,6 +1121,143 @@ routerAdd("GET", "/api/openhr/blog/posts/{slug}", (e) => {
 });
 
 /* ============================================================
+   2J. PUBLIC TUTORIAL ENDPOINTS (No Auth Required)
+   ============================================================ */
+
+// GET /api/openhr/tutorials/posts - List all published tutorials
+routerAdd("GET", "/api/openhr/tutorials/posts", (e) => {
+    try {
+        console.log("[TUTORIALS] Fetching published tutorials...");
+
+        const requestInfo = e.requestInfo();
+        const page = parseInt(requestInfo.query.page || "1") || 1;
+        const limit = parseInt(requestInfo.query.limit || "100") || 100;
+        const offset = (page - 1) * limit;
+
+        let tutorials = [];
+        try {
+            const records = $app.findRecordsByFilter(
+                "tutorials",
+                "status = 'PUBLISHED'",
+                "display_order,-published_at",
+                limit,
+                offset
+            );
+
+            for (let i = 0; i < records.length; i++) {
+                const r = records[i];
+                let coverUrl = "";
+                const coverFile = r.getString("cover_image");
+                if (coverFile) {
+                    try {
+                        const appURL = $app.settings().meta.appURL || "";
+                        coverUrl = appURL + "/api/files/" + r.collection().name + "/" + r.id + "/" + coverFile;
+                    } catch (urlErr) {
+                        console.log("[TUTORIALS] Cover URL error:", urlErr.toString());
+                    }
+                }
+
+                tutorials.push({
+                    id: r.id,
+                    title: r.getString("title"),
+                    slug: r.getString("slug"),
+                    excerpt: r.getString("excerpt"),
+                    cover_image: coverUrl,
+                    category: r.getString("category"),
+                    parent_id: r.getString("parent_id"),
+                    display_order: r.getInt("display_order"),
+                    author_name: r.getString("author_name"),
+                    published_at: r.getString("published_at"),
+                    created: r.get("created"),
+                    updated: r.get("updated")
+                });
+            }
+        } catch (err) {
+            console.log("[TUTORIALS] No published tutorials found or error:", err.toString());
+        }
+
+        // Get total count for pagination
+        let totalTutorials = 0;
+        try {
+            const allPublished = $app.findRecordsByFilter("tutorials", "status = 'PUBLISHED'", "display_order,-published_at", 0, 0);
+            totalTutorials = allPublished.length;
+        } catch (countErr) {
+            totalTutorials = tutorials.length;
+        }
+
+        return e.json(200, {
+            success: true,
+            tutorials: tutorials,
+            page: page,
+            limit: limit,
+            totalTutorials: totalTutorials,
+            totalPages: Math.ceil(totalTutorials / limit)
+        });
+
+    } catch (globalErr) {
+        console.log("[TUTORIALS] Global error:", globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+// GET /api/openhr/tutorials/posts/:slug - Get single published tutorial by slug
+routerAdd("GET", "/api/openhr/tutorials/posts/{slug}", (e) => {
+    try {
+        const slug = e.request.pathValue("slug");
+        console.log("[TUTORIALS] Fetching tutorial by slug:", slug);
+
+        if (!slug) {
+            return e.json(400, { message: "Slug parameter is required" });
+        }
+
+        let tutorial = null;
+        try {
+            const r = $app.findFirstRecordByFilter(
+                "tutorials",
+                "slug = '" + slug.replace(/'/g, "\\'") + "' && status = 'PUBLISHED'"
+            );
+
+            let coverUrl = "";
+            const coverFile = r.getString("cover_image");
+            if (coverFile) {
+                try {
+                    const appURL = $app.settings().meta.appURL || "";
+                    coverUrl = appURL + "/api/files/" + r.collection().name + "/" + r.id + "/" + coverFile;
+                } catch (urlErr) {
+                    console.log("[TUTORIALS] Cover URL error:", urlErr.toString());
+                }
+            }
+
+            tutorial = {
+                id: r.id,
+                title: r.getString("title"),
+                slug: r.getString("slug"),
+                content: r.getString("content"),
+                excerpt: r.getString("excerpt"),
+                cover_image: coverUrl,
+                category: r.getString("category"),
+                parent_id: r.getString("parent_id"),
+                display_order: r.getInt("display_order"),
+                author_name: r.getString("author_name"),
+                published_at: r.getString("published_at"),
+                created: r.get("created"),
+                updated: r.get("updated")
+            };
+
+        } catch (err) {
+            console.log("[TUTORIALS] Tutorial not found for slug:", slug);
+            return e.json(404, { success: false, message: "Tutorial not found" });
+        }
+
+        return e.json(200, { success: true, tutorial: tutorial });
+
+    } catch (globalErr) {
+        console.log("[TUTORIALS] Global error:", globalErr.toString());
+        return e.json(500, { message: "Internal Server Error: " + globalErr.toString() });
+    }
+});
+
+/* ============================================================
    3. EMAIL NOTIFICATIONS (Queued)
    ============================================================ */
 try {

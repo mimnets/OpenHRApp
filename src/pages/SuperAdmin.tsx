@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor, HardDrive, FileText, Star, Share2
+  CreditCard, Monitor, HardDrive, FileText, Star, Share2, BookOpen
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
@@ -10,6 +10,7 @@ import { Organization, Employee, PlatformStats, User, UpgradeRequest } from '../
 import AdManagement from '../components/superadmin/AdManagement';
 import StorageManagement from '../components/superadmin/StorageManagement';
 import BlogManagement from '../components/superadmin/BlogManagement';
+import TutorialManagement from '../components/superadmin/TutorialManagement';
 import ShowcaseManagement from '../components/superadmin/ShowcaseManagement';
 import SocialLinksManagement from '../components/superadmin/SocialLinksManagement';
 
@@ -19,7 +20,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog' | 'showcase' | 'social';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'blog' | 'tutorials' | 'showcase' | 'social';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -284,68 +285,88 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       )}
 
       {/* Main Tabs */}
-      <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
-        <button
-          onClick={() => { setActiveTab('organizations'); setViewMode('list'); }}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'organizations' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Building2 size={18} /> Organizations
-        </button>
-        <button
-          onClick={() => setActiveTab('requests')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'requests' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <CreditCard size={18} /> Upgrade Requests
-          {upgradeRequests.filter(r => r.status === 'PENDING').length > 0 && (
-            <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
-              {upgradeRequests.filter(r => r.status === 'PENDING').length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('ads')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'ads' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Monitor size={18} /> Ad Management
-        </button>
-        <button
-          onClick={() => setActiveTab('storage')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'storage' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <HardDrive size={18} /> Storage
-        </button>
-        <button
-          onClick={() => setActiveTab('blog')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'blog' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <FileText size={18} /> Blog
-        </button>
-        <button
-          onClick={() => setActiveTab('showcase')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'showcase' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Star size={18} /> Showcase
-        </button>
-        <button
-          onClick={() => setActiveTab('social')}
-          className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'social' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Share2 size={18} /> Social Links
-        </button>
+      <div className="space-y-2">
+        {/* Row 1 — Platform Management */}
+        <div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Platform</p>
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+            <button
+              onClick={() => { setActiveTab('organizations'); setViewMode('list'); }}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'organizations' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Building2 size={18} /> Organizations
+            </button>
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'requests' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <CreditCard size={18} /> Upgrade Requests
+              {upgradeRequests.filter(r => r.status === 'PENDING').length > 0 && (
+                <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                  {upgradeRequests.filter(r => r.status === 'PENDING').length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('ads')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'ads' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Monitor size={18} /> Ad Management
+            </button>
+            <button
+              onClick={() => setActiveTab('storage')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'storage' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <HardDrive size={18} /> Storage
+            </button>
+          </div>
+        </div>
+        {/* Row 2 — Content Management */}
+        <div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Content</p>
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+            <button
+              onClick={() => setActiveTab('blog')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'blog' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <FileText size={18} /> Blog
+            </button>
+            <button
+              onClick={() => setActiveTab('tutorials')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'tutorials' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <BookOpen size={18} /> Tutorials
+            </button>
+            <button
+              onClick={() => setActiveTab('showcase')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'showcase' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Star size={18} /> Showcase
+            </button>
+            <button
+              onClick={() => setActiveTab('social')}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'social' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Share2 size={18} /> Social Links
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Upgrade Requests Tab */}
@@ -445,6 +466,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Blog Management Tab */}
       {activeTab === 'blog' && (
         <BlogManagement onMessage={setMessage} />
+      )}
+
+      {/* Tutorial Management Tab */}
+      {activeTab === 'tutorials' && (
+        <TutorialManagement onMessage={setMessage} />
       )}
 
       {/* Showcase Management Tab */}
