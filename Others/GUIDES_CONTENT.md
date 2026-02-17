@@ -1003,6 +1003,93 @@ OpenHR uses role-based access control (RBAC) to ensure each user sees only what 
 
 ---
 
+## Category: Getting Started
+
+---
+
+### Tutorial 14: Install OpenHR as an App (PWA) on Android and iOS
+
+**Slug:** `install-openhr-pwa`
+**Category:** Getting Started
+**Display Order:** 3
+**Parent:** Welcome to OpenHR — Your First Steps
+**Excerpt:** Install OpenHR on your phone's home screen for a native app-like experience — no app store needed.
+
+---
+
+**Content:**
+
+OpenHR is a Progressive Web App (PWA), which means you can install it directly on your Android or iOS device and use it just like a native app — with its own icon, full-screen mode, and offline-ready capabilities. No app store download required.
+
+#### What is a PWA?
+
+A Progressive Web App is a website that behaves like a native mobile app. Once installed, OpenHR will:
+
+- Appear on your **home screen** with its own icon
+- Open in **full-screen mode** (no browser address bar)
+- Load **faster** thanks to cached resources
+- Work even with **poor network connectivity**
+- Receive **push notifications** (if enabled by your admin)
+
+#### Installing on Android (Chrome)
+
+1. Open **Google Chrome** on your Android device.
+2. Navigate to your organization's OpenHR URL (e.g., `https://hr.yourcompany.com`).
+3. Log in with your credentials.
+4. You should see a **"Add to Home Screen"** banner at the bottom — tap **Install**.
+5. If the banner doesn't appear:
+   - Tap the **three-dot menu** (⋮) in the top-right corner.
+   - Select **"Add to Home screen"** or **"Install app"**.
+6. Confirm by tapping **"Install"** or **"Add"**.
+7. OpenHR will now appear on your home screen as a standalone app.
+
+#### Installing on iPhone / iPad (Safari)
+
+1. Open **Safari** on your iPhone or iPad (this only works in Safari, not Chrome or Firefox on iOS).
+2. Navigate to your organization's OpenHR URL.
+3. Log in with your credentials.
+4. Tap the **Share button** (the square with an upward arrow) at the bottom of the screen.
+5. Scroll down in the share menu and tap **"Add to Home Screen"**.
+6. You can rename the app if you want, then tap **"Add"** in the top-right corner.
+7. OpenHR will now appear on your home screen as an app icon.
+
+#### Installing on Desktop (Chrome / Edge)
+
+1. Open **Google Chrome** or **Microsoft Edge** on your computer.
+2. Navigate to your OpenHR URL and log in.
+3. Look for the **install icon** (a small ⊕ or monitor icon) in the address bar on the right side.
+4. Click it and confirm **"Install"**.
+5. OpenHR will open in its own window and appear in your Start Menu (Windows) or Applications folder (Mac).
+
+#### Using the Installed App
+
+Once installed, OpenHR behaves like any other app on your device:
+
+- **Launch** it from your home screen or app drawer — no need to open a browser first.
+- **Switch** between OpenHR and other apps normally.
+- **Notifications** will come through as system notifications (if supported by your organization).
+- **Updates** happen automatically — you always get the latest version without reinstalling.
+
+#### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "Add to Home Screen" option not showing (Android) | Make sure you're using **Chrome**. Clear your browser cache and reload the page. |
+| "Add to Home Screen" option not showing (iOS) | You must use **Safari** — this feature is not available in Chrome or Firefox on iOS. |
+| App opens in browser instead of full-screen | Remove the shortcut and reinstall using the steps above. Make sure you use the browser's install/share feature, not a simple bookmark. |
+| App looks outdated after an update | Close the app completely and reopen it. On Android, you can also go to Chrome > Settings > Site Settings > find OpenHR > Clear & Reset. |
+| App not loading offline | Ensure you've visited the app at least once while online so resources can be cached. |
+
+#### Uninstalling
+
+- **Android:** Long-press the OpenHR icon > Uninstall (or drag to Remove).
+- **iOS:** Long-press the OpenHR icon > Remove App > Delete from Home Screen.
+- **Desktop (Chrome):** Open the app > click the three-dot menu in the title bar > Uninstall.
+
+---
+
+---
+
 ## Additional Tutorial Ideas
 
 Below are additional tutorials you can create later:
