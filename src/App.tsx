@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import MainLayout from './layouts/MainLayout';
+import CookieConsent from './components/CookieConsent';
 
 import Dashboard from './pages/Dashboard';
 import EmployeeDirectory from './pages/EmployeeDirectory';
@@ -218,6 +219,7 @@ const App: React.FC = () => {
         <ThemeProvider>
           <AppContent />
           <Analytics />
+          <CookieConsent />
         </ThemeProvider>
       </SubscriptionProvider>
     </AuthProvider>
