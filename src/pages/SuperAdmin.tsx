@@ -289,81 +289,81 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         {/* Row 1 — Platform Management */}
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Platform</p>
-          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-4 gap-1 sm:gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               onClick={() => { setActiveTab('organizations'); setViewMode('list'); }}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 relative ${
                 activeTab === 'organizations' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Building2 size={18} /> Organizations
+              <Building2 size={16} className="shrink-0" /> <span className="hidden sm:inline">Orgs</span>
             </button>
             <button
               onClick={() => setActiveTab('requests')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 relative ${
                 activeTab === 'requests' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <CreditCard size={18} /> Upgrade Requests
+              <CreditCard size={16} className="shrink-0" /> <span className="hidden sm:inline">Upgrades</span>
               {upgradeRequests.filter(r => r.status === 'PENDING').length > 0 && (
-                <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                <span className="absolute -top-1 -right-1 sm:static w-5 h-5 sm:w-auto sm:h-auto px-1 sm:px-2 py-0.5 bg-red-500 text-white text-[10px] sm:text-xs rounded-full flex items-center justify-center">
                   {upgradeRequests.filter(r => r.status === 'PENDING').length}
                 </span>
               )}
             </button>
             <button
               onClick={() => setActiveTab('ads')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'ads' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Monitor size={18} /> Ad Management
+              <Monitor size={16} className="shrink-0" /> <span className="hidden sm:inline">Ads</span>
             </button>
             <button
               onClick={() => setActiveTab('storage')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'storage' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <HardDrive size={18} /> Storage
+              <HardDrive size={16} className="shrink-0" /> <span className="hidden sm:inline">Storage</span>
             </button>
           </div>
         </div>
         {/* Row 2 — Content Management */}
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Content</p>
-          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-4 gap-1 sm:gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               onClick={() => setActiveTab('blog')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'blog' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <FileText size={18} /> Blog
+              <FileText size={16} className="shrink-0" /> <span className="hidden sm:inline">Blog</span>
             </button>
             <button
               onClick={() => setActiveTab('tutorials')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'tutorials' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <BookOpen size={18} /> Tutorials
+              <BookOpen size={16} className="shrink-0" /> <span className="hidden sm:inline">Tutorials</span>
             </button>
             <button
               onClick={() => setActiveTab('showcase')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'showcase' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Star size={18} /> Showcase
+              <Star size={16} className="shrink-0" /> <span className="hidden sm:inline">Showcase</span>
             </button>
             <button
               onClick={() => setActiveTab('social')}
-              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 activeTab === 'social' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Share2 size={18} /> Social Links
+              <Share2 size={16} className="shrink-0" /> <span className="hidden sm:inline">Social</span>
             </button>
           </div>
         </div>
