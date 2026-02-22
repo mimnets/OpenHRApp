@@ -48,6 +48,8 @@ const Footer: React.FC = () => {
       links: [
         { label: 'About', action: () => scrollTo('features') },
         { label: 'Contact', action: () => scrollTo('contact') },
+        { label: 'Privacy Policy', action: () => { window.history.pushState(null, '', '/privacy'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        { label: 'Terms of Service', action: () => { window.history.pushState(null, '', '/terms'); window.dispatchEvent(new PopStateEvent('popstate')); } },
       ],
     },
   ];

@@ -34,6 +34,8 @@ const TutorialsFooter: React.FC = () => {
       links: [
         { label: 'About', action: goHome },
         { label: 'Contact', action: goHome },
+        { label: 'Privacy Policy', action: () => { window.history.pushState(null, '', '/privacy'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        { label: 'Terms of Service', action: () => { window.history.pushState(null, '', '/terms'); window.dispatchEvent(new PopStateEvent('popstate')); } },
       ],
     },
   ];

@@ -28,6 +28,8 @@ import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
 import TutorialsPage from './pages/TutorialsPage';
 import TutorialPage from './pages/TutorialPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isConfigured, setConfigured, login, logout } = useAuth();
@@ -41,6 +43,12 @@ const AppContent: React.FC = () => {
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(null);
   const [tutorialRoute, setTutorialRoute] = useState<{ type: 'list' | 'single'; slug?: string } | null>(null);
+  const [policyRoute, setPolicyRoute] = useState<'privacy' | 'terms' | null>(() => {
+    const path = window.location.pathname;
+    if (path === '/privacy' || path === '/privacy/') return 'privacy';
+    if (path === '/terms' || path === '/terms/') return 'terms';
+    return null;
+  });
 
   // Parse blog route from hash
   const parseBlogRoute = (hash: string) => {
@@ -68,6 +76,9 @@ const AppContent: React.FC = () => {
 
   // Check URL for verification token and blog/tutorial routes on mount
   useEffect(() => {
+    // Skip hash parsing if on a clean URL policy page
+    if (policyRoute) return;
+
     // Check for tutorial route first
     const tutorialMatch = parseTutorialRoute(window.location.hash);
     if (tutorialMatch) {
@@ -137,6 +148,22 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Listen for popstate (browser back/forward) for clean URL routes
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/privacy' || path === '/privacy/') {
+        setPolicyRoute('privacy');
+      } else if (path === '/terms' || path === '/terms/') {
+        setPolicyRoute('terms');
+      } else {
+        setPolicyRoute(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleNavigate = (path: string, params?: any) => {
     if (path === 'attendance-quick-office') {
       setCurrentPath('attendance');
@@ -157,7 +184,15 @@ const AppContent: React.FC = () => {
     return <Setup onComplete={() => setConfigured(true)} />;
   }
 
-  // Priority 0a: Public Tutorials (accessible regardless of auth)
+  // Priority 0a: Public Policy Pages (accessible regardless of auth, clean URLs)
+  if (policyRoute === 'privacy') {
+    return <PrivacyPolicyPage onBack={() => { window.history.pushState(null, '', '/'); setPolicyRoute(null); }} />;
+  }
+  if (policyRoute === 'terms') {
+    return <TermsOfServicePage onBack={() => { window.history.pushState(null, '', '/'); setPolicyRoute(null); }} />;
+  }
+
+  // Priority 0b: Public Tutorials (accessible regardless of auth)
   if (tutorialRoute) {
     if (tutorialRoute.type === 'single' && tutorialRoute.slug) {
       return <TutorialPage slug={tutorialRoute.slug} onBack={() => { window.location.hash = '/how-to-use'; }} />;
