@@ -30,6 +30,7 @@ import TutorialsPage from './pages/TutorialsPage';
 import TutorialPage from './pages/TutorialPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import NotFoundPage from './pages/NotFoundPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isConfigured, setConfigured, login, logout } = useAuth();
@@ -48,6 +49,11 @@ const AppContent: React.FC = () => {
     if (path === '/privacy' || path === '/privacy/') return 'privacy';
     if (path === '/terms' || path === '/terms/') return 'terms';
     return null;
+  });
+  const [is404, setIs404] = useState<boolean>(() => {
+    const path = window.location.pathname;
+    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/'];
+    return !knownPaths.includes(path);
   });
 
   // Parse blog route from hash
@@ -152,12 +158,19 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
+      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/'];
       if (path === '/privacy' || path === '/privacy/') {
         setPolicyRoute('privacy');
+        setIs404(false);
       } else if (path === '/terms' || path === '/terms/') {
         setPolicyRoute('terms');
+        setIs404(false);
+      } else if (!knownPaths.includes(path)) {
+        setPolicyRoute(null);
+        setIs404(true);
       } else {
         setPolicyRoute(null);
+        setIs404(false);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -182,6 +195,11 @@ const AppContent: React.FC = () => {
 
   if (!isConfigured) {
     return <Setup onComplete={() => setConfigured(true)} />;
+  }
+
+  // 404: Unknown clean URL path
+  if (is404) {
+    return <NotFoundPage onGoHome={() => { window.history.pushState(null, '', '/'); setIs404(false); }} />;
   }
 
   // Priority 0a: Public Policy Pages (accessible regardless of auth, clean URLs)
