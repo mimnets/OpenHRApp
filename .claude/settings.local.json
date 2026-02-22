@@ -20,7 +20,8 @@
       "Bash(for comp in \"LeaveGuidelines\" \"OrgPlacement\" \"OrgTerms\")",
       "Bash(do echo \"=== $comp ===\" grep -r \"$comp\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(node scripts/convert-to-webp.mjs:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(find:*)"
     ]
   }
 }
