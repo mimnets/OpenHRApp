@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Database, Menu, X, LayoutDashboard, Clock, CalendarDays, UserCircle } from 'lucide-react';
+import { Database, Menu, X, LayoutDashboard, Clock, CalendarDays, UserCircle, Sun, Moon } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { SubscriptionBanner } from '../components/subscription';
 import { AdBanner } from '../components/ads';
 
@@ -14,6 +15,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNavigate }) => {
   const { user, logout } = useAuth();
+  const { darkMode, setDarkModePreference } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNavigate = (path: string) => {
@@ -72,7 +74,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
            </div>
 
            <div className="flex items-center gap-3">
-              <div 
+              <button
+                onClick={() => setDarkModePreference(darkMode ? 'light' : 'dark')}
+                className="p-2.5 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 transition-all"
+                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <div
                 className="cursor-pointer"
                 onClick={() => handleNavigate('profile')}
               >

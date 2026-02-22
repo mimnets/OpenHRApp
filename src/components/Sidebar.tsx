@@ -12,7 +12,7 @@ import {
   ChevronRight,
   List,
   History,
-  Shield
+  Shield,
 } from 'lucide-react';
 import { AdBanner } from './ads';
 

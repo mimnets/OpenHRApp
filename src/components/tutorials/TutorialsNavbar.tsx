@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { Menu, X, Home, BookOpen, FileText } from 'lucide-react';
+import { Menu, X, Home, BookOpen, FileText, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 interface TutorialsNavbarProps {
   onBack: () => void;
 }
 
 const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
+  const { darkMode, setDarkModePreference } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const toggleDarkMode = () => {
+    setDarkModePreference(darkMode ? 'light' : 'dark');
+  };
 
   const goToTutorials = () => {
     window.location.hash = '/how-to-use';
@@ -67,6 +73,13 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
               <button
+                onClick={toggleDarkMode}
+                className="p-2.5 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 transition-all"
+                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <button
                 onClick={goHome}
                 className="px-5 py-2.5 text-sm font-bold text-slate-700 hover:text-primary transition-colors"
               >
@@ -80,13 +93,22 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
               </button>
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 text-slate-600 hover:text-primary transition-colors"
-            >
-              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {/* Mobile Actions */}
+            <div className="md:hidden flex items-center gap-1">
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 text-slate-500 hover:text-primary transition-colors"
+                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="p-2 text-slate-600 hover:text-primary transition-colors"
+              >
+                {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
 
