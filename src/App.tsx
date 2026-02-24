@@ -52,7 +52,18 @@ const AppContent: React.FC = () => {
   });
   const [is404, setIs404] = useState<boolean>(() => {
     const path = window.location.pathname;
+    const hash = window.location.hash;
+    const search = window.location.search;
     const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/'];
+
+    // Don't show 404 if URL contains a verification token
+    if (new URLSearchParams(search).has('token')) return false;
+    if (hash.includes('token=')) return false;
+    if (hash.includes('/auth/confirm-verification/')) return false;
+
+    // Don't show 404 for hash-based routes (blog, tutorials, etc.)
+    if (hash && hash !== '#' && hash !== '#/') return false;
+
     return !knownPaths.includes(path);
   });
 
@@ -158,14 +169,21 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
+      const hash = window.location.hash;
+      const search = window.location.search;
       const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/'];
+
+      // Never show 404 for verification tokens or hash-based routes
+      const hasToken = new URLSearchParams(search).has('token') || hash.includes('token=') || hash.includes('/auth/confirm-verification/');
+      const hasHashRoute = hash && hash !== '#' && hash !== '#/';
+
       if (path === '/privacy' || path === '/privacy/') {
         setPolicyRoute('privacy');
         setIs404(false);
       } else if (path === '/terms' || path === '/terms/') {
         setPolicyRoute('terms');
         setIs404(false);
-      } else if (!knownPaths.includes(path)) {
+      } else if (!knownPaths.includes(path) && !hasToken && !hasHashRoute) {
         setPolicyRoute(null);
         setIs404(true);
       } else {
@@ -197,11 +215,6 @@ const AppContent: React.FC = () => {
     return <Setup onComplete={() => setConfigured(true)} />;
   }
 
-  // 404: Unknown clean URL path
-  if (is404) {
-    return <NotFoundPage onGoHome={() => { window.history.pushState(null, '', '/'); setIs404(false); }} />;
-  }
-
   // Priority 0a: Public Policy Pages (accessible regardless of auth, clean URLs)
   if (policyRoute === 'privacy') {
     return <PrivacyPolicyPage onBack={() => { window.history.pushState(null, '', '/'); setPolicyRoute(null); }} />;
@@ -226,9 +239,14 @@ const AppContent: React.FC = () => {
     return <BlogPage onBack={() => { window.history.pushState(null, '', window.location.pathname); setBlogRoute(null); }} />;
   }
 
-  // Priority 1: Verification Flow
+  // Priority 1: Verification Flow (must come BEFORE 404 check)
   if (verificationToken) {
     return <VerifyAccount token={verificationToken} onFinished={() => { setVerificationToken(null); setShowLanding(false); setShowRegister(false); }} />;
+  }
+
+  // 404: Unknown clean URL path (after all valid routes are checked)
+  if (is404) {
+    return <NotFoundPage onGoHome={() => { window.history.pushState(null, '', '/'); setIs404(false); }} />;
   }
 
   if (isLoading) {
