@@ -7,21 +7,8 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(registration => {
-        console.log('OpenHR PWA ServiceWorker registered. Scope:', registration.scope);
-      })
-      .catch(error => {
-        console.warn('OpenHR PWA ServiceWorker registration failed:', error);
-      });
-  });
-}
-
-// NOTE: beforeinstallprompt and appinstalled listeners are in index.html (inline script)
-// to avoid race conditions with ESM module loading on slower devices.
+// NOTE: Service worker registration, beforeinstallprompt, and appinstalled listeners
+// are all in index.html (inline script) to avoid race conditions with ESM module loading.
 
 try {
   const root = ReactDOM.createRoot(rootElement);

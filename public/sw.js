@@ -1,6 +1,6 @@
 
-const CACHE_NAME = 'openhr-v2.9.0';
-const STATIC_CACHE = 'openhr-static-assets-v2.9';
+const CACHE_NAME = 'openhr-v3.0.0';
+const STATIC_CACHE = 'openhr-static-assets-v3.0';
 
 const ASSETS_TO_PRECACHE = [
   './',
