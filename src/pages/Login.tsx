@@ -45,21 +45,31 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
   // Install Help State
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
   const [canPrompt, setCanPrompt] = useState(false);
   
   const isConfigured = isPocketBaseConfigured();
 
   useEffect(() => {
-    // 1. Check iOS
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    // 1. Detect platform
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    const android = /Android/i.test(ua);
     setIsIOS(ios);
+    setIsAndroid(android);
 
-    // 2. Check Native Prompt Status (Immediate)
+    // 2. Check if already installed as PWA (standalone mode)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true;
+    setIsInstalled(isStandalone);
+
+    // 3. Check Native Prompt Status (Immediate)
     if ((window as any).deferredPWAPrompt) {
       setCanPrompt(true);
     }
 
-    // 3. Listen for Native Prompt Event (Async)
+    // 4. Listen for Native Prompt Event (Async)
     const handlePwaReady = () => setCanPrompt(true);
     window.addEventListener('pwa-install-available', handlePwaReady);
 
@@ -67,21 +77,22 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
   }, []);
 
   const handleInstallClick = async () => {
-    // 1. Try Native Prompt First (Android/Desktop)
+    // 1. Try Native Prompt First (Android/Desktop Chrome)
     const promptEvent = (window as any).deferredPWAPrompt;
-    
+
     if (promptEvent) {
       promptEvent.prompt();
       const { outcome } = await promptEvent.userChoice;
       console.log(`User response to install prompt: ${outcome}`);
-      
-      // We no longer need the prompt if accepted
+
       if (outcome === 'accepted') {
         (window as any).deferredPWAPrompt = null;
         setCanPrompt(false);
       }
     } else {
-      // 2. Fallback to Instructions (iOS or Prompt Blocked)
+      // 2. Fallback: Show instructions
+      // On iOS: show Safari share instructions
+      // On Android (non-Chrome browsers like Honor): show browser menu instructions
       setShowInstallHelp(true);
     }
   };
@@ -245,13 +256,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
                 {/* Utils Row: Install & Reset */}
                 <div className="flex justify-center items-center gap-4 pt-4 border-t border-slate-50">
+                   {!isInstalled && (
                    <button
                      type="button"
                      onClick={handleInstallClick}
                      className="flex items-center gap-2 px-4 py-2 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors"
                    >
-                     <Download size={12} /> {canPrompt ? 'Install App' : 'App Guide'}
+                     <Download size={12} /> {canPrompt ? 'Install App' : isIOS ? 'App Guide' : 'Install App'}
                    </button>
+                   )}
 
                    <div className="w-px h-3 bg-slate-200"></div>
 
@@ -310,15 +323,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                 </div>
               ) : (
                 <div className="space-y-5">
-                   <p className="text-xs font-medium text-slate-500 leading-relaxed">If the automatic prompt didn't appear, you can install manually:</p>
+                   <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                     {isAndroid
+                       ? 'For the best experience, open this page in Google Chrome and tap "Install App". If using another browser, follow these steps:'
+                       : 'If the automatic prompt didn\'t appear, you can install manually:'}
+                   </p>
                    <div className="space-y-3">
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
                          <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-600"><MoreVertical size={18} /></div>
-                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Browser Menu</span> (3 dots)</div>
+                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Browser Menu</span> (⋮ three dots)</div>
                       </div>
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
                          <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary"><Download size={18} /></div>
-                         <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span> or <span className="text-slate-900">Add to Home Screen</span></div>
+                         <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span>, <span className="text-slate-900">Add to Home Screen</span>, or <span className="text-slate-900">Add shortcut</span></div>
                       </div>
                    </div>
                 </div>

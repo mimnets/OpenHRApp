@@ -21,7 +21,8 @@
       "Bash(do echo \"=== $comp ===\" grep -r \"$comp\" \"C:\\\\Users\\\\DEF\\\\Downloads\\\\openhr/src\" --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(node scripts/convert-to-webp.mjs:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
