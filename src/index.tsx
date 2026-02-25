@@ -20,25 +20,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Listen for the "Install PWA" event
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent the default mini-infobar from appearing on some mobile browsers
-  e.preventDefault();
-
-  // Custom property to make it accessible to components
-  (window as any).deferredPWAPrompt = e;
-  
-  // Notify components that the app is now installable
-  window.dispatchEvent(new CustomEvent('pwa-install-available'));
-  
-  console.log('PWA: Ready for manual installation trigger');
-});
-
-window.addEventListener('appinstalled', () => {
-  console.log('PWA: Successfully installed on device');
-  (window as any).deferredPWAPrompt = null;
-  window.dispatchEvent(new CustomEvent('pwa-installed'));
-});
+// NOTE: beforeinstallprompt and appinstalled listeners are in index.html (inline script)
+// to avoid race conditions with ESM module loading on slower devices.
 
 try {
   const root = ReactDOM.createRoot(rootElement);
