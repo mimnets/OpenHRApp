@@ -1,6 +1,6 @@
 
 {
-  "id": "openhr-mobile-app-v2.9",
+  "id": "/",
   "name": "Open HR App",
   "short_name": "OpenHRApp",
   "description": "Smart Open-Source HR Management System",
@@ -10,36 +10,43 @@
   "background_color": "#fcfdfe",
   "theme_color": "#ffffff",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "./img/icon-192.png",
+      "src": "/img/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./img/icon-192.png",
+      "src": "/img/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./img/icon-512.png",
+      "src": "/img/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "./img/screenshot-mobile.png",
+      "src": "/img/screenshot-mobile.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Mobile Dashboard"
     },
     {
-      "src": "./img/screenshot-wide.png",
+      "src": "/img/screenshot-wide.png",
       "sizes": "1920x1080",
       "type": "image/png",
       "form_factor": "wide",
