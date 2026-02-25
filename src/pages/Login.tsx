@@ -45,7 +45,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
   // Install Help State
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [canPrompt, setCanPrompt] = useState(false);
   
@@ -53,11 +53,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
   useEffect(() => {
     // 1. Detect platform
+    // iOS: only Safari-based browsers on Apple devices
+    // Mobile: Android, HarmonyOS (Honor/Huawei), or any other mobile device
     const ua = navigator.userAgent;
     const ios = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
-    const android = /Android/i.test(ua);
+    const mobile = /Android|HarmonyOS|webOS|BlackBerry|Opera Mini|IEMobile|Mobile/i.test(ua) || ios;
     setIsIOS(ios);
-    setIsAndroid(android);
+    setIsMobile(mobile);
 
     // 2. Check if already installed as PWA (standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -266,7 +268,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                      onClick={handleInstallClick}
                      className="flex items-center gap-2 px-4 py-2 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors"
                    >
-                     <Download size={12} /> {canPrompt ? 'Install App' : isIOS ? 'App Guide' : 'Install App'}
+                     <Download size={12} /> {isIOS && !canPrompt ? 'App Guide' : 'Install App'}
                    </button>
                    )}
 
@@ -313,7 +315,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                    <div className="space-y-3">
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
                          <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-500"><Share size={18} /></div>
-                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-blue-600">Share</span> button</div>
+                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-blue-600">Share</span> button in Safari</div>
                       </div>
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
                          <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-900 font-black text-[10px]">+</div>
@@ -325,21 +327,35 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                       </div>
                    </div>
                 </div>
-              ) : (
+              ) : isMobile ? (
                 <div className="space-y-5">
-                   <p className="text-xs font-medium text-slate-500 leading-relaxed">
-                     {isAndroid
-                       ? 'For the best experience, open this page in Google Chrome and tap "Install App". If using another browser, follow these steps:'
-                       : 'If the automatic prompt didn\'t appear, you can install manually:'}
-                   </p>
+                   <p className="text-xs font-medium text-slate-500 leading-relaxed">For the best experience, open this page in <span className="text-slate-900 font-bold">Google Chrome</span> browser. If you are already using Chrome or another browser, follow these steps:</p>
                    <div className="space-y-3">
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
                          <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-600"><MoreVertical size={18} /></div>
-                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Browser Menu</span> (⋮ three dots)</div>
+                         <div className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Menu</span> button (⋮ or ⋯)</div>
                       </div>
                       <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
                          <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary"><Download size={18} /></div>
-                         <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span>, <span className="text-slate-900">Add to Home Screen</span>, or <span className="text-slate-900">Add shortcut</span></div>
+                         <div className="text-xs font-bold text-slate-700">2. Look for <span className="text-slate-900">Install App</span>, <span className="text-slate-900">Add to Home Screen</span>, or <span className="text-slate-900">Add shortcut</span></div>
+                      </div>
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-emerald-500 font-black text-[10px]">✓</div>
+                         <div className="text-xs font-bold text-slate-700">3. Confirm and the app will be added to your <span className="text-slate-900">Home Screen</span></div>
+                      </div>
+                   </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                   <p className="text-xs font-medium text-slate-500 leading-relaxed">If the automatic prompt didn't appear, you can install manually:</p>
+                   <div className="space-y-3">
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-600"><MoreVertical size={18} /></div>
+                         <div className="text-xs font-bold text-slate-700">1. Click the <span className="text-slate-900">Browser Menu</span> (⋮ three dots)</div>
+                      </div>
+                      <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl">
+                         <div className="w-8 h-8 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary"><Download size={18} /></div>
+                         <div className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span> or <span className="text-slate-900">Install OpenHRApp</span></div>
                       </div>
                    </div>
                 </div>
