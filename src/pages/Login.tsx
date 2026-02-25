@@ -168,19 +168,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
             <BrandLogo />
 
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6" autoComplete="on">
               <div className="space-y-5">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
                   <div className="relative group">
                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
-                    <input 
-                      type="email" 
-                      required 
-                      className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300" 
-                      value={email} 
-                      onChange={e => setEmail(e.target.value)} 
-                      placeholder="e.g. name@company.com" 
+                    <input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      required
+                      className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="e.g. name@company.com"
                     />
                   </div>
                 </div>
@@ -189,13 +191,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Security Credentials</label>
                   <div className="relative group">
                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      className="w-full pl-14 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300" 
-                      value={password} 
-                      onChange={e => setPassword(e.target.value)} 
-                      placeholder="Your secret key" 
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      autoComplete="current-password"
+                      required
+                      className="w-full pl-14 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Your secret key"
                     />
                     <button 
                       type="button" 

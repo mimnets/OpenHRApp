@@ -14,7 +14,8 @@ const ASSETS_TO_PRECACHE = [
 const EXTERNAL_ASSETS = [
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com',
-  'https://fonts.gstatic.com'
+  'https://fonts.gstatic.com',
+  'https://esm.sh'
 ];
 
 self.addEventListener('install', (event) => {

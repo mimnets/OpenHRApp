@@ -68,6 +68,7 @@
       }
     }
   </script>
+  <link rel="preconnect" href="https://esm.sh" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -120,10 +121,29 @@
   }
 }
 </script>
+<link rel="modulepreload" href="https://esm.sh/react@19.0.0">
+<link rel="modulepreload" href="https://esm.sh/react-dom@19.0.0/client">
 <link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-[#fcfdfe] text-slate-900">
-  <div id="root"></div>
+  <div id="root">
+    <!-- Splash screen shown while JS modules load -->
+    <div id="app-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:#fcfdfe;">
+      <div style="width:80px;height:80px;background:var(--primary);border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(79,70,229,0.15);border:3px solid #fff;">
+        <img src="./img/logo.webp" alt="Loading" style="width:52px;height:52px;object-fit:contain;" onerror="this.style.display='none'">
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;">
+          <span style="color:var(--primary);">Open</span><span style="color:#f59e0b;">HR</span><span style="color:#10b981;">App</span>
+        </div>
+        <p style="color:#94a3b8;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:3px;margin-top:6px;">Loading</p>
+      </div>
+      <div style="width:120px;height:3px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
+        <div style="width:40%;height:100%;background:var(--primary);border-radius:3px;animation:loader 1.2s ease-in-out infinite;"></div>
+      </div>
+      <style>@keyframes loader{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}</style>
+    </div>
+  </div>
 <script type="module" src="/index.tsx"></script>
 </body>
 </html>
