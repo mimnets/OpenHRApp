@@ -344,6 +344,22 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                          <div className="text-xs font-bold text-slate-700">3. Confirm and the app will be added to your <span className="text-slate-900">Home Screen</span></div>
                       </div>
                    </div>
+
+                   {/* APK Download Fallback (Android only) */}
+                   {/android/i.test(navigator.userAgent) && (
+                     <div className="pt-5 mt-5 border-t border-slate-100 space-y-3">
+                       <p className="text-xs font-bold text-slate-500">Having trouble installing? Download the Android APK directly</p>
+                       <a
+                         href="https://openhrapp.com/downloads/openhr.apk"
+                         download
+                         className="w-full py-3.5 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                       >
+                         <Download size={14} /> Download APK
+                       </a>
+                       <p className="text-[10px] text-slate-400 leading-relaxed">After downloading, open the file and enable "Install from unknown sources" in your phone settings if prompted.</p>
+                       <p className="text-[10px] text-slate-400 leading-relaxed">The APK always stays up to date — no reinstall needed for app updates.</p>
+                     </div>
+                   )}
                 </div>
               ) : (
                 <div className="space-y-5">

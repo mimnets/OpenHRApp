@@ -22,7 +22,11 @@
       "Bash(node scripts/convert-to-webp.mjs:*)",
       "mcp__ide__getDiagnostics",
       "Bash(find:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx cap init:*)",
+      "Bash(npx cap:*)",
+      "Bash(./gradlew.bat clean:*)",
+      "Bash(xxd:*)"
     ]
   }
 }
