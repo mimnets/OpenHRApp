@@ -1,15 +1,14 @@
 {
   "headers": [
     {
-      "source": "/downloads/(.*)",
+      "source": "/downloads/openhrapp.apk",
       "headers": [
         { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
-        { "key": "Content-Disposition", "value": "attachment" }
+        { "key": "Content-Disposition", "value": "attachment; filename=\"openhrapp.apk\"" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/downloads/(.*)", "destination": "/downloads/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!downloads/).*)", "destination": "/index.html" }
   ]
 }
