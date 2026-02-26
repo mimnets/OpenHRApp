@@ -1,5 +1,15 @@
 {
+  "headers": [
+    {
+      "source": "/downloads/(.*)",
+      "headers": [
+        { "key": "Content-Type", "value": "application/vnd.android.package-archive" },
+        { "key": "Content-Disposition", "value": "attachment" }
+      ]
+    }
+  ],
   "rewrites": [
+    { "source": "/downloads/(.*)", "destination": "/downloads/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
