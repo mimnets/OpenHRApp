@@ -238,18 +238,8 @@
     </div>
   </div>
 <script>
-  // CRITICAL: All PWA setup must be inline (not in ESM module) to run immediately.
-  // ESM modules load asynchronously — on slower devices (Honor, budget Android),
-  // the browser fires beforeinstallprompt BEFORE modules finish loading.
-
-  // 1. Register Service Worker immediately (not waiting for module load)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(function(reg) { console.log('PWA: SW registered, scope:', reg.scope); })
-      .catch(function(err) { console.warn('PWA: SW registration failed:', err); });
-  }
-
-  // 2. Capture install prompt event
+  // Capture install prompt event (must be inline, not in ESM module,
+  // because on slower devices beforeinstallprompt fires before modules load)
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     window.deferredPWAPrompt = e;
@@ -257,7 +247,7 @@
     console.log('PWA: Install prompt captured');
   });
 
-  // 3. Track successful installation
+  // Track successful installation
   window.addEventListener('appinstalled', function() {
     console.log('PWA: Successfully installed');
     window.deferredPWAPrompt = null;
