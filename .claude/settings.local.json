@@ -26,7 +26,8 @@
       "Bash(npx cap init:*)",
       "Bash(npx cap:*)",
       "Bash(./gradlew.bat clean:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(./gradlew.bat:*)"
     ]
   }
 }
