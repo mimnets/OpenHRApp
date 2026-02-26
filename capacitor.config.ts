@@ -8,6 +8,10 @@ const config: CapacitorConfig = {
     url: 'https://openhrapp.com',
     cleartext: false,
   },
+  android: {
+    // Fix blank white screen when app is reopened after being backgrounded
+    webContentsDebuggingEnabled: false,
+  },
 };
 
 export default config;
