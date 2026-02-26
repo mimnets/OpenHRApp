@@ -238,13 +238,16 @@
     </div>
   </div>
 <script>
-  // CRITICAL: Must be inline (not module) to catch beforeinstallprompt before ESM loads
+  // Capture install prompt event (must be inline, not in ESM module,
+  // because on slower devices beforeinstallprompt fires before modules load)
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     window.deferredPWAPrompt = e;
     window.dispatchEvent(new CustomEvent('pwa-install-available'));
-    console.log('PWA: Install prompt captured (inline)');
+    console.log('PWA: Install prompt captured');
   });
+
+  // Track successful installation
   window.addEventListener('appinstalled', function() {
     console.log('PWA: Successfully installed');
     window.deferredPWAPrompt = null;
