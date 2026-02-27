@@ -37,7 +37,7 @@ export const CameraFeed: React.FC<Props> = ({
               <p className="font-semibold uppercase text-[9px] tracking-widest">{error}</p>
             </>
           ) : (
-            <Loader2 size={40} className="text-indigo-500 animate-spin mb-3" />
+            <Loader2 size={40} className="text-primary animate-spin mb-3" />
           )}
         </div>
       )}

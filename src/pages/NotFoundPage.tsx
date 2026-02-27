@@ -37,7 +37,7 @@ const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
 
         <div className="mt-12 pt-8 border-t border-slate-200">
           <div className="flex items-center justify-center gap-2">
-            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-1 border border-primary/20 shadow-sm">
+            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-1.5 border border-primary/20 shadow-sm overflow-hidden">
               <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
             </div>
             <span className="text-sm font-semibold tracking-tight">
