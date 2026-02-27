@@ -29,7 +29,9 @@
       "Bash(xxd:*)",
       "Bash(./gradlew.bat:*)",
       "Bash(npx --yes sharp-cli:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npm run cap:sync:*)",
+      "Bash(npm run cap:open:*)"
     ]
   }
 }

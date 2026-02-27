@@ -34,6 +34,7 @@ const Footer: React.FC = () => {
         { label: 'How It Works', action: () => scrollTo('how-it-works') },
         { label: 'FAQ', action: () => scrollTo('faq') },
         { label: 'Blog', action: () => { window.location.hash = '/blog'; } },
+        { label: 'Download App', action: () => { window.history.pushState(null, '', '/download'); window.dispatchEvent(new PopStateEvent('popstate')); } },
       ],
     },
     {
