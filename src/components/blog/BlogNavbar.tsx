@@ -39,10 +39,10 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
-              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center p-1.5">
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center p-1 border border-primary/20 shadow-sm">
                 <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
               </div>
-              <span className="text-lg font-black tracking-tight">
+              <span className="text-lg font-semibold tracking-tight">
                 <span className="text-primary">Open</span>
                 <span className="text-[#f59e0b]">HR</span>
                 <span className="text-[#10b981]">App</span>
@@ -88,7 +88,7 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
               </button>
               <button
                 onClick={goHome}
-                className="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-lg shadow-primary-light"
+                className="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
               >
                 Get Started Free
               </button>

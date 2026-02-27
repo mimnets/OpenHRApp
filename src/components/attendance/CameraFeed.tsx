@@ -34,7 +34,7 @@ export const CameraFeed: React.FC<Props> = ({
           {error ? (
             <>
               <CameraOff size={40} className="text-rose-500 mb-3" />
-              <p className="font-black uppercase text-[9px] tracking-widest">{error}</p>
+              <p className="font-semibold uppercase text-[9px] tracking-widest">{error}</p>
             </>
           ) : (
             <Loader2 size={40} className="text-indigo-500 animate-spin mb-3" />
@@ -44,7 +44,7 @@ export const CameraFeed: React.FC<Props> = ({
       
       {/* Static Overlays */}
       <div className="absolute inset-0 pointer-events-none flex flex-col items-center pt-6">
-         <div className="px-4 py-1.5 bg-emerald-500 rounded-full text-[8px] font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5 ring-2 ring-emerald-500/20 animate-pulse">
+         <div className="px-4 py-1.5 bg-emerald-500 rounded-full text-[8px] font-semibold text-white uppercase tracking-widest shadow-xl flex items-center gap-1.5 ring-2 ring-emerald-500/20 animate-pulse">
             <div className="w-1 h-1 rounded-full bg-white"></div>Face Ready
          </div>
          {children}
@@ -68,7 +68,7 @@ export const CameraFeed: React.FC<Props> = ({
           <div className="p-4 bg-white rounded-full shadow-2xl mb-4">
             <CheckCircle2 size={48} className="text-emerald-500 animate-bounce" />
           </div>
-          <h3 className="text-xl font-black text-white uppercase tracking-widest">Verified</h3>
+          <h3 className="text-xl font-semibold text-white uppercase tracking-widest">Verified</h3>
         </div>
       )}
     </div>

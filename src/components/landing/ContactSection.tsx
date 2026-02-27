@@ -41,8 +41,8 @@ const ContactSection: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">Contact</span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 mb-4">
+          <span className="text-xs font-bold text-primary uppercase tracking-wide">Contact</span>
+          <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 mt-3 mb-4">
             Get in Touch
           </h2>
           <p className="text-slate-500 text-lg">
@@ -55,7 +55,7 @@ const ContactSection: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">
                   Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -68,7 +68,7 @@ const ContactSection: React.FC = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">
                   Email <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -83,7 +83,7 @@ const ContactSection: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">
                 Subject
               </label>
               <input
@@ -97,7 +97,7 @@ const ContactSection: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">
                 Message <span className="text-red-400">*</span>
               </label>
               <textarea
@@ -125,7 +125,7 @@ const ContactSection: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-3.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover transition-all shadow-lg shadow-primary-light flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-8 py-3.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover transition-all shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>

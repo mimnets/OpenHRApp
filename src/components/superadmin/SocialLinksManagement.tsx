@@ -210,7 +210,7 @@ const SocialLinksManagement: React.FC<SocialLinksManagementProps> = ({ onMessage
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in">
             <div className="bg-primary p-6 flex justify-between items-center text-white">
-              <h3 className="text-sm font-black uppercase tracking-widest">
+              <h3 className="text-sm font-semibold uppercase tracking-widest">
                 {editingId ? 'Edit Social Link' : 'Add Social Link'}
               </h3>
               <button onClick={() => { setShowModal(false); resetForm(); }}><X size={24} /></button>
@@ -219,7 +219,7 @@ const SocialLinksManagement: React.FC<SocialLinksManagementProps> = ({ onMessage
             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5">
               {/* Platform */}
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase px-1">Platform *</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Platform *</label>
                 <select
                   required
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all"
@@ -234,7 +234,7 @@ const SocialLinksManagement: React.FC<SocialLinksManagementProps> = ({ onMessage
 
               {/* URL */}
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase px-1">URL *</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">URL *</label>
                 <input
                   required
                   type="url"
@@ -248,7 +248,7 @@ const SocialLinksManagement: React.FC<SocialLinksManagementProps> = ({ onMessage
               {/* Order & Active */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase px-1">Display Order</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Display Order</label>
                   <input
                     type="number"
                     min="0"
@@ -258,7 +258,7 @@ const SocialLinksManagement: React.FC<SocialLinksManagementProps> = ({ onMessage
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase px-1">Visibility</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Visibility</label>
                   <label className="flex items-center gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
                     <input
                       type="checkbox"
@@ -273,8 +273,8 @@ const SocialLinksManagement: React.FC<SocialLinksManagementProps> = ({ onMessage
 
               {/* Buttons */}
               <div className="flex gap-3 pt-4 border-t border-slate-50">
-                <button type="button" disabled={isSaving} onClick={() => { setShowModal(false); resetForm(); }} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
-                <button type="submit" disabled={isSaving} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg hover:bg-primary-hover">
+                <button type="button" disabled={isSaving} onClick={() => { setShowModal(false); resetForm(); }} className="flex-1 py-4 bg-slate-100 rounded-2xl font-semibold uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
+                <button type="submit" disabled={isSaving} className="flex-1 py-4 bg-primary text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg hover:bg-primary-hover">
                   {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <><Save size={16} /> {editingId ? 'Update' : 'Add'}</>}
                 </button>
               </div>

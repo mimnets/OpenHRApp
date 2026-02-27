@@ -39,9 +39,9 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
       {!isLoading && (
         <>
           {/* Leave Allocation Card */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
             <div className="bg-[#4a89dc] p-8 pb-12 relative overflow-hidden flex items-center justify-between">
-              <h2 className="text-2xl font-black text-white tracking-tight mt-4">Leave Allocation</h2>
+              <h2 className="text-2xl font-semibold text-white tracking-tight mt-4">Leave Allocation</h2>
               <ShieldCheck className="text-white/20 absolute -right-4 -bottom-4 w-32 h-32" />
             </div>
             
@@ -49,26 +49,26 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
               <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-lg space-y-8">
                 <div className="flex justify-around items-center divide-x divide-slate-100">
                   <div className="text-center flex-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Annual</p>
-                    <p className="text-2xl font-black text-[#2563eb]">{data.userBalance?.ANNUAL || 0}</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Annual</p>
+                    <p className="text-2xl font-semibold text-[#2563eb]">{data.userBalance?.ANNUAL || 0}</p>
                   </div>
                   <div className="text-center flex-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sick</p>
-                    <p className="text-2xl font-black text-[#2563eb]">{data.userBalance?.SICK || 0}</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Sick</p>
+                    <p className="text-2xl font-semibold text-[#2563eb]">{data.userBalance?.SICK || 0}</p>
                   </div>
                   <div className="text-center flex-1">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Casual</p>
-                    <p className="text-2xl font-black text-[#2563eb]">{data.userBalance?.CASUAL || 0}</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Casual</p>
+                    <p className="text-2xl font-semibold text-[#2563eb]">{data.userBalance?.CASUAL || 0}</p>
                   </div>
                 </div>
 
                 <p className="text-center text-sm text-slate-500 font-medium">
-                  You have <span className="font-black text-slate-900">{totalRemaining} total days</span> remaining for the current fiscal year.
+                  You have <span className="font-semibold text-slate-900">{totalRemaining} total days</span> remaining for the current fiscal year.
                 </p>
 
                 <button 
                   onClick={() => onNavigate('leave', { autoOpen: true })}
-                  className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+                  className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-semibold uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
                 >
                   <Plus size={18} /> Apply for Leave
                 </button>
@@ -87,14 +87,14 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
                 <Users size={24} />
               </div>
               <div>
-                <h4 className="font-black text-slate-900 leading-none">Team Directory</h4>
+                <h4 className="font-semibold text-slate-900 leading-none">Team Directory</h4>
                 <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
                   {data.teamInfo?.name || data.freshUser.department}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs font-black text-emerald-600">{data.activeTeamMembers} Active</p>
+              <p className="text-xs font-semibold text-emerald-600">{data.activeTeamMembers} Active</p>
               <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Out of {data.teamMembersCount}</p>
             </div>
           </div>

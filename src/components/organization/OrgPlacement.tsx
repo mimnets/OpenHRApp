@@ -15,7 +15,7 @@ export const OrgPlacement: React.FC<Props> = ({ locations, onAdd, onEdit, onDele
     <div className="space-y-6 animate-in zoom-in duration-500">
       <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-6 bg-primary text-white flex justify-between items-center">
-           <div className="flex items-center gap-3"><MapPin size={20} /><h3 className="text-sm font-black uppercase tracking-wider">Office Geofences</h3></div>
+           <div className="flex items-center gap-3"><MapPin size={20} /><h3 className="text-sm font-semibold uppercase tracking-wider">Office Geofences</h3></div>
            <button onClick={onAdd} className="p-2 bg-white/10 rounded-lg hover:bg-white/20"><Plus size={18} /></button>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -94,8 +94,8 @@ const FAQSection: React.FC = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">FAQ</span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 mb-4">
+          <span className="text-xs font-bold text-primary uppercase tracking-wide">FAQ</span>
+          <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 mt-3 mb-4">
             Frequently Asked Questions
           </h2>
           <p className="text-slate-500 text-lg">
@@ -107,7 +107,7 @@ const FAQSection: React.FC = () => {
         <div className="space-y-8">
           {faqs.map((group) => (
             <div key={group.category}>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 px-1">
                 {group.category}
               </h3>
               <div className="space-y-2">

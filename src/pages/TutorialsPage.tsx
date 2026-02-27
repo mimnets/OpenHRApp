@@ -56,7 +56,7 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack }) => {
       {/* Header */}
       <div className="bg-white border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Guides</h1>
+          <h1 className="text-4xl font-semibold text-slate-900 tracking-tight">Guides</h1>
           <p className="text-slate-500 mt-3 text-lg">Step-by-step guides to help you get the most out of OpenHR</p>
         </div>
       </div>

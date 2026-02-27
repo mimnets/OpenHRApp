@@ -253,7 +253,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
             <Shield className="text-primary" size={32} />
             Super Admin Dashboard
           </h1>
@@ -506,7 +506,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                 <Building2 size={20} className="text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">{stats.totalOrganizations}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.totalOrganizations}</p>
                 <p className="text-xs text-slate-500 font-medium">Total Orgs</p>
               </div>
             </div>
@@ -517,7 +517,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                 <Users size={20} className="text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">{stats.totalUsers}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.totalUsers}</p>
                 <p className="text-xs text-slate-500 font-medium">Total Users</p>
               </div>
             </div>
@@ -528,7 +528,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                 <CheckCircle2 size={20} className="text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">{stats.activeOrganizations}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.activeOrganizations}</p>
                 <p className="text-xs text-slate-500 font-medium">Active</p>
               </div>
             </div>
@@ -539,7 +539,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                 <Clock size={20} className="text-amber-600" />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">{stats.trialOrganizations}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.trialOrganizations}</p>
                 <p className="text-xs text-slate-500 font-medium">Trial</p>
               </div>
             </div>
@@ -550,7 +550,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                 <AlertTriangle size={20} className="text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">{stats.expiredOrganizations}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.expiredOrganizations}</p>
                 <p className="text-xs text-slate-500 font-medium">Expired</p>
               </div>
             </div>
@@ -561,7 +561,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                 <TrendingUp size={20} className="text-violet-600" />
               </div>
               <div>
-                <p className="text-2xl font-black text-slate-900">{stats.recentRegistrations}</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.recentRegistrations}</p>
                 <p className="text-xs text-slate-500 font-medium">Last 30d</p>
               </div>
             </div>

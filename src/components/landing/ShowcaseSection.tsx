@@ -26,10 +26,10 @@ const ShowcaseSection: React.FC = () => {
     <section className="py-16 md:py-24 bg-white overflow-hidden">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 mb-3">
             Trusted by organizations worldwide
           </p>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">
             Teams that rely on OpenHR
           </h2>
         </div>
@@ -94,12 +94,12 @@ const OrgCard: React.FC<{ org: ShowcaseOrganization }> = ({ org }) => {
           {org.name}
         </p>
         {org.country && (
-          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
             {org.country}
           </p>
         )}
         {org.tagline && (
-          <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{org.tagline}</p>
+          <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{org.tagline}</p>
         )}
       </div>
     </div>
@@ -121,7 +121,7 @@ const LogoDisplay: React.FC<{ org: ShowcaseOrganization }> = ({ org }) => {
 
   if (!org.logo || imgError) {
     return (
-      <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-2xl font-black text-slate-300 group-hover:border-primary/30 group-hover:text-primary/50 transition-all">
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-2xl font-semibold text-slate-300 group-hover:border-primary/30 group-hover:text-primary/50 transition-all">
         {org.name.charAt(0).toUpperCase()}
       </div>
     );

@@ -243,7 +243,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ onMessage }) => {
               <HardDrive size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900">{stats?.totalAttendanceRecords || 0}</p>
+              <p className="text-2xl font-semibold text-slate-900">{stats?.totalAttendanceRecords || 0}</p>
               <p className="text-xs text-slate-500 font-medium">Total Records</p>
             </div>
           </div>
@@ -255,7 +255,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ onMessage }) => {
               <Camera size={20} className="text-violet-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900">{stats?.recordsWithSelfies || 0}</p>
+              <p className="text-2xl font-semibold text-slate-900">{stats?.recordsWithSelfies || 0}</p>
               <p className="text-xs text-slate-500 font-medium">With Selfies</p>
             </div>
           </div>
@@ -267,7 +267,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ onMessage }) => {
               <HardDrive size={20} className="text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900">~{stats?.estimatedStorageMB || 0} MB</p>
+              <p className="text-2xl font-semibold text-slate-900">~{stats?.estimatedStorageMB || 0} MB</p>
               <p className="text-xs text-slate-500 font-medium">Est. Storage</p>
             </div>
           </div>
@@ -279,7 +279,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ onMessage }) => {
               <Clock size={20} className="text-emerald-600" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900">{stats?.retentionDays || 30} days</p>
+              <p className="text-2xl font-semibold text-slate-900">{stats?.retentionDays || 30} days</p>
               <p className="text-xs text-slate-500 font-medium">Retention</p>
             </div>
           </div>

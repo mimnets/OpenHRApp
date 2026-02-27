@@ -28,7 +28,7 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
             <FileText className="text-primary" size={28} />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Terms of Service</h1>
+          <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900 mb-3">Terms of Service</h1>
           <p className="text-slate-500 text-sm">Last updated: February 2026</p>
         </div>
       </div>

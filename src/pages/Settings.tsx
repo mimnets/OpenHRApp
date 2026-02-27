@@ -17,9 +17,9 @@ interface SettingsProps {
 
 const ProfileSkeleton = () => (
   <div className="max-w-3xl animate-pulse">
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-8">
+    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-10 space-y-8">
       <div className="flex items-center gap-4 border-b border-slate-50 pb-8">
-        <div className="w-20 h-20 bg-slate-100 rounded-[2rem]"></div>
+        <div className="w-20 h-20 bg-slate-100 rounded-xl"></div>
         <div className="space-y-2 flex-1">
           <div className="h-6 bg-slate-100 rounded-lg w-1/3"></div>
           <div className="h-4 bg-slate-50 rounded-lg w-1/4"></div>
@@ -34,7 +34,7 @@ const ProfileSkeleton = () => (
         ))}
       </div>
       <div className="flex justify-end pt-4">
-        <div className="h-14 bg-slate-100 rounded-[2rem] w-40"></div>
+        <div className="h-14 bg-slate-100 rounded-xl w-40"></div>
       </div>
     </div>
   </div>
@@ -178,7 +178,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         <div className="flex items-center gap-4">
           {onBack && <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>}
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">System & Profile</h1>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System & Profile</h1>
             <p className="text-slate-500 font-medium">Manage preferences, appearance, and personal data</p>
           </div>
         </div>
@@ -191,55 +191,55 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         <ProfileSkeleton />
       ) : (
         <div className="max-w-3xl">
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-8 animate-in slide-in-from-left-4">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-10 space-y-8 animate-in slide-in-from-left-4">
             <div className="flex items-center gap-4 border-b border-slate-50 pb-8">
-              <div className="w-20 h-20 bg-primary-light rounded-[2rem] flex items-center justify-center text-primary font-black text-2xl uppercase relative overflow-hidden">
+              <div className="w-20 h-20 bg-primary-light rounded-xl flex items-center justify-center text-primary font-semibold text-2xl uppercase relative overflow-hidden">
                  {profile.avatar ? <img src={profile.avatar} className="w-full h-full object-cover" /> : profile.name?.[0]}
               </div>
               <div>
-                 <h3 className="text-xl font-black text-slate-900">{profile.name}</h3>
+                 <h3 className="text-xl font-semibold text-slate-900">{profile.name}</h3>
                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{profile.designation} • {profile.department}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Official Employee ID</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Official Employee ID</label>
                 <div className="relative">
                   <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={profile.employeeId || 'Not Assigned'} />
+                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-semibold text-sm text-slate-500 cursor-not-allowed" value={profile.employeeId || 'Not Assigned'} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Reporting To</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Reporting To</label>
                 <div className="relative">
                   <UserCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={profile.managerName || 'No Direct Manager'} />
+                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-semibold text-sm text-slate-500 cursor-not-allowed" value={profile.managerName || 'No Direct Manager'} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Team</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Team</label>
                 <div className="relative">
                   <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={myTeamName} />
+                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-semibold text-sm text-slate-500 cursor-not-allowed" value={myTeamName} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Assigned Shift</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Assigned Shift</label>
                 <div className="relative">
                   <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-black text-sm text-slate-500 cursor-not-allowed" value={myShift ? `${myShift.name} (${myShift.startTime} - ${myShift.endTime})` : 'No Shift Assigned'} />
+                  <input type="text" readOnly className="w-full pl-12 pr-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl font-semibold text-sm text-slate-500 cursor-not-allowed" value={myShift ? `${myShift.name} (${myShift.startTime} - ${myShift.endTime})` : 'No Shift Assigned'} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Full Name</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                   <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={profile.name || ''} onChange={e => setProfile({...profile, name: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Work Email</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Work Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                   <input type="email" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
@@ -249,12 +249,12 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
 
             {/* Password Section */}
             <div className="pt-6 border-t border-slate-50">
-               <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2 mb-4">
+               <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-tight flex items-center gap-2 mb-4">
                   <Lock size={16} className="text-primary"/> Security Settings
                </h4>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">New Password</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">New Password</label>
                     <div className="relative">
                       <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                       <input 
@@ -270,7 +270,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Confirm New Password</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Confirm New Password</label>
                     <div className="relative">
                       <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                       <input 
@@ -286,7 +286,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button onClick={handleSave} disabled={isSaving} className="px-12 py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all flex items-center gap-3 hover:bg-primary">
+              <button onClick={handleSave} disabled={isSaving} className="px-12 py-5 bg-slate-900 text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl transition-all flex items-center gap-3 hover:bg-primary">
                 {isSaving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />} 
                 Update My Info
               </button>
@@ -298,7 +298,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
       {/* Admin Verification Panel */}
       {isAdmin && (
         <div className="max-w-3xl animate-in slide-in-from-bottom-8">
-          <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-6 flex items-center gap-2">
+          <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-6 flex items-center gap-2">
             <UserCheck size={24} className="text-emerald-500" /> Admin Tools
           </h3>
           <AdminVerificationPanel />
@@ -307,15 +307,15 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
 
       {/* Contact Support */}
       <div className="max-w-3xl animate-in slide-in-from-bottom-8">
-        <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-6 flex items-center gap-2">
+        <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-6 flex items-center gap-2">
           <MessageSquare size={24} className="text-primary" /> Contact Support
         </h3>
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-10 space-y-6">
           <p className="text-sm text-slate-500">Have a question, feedback, or need help? Send us a message and we'll get back to you.</p>
           <form onSubmit={handleContactSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Name</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Name</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                   <input
@@ -327,7 +327,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Email</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                   <input
@@ -341,7 +341,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Subject</label>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Subject</label>
               <input
                 type="text"
                 value={contactForm.subject}
@@ -352,7 +352,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">
                 Message <span className="text-red-400">*</span>
               </label>
               <textarea
@@ -379,7 +379,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
               <button
                 type="submit"
                 disabled={isContactSubmitting}
-                className="px-10 py-4 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl transition-all flex items-center gap-3 hover:bg-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-10 py-4 bg-slate-900 text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl transition-all flex items-center gap-3 hover:bg-primary disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isContactSubmitting ? (
                   <><Loader2 size={18} className="animate-spin" /> Sending...</>

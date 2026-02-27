@@ -90,7 +90,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
       {/* Header */}
       <div className="bg-white border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Blog</h1>
+          <h1 className="text-4xl font-semibold text-slate-900 tracking-tight">Blog</h1>
           <p className="text-slate-500 mt-3 text-lg">Latest news, updates, and insights</p>
         </div>
       </div>
@@ -173,7 +173,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
                           />
                         ) : (
                           <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                            <span className="text-4xl font-black text-primary/20">{post.title.charAt(0)}</span>
+                            <span className="text-4xl font-semibold text-primary/20">{post.title.charAt(0)}</span>
                           </div>
                         )}
                         <div className="p-6">

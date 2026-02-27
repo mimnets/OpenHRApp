@@ -18,10 +18,10 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
         {appConfig?.companyName && (
           <div className="flex items-center gap-2 mb-1">
             <Building2 size={12} className="text-primary" />
-            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{appConfig.companyName}</p>
+            <p className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em]">{appConfig.companyName}</p>
           </div>
         )}
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{user.name}</h1>
+        <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">{user.name}</h1>
         <p className="text-xs font-bold text-slate-400 mt-0.5">
           {user.designation} {user.department && user.department !== 'Unassigned' && `• ${user.department}`}
         </p>
@@ -40,8 +40,8 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
               <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-75"></div>
             </div>
             <div className="text-left">
-              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">Session Active</p>
-              <p className="text-xs font-black text-slate-900 uppercase">Finish Session</p>
+              <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-widest leading-none mb-1">Session Active</p>
+              <p className="text-xs font-semibold text-slate-900 uppercase">Finish Session</p>
             </div>
             <ArrowRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors ml-2" />
           </button>
@@ -52,14 +52,14 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
               className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-4 bg-primary text-white rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-primary-light hover:bg-primary-hover active:scale-95 transition-all"
             >
               <Building size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Office</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest">Office</span>
             </button>
             <button 
               onClick={() => onNavigate('attendance-quick-factory')}
               className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-4 bg-emerald-600 text-white rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 transition-all"
             >
               <Building2 size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Factory</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest">Factory</span>
             </button>
           </div>
         )}

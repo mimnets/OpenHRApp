@@ -369,7 +369,7 @@ const TutorialManagement: React.FC<TutorialManagementProps> = ({ onMessage }) =>
           {coverPreview && (
             <img src={coverPreview} alt="Cover" className="w-full h-64 object-cover rounded-2xl mb-6" />
           )}
-          <h1 className="text-3xl font-black text-slate-900 mb-2">{formData.title || 'Untitled'}</h1>
+          <h1 className="text-3xl font-semibold text-slate-900 mb-2">{formData.title || 'Untitled'}</h1>
           <p className="text-slate-500 mb-6">{formData.authorName && `By ${formData.authorName}`}</p>
           {formData.excerpt && (
             <p className="text-lg text-slate-600 italic mb-6 border-l-4 border-primary pl-4">{formData.excerpt}</p>

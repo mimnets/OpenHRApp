@@ -22,7 +22,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
           </div>
 
           {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-slate-900 tracking-tight leading-[1.1] mb-6">
             Modern HR Management{' '}
             <span className="text-primary">Made Simple</span>
           </h1>
@@ -36,7 +36,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <button
               onClick={onRegisterClick}
-              className="w-full sm:w-auto px-8 py-4 bg-primary text-white font-bold text-sm rounded-2xl hover:bg-primary-hover transition-all shadow-xl shadow-primary-light flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-4 bg-primary text-white font-bold text-sm rounded-2xl hover:bg-primary-hover transition-all shadow-sm flex items-center justify-center gap-2"
             >
               Get Started Free <ArrowRight size={18} />
             </button>
@@ -67,7 +67,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
           {/* Video Intro */}
           <div className="relative max-w-4xl mx-auto mb-16">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6">See OpenHR in Action</h2>
-            <div className="rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10 border border-slate-200/60">
+            <div className="rounded-2xl overflow-hidden shadow-xl shadow-slate-900/10 border border-slate-200/60">
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <iframe
                   className="absolute top-0 left-0 w-full h-full"
@@ -83,7 +83,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
           {/* Screenshot Preview */}
           <div className="relative max-w-5xl mx-auto">
             <div className="absolute inset-0 bg-gradient-to-t from-[#f8fafc] via-transparent to-transparent z-10 pointer-events-none"></div>
-            <div className="rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10 border border-slate-200/60">
+            <div className="rounded-2xl overflow-hidden shadow-xl shadow-slate-900/10 border border-slate-200/60">
               <img
                 src="./img/screenshot-wide.webp"
                 alt="OpenHRApp Dashboard"

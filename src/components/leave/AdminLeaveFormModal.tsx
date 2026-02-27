@@ -105,11 +105,11 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-      <div className="bg-white rounded-[3rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in max-h-[90vh] flex flex-col">
         <div className={`p-8 ${headerColor} text-white flex justify-between items-center flex-shrink-0`}>
           <div className="flex items-center gap-3">
             <HeaderIcon size={20} />
-            <h3 className="text-lg font-black uppercase tracking-tight">{headerTitle}</h3>
+            <h3 className="text-lg font-semibold uppercase tracking-tight">{headerTitle}</h3>
           </div>
           <button onClick={onClose} className="hover:bg-white/10 p-2 rounded-lg transition-colors"><X size={24} /></button>
         </div>
@@ -124,10 +124,10 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           {/* Employee Selector (create only) */}
           {mode === 'create' && (
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Employee</label>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Employee</label>
               <select
                 required
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
                 value={employeeId}
                 onChange={e => setEmployeeId(e.target.value)}
               >
@@ -142,16 +142,16 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           {/* Edit mode: show employee name as read-only */}
           {mode === 'edit' && leave && (
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</p>
-              <p className="text-sm font-black text-slate-800 mt-1">{leave.employeeName}</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Employee</p>
+              <p className="text-sm font-semibold text-slate-800 mt-1">{leave.employeeName}</p>
             </div>
           )}
 
           {/* Leave Type */}
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Leave Type</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Leave Type</label>
             <select
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
               value={type}
               onChange={e => setType(e.target.value)}
             >
@@ -164,32 +164,32 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Start Date</label>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Start Date</label>
               <input type="date" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={startDate} onChange={e => setStartDate(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">End Date</label>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">End Date</label>
               <input type="date" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
           </div>
 
           {/* Total Days (auto-calculated, editable override) */}
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Total Days</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Total Days</label>
             <input type="number" min={0} step={0.5} required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={totalDays} onChange={e => setTotalDays(Number(e.target.value))} />
           </div>
 
           {/* Reason */}
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Reason</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Reason</label>
             <textarea placeholder="Leave reason..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[80px] outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={reason} onChange={e => setReason(e.target.value)} />
           </div>
 
           {/* Status */}
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Status</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Status</label>
             <select
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
               value={status}
               onChange={e => setStatus(e.target.value)}
             >
@@ -201,7 +201,7 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
 
           {/* Remarks */}
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Admin Remarks</label>
+            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Admin Remarks</label>
             <textarea placeholder="Optional admin notes..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[60px] outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={remarks} onChange={e => setRemarks(e.target.value)} />
           </div>
 
@@ -209,7 +209,7 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           <button
             type="submit"
             disabled={isProcessing}
-            className={`w-full py-5 ${headerColor} text-white rounded-[2rem] font-black uppercase tracking-widest text-[10px] shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90 transition-all`}
+            className={`w-full py-5 ${headerColor} text-white rounded-xl font-semibold uppercase tracking-widest text-[10px] shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-90 transition-all`}
           >
             {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />} {submitLabel}
           </button>

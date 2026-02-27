@@ -15,7 +15,7 @@ const CTASection: React.FC<CTASectionProps> = ({ onRegisterClick }) => {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
           <div className="relative z-10">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
+            <h2 className="text-3xl sm:text-4xl font-semibold text-white mb-4">
               Ready to Transform Your HR?
             </h2>
             <p className="text-lg text-white/80 max-w-xl mx-auto mb-8">

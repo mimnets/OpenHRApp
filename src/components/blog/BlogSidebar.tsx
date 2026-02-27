@@ -106,7 +106,7 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({
       {/* Recent Posts */}
       {recentPosts.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
             <BookmarkIcon /> Recent Posts
           </h3>
           <ul className="space-y-3">
@@ -136,7 +136,7 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({
       {/* Blog Archive */}
       {archives.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
             <Archive size={14} className="text-primary" /> Archive
           </h3>
           <ul className="space-y-1">
@@ -181,7 +181,7 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({
 
       {/* Categories */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
           <Tag size={14} className="text-primary" /> Categories
         </h3>
         <div className="flex flex-wrap gap-2">

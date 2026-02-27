@@ -38,8 +38,8 @@ const FeaturesSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">Features</span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 mb-4">
+          <span className="text-xs font-bold text-primary uppercase tracking-wide">Features</span>
+          <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 mt-3 mb-4">
             Everything You Need
           </h2>
           <p className="text-slate-500 text-lg">

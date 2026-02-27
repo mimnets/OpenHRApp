@@ -26,11 +26,11 @@ export const OrgShifts: React.FC<Props> = ({
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       {/* Shifts Section */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-6 bg-primary text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Clock size={20} />
-            <h3 className="text-sm font-black uppercase tracking-wider">Shift Definitions</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider">Shift Definitions</h3>
           </div>
           <button onClick={onAddShift} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all">
             <Plus size={18} />
@@ -41,13 +41,13 @@ export const OrgShifts: React.FC<Props> = ({
             <div key={shift.id} className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] space-y-4 group hover:bg-white hover:shadow-md transition-all relative">
               {shift.isDefault && (
                 <div className="absolute top-4 right-4">
-                  <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[8px] font-black uppercase tracking-widest">
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[8px] font-semibold uppercase tracking-widest">
                     <Star size={10} /> Default
                   </span>
                 </div>
               )}
               <div>
-                <h4 className="font-black text-slate-900 text-sm">{shift.name}</h4>
+                <h4 className="font-semibold text-slate-900 text-sm">{shift.name}</h4>
                 <p className="text-[10px] font-bold text-slate-400 mt-1">
                   {shift.startTime} — {shift.endTime}
                 </p>
@@ -55,12 +55,12 @@ export const OrgShifts: React.FC<Props> = ({
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-white p-2.5 rounded-xl border border-slate-100/50">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Late Grace</p>
-                  <p className="text-xs font-black text-slate-700">{shift.lateGracePeriod} min</p>
+                  <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Late Grace</p>
+                  <p className="text-xs font-semibold text-slate-700">{shift.lateGracePeriod} min</p>
                 </div>
                 <div className="bg-white p-2.5 rounded-xl border border-slate-100/50">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Early Out</p>
-                  <p className="text-xs font-black text-slate-700">{shift.earlyOutGracePeriod} min</p>
+                  <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Early Out</p>
+                  <p className="text-xs font-semibold text-slate-700">{shift.earlyOutGracePeriod} min</p>
                 </div>
               </div>
 
@@ -69,7 +69,7 @@ export const OrgShifts: React.FC<Props> = ({
                   const fullDay = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' }[day]!;
                   const isActive = shift.workingDays.includes(fullDay);
                   return (
-                    <span key={day} className={`text-[8px] font-black px-2 py-1 rounded-lg ${isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
+                    <span key={day} className={`text-[8px] font-semibold px-2 py-1 rounded-lg ${isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-300'}`}>
                       {day}
                     </span>
                   );
@@ -97,11 +97,11 @@ export const OrgShifts: React.FC<Props> = ({
       </div>
 
       {/* Overrides Section */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-6 bg-slate-800 text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
             <CalendarClock size={20} />
-            <h3 className="text-sm font-black uppercase tracking-wider">Temporary Shift Overrides</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider">Temporary Shift Overrides</h3>
           </div>
           <button onClick={onAddOverride} className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-all">
             <Plus size={18} />
@@ -111,7 +111,7 @@ export const OrgShifts: React.FC<Props> = ({
           {overrides.map((ov, i) => (
             <div key={ov.id} className="p-5 bg-slate-50 border border-slate-100 rounded-[2rem] flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-white transition-all">
               <div className="space-y-1">
-                <h4 className="font-black text-slate-900 text-sm">{getEmployeeName(ov.employeeId)}</h4>
+                <h4 className="font-semibold text-slate-900 text-sm">{getEmployeeName(ov.employeeId)}</h4>
                 <p className="text-[10px] font-bold text-primary">{getShiftName(ov.shiftId)}</p>
                 <p className="text-[10px] font-bold text-slate-400">
                   {ov.startDate} to {ov.endDate}

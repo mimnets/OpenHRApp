@@ -13,8 +13,8 @@ const TestimonialsSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">Testimonials</span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 mb-4">
+          <span className="text-xs font-bold text-primary uppercase tracking-wide">Testimonials</span>
+          <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 mt-3 mb-4">
             Trusted by Growing Teams
           </h2>
         </div>
@@ -43,7 +43,7 @@ const TestimonialsSection: React.FC = () => {
           {stats.map((stat) => (
             <div key={stat.label} className="text-center p-6 bg-slate-50 rounded-2xl border border-slate-100">
               <stat.icon size={20} className="text-primary mx-auto mb-3" />
-              <p className="text-2xl font-black text-slate-900">{stat.value}</p>
+              <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
               <p className="text-xs font-semibold text-slate-500 mt-1">{stat.label}</p>
             </div>
           ))}
