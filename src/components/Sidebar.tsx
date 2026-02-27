@@ -60,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
           />
           <div className="absolute bottom-1 right-1 w-5 h-5 bg-primary border-4 border-white rounded-full"></div>
         </div>
-        <h2 className="text-xl font-black text-slate-900 leading-tight">{user?.name || 'User Name'}</h2>
+        <h2 className="text-xl font-semibold text-slate-900 leading-tight">{user?.name || 'User Name'}</h2>
         <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-tight">{user?.designation || 'Specialist'}</p>
         <div className="w-full h-px bg-slate-50 mt-8"></div>
       </div>
@@ -104,13 +104,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
               <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-600 group-hover:text-rose-600 transition-colors">
                 <LogOut size={20} />
               </div>
-              <span className="font-black text-sm text-slate-900 uppercase tracking-tight">Sign Out</span>
+              <span className="font-semibold text-sm text-slate-900 uppercase tracking-tight">Sign Out</span>
             </div>
             <ChevronRight size={18} className="text-slate-300 group-hover:text-rose-300 transition-colors" />
           </button>
 
           <div className="text-center">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.9.0</p>
+            <p className="text-[10px] font-semibold text-slate-300 uppercase tracking-[0.3em]">OpenHRApp v2.9.0</p>
           </div>
         </div>
       </nav>

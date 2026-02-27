@@ -1,17 +1,45 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AppTheme } from '../types';
 import { apiClient } from '../services/api.client';
 
+const THEME_CACHE_KEY = 'openhr-global-theme';
+
 export const THEMES: AppTheme[] = [
-  { id: 'indigo', name: 'Executive Blue', colors: { primary: '#4f46e5', hover: '#4338ca', light: '#e0e7ff' } },
-  { id: 'emerald', name: 'Sustainable Green', colors: { primary: '#059669', hover: '#047857', light: '#d1fae5' } },
-  { id: 'violet', name: 'Royal Purple', colors: { primary: '#7c3aed', hover: '#6d28d9', light: '#ede9fe' } },
-  { id: 'rose', name: 'Passion Red', colors: { primary: '#e11d48', hover: '#be123c', light: '#ffe4e6' } },
-  { id: 'amber', name: 'Sunset Orange', colors: { primary: '#d97706', hover: '#b45309', light: '#fef3c7' } },
-  { id: 'slate', name: 'Midnight Dark', colors: { primary: '#334155', hover: '#1e293b', light: '#f1f5f9' } },
-  { id: 'teal', name: 'Ocean Teal', colors: { primary: '#0d9488', hover: '#0f766e', light: '#ccfbf1' } },
+  // Original themes
+  { id: 'arctic-frost', name: 'Arctic Frost', colors: { primary: '#4a6fa5', hover: '#3b5d8c', light: '#d4e4f7' } },
+  { id: 'corporate-blue', name: 'Corporate Blue', colors: { primary: '#2563eb', hover: '#1d4ed8', light: '#dbeafe' } },
+  { id: 'ocean-depths', name: 'Ocean Depths', colors: { primary: '#2d8b8b', hover: '#24706f', light: '#ccecec' } },
+  { id: 'modern-minimal', name: 'Modern Minimal', colors: { primary: '#36454f', hover: '#2a363e', light: '#e8ecef' } },
+  { id: 'forest-canopy', name: 'Forest Canopy', colors: { primary: '#2d4a2b', hover: '#1f3620', light: '#d5e3d4' } },
+  { id: 'midnight-galaxy', name: 'Midnight Galaxy', colors: { primary: '#4a4e8f', hover: '#3b3f73', light: '#e0e1f0' } },
+  { id: 'tech-innovation', name: 'Tech Innovation', colors: { primary: '#0066ff', hover: '#0052cc', light: '#d6e8ff' } },
+  // Warm tones
+  { id: 'sunset-orange', name: 'Sunset Orange', colors: { primary: '#e2582e', hover: '#c44a25', light: '#fde0d5' } },
+  { id: 'rose-garden', name: 'Rose Garden', colors: { primary: '#e11d62', hover: '#be1854', light: '#fce4ef' } },
+  { id: 'golden-amber', name: 'Golden Amber', colors: { primary: '#b8860b', hover: '#9a7009', light: '#faf0d4' } },
+  // Cool tones
+  { id: 'deep-indigo', name: 'Deep Indigo', colors: { primary: '#4f46e5', hover: '#4338ca', light: '#e0e0fc' } },
+  { id: 'royal-purple', name: 'Royal Purple', colors: { primary: '#7c3aed', hover: '#6d28d9', light: '#ede4fd' } },
+  { id: 'teal-wave', name: 'Teal Wave', colors: { primary: '#0d9488', hover: '#0f766e', light: '#ccfbf1' } },
+  // Neutral
+  { id: 'charcoal-slate', name: 'Charcoal Slate', colors: { primary: '#475569', hover: '#334155', light: '#e2e8f0' } },
 ];
+
+function getCachedTheme(): AppTheme {
+  try {
+    const cached = localStorage.getItem(THEME_CACHE_KEY);
+    if (cached) {
+      const found = THEMES.find(t => t.id === cached);
+      if (found) return found;
+    }
+  } catch { /* localStorage unavailable */ }
+  return THEMES[0]; // Arctic Frost
+}
+
+export function cacheThemeId(themeId: string) {
+  try { localStorage.setItem(THEME_CACHE_KEY, themeId); } catch { /* noop */ }
+}
 
 export type DarkModePreference = 'light' | 'dark' | 'system';
 
@@ -30,43 +58,96 @@ function getSystemPrefersDark(): boolean {
 }
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState<AppTheme>(THEMES[0]);
+  const [currentTheme, setCurrentTheme] = useState<AppTheme>(getCachedTheme);
   const [darkModePreference, setDarkModePrefState] = useState<DarkModePreference>('system');
   const [systemDark, setSystemDark] = useState(getSystemPrefersDark);
+  const realtimeActive = useRef(false);
 
   const darkMode = darkModePreference === 'system' ? systemDark : darkModePreference === 'dark';
 
-  // Load saved preferences on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('openhr-theme');
-    if (savedTheme) {
-      const found = THEMES.find(t => t.id === savedTheme);
-      if (found) setCurrentTheme(found);
-    } else {
-      // No user preference — try fetching platform default from PocketBase
-      fetchPlatformDefault();
-    }
-    const savedDark = localStorage.getItem('openhr-dark-mode') as DarkModePreference | null;
-    if (savedDark && ['light', 'dark', 'system'].includes(savedDark)) {
-      setDarkModePrefState(savedDark);
+  const applyThemeById = useCallback((themeId: string) => {
+    const found = THEMES.find(t => t.id === themeId);
+    if (found) {
+      setCurrentTheme(found);
+      cacheThemeId(themeId);
     }
   }, []);
 
-  const fetchPlatformDefault = async () => {
+  const fetchPlatformDefault = useCallback(async () => {
     try {
       if (!apiClient.pb || !apiClient.isConfigured()) return;
       const record = await apiClient.pb.collection('settings').getFirstListItem(
         'key = "default_theme"',
-        { requestKey: 'platform_default_theme' }
+        { requestKey: 'platform_default_theme_' + Date.now() }
       );
       if (record?.value) {
-        const found = THEMES.find(t => t.id === record.value);
-        if (found) setCurrentTheme(found);
+        applyThemeById(record.value as string);
       }
     } catch {
-      // Not found or not configured — keep default indigo
+      // Not found or not configured — keep cached or default Arctic Frost
     }
-  };
+  }, [applyThemeById]);
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    // Accent theme: localStorage cache was already applied via initial state.
+    // Now fetch from PocketBase to get the latest value.
+    fetchPlatformDefault();
+    const savedDark = localStorage.getItem('openhr-dark-mode') as DarkModePreference | null;
+    if (savedDark && ['light', 'dark', 'system'].includes(savedDark)) {
+      setDarkModePrefState(savedDark);
+    }
+  }, [fetchPlatformDefault]);
+
+  // Subscribe to realtime updates for the settings collection
+  // When super admin changes the theme, all connected clients update live
+  useEffect(() => {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+
+    let unsubscribe: (() => void) | undefined;
+
+    const subscribe = async () => {
+      try {
+        unsubscribe = await apiClient.pb!.collection('settings').subscribe('*', (e) => {
+          const record = e.record;
+          if (record.key === 'default_theme' && record.value) {
+            applyThemeById(record.value as string);
+          }
+        });
+        realtimeActive.current = true;
+      } catch {
+        realtimeActive.current = false;
+      }
+    };
+
+    subscribe();
+
+    return () => {
+      realtimeActive.current = false;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [applyThemeById]);
+
+  // Polling fallback: re-fetch every 60s if realtime subscription failed
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!realtimeActive.current) {
+        fetchPlatformDefault();
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchPlatformDefault]);
+
+  // Re-fetch theme when tab becomes visible (fallback for realtime)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPlatformDefault();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchPlatformDefault]);
 
   // Listen for system preference changes
   useEffect(() => {
@@ -103,7 +184,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const found = THEMES.find(t => t.id === id);
     if (found) {
       setCurrentTheme(found);
-      localStorage.setItem('openhr-theme', id);
     }
   };
 

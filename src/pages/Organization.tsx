@@ -197,13 +197,13 @@ const Organization: React.FC = () => {
     await updateWorkflows(next);
   };
 
-  if (isLoading) return <div className="flex flex-col items-center justify-center h-64 text-slate-400"><Loader2 className="w-8 h-8 text-primary animate-spin mb-4" /><p className="text-xs font-black uppercase tracking-widest">Initialising Organization Data...</p></div>;
+  if (isLoading) return <div className="flex flex-col items-center justify-center h-64 text-slate-400"><Loader2 className="w-8 h-8 text-primary animate-spin mb-4" /><p className="text-xs font-semibold uppercase tracking-widest">Initialising Organization Data...</p></div>;
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 overflow-x-hidden">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Organization & Setup</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Organization & Setup</h1>
           <p className="text-sm text-slate-500 font-medium">Core structural and policy configurations</p>
         </div>
       </header>
@@ -214,7 +214,7 @@ const Organization: React.FC = () => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Structure</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'SHIFTS'] as OrgTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
             ))}
           </div>
         </div>
@@ -223,7 +223,7 @@ const Organization: React.FC = () => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Policies</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             {(['WORKFLOW', 'LEAVES', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
             ))}
           </div>
         </div>
@@ -313,35 +313,35 @@ const Organization: React.FC = () => {
       {/* Shared Modal Logic */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className={`bg-white rounded-[2.5rem] w-full shadow-2xl overflow-hidden animate-in zoom-in ${modalType === 'TEAM' || modalType === 'LOCATION' || modalType === 'OVERRIDE' || modalType === 'SHIFT' || modalType === 'SHIFT_OVERRIDE' ? 'max-w-xl' : 'max-w-md'}`}>
+          <div className={`bg-white rounded-xl w-full shadow-2xl overflow-hidden animate-in zoom-in ${modalType === 'TEAM' || modalType === 'LOCATION' || modalType === 'OVERRIDE' || modalType === 'SHIFT' || modalType === 'SHIFT_OVERRIDE' ? 'max-w-xl' : 'max-w-md'}`}>
             <div className="bg-primary p-6 flex justify-between items-center text-white">
-               <h3 className="text-sm font-black uppercase tracking-widest">{modalType} Configuration</h3>
+               <h3 className="text-sm font-semibold uppercase tracking-widest">{modalType} Configuration</h3>
                <button onClick={() => setShowModal(false)}><X size={24} /></button>
             </div>
             <form onSubmit={handleModalSubmit} className="p-6 md:p-8 space-y-6 max-h-[85vh] overflow-y-auto no-scrollbar">
               
               {(modalType === 'DEPT' || modalType === 'DESIG') && (
-                <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Entry Name</label><input autoFocus required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:ring-4 focus:ring-primary-light transition-all" value={modalValue} onChange={e => setModalValue(e.target.value)} /></div>
+                <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Entry Name</label><input autoFocus required className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:ring-4 focus:ring-primary-light transition-all" value={modalValue} onChange={e => setModalValue(e.target.value)} /></div>
               )}
 
               {modalType === 'HOLIDAY' && (
                  <div className="space-y-4">
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Holiday Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Holiday Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={holidayForm.name} onChange={e => setHolidayForm({...holidayForm, name: e.target.value})} /></div>
                     <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Date</label><input type="date" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={holidayForm.date} onChange={e => setHolidayForm({...holidayForm, date: e.target.value})} /></div>
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Type</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={holidayForm.type} onChange={e => setHolidayForm({...holidayForm, type: e.target.value as any})}><option value="NATIONAL">National</option><option value="FESTIVAL">Festival</option><option value="ISLAMIC">Islamic</option></select></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Date</label><input type="date" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={holidayForm.date} onChange={e => setHolidayForm({...holidayForm, date: e.target.value})} /></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Type</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={holidayForm.type} onChange={e => setHolidayForm({...holidayForm, type: e.target.value as any})}><option value="NATIONAL">National</option><option value="FESTIVAL">Festival</option><option value="ISLAMIC">Islamic</option></select></div>
                     </div>
                  </div>
               )}
 
               {modalType === 'LOCATION' && (
                  <div className="space-y-4">
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Office Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.name} onChange={e => setLocationForm({...locationForm, name: e.target.value})} /></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Office Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.name} onChange={e => setLocationForm({...locationForm, name: e.target.value})} /></div>
                     <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Latitude</label><input type="number" step="any" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.lat} onChange={e => setLocationForm({...locationForm, lat: parseFloat(e.target.value)})} /></div>
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Longitude</label><input type="number" step="any" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.lng} onChange={e => setLocationForm({...locationForm, lng: parseFloat(e.target.value)})} /></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Latitude</label><input type="number" step="any" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.lat} onChange={e => setLocationForm({...locationForm, lat: parseFloat(e.target.value)})} /></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Longitude</label><input type="number" step="any" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.lng} onChange={e => setLocationForm({...locationForm, lng: parseFloat(e.target.value)})} /></div>
                     </div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Radius (Meters)</label><input type="number" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.radius} onChange={e => setLocationForm({...locationForm, radius: parseInt(e.target.value)})} /></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Radius (Meters)</label><input type="number" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={locationForm.radius} onChange={e => setLocationForm({...locationForm, radius: parseInt(e.target.value)})} /></div>
                     <a href="https://www.google.com/maps" target="_blank" rel="noreferrer" className="text-[10px] text-primary font-bold hover:underline flex items-center gap-1 justify-end"><MapPin size={10}/> Open Google Maps to find Lat/Lng</a>
                  </div>
               )}
@@ -349,67 +349,67 @@ const Organization: React.FC = () => {
               {modalType === 'OVERRIDE' && (
                  <div className="space-y-4">
                     <div className="space-y-1">
-                       <label className="text-[10px] font-black text-slate-400 uppercase px-1">Select Employee</label>
+                       <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Select Employee</label>
                        <select required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm" value={overrideForm.employeeId} onChange={e => setOverrideForm({...overrideForm, employeeId: e.target.value})}>
                           <option value="">-- Choose Staff --</option>
                           {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
                        </select>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Annual</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.ANNUAL} onChange={e => setOverrideForm({...overrideForm, ANNUAL: parseInt(e.target.value)})} /></div>
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Casual</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.CASUAL} onChange={e => setOverrideForm({...overrideForm, CASUAL: parseInt(e.target.value)})} /></div>
-                       <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Sick</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.SICK} onChange={e => setOverrideForm({...overrideForm, SICK: parseInt(e.target.value)})} /></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Annual</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.ANNUAL} onChange={e => setOverrideForm({...overrideForm, ANNUAL: parseInt(e.target.value)})} /></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Casual</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.CASUAL} onChange={e => setOverrideForm({...overrideForm, CASUAL: parseInt(e.target.value)})} /></div>
+                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Sick</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.SICK} onChange={e => setOverrideForm({...overrideForm, SICK: parseInt(e.target.value)})} /></div>
                     </div>
                  </div>
               )}
 
               {modalType === 'TEAM' && (
                  <div className="space-y-4">
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Team Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} /></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Department</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.department} onChange={e => setTeamForm({...teamForm, department: e.target.value})}>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Team Lead</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.leaderId} onChange={e => setTeamForm({...teamForm, leaderId: e.target.value})}><option value="">-- Assign Lead --</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase px-1">Members ({selectedEmployeeIds.size})</label><div className="h-40 overflow-y-auto border border-slate-200 rounded-xl p-2 grid grid-cols-2 gap-2 bg-slate-50/50">{employees.map(e => (<div key={e.id} onClick={() => { const next = new Set(selectedEmployeeIds); if (next.has(e.id)) next.delete(e.id); else next.add(e.id); setSelectedEmployeeIds(next); }} className={`p-2 rounded-lg text-xs font-bold cursor-pointer border ${selectedEmployeeIds.has(e.id) ? 'bg-primary-light border-primary text-primary' : 'bg-white border-slate-100 text-slate-500'}`}>{e.name}</div>))}</div></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Team Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} /></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Department</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.department} onChange={e => setTeamForm({...teamForm, department: e.target.value})}>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Team Lead</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.leaderId} onChange={e => setTeamForm({...teamForm, leaderId: e.target.value})}><option value="">-- Assign Lead --</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Members ({selectedEmployeeIds.size})</label><div className="h-40 overflow-y-auto border border-slate-200 rounded-xl p-2 grid grid-cols-2 gap-2 bg-slate-50/50">{employees.map(e => (<div key={e.id} onClick={() => { const next = new Set(selectedEmployeeIds); if (next.has(e.id)) next.delete(e.id); else next.add(e.id); setSelectedEmployeeIds(next); }} className={`p-2 rounded-lg text-xs font-bold cursor-pointer border ${selectedEmployeeIds.has(e.id) ? 'bg-primary-light border-primary text-primary' : 'bg-white border-slate-100 text-slate-500'}`}>{e.name}</div>))}</div></div>
                  </div>
               )}
 
               {modalType === 'SHIFT' && (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Shift Name</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Shift Name</label>
                     <input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={shiftForm.name} onChange={e => setShiftForm({...shiftForm, name: e.target.value})} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Start Time</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Start Time</label>
                       <input type="time" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.startTime} onChange={e => setShiftForm({...shiftForm, startTime: e.target.value})} />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">End Time</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">End Time</label>
                       <input type="time" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.endTime} onChange={e => setShiftForm({...shiftForm, endTime: e.target.value})} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Late Grace (min)</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Late Grace (min)</label>
                       <input type="number" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.lateGracePeriod} onChange={e => setShiftForm({...shiftForm, lateGracePeriod: parseInt(e.target.value) || 0})} />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Early Out Grace (min)</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Early Out Grace (min)</label>
                       <input type="number" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.earlyOutGracePeriod} onChange={e => setShiftForm({...shiftForm, earlyOutGracePeriod: parseInt(e.target.value) || 0})} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Earliest Check-In</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Earliest Check-In</label>
                       <input type="time" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.earliestCheckIn} onChange={e => setShiftForm({...shiftForm, earliestCheckIn: e.target.value})} />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Auto Session Close</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Auto Session Close</label>
                       <input type="time" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftForm.autoSessionCloseTime} onChange={e => setShiftForm({...shiftForm, autoSessionCloseTime: e.target.value})} />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Working Days</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Working Days</label>
                     <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
                       {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => (
                         <button
@@ -422,7 +422,7 @@ const Organization: React.FC = () => {
                               workingDays: days.includes(day) ? days.filter(d => d !== day) : [...days, day]
                             });
                           }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${(shiftForm.workingDays || []).includes(day) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${(shiftForm.workingDays || []).includes(day) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
                         >
                           {day.slice(0, 3)}
                         </button>
@@ -439,38 +439,38 @@ const Organization: React.FC = () => {
               {modalType === 'SHIFT_OVERRIDE' && (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Select Employee</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Select Employee</label>
                     <select required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm" value={shiftOverrideForm.employeeId} onChange={e => setShiftOverrideForm({...shiftOverrideForm, employeeId: e.target.value})}>
                       <option value="">-- Choose Staff --</option>
                       {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Assign to Shift</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Assign to Shift</label>
                     <select required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm" value={shiftOverrideForm.shiftId} onChange={e => setShiftOverrideForm({...shiftOverrideForm, shiftId: e.target.value})}>
                       {shifts.map(s => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</option>)}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">Start Date</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Start Date</label>
                       <input type="date" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftOverrideForm.startDate} onChange={e => setShiftOverrideForm({...shiftOverrideForm, startDate: e.target.value})} />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase px-1">End Date</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">End Date</label>
                       <input type="date" required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={shiftOverrideForm.endDate} onChange={e => setShiftOverrideForm({...shiftOverrideForm, endDate: e.target.value})} />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase px-1">Reason (Optional)</label>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Reason (Optional)</label>
                     <input className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="e.g. Ramadan shift" value={shiftOverrideForm.reason} onChange={e => setShiftOverrideForm({...shiftOverrideForm, reason: e.target.value})} />
                   </div>
                 </div>
               )}
 
               <div className="flex gap-3 pt-4 border-t border-slate-50">
-                <button type="button" disabled={isSaving} onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-colors hover:bg-slate-200">Cancel</button>
-                <button type="submit" disabled={isSaving} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg transition-colors hover:bg-primary-hover">{isSaving ? <RefreshCw className="animate-spin" size={16} /> : <><Save size={16} /> Confirm</>}</button>
+                <button type="button" disabled={isSaving} onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-semibold uppercase text-[10px] tracking-widest transition-colors hover:bg-slate-200">Cancel</button>
+                <button type="submit" disabled={isSaving} className="flex-1 py-4 bg-primary text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg transition-colors hover:bg-primary-hover">{isSaving ? <RefreshCw className="animate-spin" size={16} /> : <><Save size={16} /> Confirm</>}</button>
               </div>
             </form>
           </div>

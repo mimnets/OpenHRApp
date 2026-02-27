@@ -41,25 +41,25 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
       <div className="absolute top-[-10%] left-[-10%] w-1/2 h-1/2 bg-primary-light blur-[120px] rounded-full opacity-20"></div>
       
       <div className="w-full max-w-xl animate-in fade-in zoom-in duration-500 relative z-10">
-        <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-primary p-10 text-white text-center">
             <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-3xl mb-6 shadow-xl backdrop-blur-md">
               <Database size={40} />
             </div>
-            <h1 className="text-3xl font-black tracking-tight mb-2">Backend Setup</h1>
+            <h1 className="text-3xl font-semibold tracking-tight mb-2">Backend Setup</h1>
             <p className="text-white/80 font-medium">Link OpenHR to your PocketBase instance</p>
           </div>
 
           <div className="p-10 space-y-8">
             <div className="space-y-4">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">PocketBase IP Address</label>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-1">PocketBase IP Address</label>
               <div className="relative">
                 <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">
                   <Server size={20} />
                 </div>
                 <input 
                   type="text" 
-                  className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[2rem] font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-light transition-all"
+                  className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-light transition-all"
                   placeholder="https://pbase.vclbd.net"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
@@ -69,12 +69,12 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
             </div>
 
             {testResult && (
-              <div className={`p-6 rounded-[2rem] flex items-start gap-4 border animate-in slide-in-from-top-4 ${
+              <div className={`p-6 rounded-xl flex items-start gap-4 border animate-in slide-in-from-top-4 ${
                 testResult.success ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'
               }`}>
                 {testResult.success ? <ShieldCheck className="mt-0.5" /> : <AlertCircle className="mt-0.5" />}
                 <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest">Test Result</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest">Test Result</p>
                   <p className="text-sm font-bold">{testResult.message}</p>
                 </div>
               </div>
@@ -84,7 +84,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
               <button 
                 onClick={handleTest}
                 disabled={isTesting}
-                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-xl font-semibold uppercase text-xs tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
               >
                 {isTesting ? <RefreshCw className="animate-spin" size={18} /> : <Activity size={18} />}
                 Test Connection
@@ -92,7 +92,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
               <button 
                 onClick={handleSave}
                 disabled={!url || isTesting}
-                className="flex-[1.5] py-5 bg-primary text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
+                className="flex-[1.5] py-5 bg-primary text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
               >
                 Save & Continue <ArrowRight size={18} />
               </button>

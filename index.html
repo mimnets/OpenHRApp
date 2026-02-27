@@ -74,10 +74,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Default Theme (Indigo) */
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --primary-light: #e0e7ff;
+      /* Default Theme (Arctic Frost) */
+      --primary: #4a6fa5;
+      --primary-hover: #3b5d8c;
+      --primary-light: #d4e4f7;
     }
 
     body {
@@ -200,6 +200,38 @@
     .dark .border-slate-800 { border-color: #1e293b !important; }
     .dark .text-slate-500 { color: #64748b !important; }
   </style>
+<script>
+  // Theme preload: apply cached theme BEFORE React loads to prevent flash
+  (function() {
+    try {
+      var themeId = localStorage.getItem('openhr-global-theme');
+      if (!themeId) return;
+      var themes = {
+        'arctic-frost':     { p: '#4a6fa5', h: '#3b5d8c', l: '#d4e4f7' },
+        'corporate-blue':   { p: '#2563eb', h: '#1d4ed8', l: '#dbeafe' },
+        'ocean-depths':     { p: '#2d8b8b', h: '#24706f', l: '#ccecec' },
+        'modern-minimal':   { p: '#36454f', h: '#2a363e', l: '#e8ecef' },
+        'forest-canopy':    { p: '#2d4a2b', h: '#1f3620', l: '#d5e3d4' },
+        'midnight-galaxy':  { p: '#4a4e8f', h: '#3b3f73', l: '#e0e1f0' },
+        'tech-innovation':  { p: '#0066ff', h: '#0052cc', l: '#d6e8ff' },
+        'sunset-orange':    { p: '#e2582e', h: '#c44a25', l: '#fde0d5' },
+        'rose-garden':      { p: '#e11d62', h: '#be1854', l: '#fce4ef' },
+        'golden-amber':     { p: '#b8860b', h: '#9a7009', l: '#faf0d4' },
+        'deep-indigo':      { p: '#4f46e5', h: '#4338ca', l: '#e0e0fc' },
+        'royal-purple':     { p: '#7c3aed', h: '#6d28d9', l: '#ede4fd' },
+        'teal-wave':        { p: '#0d9488', h: '#0f766e', l: '#ccfbf1' },
+        'charcoal-slate':   { p: '#475569', h: '#334155', l: '#e2e8f0' }
+      };
+      var t = themes[themeId];
+      if (!t) return;
+      var s = document.documentElement.style;
+      s.setProperty('--primary', t.p);
+      s.setProperty('--primary-hover', t.h);
+      s.setProperty('--primary-light', t.l);
+      s.setProperty('--primary-light-dark', t.p + '20');
+    } catch(e) {}
+  })();
+</script>
 <script type="importmap">
 {
   "imports": {
@@ -222,14 +254,14 @@
   <div id="root">
     <!-- Splash screen shown while JS modules load -->
     <div id="app-loader" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:#fcfdfe;">
-      <div style="width:80px;height:80px;background:var(--primary);border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(79,70,229,0.15);border:3px solid #fff;">
-        <img src="/img/logo.webp" alt="Loading" style="width:52px;height:52px;object-fit:contain;" onerror="this.style.display='none'">
+      <div style="width:96px;height:96px;background:#fff;border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(0,0,0,0.08);border:1.5px solid rgba(0,0,0,0.06);">
+        <img src="/img/logo.webp" alt="Loading" style="width:72px;height:72px;object-fit:contain;" onerror="this.style.display='none'">
       </div>
       <div style="text-align:center;">
-        <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;">
+        <div style="font-family:'Inter',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.5px;">
           <span style="color:var(--primary);">Open</span><span style="color:#f59e0b;">HR</span><span style="color:#10b981;">App</span>
         </div>
-        <p style="color:#94a3b8;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:3px;margin-top:6px;">Loading</p>
+        <p style="color:#94a3b8;font-size:10px;font-weight:600;letter-spacing:1px;margin-top:6px;">Loading</p>
       </div>
       <div style="width:120px;height:3px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
         <div style="width:40%;height:100%;background:var(--primary);border-radius:3px;animation:loader 1.2s ease-in-out infinite;"></div>

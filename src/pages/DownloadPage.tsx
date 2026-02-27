@@ -27,7 +27,7 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-5">
             <Smartphone className="text-primary" size={32} />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">
+          <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900 mb-3">
             Get Open HR App
           </h1>
           <p className="text-slate-500 text-base max-w-lg mx-auto">

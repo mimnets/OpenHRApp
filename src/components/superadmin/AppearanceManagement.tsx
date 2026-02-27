@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Loader2, Check, Palette } from 'lucide-react';
-import { THEMES } from '../../context/ThemeContext';
+import { THEMES, useTheme, cacheThemeId } from '../../context/ThemeContext';
 import { apiClient } from '../../services/api.client';
 
 interface AppearanceManagementProps {
@@ -9,7 +9,8 @@ interface AppearanceManagementProps {
 }
 
 const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }) => {
-  const [selectedTheme, setSelectedTheme] = useState('indigo');
+  const { setTheme } = useTheme();
+  const [selectedTheme, setSelectedTheme] = useState('arctic-frost');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -28,7 +29,7 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
         setSelectedTheme(record.value as string);
       }
     } catch (e) {
-      // Not found — use default indigo
+      // Not found — use default arctic-frost
     }
     setIsLoading(false);
   };
@@ -55,8 +56,13 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
           organization_id: orgId,
         });
       }
+
+      // Apply theme immediately to current session and cache for instant load
+      setTheme(themeId);
+      cacheThemeId(themeId);
+
       const theme = THEMES.find(t => t.id === themeId);
-      onMessage({ type: 'success', text: `Default theme set to "${theme?.name || themeId}"` });
+      onMessage({ type: 'success', text: `Global theme set to "${theme?.name || themeId}". All users will see this on their next visit.` });
     } catch (e: any) {
       onMessage({ type: 'error', text: `Failed to save: ${e?.message || 'Unknown error'}` });
     }
@@ -78,9 +84,9 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
           <Palette size={24} className="text-primary" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-900">Default App Theme</h3>
+          <h3 className="text-xl font-bold text-slate-900">Global App Theme</h3>
           <p className="text-sm text-slate-500">
-            Set the default accent color for all new users. Users can still override this in their personal settings.
+            Set the accent color for all users across the platform.
           </p>
         </div>
       </div>
@@ -107,7 +113,7 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
                   {selectedTheme === theme.id && <Check size={16} strokeWidth={4} />}
                 </div>
               </div>
-              <p className="font-black text-slate-800 text-xs uppercase tracking-tight">{theme.name}</p>
+              <p className="font-semibold text-slate-800 text-xs uppercase tracking-tight">{theme.name}</p>
               <div className="flex gap-1 mt-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.primary }}></div>
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.hover }}></div>
@@ -115,7 +121,7 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
               </div>
               {selectedTheme === theme.id && (
                 <div className="absolute top-2 right-2">
-                  <span className="text-[9px] font-black text-primary bg-primary-light px-2 py-1 rounded-full uppercase">Default</span>
+                  <span className="text-[9px] font-semibold text-primary bg-primary-light px-2 py-1 rounded-full uppercase">Active</span>
                 </div>
               )}
             </button>
@@ -124,8 +130,8 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
 
         <div className="mt-6 p-4 bg-slate-50 rounded-2xl">
           <p className="text-xs text-slate-500">
-            <strong>Note:</strong> This sets the default accent color for users who haven't chosen their own preference.
-            Existing users who have already customized their theme will not be affected.
+            <strong>Note:</strong> This sets the global accent color for the entire platform.
+            All users will see the updated theme. Users can still choose their own light/dark mode preference.
           </p>
         </div>
       </div>

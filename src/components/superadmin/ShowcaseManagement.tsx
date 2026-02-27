@@ -187,7 +187,7 @@ const ShowcaseManagement: React.FC<ShowcaseManagementProps> = ({ onMessage }) =>
                       {org.logo ? (
                         <img src={org.logo} alt={org.name} className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 p-1" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-black text-slate-300">
+                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-300">
                           {org.name.charAt(0)}
                         </div>
                       )}
@@ -231,7 +231,7 @@ const ShowcaseManagement: React.FC<ShowcaseManagementProps> = ({ onMessage }) =>
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in">
             <div className="bg-primary p-6 flex justify-between items-center text-white">
-              <h3 className="text-sm font-black uppercase tracking-widest">
+              <h3 className="text-sm font-semibold uppercase tracking-widest">
                 {editingId ? 'Edit Showcase Entry' : 'Add Showcase Entry'}
               </h3>
               <button onClick={() => { setShowModal(false); resetForm(); }}><X size={24} /></button>
@@ -260,18 +260,18 @@ const ShowcaseManagement: React.FC<ShowcaseManagementProps> = ({ onMessage }) =>
 
               {/* Name */}
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase px-1">Organization Name *</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Organization Name *</label>
                 <input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
               </div>
 
               {/* Country & Industry */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase px-1">Country</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Country</label>
                   <input className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="e.g. Bangladesh" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase px-1">Industry</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Industry</label>
                   <select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={form.industry} onChange={e => setForm({ ...form, industry: e.target.value })}>
                     <option value="">Select...</option>
                     {INDUSTRY_OPTIONS.map(i => <option key={i} value={i}>{i}</option>)}
@@ -281,22 +281,22 @@ const ShowcaseManagement: React.FC<ShowcaseManagementProps> = ({ onMessage }) =>
 
               {/* Website & Tagline */}
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase px-1">Website URL</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Website URL</label>
                 <input type="url" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="https://example.com" value={form.websiteUrl} onChange={e => setForm({ ...form, websiteUrl: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase px-1">Tagline</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Tagline</label>
                 <input className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="e.g. Leading HR solutions in SE Asia" value={form.tagline} onChange={e => setForm({ ...form, tagline: e.target.value })} />
               </div>
 
               {/* Order & Active */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase px-1">Display Order</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Display Order</label>
                   <input type="number" min="0" className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: parseInt(e.target.value) || 0 })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase px-1">Visibility</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Visibility</label>
                   <label className="flex items-center gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
                     <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} className="w-4 h-4 accent-emerald-500" />
                     <span className="text-sm font-bold text-slate-600">{form.isActive ? 'Visible on landing page' : 'Hidden'}</span>
@@ -306,8 +306,8 @@ const ShowcaseManagement: React.FC<ShowcaseManagementProps> = ({ onMessage }) =>
 
               {/* Buttons */}
               <div className="flex gap-3 pt-4 border-t border-slate-50">
-                <button type="button" disabled={isSaving} onClick={() => { setShowModal(false); resetForm(); }} className="flex-1 py-4 bg-slate-100 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
-                <button type="submit" disabled={isSaving} className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg hover:bg-primary-hover">
+                <button type="button" disabled={isSaving} onClick={() => { setShowModal(false); resetForm(); }} className="flex-1 py-4 bg-slate-100 rounded-2xl font-semibold uppercase text-[10px] tracking-widest hover:bg-slate-200">Cancel</button>
+                <button type="submit" disabled={isSaving} className="flex-1 py-4 bg-primary text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 shadow-lg hover:bg-primary-hover">
                   {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <><Save size={16} /> {editingId ? 'Update' : 'Add'}</>}
                 </button>
               </div>

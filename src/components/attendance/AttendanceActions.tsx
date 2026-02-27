@@ -19,7 +19,7 @@ export const AttendanceActions: React.FC<Props> = ({
   return (
     <div className="px-8 pt-4 pb-12 flex flex-col items-center gap-4">
       <div className="w-full max-w-[320px] space-y-2">
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 flex items-center gap-1.5">
+        <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-1.5">
           {dutyType === 'FACTORY' && <AlertCircle size={10} className="text-emerald-500" />}
           {dutyType} {dutyType === 'FACTORY' && "(Mandatory)"}
         </p>
@@ -36,7 +36,7 @@ export const AttendanceActions: React.FC<Props> = ({
         <button 
           onClick={onSubmit}
           disabled={isDisabled}
-          className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.1em] text-[20px] shadow-xl shadow-primary-light transition-all active:scale-95 flex items-center justify-center gap-3 text-white disabled:opacity-20 bg-primary hover:bg-primary-hover`}
+          className={`w-full py-4 rounded-2xl font-semibold uppercase tracking-[0.1em] text-[20px] shadow-xl shadow-primary-light transition-all active:scale-95 flex items-center justify-center gap-3 text-white disabled:opacity-20 bg-primary hover:bg-primary-hover`}
         >
           {status === 'loading' ? (
             <RefreshCw className="animate-spin" size={18}/> 
