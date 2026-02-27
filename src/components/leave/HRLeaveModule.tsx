@@ -69,7 +69,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
           {!readOnly && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-semibold uppercase tracking-widest text-[10px] shadow-xl hover:bg-indigo-700 transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-semibold uppercase tracking-widest text-[10px] shadow-xl hover:bg-primary-hover transition-all"
             >
               <Plus size={16} /> Create Leave
             </button>

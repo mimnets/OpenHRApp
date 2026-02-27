@@ -173,7 +173,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-4">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           {onBack && <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>}
@@ -286,7 +286,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button onClick={handleSave} disabled={isSaving} className="px-12 py-5 bg-slate-900 text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl transition-all flex items-center gap-3 hover:bg-primary">
+              <button onClick={handleSave} disabled={isSaving} className="px-12 py-5 bg-primary text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl transition-all flex items-center gap-3 hover:bg-primary-hover">
                 {isSaving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18} />} 
                 Update My Info
               </button>
@@ -379,7 +379,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
               <button
                 type="submit"
                 disabled={isContactSubmitting}
-                className="px-10 py-4 bg-slate-900 text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl transition-all flex items-center gap-3 hover:bg-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-10 py-4 bg-primary text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl transition-all flex items-center gap-3 hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isContactSubmitting ? (
                   <><Loader2 size={18} className="animate-spin" /> Sending...</>

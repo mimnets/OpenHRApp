@@ -104,7 +104,7 @@ export const AdminDashboard: React.FC<Props> = ({ data, isLoading, onNavigate })
         <>
           {/* Leave Allocation Card - Identical to Manager for now, but separated for future extensibility */}
           <div className="bg-white rounded-xl border border-slate-100 shadow-xl overflow-hidden animate-in slide-in-from-bottom-4">
-            <div className="bg-[#4a89dc] p-8 pb-12 relative overflow-hidden flex items-center justify-between">
+            <div className="bg-primary p-8 pb-12 relative overflow-hidden flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-white tracking-tight mt-4">Leave Allocation</h2>
               <ShieldCheck className="text-white/20 absolute -right-4 -bottom-4 w-32 h-32" />
             </div>
@@ -114,15 +114,15 @@ export const AdminDashboard: React.FC<Props> = ({ data, isLoading, onNavigate })
                 <div className="flex justify-around items-center divide-x divide-slate-100">
                   <div className="text-center flex-1">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Annual</p>
-                    <p className="text-2xl font-semibold text-[#2563eb]">{data.userBalance?.ANNUAL || 0}</p>
+                    <p className="text-2xl font-semibold text-primary">{data.userBalance?.ANNUAL || 0}</p>
                   </div>
                   <div className="text-center flex-1">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Sick</p>
-                    <p className="text-2xl font-semibold text-[#2563eb]">{data.userBalance?.SICK || 0}</p>
+                    <p className="text-2xl font-semibold text-primary">{data.userBalance?.SICK || 0}</p>
                   </div>
                   <div className="text-center flex-1">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Casual</p>
-                    <p className="text-2xl font-semibold text-[#2563eb]">{data.userBalance?.CASUAL || 0}</p>
+                    <p className="text-2xl font-semibold text-primary">{data.userBalance?.CASUAL || 0}</p>
                   </div>
                 </div>
 
@@ -132,7 +132,7 @@ export const AdminDashboard: React.FC<Props> = ({ data, isLoading, onNavigate })
 
                 <button 
                   onClick={() => onNavigate('leave', { autoOpen: true })}
-                  className="w-full py-5 bg-[#2563eb] text-white rounded-2xl font-semibold uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95"
+                  className="w-full py-5 bg-primary text-white rounded-2xl font-semibold uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-primary-light hover:bg-primary-hover transition-all active:scale-95"
                 >
                   <Plus size={18} /> Apply for Leave
                 </button>

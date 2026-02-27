@@ -139,7 +139,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
           className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold uppercase tracking-widest text-[10px] shadow-xl transition-all ${
             readOnly
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'bg-primary text-white hover:bg-primary-hover'
           }`}
         >
           <Plus size={18} /> Apply Leave
@@ -149,7 +149,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Annual</p>
-          <p className="text-4xl font-semibold text-indigo-600">{balance?.ANNUAL || 0}</p>
+          <p className="text-4xl font-semibold text-primary">{balance?.ANNUAL || 0}</p>
           <p className="text-[9px] font-bold text-slate-300 uppercase">Days Remaining</p>
         </div>
         <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
@@ -191,7 +191,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in">
-            <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
+            <div className="p-8 bg-primary text-white flex justify-between items-center">
               <h3 className="text-lg font-semibold uppercase tracking-tight">New Leave Request</h3>
               <button onClick={() => setShowForm(false)}><X size={24} /></button>
             </div>
@@ -217,10 +217,10 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
               </div>
 
               {formData.start && formData.end && (
-                 <div className={`p-4 border rounded-2xl flex items-center gap-3 ${calculatedDays > getAvailableBalance(formData.type) ? 'bg-rose-50 border-rose-100' : 'bg-indigo-50 border-indigo-100'}`}>
-                    <Info size={18} className={calculatedDays > getAvailableBalance(formData.type) ? 'text-rose-500' : 'text-indigo-500'} />
+                 <div className={`p-4 border rounded-2xl flex items-center gap-3 ${calculatedDays > getAvailableBalance(formData.type) ? 'bg-rose-50 border-rose-100' : 'bg-primary-light border-primary-light'}`}>
+                    <Info size={18} className={calculatedDays > getAvailableBalance(formData.type) ? 'text-rose-500' : 'text-primary'} />
                     <div>
-                       <p className={`font-semibold text-xs ${calculatedDays > getAvailableBalance(formData.type) ? 'text-rose-900' : 'text-indigo-900'}`}>Net Days: {calculatedDays}</p>
+                       <p className={`font-semibold text-xs ${calculatedDays > getAvailableBalance(formData.type) ? 'text-rose-900' : 'text-primary'}`}>Net Days: {calculatedDays}</p>
                        <p className="text-[9px] font-bold text-slate-500">{calculationDetails}</p>
                     </div>
                  </div>
@@ -231,7 +231,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
                  <textarea required placeholder="Explain reason..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[100px] outline-none" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} />
               </div>
 
-              <button type="submit" disabled={isProcessing || calculatedDays > getAvailableBalance(formData.type)} className="w-full py-5 bg-indigo-600 text-white rounded-xl font-semibold uppercase tracking-widest text-[10px] shadow-xl flex items-center justify-center gap-2 disabled:opacity-50">
+              <button type="submit" disabled={isProcessing || calculatedDays > getAvailableBalance(formData.type)} className="w-full py-5 bg-primary text-white rounded-xl font-semibold uppercase tracking-widest text-[10px] shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-primary-hover transition-all">
                  {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />} Submit Application
               </button>
             </form>

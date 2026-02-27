@@ -98,7 +98,7 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
     }
   };
 
-  const headerColor = mode === 'create' ? 'bg-indigo-600' : 'bg-amber-600';
+  const headerColor = mode === 'create' ? 'bg-primary' : 'bg-amber-600';
   const HeaderIcon = mode === 'create' ? UserPlus : Edit3;
   const headerTitle = mode === 'create' ? 'Create Leave (Admin)' : 'Edit Leave (Admin)';
   const submitLabel = mode === 'create' ? 'Create Leave' : 'Save Changes';
@@ -127,7 +127,7 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Employee</label>
               <select
                 required
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-primary-light transition-all"
                 value={employeeId}
                 onChange={e => setEmployeeId(e.target.value)}
               >
@@ -151,7 +151,7 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Leave Type</label>
             <select
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-primary-light transition-all"
               value={type}
               onChange={e => setType(e.target.value)}
             >
@@ -165,31 +165,31 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Start Date</label>
-              <input type="date" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <input type="date" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light transition-all" value={startDate} onChange={e => setStartDate(e.target.value)} />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">End Date</label>
-              <input type="date" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              <input type="date" required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light transition-all" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
           </div>
 
           {/* Total Days (auto-calculated, editable override) */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Total Days</label>
-            <input type="number" min={0} step={0.5} required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={totalDays} onChange={e => setTotalDays(Number(e.target.value))} />
+            <input type="number" min={0} step={0.5} required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light transition-all" value={totalDays} onChange={e => setTotalDays(Number(e.target.value))} />
           </div>
 
           {/* Reason */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Reason</label>
-            <textarea placeholder="Leave reason..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[80px] outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={reason} onChange={e => setReason(e.target.value)} />
+            <textarea placeholder="Leave reason..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[80px] outline-none focus:ring-4 focus:ring-primary-light transition-all" value={reason} onChange={e => setReason(e.target.value)} />
           </div>
 
           {/* Status */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Status</label>
             <select
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none focus:ring-4 focus:ring-primary-light transition-all"
               value={status}
               onChange={e => setStatus(e.target.value)}
             >
@@ -202,7 +202,7 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
           {/* Remarks */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Admin Remarks</label>
-            <textarea placeholder="Optional admin notes..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[60px] outline-none focus:ring-4 focus:ring-indigo-50 transition-all" value={remarks} onChange={e => setRemarks(e.target.value)} />
+            <textarea placeholder="Optional admin notes..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm min-h-[60px] outline-none focus:ring-4 focus:ring-primary-light transition-all" value={remarks} onChange={e => setRemarks(e.target.value)} />
           </div>
 
           {/* Submit */}
