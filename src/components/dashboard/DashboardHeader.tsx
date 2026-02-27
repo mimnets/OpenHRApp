@@ -56,7 +56,7 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
             </button>
             <button 
               onClick={() => onNavigate('attendance-quick-factory')}
-              className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-4 bg-emerald-600 text-white rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-emerald-100 hover:bg-emerald-700 active:scale-95 transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-4 bg-primary text-white rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-primary-light hover:bg-primary-hover active:scale-95 transition-all opacity-80"
             >
               <Building2 size={16} />
               <span className="text-[10px] font-semibold uppercase tracking-widest">Factory</span>
