@@ -15,7 +15,7 @@ export const OrgStructure: React.FC<Props> = ({ departments, designations, onAdd
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
       <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
         <div className="p-5 md:p-6 bg-primary text-white flex justify-between items-center">
-          <div className="flex items-center gap-3"><Network size={20} /><h3 className="text-xs md:text-sm font-black uppercase tracking-wider">Departments</h3></div>
+          <div className="flex items-center gap-3"><Network size={20} /><h3 className="text-xs md:text-sm font-semibold uppercase tracking-wider">Departments</h3></div>
           <button onClick={() => onAdd('DEPT')} className="p-2 bg-white/10 rounded-lg transition-colors hover:bg-white/20"><Plus size={18} /></button>
         </div>
         <div className="p-4 md:p-6 space-y-2 flex-1 overflow-y-auto max-h-[500px] no-scrollbar">
@@ -33,7 +33,7 @@ export const OrgStructure: React.FC<Props> = ({ departments, designations, onAdd
       
       <section className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
         <div className="p-5 md:p-6 bg-primary text-white flex justify-between items-center">
-          <div className="flex items-center gap-3"><Briefcase size={20} /><h3 className="text-xs md:text-sm font-black uppercase tracking-wider">Designations</h3></div>
+          <div className="flex items-center gap-3"><Briefcase size={20} /><h3 className="text-xs md:text-sm font-semibold uppercase tracking-wider">Designations</h3></div>
           <button onClick={() => onAdd('DESIG')} className="p-2 bg-white/10 rounded-lg transition-colors hover:bg-white/20"><Plus size={18} /></button>
         </div>
         <div className="p-4 md:p-6 space-y-2 flex-1 overflow-y-auto max-h-[500px] no-scrollbar">

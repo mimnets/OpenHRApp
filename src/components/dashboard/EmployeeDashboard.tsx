@@ -42,9 +42,9 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
            <div className="bg-white p-4 rounded-2xl md:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center gap-1.5 min-h-[90px]">
               <div className="flex items-center gap-2 text-indigo-500">
                  <div className="p-1.5 bg-indigo-50 rounded-lg"><Network size={14} /></div>
-                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Team</span>
+                 <span className="text-[8px] font-semibold uppercase tracking-widest text-slate-400">Team</span>
               </div>
-              <h3 className="font-black text-slate-800 text-xs md:text-sm line-clamp-2 leading-tight pl-1" title={data.myTeamName}>
+              <h3 className="font-semibold text-slate-800 text-xs md:text-sm line-clamp-2 leading-tight pl-1" title={data.myTeamName}>
                 {data.myTeamName}
               </h3>
            </div>
@@ -53,9 +53,9 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
            <div className="bg-white p-4 rounded-2xl md:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center gap-1.5 min-h-[90px]">
               <div className="flex items-center gap-2 text-indigo-500">
                  <div className="p-1.5 bg-indigo-50 rounded-lg"><User size={14} /></div>
-                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Manager</span>
+                 <span className="text-[8px] font-semibold uppercase tracking-widest text-slate-400">Manager</span>
               </div>
-              <h3 className="font-black text-slate-800 text-xs md:text-sm line-clamp-2 leading-tight pl-1">
+              <h3 className="font-semibold text-slate-800 text-xs md:text-sm line-clamp-2 leading-tight pl-1">
                 {data.myManager?.name || 'No Manager'}
               </h3>
            </div>
@@ -70,7 +70,7 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
                     <Plus size={14} className="text-white" />
                  </div>
                  <div className="text-left">
-                    <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/90">New Request</span>
+                    <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">New Request</span>
                  </div>
               </div>
               

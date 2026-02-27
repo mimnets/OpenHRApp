@@ -20,7 +20,6 @@ const TutorialsFooter: React.FC = () => {
       links: [
         { label: 'Home', action: goHome },
         { label: 'Blog', action: goToBlog },
-        { label: 'Download App', action: () => { window.history.pushState(null, '', '/download'); window.dispatchEvent(new PopStateEvent('popstate')); } },
       ],
     },
     {
@@ -28,6 +27,7 @@ const TutorialsFooter: React.FC = () => {
       links: [
         { label: 'Guides', action: goToTutorials },
         { label: 'GitHub', action: () => window.open('https://github.com/mimnets/openhrapp', '_blank') },
+        { label: 'Download App', action: () => { window.history.pushState(null, '', '/download'); window.dispatchEvent(new PopStateEvent('popstate')); } },
       ],
     },
     {
@@ -48,10 +48,10 @@ const TutorialsFooter: React.FC = () => {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4 cursor-pointer" onClick={goHome}>
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center p-1.5">
+              <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-1 shadow-sm">
                 <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
               </div>
-              <span className="text-base font-black tracking-tight">
+              <span className="text-base font-semibold tracking-tight">
                 <span className="text-primary">Open</span>
                 <span className="text-[#f59e0b]">HR</span>
                 <span className="text-[#10b981]">App</span>
@@ -65,7 +65,7 @@ const TutorialsFooter: React.FC = () => {
           {/* Link Columns */}
           {columns.map((col) => (
             <div key={col.title}>
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4">{col.title}</h4>
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide mb-4">{col.title}</h4>
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>

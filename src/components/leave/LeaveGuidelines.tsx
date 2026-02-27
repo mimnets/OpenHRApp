@@ -73,13 +73,13 @@ export const LeaveGuidelines: React.FC<Props> = ({ role }) => {
   const Icon = guide.icon;
 
   return (
-    <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border border-slate-100 shadow-sm mb-8 animate-in slide-in-from-top-4">
+    <div className="bg-white rounded-xl p-6 md:p-8 border border-slate-100 shadow-sm mb-8 animate-in slide-in-from-top-4">
       <div className="flex items-center gap-4 mb-6">
         <div className={`p-3 rounded-2xl ${guide.color}`}>
           <Icon size={24} />
         </div>
         <div>
-          <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">{guide.title}</h3>
+          <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">{guide.title}</h3>
           <p className="text-xs font-bold text-slate-400">Please review before proceeding</p>
         </div>
       </div>

@@ -14,7 +14,7 @@ const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
           <SearchX className="text-primary" size={40} />
         </div>
 
-        <h1 className="text-7xl font-black text-slate-900 mb-2">404</h1>
+        <h1 className="text-7xl font-semibold text-slate-900 mb-2">404</h1>
         <h2 className="text-xl font-bold text-slate-700 mb-3">Page Not Found</h2>
         <p className="text-slate-500 mb-8 leading-relaxed">
           The page you're looking for doesn't exist or has been moved. Let's get you back on track.
@@ -37,10 +37,10 @@ const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
 
         <div className="mt-12 pt-8 border-t border-slate-200">
           <div className="flex items-center justify-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center p-1.5">
+            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-1 border border-primary/20 shadow-sm">
               <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
             </div>
-            <span className="text-sm font-black tracking-tight">
+            <span className="text-sm font-semibold tracking-tight">
               <span className="text-primary">Open</span>
               <span className="text-[#f59e0b]">HR</span>
               <span className="text-[#10b981]">App</span>

@@ -139,7 +139,7 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
               <div className="flex flex-col lg:flex-row gap-8">
                 {/* Main Article */}
                 <article className="flex-1 min-w-0">
-                  <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">
+                  <h1 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight mb-4">
                     {tutorial.title}
                   </h1>
 

@@ -34,8 +34,8 @@ const HowItWorksSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">How It Works</span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 mb-4">
+          <span className="text-xs font-bold text-primary uppercase tracking-wide">How It Works</span>
+          <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 mt-3 mb-4">
             Get Started in 3 Steps
           </h2>
           <p className="text-slate-500 text-lg">
@@ -54,7 +54,7 @@ const HowItWorksSection: React.FC = () => {
 
               <div className={`w-20 h-20 ${s.bg} rounded-2xl flex items-center justify-center mx-auto mb-5 relative`}>
                 <s.icon size={28} className={s.color} />
-                <span className="absolute -top-2 -right-2 w-7 h-7 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center text-[10px] font-black text-slate-500">
+                <span className="absolute -top-2 -right-2 w-7 h-7 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center text-xs font-semibold text-slate-500">
                   {s.step}
                 </span>
               </div>

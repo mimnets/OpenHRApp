@@ -31,7 +31,8 @@
       "Bash(npx --yes sharp-cli:*)",
       "Bash(node -e:*)",
       "Bash(npm run cap:sync:*)",
-      "Bash(npm run cap:open:*)"
+      "Bash(npm run cap:open:*)",
+      "Bash(xargs:*)"
     ]
   }
 }
