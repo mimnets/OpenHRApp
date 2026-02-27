@@ -14,7 +14,7 @@ export const LeaveGuidelines: React.FC<Props> = ({ role }) => {
         return {
           title: 'Employee Guidelines',
           icon: User,
-          color: 'bg-blue-50 text-blue-600',
+          color: 'bg-primary-light text-primary',
           rules: [
             "Ensure you have sufficient leave balance before applying.",
             "Casual leave must be applied 2 days in advance if possible.",
@@ -27,7 +27,7 @@ export const LeaveGuidelines: React.FC<Props> = ({ role }) => {
         return {
           title: 'Managerial Guidelines',
           icon: Briefcase,
-          color: 'bg-indigo-50 text-indigo-600',
+          color: 'bg-primary-light text-primary',
           rules: [
             "Review your direct report's leave request within 24 hours.",
             "Ensure team coverage is adequate before approving dates.",
@@ -39,7 +39,7 @@ export const LeaveGuidelines: React.FC<Props> = ({ role }) => {
         return {
           title: 'Management Guidelines',
           icon: ShieldAlert,
-          color: 'bg-purple-50 text-purple-600',
+          color: 'bg-primary-light text-primary',
           rules: [
             "Oversee leave patterns for Managers and Team Leads.",
             "Approval authority overrides lower-level decisions if necessary.",
