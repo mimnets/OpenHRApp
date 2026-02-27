@@ -40,8 +40,8 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
            
            {/* 1. My Team (Top Left) */}
            <div className="bg-white p-4 rounded-2xl md:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center gap-1.5 min-h-[90px]">
-              <div className="flex items-center gap-2 text-indigo-500">
-                 <div className="p-1.5 bg-indigo-50 rounded-lg"><Network size={14} /></div>
+              <div className="flex items-center gap-2 text-primary">
+                 <div className="p-1.5 bg-primary-light rounded-lg"><Network size={14} /></div>
                  <span className="text-[8px] font-semibold uppercase tracking-widest text-slate-400">Team</span>
               </div>
               <h3 className="font-semibold text-slate-800 text-xs md:text-sm line-clamp-2 leading-tight pl-1" title={data.myTeamName}>
@@ -51,8 +51,8 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
 
            {/* 2. Reports To (Top Right) */}
            <div className="bg-white p-4 rounded-2xl md:rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-center gap-1.5 min-h-[90px]">
-              <div className="flex items-center gap-2 text-indigo-500">
-                 <div className="p-1.5 bg-indigo-50 rounded-lg"><User size={14} /></div>
+              <div className="flex items-center gap-2 text-primary">
+                 <div className="p-1.5 bg-primary-light rounded-lg"><User size={14} /></div>
                  <span className="text-[8px] font-semibold uppercase tracking-widest text-slate-400">Manager</span>
               </div>
               <h3 className="font-semibold text-slate-800 text-xs md:text-sm line-clamp-2 leading-tight pl-1">

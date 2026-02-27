@@ -33,7 +33,7 @@ export const DashboardStats: React.FC<Props> = ({ leaveUsed, upcomingHoliday, is
   return (
     <div className="grid grid-cols-2 gap-3 md:gap-4">
       <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3">
-        <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+        <div className="w-8 h-8 md:w-10 md:h-10 bg-primary-light text-primary rounded-xl flex items-center justify-center">
           <CalendarDays size={18} className="md:w-5 md:h-5" />
         </div>
         <div>
