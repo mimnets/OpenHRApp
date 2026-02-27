@@ -4,12 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.openhrapp',
   appName: 'Open HR App',
   webDir: 'dist',
-  server: {
-    url: 'https://openhrapp.com',
-    cleartext: false,
-  },
   android: {
-    // Fix blank white screen when app is reopened after being backgrounded
     webContentsDebuggingEnabled: false,
   },
 };

@@ -20,6 +20,7 @@ const TutorialsFooter: React.FC = () => {
       links: [
         { label: 'Home', action: goHome },
         { label: 'Blog', action: goToBlog },
+        { label: 'Download App', action: () => { window.history.pushState(null, '', '/download'); window.dispatchEvent(new PopStateEvent('popstate')); } },
       ],
     },
     {
