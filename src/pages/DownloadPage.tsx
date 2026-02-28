@@ -44,7 +44,7 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-2 gap-6 mb-12">
 
-            {/* Direct APK Download — hidden inside the native app */}
+            {/* Download APK — hidden inside the native app */}
             {!isNative && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col">
                 <div className="flex items-center gap-3 mb-4">
@@ -52,16 +52,17 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
                     <Download className="text-primary" size={24} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">Direct Download</h2>
-                    <p className="text-xs text-slate-400">Android APK</p>
+                    <h2 className="text-lg font-bold text-slate-900">Download APK</h2>
+                    <p className="text-xs text-slate-400">Android APK · Latest release</p>
                   </div>
                 </div>
                 <p className="text-sm text-slate-500 mb-6 flex-1">
-                  Download the latest APK directly from our servers. Fast, reliable, and always up to date.
+                  Download the latest APK from GitHub releases. Fast, reliable, and always up to date.
                 </p>
                 <a
-                  href="/downloads/openhrapp.apk"
-                  download="openhrapp.apk"
+                  href="https://github.com/mimnets/OpenHRApp/releases/latest/download/openhrapp.apk"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
                 >
                   <Download size={18} />
@@ -70,28 +71,28 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
               </div>
             )}
 
-            {/* GitHub Release */}
+            {/* GitHub Releases Page */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
                   <Github className="text-slate-700" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">GitHub Release</h2>
-                  <p className="text-xs text-slate-400">Open Source</p>
+                  <h2 className="text-lg font-bold text-slate-900">GitHub Releases</h2>
+                  <p className="text-xs text-slate-400">All versions</p>
                 </div>
               </div>
               <p className="text-sm text-slate-500 mb-6 flex-1">
-                Download from GitHub releases. View source code, changelogs, and previous versions.
+                View source code, changelogs, and download previous versions from GitHub.
               </p>
               <a
-                href="https://github.com/mimnets/OpenHRApp/releases/download/v1.0.1/openhrapp.apk"
+                href="https://github.com/mimnets/OpenHRApp/releases"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors"
               >
                 <Github size={18} />
-                Download from GitHub
+                View All Releases
               </a>
             </div>
           </div>
