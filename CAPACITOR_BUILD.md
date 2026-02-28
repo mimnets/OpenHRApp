@@ -29,8 +29,22 @@ npm run cap:open
 In Android Studio: **Build > Generate Signed Bundle / APK > APK**
 
 ### Step 5: Distribute
-Upload the signed APK to a new GitHub Release (do **not** commit it into the repo — `public/downloads/*.apk` is gitignored).
-For web deployment (Vercel), place a copy at `public/downloads/openhrapp.apk` locally but do not commit it.
+Upload the signed APK to:
+1. **Cloudflare R2** — Upload to the `openhrapp` bucket as `openhrapp.apk` so it's served at `https://cdn.openhrapp.com/openhrapp.apk`
+2. **GitHub Releases** — Attach to a new release for version history
+
+Do **not** commit the APK into the repo — `public/downloads/*.apk` is gitignored.
+For local Vercel dev, place a copy at `public/downloads/openhrapp.apk` but do not commit it.
+
+## File Storage
+
+PocketBase is configured to use **Cloudflare R2** (S3-compatible) for all file storage (selfies, avatars, blog covers, logos, etc.).
+
+- **Bucket:** `openhrapp`
+- **CDN domain:** `cdn.openhrapp.com`
+- **How it works:** PocketBase proxies files through `/api/files/` — all existing `pb.files.getURL()` calls work unchanged
+- **Configuration:** Managed in PocketBase Admin → Settings → Files storage → S3
+- **No frontend code changes needed** — the service layer uses PocketBase SDK which handles the proxy transparently
 
 ## When to Rebuild the APK
 
