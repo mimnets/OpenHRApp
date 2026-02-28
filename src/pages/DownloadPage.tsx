@@ -60,7 +60,7 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
                   Download the latest APK from GitHub releases. Fast, reliable, and always up to date.
                 </p>
                 <a
-                  href="https://github.com/mimnets/OpenHRApp/releases/latest/download/openhrapp.apk"
+                  href="https://cdn.openhrapp.com/openhrapp.apk"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
