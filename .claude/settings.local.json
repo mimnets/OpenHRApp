@@ -36,7 +36,8 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix camera & location permissions with Capacitor plugins\n\n- Install @capacitor/camera and @capacitor/geolocation for native Android\n- Add ACCESS_BACKGROUND_LOCATION to AndroidManifest.xml\n- Hybrid useCamera: getUserMedia live stream + Camera.getPhoto\\(\\) fallback\n- useGeoLocation: Capacitor native on Android, browser API on web\n- Add ErrorBoundary component, wrap Attendance page\n- CameraFeed handles fallback photo mode when no live stream\n- Add root CLAUDE.md with git workflow instructions\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix live camera preview on Android by removing Capacitor Camera.requestPermissions\\(\\) call\n\nThe Capacitor Camera plugin''s requestPermissions\\(\\) was interfering with\nthe WebView''s own getUserMedia\\(\\) permission flow. Removing it lets\nBridgeWebChromeClient handle the Android permission dialog natively.\nAlso added RECORD_AUDIO and MODIFY_AUDIO_SETTINGS permissions for\ndevices that bundle audio with video capture requests.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix live camera preview on Android by removing Capacitor Camera.requestPermissions\\(\\) call\n\nThe Capacitor Camera plugin''s requestPermissions\\(\\) was interfering with\nthe WebView''s own getUserMedia\\(\\) permission flow. Removing it lets\nBridgeWebChromeClient handle the Android permission dialog natively.\nAlso added RECORD_AUDIO and MODIFY_AUDIO_SETTINGS permissions for\ndevices that bundle audio with video capture requests.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)"
     ]
   }
 }
