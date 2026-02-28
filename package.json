@@ -11,7 +11,9 @@
     "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/camera": "8.0.1",
     "@capacitor/core": "^8.1.0",
+    "@capacitor/geolocation": "8.1.0",
     "@vercel/analytics": "^1.6.1",
     "lucide-react": "0.460.0",
     "pocketbase": "0.25.0",
