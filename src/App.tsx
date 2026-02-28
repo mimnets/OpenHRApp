@@ -7,6 +7,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import MainLayout from './layouts/MainLayout';
 import CookieConsent from './components/CookieConsent';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import Dashboard from './pages/Dashboard';
 import EmployeeDirectory from './pages/EmployeeDirectory';
@@ -308,11 +309,15 @@ const AppContent: React.FC = () => {
       case 'profile': return <Settings user={user} onBack={() => handleNavigate('dashboard')} />;
       case 'employees': return <EmployeeDirectory user={user} />;
       case 'attendance':
-        return <Attendance
-          user={user}
-          autoStart={navParams?.autoStart}
-          onFinish={() => handleNavigate('dashboard')}
-        />;
+        return (
+          <ErrorBoundary>
+            <Attendance
+              user={user}
+              autoStart={navParams?.autoStart}
+              onFinish={() => handleNavigate('dashboard')}
+            />
+          </ErrorBoundary>
+        );
       case 'attendance-logs': return <AttendanceLogs user={user} viewMode="MY" />;
       case 'attendance-audit': return <AttendanceLogs user={user} viewMode="AUDIT" />;
       case 'leave': return <Leave user={user} autoOpen={navParams?.autoOpen} />;
