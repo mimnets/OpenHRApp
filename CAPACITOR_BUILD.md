@@ -18,7 +18,7 @@ npm run build
 ```bash
 npm run cap:sync
 ```
-This copies `dist/` into `android/app/src/main/assets/public/` and syncs the Capacitor config.
+This deletes `dist/downloads/` (to prevent the APK from recursively bundling itself) then copies `dist/` into `android/app/src/main/assets/public/` and syncs the Capacitor config.
 
 ### Step 3: Open in Android Studio
 ```bash
@@ -29,7 +29,8 @@ npm run cap:open
 In Android Studio: **Build > Generate Signed Bundle / APK > APK**
 
 ### Step 5: Distribute
-Copy the generated APK to `public/downloads/openhrapp.apk`, commit, and push.
+Upload the signed APK to a new GitHub Release (do **not** commit it into the repo — `public/downloads/*.apk` is gitignored).
+For web deployment (Vercel), place a copy at `public/downloads/openhrapp.apk` locally but do not commit it.
 
 ## When to Rebuild the APK
 
