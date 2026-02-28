@@ -25,16 +25,8 @@ export const useCamera = () => {
     try {
       setError(null);
 
-      // On native, request camera permissions via Capacitor first
-      if (Capacitor.isNativePlatform()) {
-        const perms = await Camera.requestPermissions();
-        if (perms.camera !== 'granted') {
-          setError('Camera permission denied. Please enable it in Settings.');
-          setLoading(false);
-          return;
-        }
-      }
-
+      // Let getUserMedia() run directly — on native, Capacitor's
+      // BridgeWebChromeClient handles the Android permission dialog automatically.
       const s = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
