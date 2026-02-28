@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Download, Github, Smartphone, Monitor, Globe, Shield, Zap, Wifi } from 'lucide-react';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogFooter from '../components/blog/BlogFooter';
@@ -8,6 +9,8 @@ interface DownloadPageProps {
 }
 
 const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
+  const isNative = Capacitor.isNativePlatform();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -41,29 +44,31 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-2 gap-6 mb-12">
 
-            {/* Direct APK Download */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Download className="text-primary" size={24} />
+            {/* Direct APK Download — hidden inside the native app */}
+            {!isNative && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Download className="text-primary" size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Direct Download</h2>
+                    <p className="text-xs text-slate-400">Android APK</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">Direct Download</h2>
-                  <p className="text-xs text-slate-400">Android APK</p>
-                </div>
+                <p className="text-sm text-slate-500 mb-6 flex-1">
+                  Download the latest APK directly from our servers. Fast, reliable, and always up to date.
+                </p>
+                <a
+                  href="/downloads/openhrapp.apk"
+                  download="openhrapp.apk"
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                >
+                  <Download size={18} />
+                  Download APK
+                </a>
               </div>
-              <p className="text-sm text-slate-500 mb-6 flex-1">
-                Download the latest APK directly from our servers. Fast, reliable, and always up to date.
-              </p>
-              <a
-                href="/downloads/openhrapp.apk"
-                download="openhrapp.apk"
-                className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
-              >
-                <Download size={18} />
-                Download APK
-              </a>
-            </div>
+            )}
 
             {/* GitHub Release */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex flex-col">
