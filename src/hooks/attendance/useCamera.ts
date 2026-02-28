@@ -1,12 +1,15 @@
 
 import { useState, useRef, useEffect } from 'react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 export const useCamera = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isTorchOn, setIsTorchOn] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const stopCamera = () => {
@@ -18,14 +21,26 @@ export const useCamera = () => {
 
   const startCamera = async (mode: 'user' | 'environment' = 'user') => {
     stopCamera();
+    setLoading(true);
     try {
       setError(null);
-      const s = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: mode, 
-          width: { ideal: 1080 }, 
-          height: { ideal: 1440 } 
-        } 
+
+      // On native, request camera permissions via Capacitor first
+      if (Capacitor.isNativePlatform()) {
+        const perms = await Camera.requestPermissions();
+        if (perms.camera !== 'granted') {
+          setError('Camera permission denied. Please enable it in Settings.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const s = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: mode,
+          width: { ideal: 1080 },
+          height: { ideal: 1440 }
+        }
       });
       setStream(s);
       setFacingMode(mode);
@@ -33,7 +48,14 @@ export const useCamera = () => {
         videoRef.current.srcObject = s;
       }
     } catch (err: any) {
-      setError("Camera permission denied.");
+      // On native, fall back silently — takePhoto() will still work
+      if (Capacitor.isNativePlatform()) {
+        setError(null); // Clear error — fallback available via takePhoto
+      } else {
+        setError('Camera permission denied.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,12 +79,12 @@ export const useCamera = () => {
 
   const takeSelfie = (canvas: HTMLCanvasElement): string | null => {
     if (!stream || !videoRef.current) return null;
-    
+
     const video = videoRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    
+
     if (ctx) {
       if (facingMode === 'user') {
         ctx.translate(canvas.width, 0);
@@ -71,6 +93,57 @@ export const useCamera = () => {
       ctx.drawImage(video, 0, 0);
     }
     return canvas.toDataURL('image/jpeg', 0.8);
+  };
+
+  /** Capacitor fallback: take a single photo when live stream isn't available */
+  const takePhoto = async (): Promise<string | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+        quality: 80,
+        width: 1080,
+        height: 1440,
+        correctOrientation: true,
+      });
+      return photo.dataUrl ?? null;
+    } catch (err: any) {
+      if (err?.message?.includes('cancelled') || err?.message?.includes('canceled')) {
+        // User cancelled — not an error
+        return null;
+      }
+      setError('Failed to take photo. Please try again.');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Pick a photo from the device gallery */
+  const selectFromGallery = async (): Promise<string | null> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Photos,
+        quality: 80,
+        width: 1080,
+        height: 1440,
+        correctOrientation: true,
+      });
+      return photo.dataUrl ?? null;
+    } catch (err: any) {
+      if (err?.message?.includes('cancelled') || err?.message?.includes('canceled')) {
+        return null;
+      }
+      setError('Failed to select photo. Please try again.');
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -91,6 +164,9 @@ export const useCamera = () => {
     stopCamera,
     toggleCamera,
     toggleTorch,
-    takeSelfie
+    takeSelfie,
+    takePhoto,
+    selectFromGallery,
+    loading
   };
 };
