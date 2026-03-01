@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Eye, EyeOff, Save, Loader2, Image, ArrowLeft } from
 import { tutorialService } from '../../services/tutorial.service';
 import { Tutorial } from '../../types';
 import RichTextEditor from '../blog/RichTextEditor';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface TutorialManagementProps {
   onMessage: (msg: { type: 'success' | 'error'; text: string }) => void;
@@ -376,7 +377,7 @@ const TutorialManagement: React.FC<TutorialManagementProps> = ({ onMessage }) =>
           )}
           <div
             className="prose prose-slate max-w-none"
-            dangerouslySetInnerHTML={{ __html: formData.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(formData.content) }}
           />
         </div>
       ) : (

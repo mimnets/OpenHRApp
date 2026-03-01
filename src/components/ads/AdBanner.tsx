@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { apiClient } from '../../services/api.client';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 export type AdSlot = 'sidebar' | 'dashboard' | 'reports' | 'footer' | 'landing-hero' | 'landing-mid' | 'blog-header' | 'blog-feed' | 'blog-post-top' | 'blog-post-content';
 export type AdSize = '300x250' | '728x90' | '320x100' | 'text';
@@ -124,7 +125,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
         if (!adConfig.customHtml) return null;
         return (
           <div
-            dangerouslySetInnerHTML={{ __html: adConfig.customHtml }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(adConfig.customHtml) }}
             style={{ width: '100%', height: '100%', overflow: 'hidden' }}
           />
         );

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Globe, Moon, MapPin, Upload, Building2 } from 'lucide-react';
+import { Globe, Moon, MapPin, Upload, Building2, Tag } from 'lucide-react';
 import { AppConfig } from '../../types';
 import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 import { apiClient } from '../../services/api.client';
@@ -205,6 +205,22 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
                    </div>
                </div>
              </div>
+         </div>
+      </div>
+
+      {/* Duty Type Labels Section */}
+      <div className="bg-white p-10 rounded-xl border border-slate-100 shadow-sm space-y-8 animate-in slide-in-from-bottom-8 duration-500">
+         <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-3"><Tag size={24} className="text-primary" /> Duty Type Labels</h3>
+         <p className="text-xs text-slate-400 -mt-4">Customize the display names for your two duty types. Internal values remain unchanged.</p>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Duty Type 1 (e.g. Office, HQ, Remote)</label>
+               <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold focus:ring-4 focus:ring-blue-50 transition-all outline-none" value={config.dutyLabel1 || 'Office'} onChange={e => handleChange('dutyLabel1', e.target.value)} placeholder="Office" />
+            </div>
+            <div className="space-y-1">
+               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Duty Type 2 (e.g. Factory, Field, On-site)</label>
+               <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold focus:ring-4 focus:ring-blue-50 transition-all outline-none" value={config.dutyLabel2 || 'Factory'} onChange={e => handleChange('dutyLabel2', e.target.value)} placeholder="Factory" />
+            </div>
          </div>
       </div>
     </div>

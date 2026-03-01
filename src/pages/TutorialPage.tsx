@@ -4,6 +4,7 @@ import { tutorialService } from '../services/tutorial.service';
 import { Tutorial } from '../types';
 import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
+import { sanitizeHtml } from '../utils/sanitize';
 
 interface TutorialPageProps {
   slug: string;
@@ -157,7 +158,7 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
 
                   <div
                     className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-img:rounded-xl"
-                    dangerouslySetInnerHTML={{ __html: tutorial.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(tutorial.content) }}
                   />
 
                   {/* Previous / Next Navigation */}

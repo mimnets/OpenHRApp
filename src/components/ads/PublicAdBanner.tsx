@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../services/api.client';
 import { AdConfig, AdSlot } from './AdBanner';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface PublicAdBannerProps {
   slot: AdSlot;
@@ -77,7 +78,7 @@ export const PublicAdBanner: React.FC<PublicAdBannerProps> = ({ slot, className 
         if (!adConfig.customHtml) return null;
         return (
           <div
-            dangerouslySetInnerHTML={{ __html: adConfig.customHtml }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(adConfig.customHtml) }}
             style={{ width: '100%', height: '100%', overflow: 'hidden' }}
           />
         );

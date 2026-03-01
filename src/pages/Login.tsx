@@ -350,7 +350,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                      <div className="pt-5 mt-5 border-t border-slate-100 space-y-3">
                        <p className="text-xs font-bold text-slate-500">Having trouble installing? Download the Android APK directly</p>
                        <a
-                         href="https://openhrapp.com/downloads/openhrapp.apk"
+                         href="https://cdn.openhrapp.com/openhrapp.apk"
                          download
                          className="w-full py-3.5 bg-primary text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest shadow-lg shadow-primary-light hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
                        >
