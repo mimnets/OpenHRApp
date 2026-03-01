@@ -31,19 +31,19 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
         {isLoading ? (
           <div className="w-48 h-16 bg-slate-100 rounded-[1.5rem] animate-pulse"></div>
         ) : activeShift ? (
-          <button 
+          <button
             onClick={() => onNavigate('attendance-finish')}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3 md:py-4 bg-white border border-emerald-100 rounded-2xl md:rounded-[1.5rem] shadow-sm hover:shadow-md transition-all group active:scale-95 animate-in zoom-in"
+            className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-3 md:py-4 bg-rose-500 rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all group active:scale-95 animate-in zoom-in"
           >
             <div className="relative">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-75"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></div>
+              <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-white animate-ping opacity-75"></div>
             </div>
             <div className="text-left">
-              <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-widest leading-none mb-1">Session Active</p>
-              <p className="text-xs font-semibold text-slate-900 uppercase">Check Out</p>
+              <p className="text-[9px] font-semibold text-rose-100 uppercase tracking-widest leading-none mb-1">Session Active</p>
+              <p className="text-xs font-semibold text-white uppercase">Check Out</p>
             </div>
-            <ArrowRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors ml-2" />
+            <ArrowRight size={16} className="text-rose-200 group-hover:text-white transition-colors ml-2" />
           </button>
         ) : (
           <div className="grid grid-cols-2 gap-2 w-full sm:w-auto animate-in slide-in-from-right-4">
