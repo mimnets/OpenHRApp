@@ -6,6 +6,7 @@ import { PublicAdBanner } from '../components/ads';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const BlogPostSkeleton = () => (
   <div className="animate-pulse">
@@ -139,7 +140,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
 
                   <div
                     className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-img:rounded-xl"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
                   />
 
                   {/* Ad - Blog Post Content */}

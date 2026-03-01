@@ -47,7 +47,7 @@ routerAdd("POST", "/api/openhr/register", (e) => {
 
         // 2. Check if email exists
         try {
-            const u = $app.findFirstRecordByFilter("users", "email='" + email + "'");
+            const u = $app.findFirstRecordByFilter("users", "email = {:email}", { email: email });
             if (u) {
                 return e.json(400, { message: "Email already in use." });
             }
@@ -493,7 +493,7 @@ routerAdd("GET", "/api/openhr/unverified-users", (e) => {
         if (adminRole !== "ADMIN") return e.json(403, { message: "Forbidden" });
         
         try {
-            const records = $app.findAllRecordsByFilter("users", "organization_id='" + adminOrgId + "' && verified=false");
+            const records = $app.findAllRecordsByFilter("users", "organization_id = {:orgId} && verified = false", { orgId: adminOrgId });
             
             const unverifiedUsers = [];
             for (let i = 0; i < records.length; i++) {
@@ -643,7 +643,7 @@ routerAdd("POST", "/api/openhr/process-upgrade-request", (e) => {
             try {
                 const org = $app.findRecordById("organizations", orgId);
                 const orgName = org.getString("name");
-                const admins = $app.findRecordsByFilter("users", "organization_id = '" + orgId + "' && role = 'ADMIN'");
+                const admins = $app.findRecordsByFilter("users", "organization_id = {:orgId} && role = 'ADMIN'", { orgId: orgId });
 
                 if (admins.length > 0) {
                     const admin = admins[0];
@@ -781,7 +781,8 @@ routerAdd("GET", "/api/openhr/ad-config/{slot}", (e) => {
         try {
             const setting = $app.findFirstRecordByFilter(
                 "settings",
-                "key = 'ad_config_" + slot + "' && organization_id = '" + adConfigOrgId + "'"
+                "key = {:key} && organization_id = {:orgId}",
+                { key: "ad_config_" + slot, orgId: adConfigOrgId }
             );
 
             if (setting) {
@@ -863,7 +864,8 @@ routerAdd("GET", "/api/openhr/public-ad-config/{slot}", (e) => {
         try {
             const setting = $app.findFirstRecordByFilter(
                 "settings",
-                "key = 'ad_config_" + slot + "' && organization_id = '" + adConfigOrgId + "'"
+                "key = {:key} && organization_id = {:orgId}",
+                { key: "ad_config_" + slot, orgId: adConfigOrgId }
             );
 
             if (setting) {
@@ -1080,7 +1082,8 @@ routerAdd("GET", "/api/openhr/blog/posts/{slug}", (e) => {
         try {
             const r = $app.findFirstRecordByFilter(
                 "blog_posts",
-                "slug = '" + slug.replace(/'/g, "\\'") + "' && status = 'PUBLISHED'"
+                "slug = {:slug} && status = 'PUBLISHED'",
+                { slug: slug }
             );
 
             let coverUrl = "";
@@ -1214,7 +1217,8 @@ routerAdd("GET", "/api/openhr/tutorials/posts/{slug}", (e) => {
         try {
             const r = $app.findFirstRecordByFilter(
                 "tutorials",
-                "slug = '" + slug.replace(/'/g, "\\'") + "' && status = 'PUBLISHED'"
+                "slug = {:slug} && status = 'PUBLISHED'",
+                { slug: slug }
             );
 
             let coverUrl = "";
@@ -1311,7 +1315,7 @@ try {
             let adminName = "Unknown";
             let adminEmail = "Unknown";
             try {
-                const admins = $app.findRecordsByFilter("users", "organization_id = '" + orgId + "' && role = 'ADMIN'");
+                const admins = $app.findRecordsByFilter("users", "organization_id = {:orgId} && role = 'ADMIN'", { orgId: orgId });
                 if (admins.length > 0) {
                     adminName = admins[0].getString("name");
                     adminEmail = admins[0].getString("email");
@@ -1401,7 +1405,7 @@ try {
 
         try {
             // Find org admins
-            const admins = $app.findRecordsByFilter("users", "organization_id = '" + orgId + "' && role = 'ADMIN'");
+            const admins = $app.findRecordsByFilter("users", "organization_id = {:orgId} && role = 'ADMIN'", { orgId: orgId });
             if (admins.length === 0) return;
 
             const settings = $app.settings();

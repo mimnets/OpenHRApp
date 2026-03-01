@@ -17,7 +17,8 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
         try {
             expiredTrials = $app.findRecordsByFilter(
                 "organizations",
-                "subscription_status = 'TRIAL' && trial_end_date != '' && trial_end_date < '" + now + "'"
+                "subscription_status = 'TRIAL' && trial_end_date != '' && trial_end_date < {:now}",
+                { now: now }
             );
         } catch (findErr) {
             console.log("[CRON] No expired trials found or query error: " + findErr.toString());
@@ -40,7 +41,8 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
                 try {
                     const admins = $app.findRecordsByFilter(
                         "users",
-                        "organization_id = '" + orgId + "' && role = 'ADMIN'"
+                        "organization_id = {:orgId} && role = 'ADMIN'",
+                        { orgId: orgId }
                     );
 
                     if (admins.length > 0) {
@@ -99,7 +101,8 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
             try {
                 orgsToRemind = $app.findRecordsByFilter(
                     "organizations",
-                    "subscription_status = 'TRIAL' && trial_end_date != '' && trial_end_date >= '" + targetStart + "' && trial_end_date < '" + targetEnd + "'"
+                    "subscription_status = 'TRIAL' && trial_end_date != '' && trial_end_date >= {:targetStart} && trial_end_date < {:targetEnd}",
+                    { targetStart: targetStart, targetEnd: targetEnd }
                 );
             } catch (findErr) {
                 // No orgs found for this reminder window
@@ -116,7 +119,8 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
                 try {
                     const admins = $app.findRecordsByFilter(
                         "users",
-                        "organization_id = '" + orgId + "' && role = 'ADMIN'"
+                        "organization_id = {:orgId} && role = 'ADMIN'",
+                        { orgId: orgId }
                     );
 
                     if (admins.length > 0) {
@@ -249,7 +253,7 @@ cronAdd("auto_absent_check", "* * * * *", () => {
 
             // A. Check if already Present (Any status: PRESENT, LATE, etc.)
             try {
-                const att = $app.findFirstRecordByFilter("attendance", "employee_id = '" + empId + "' && date = '" + dateStr + "'");
+                const att = $app.findFirstRecordByFilter("attendance", "employee_id = {:empId} && date = {:dateStr}", { empId: empId, dateStr: dateStr });
                 if (att) {
                     countSkipped++;
                     return; 
@@ -259,8 +263,9 @@ cronAdd("auto_absent_check", "* * * * *", () => {
             // B. Check if on Approved Leave
             try {
                 const leave = $app.findFirstRecordByFilter(
-                    "leaves", 
-                    "employee_id = '" + empId + "' && status = 'APPROVED' && start_date <= '" + dateStr + "' && end_date >= '" + dateStr + "'"
+                    "leaves",
+                    "employee_id = {:empId} && status = 'APPROVED' && start_date <= {:dateStr} && end_date >= {:dateStr}",
+                    { empId: empId, dateStr: dateStr }
                 );
                 if (leave) {
                     console.log("[CRON] Skip " + empName + ": On Approved Leave.");
@@ -322,7 +327,7 @@ cronAdd("daily_attendance_report", "0 23 * * *", () => {
 
             // Check if org has daily report enabled
             try {
-                const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config' && organization_id = '" + orgId + "'");
+                const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config' && organization_id = {:orgId}", { orgId: orgId });
                 const config = configRecord.get("value");
                 if (!config || !config.dailyReportEnabled) continue;
             } catch (e) {
@@ -343,7 +348,7 @@ cronAdd("daily_attendance_report", "0 23 * * *", () => {
             let onLeaveCount = 0;
 
             try {
-                const records = $app.findRecordsByFilter("attendance", "organization_id = '" + orgId + "' && date = '" + dateStr + "'");
+                const records = $app.findRecordsByFilter("attendance", "organization_id = {:orgId} && date = {:dateStr}", { orgId: orgId, dateStr: dateStr });
                 for (let r = 0; r < records.length; r++) {
                     const status = records[r].getString("status");
                     if (status === "PRESENT") presentCount++;
@@ -356,14 +361,15 @@ cronAdd("daily_attendance_report", "0 23 * * *", () => {
             try {
                 const leaves = $app.findRecordsByFilter(
                     "leaves",
-                    "organization_id = '" + orgId + "' && status = 'APPROVED' && start_date <= '" + dateStr + "' && end_date >= '" + dateStr + "'"
+                    "organization_id = {:orgId} && status = 'APPROVED' && start_date <= {:dateStr} && end_date >= {:dateStr}",
+                    { orgId: orgId, dateStr: dateStr }
                 );
                 onLeaveCount = leaves.length;
             } catch (e) {}
 
             // Get admins to send report
             try {
-                const admins = $app.findRecordsByFilter("users", "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')");
+                const admins = $app.findRecordsByFilter("users", "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')", { orgId: orgId });
                 if (admins.length === 0) continue;
 
                 const settings = $app.settings();
@@ -450,7 +456,8 @@ cronAdd("selfie_cleanup", "0 2 * * *", () => {
         try {
             const records = $app.findRecordsByFilter(
                 "attendance",
-                "date < '" + cutoffStr + "' && (selfie_in != '' || selfie_out != '')",
+                "date < {:cutoffStr} && (selfie_in != '' || selfie_out != '')",
+                { cutoffStr: cutoffStr },
                 "-date",
                 BATCH_SIZE,
                 0
