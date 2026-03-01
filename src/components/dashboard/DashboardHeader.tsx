@@ -52,14 +52,14 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
               className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-4 bg-primary text-white rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-primary-light hover:bg-primary-hover active:scale-95 transition-all"
             >
               <Building size={16} />
-              <span className="text-[10px] font-semibold uppercase tracking-widest">Office</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest">{appConfig?.dutyLabel1 || 'Office'}</span>
             </button>
-            <button 
+            <button
               onClick={() => onNavigate('attendance-quick-factory')}
               className="flex items-center justify-center gap-2 px-4 py-3 md:px-5 md:py-4 bg-primary text-white rounded-2xl md:rounded-[1.5rem] shadow-lg shadow-primary-light hover:bg-primary-hover active:scale-95 transition-all opacity-80"
             >
               <Building2 size={16} />
-              <span className="text-[10px] font-semibold uppercase tracking-widest">Factory</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest">{appConfig?.dutyLabel2 || 'Factory'}</span>
             </button>
           </div>
         )}

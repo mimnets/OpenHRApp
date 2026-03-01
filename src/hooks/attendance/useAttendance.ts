@@ -116,6 +116,7 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
   return {
     currentTime,
     activeRecord,
+    appConfig,
     isLoading,
     status,
     submitPunch
