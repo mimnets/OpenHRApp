@@ -43,7 +43,7 @@ export const AttendanceActions: React.FC<Props> = ({
           ) : (
             <>
               <Fingerprint size={18} /> 
-              {activeRecord ? 'Complete Session' : 'Begin Session'}
+              {activeRecord ? 'Check Out' : 'Check In'}
             </>
           )}
         </button>

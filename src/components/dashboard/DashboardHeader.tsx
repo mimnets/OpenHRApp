@@ -41,7 +41,7 @@ export const DashboardHeader: React.FC<Props> = ({ user, activeShift, appConfig,
             </div>
             <div className="text-left">
               <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-widest leading-none mb-1">Session Active</p>
-              <p className="text-xs font-semibold text-slate-900 uppercase">Finish Session</p>
+              <p className="text-xs font-semibold text-slate-900 uppercase">Check Out</p>
             </div>
             <ArrowRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors ml-2" />
           </button>

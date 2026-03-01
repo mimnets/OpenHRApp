@@ -122,7 +122,7 @@ Once both camera and GPS are ready:
 
 1. Review your location tag — make sure it shows the correct office or area.
 2. For **Factory mode**, enter your remarks (factory name, project details, etc.).
-3. Click **"Begin Session"**.
+3. Click **"Check In"**.
 4. The system captures your selfie automatically.
 5. A success animation (checkmark + "Verified") confirms your clock-in.
 
@@ -140,10 +140,10 @@ Once both camera and GPS are ready:
 When your work is done:
 
 1. Go back to the **Attendance** page (or click "Finish Session" from the dashboard).
-2. The button now shows **"Complete Session"** instead of "Begin Session."
+2. The button now shows **"Check Out"** instead of "Check In."
 3. Your camera and GPS will activate again.
 4. Optionally add end-of-day remarks.
-5. Click **"Complete Session"** to clock out.
+5. Click **"Check Out"** to clock out.
 
 Your check-out time is recorded, and the session is marked as completed.
 
