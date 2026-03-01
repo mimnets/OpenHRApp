@@ -327,9 +327,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                     {dbDepartments.map(dept => {
                       const isSelected = selectedDepts.includes(dept);
                       return (
-                        <button key={dept} onClick={() => toggleDept(dept)} className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-indigo-200 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}>
-                          <div className={`p-1 rounded-md ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-400'}`}>{isSelected ? <CheckSquare size={14} /> : <Square size={14} />}</div>
-                          <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-indigo-900' : 'text-slate-500'}`}>{dept}</span>
+                        <button key={dept} onClick={() => toggleDept(dept)} className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-primary/30 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}>
+                          <div className={`p-1 rounded-md ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>{isSelected ? <CheckSquare size={14} /> : <Square size={14} />}</div>
+                          <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>{dept}</span>
                         </button>
                       );
                     })}
@@ -365,12 +365,12 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 </div>
               </div>
 
-              <div className="pt-10 border-t border-slate-50"><button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="w-full flex items-center justify-center gap-3 py-6 bg-indigo-600 text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} Generate CSV Export</button></div>
+              <div className="pt-10 border-t border-slate-50"><button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="w-full flex items-center justify-center gap-3 py-6 bg-primary text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} Generate CSV Export</button></div>
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 animate-in slide-in-from-right-4 duration-500">
-              <h3 className="text-lg font-semibold text-slate-900 mb-8 flex items-center gap-3"><Settings2 className="text-indigo-500" /> Export Configuration</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{columnOptions.map((col) => (<button key={col.key} onClick={() => setEnabledColumns(p => ({...p, [col.key]: !p[col.key]}))} className={`flex items-center justify-between p-5 rounded-3xl border transition-all ${enabledColumns[col.key] ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}><div className="flex items-center gap-3"><div className={`p-2 rounded-lg ${enabledColumns[col.key] ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-400'}`}><col.icon size={16} /></div><span className="text-[10px] font-semibold uppercase tracking-tight">{col.label}</span></div>{enabledColumns[col.key] && <CheckCircle size={18} className="text-indigo-600" />}</button>))}</div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-8 flex items-center gap-3"><Settings2 className="text-primary" /> Export Configuration</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{columnOptions.map((col) => (<button key={col.key} onClick={() => setEnabledColumns(p => ({...p, [col.key]: !p[col.key]}))} className={`flex items-center justify-between p-5 rounded-3xl border transition-all ${enabledColumns[col.key] ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-100 opacity-60'}`}><div className="flex items-center gap-3"><div className={`p-2 rounded-lg ${enabledColumns[col.key] ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}><col.icon size={16} /></div><span className="text-[10px] font-semibold uppercase tracking-tight">{col.label}</span></div>{enabledColumns[col.key] && <CheckCircle size={18} className="text-primary" />}</button>))}</div>
             </div>
           )}
         </div>

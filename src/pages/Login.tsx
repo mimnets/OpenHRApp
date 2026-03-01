@@ -352,7 +352,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                        <a
                          href="https://openhrapp.com/downloads/openhrapp.apk"
                          download
-                         className="w-full py-3.5 bg-emerald-500 text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                         className="w-full py-3.5 bg-primary text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest shadow-lg shadow-primary-light hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
                        >
                          <Download size={14} /> Download APK
                        </a>

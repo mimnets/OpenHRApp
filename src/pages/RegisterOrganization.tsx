@@ -188,7 +188,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
             </div>
           </div>
 
-          <button type="submit" disabled={isSubmitting} className="w-full py-5 bg-indigo-600 text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-700 transition-all disabled:opacity-50">
+          <button type="submit" disabled={isSubmitting} className="w-full py-5 bg-primary text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-primary-hover transition-all disabled:opacity-50">
             {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <>Complete Registration <ArrowRight size={20}/></>}
           </button>
         </form>
