@@ -67,7 +67,7 @@ const AdminLeaveFlow: React.FC<Props> = ({ requests, onRefresh }) => {
               <textarea placeholder="HR/Admin Audit Notes..." className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl text-sm font-bold min-h-[100px] outline-none" value={remarks} onChange={e => setRemarks(e.target.value)} />
               <div className="flex gap-4">
                 <button disabled={isProcessing} onClick={() => handleVerify('REJECTED')} className="flex-1 py-5 bg-rose-50 text-rose-600 rounded-[32px] font-semibold uppercase text-[10px]">Decline</button>
-                <button disabled={isProcessing} onClick={() => handleVerify('APPROVED')} className="flex-1 py-5 bg-emerald-600 text-white rounded-[32px] font-semibold uppercase text-[10px] shadow-xl flex items-center justify-center gap-2">
+                <button disabled={isProcessing} onClick={() => handleVerify('APPROVED')} className="flex-1 py-5 bg-primary text-white rounded-[32px] font-semibold uppercase text-[10px] shadow-xl flex items-center justify-center gap-2">
                    {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <ArrowRight size={16} />} Final Approve
                 </button>
               </div>

@@ -104,11 +104,11 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
       {/* Organization Identity Section */}
       <div className="bg-white p-10 rounded-xl border border-slate-100 shadow-sm space-y-8 animate-in slide-in-from-bottom-8 duration-500">
          <div className="flex items-center justify-between">
-           <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-3"><Building2 size={24} className="text-blue-500" /> Organization Identity</h3>
+           <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-3"><Building2 size={24} className="text-primary" /> Organization Identity</h3>
            <button
              onClick={handleOrgDataSave}
              disabled={isSaving}
-             className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all disabled:opacity-50"
+             className="px-6 py-2 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-hover transition-all disabled:opacity-50"
            >
              {isSaving ? 'Saving...' : 'Save Organization'}
            </button>
@@ -174,7 +174,7 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
 
       {/* System Configuration Section */}
       <div className="bg-white p-10 rounded-xl border border-slate-100 shadow-sm space-y-8 animate-in slide-in-from-bottom-8 duration-500">
-         <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-3"><Globe size={24} className="text-blue-500" /> System Configuration</h3>
+         <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-3"><Globe size={24} className="text-primary" /> System Configuration</h3>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Timezone</label>

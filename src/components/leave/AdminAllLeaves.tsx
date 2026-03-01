@@ -114,7 +114,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
               {!readOnly && isPending(req.status) && (
                 <button
                   onClick={() => setApproveTarget(req)}
-                  className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[9px] font-semibold uppercase tracking-widest hover:bg-emerald-700 transition-colors"
+                  className="px-3 py-2 bg-primary text-white rounded-xl text-[9px] font-semibold uppercase tracking-widest hover:bg-primary-hover transition-colors"
                 >
                   Review
                 </button>
@@ -234,7 +234,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
                 <button disabled={isApproving} onClick={() => handleQuickApprove('REJECTED')} className="flex-1 py-4 bg-rose-50 text-rose-600 rounded-xl font-semibold uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors">
                   <XCircle size={16} /> Reject
                 </button>
-                <button disabled={isApproving} onClick={() => handleQuickApprove('APPROVED')} className="flex-[1.5] py-4 bg-emerald-600 text-white rounded-xl font-semibold uppercase text-[10px] shadow-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors">
+                <button disabled={isApproving} onClick={() => handleQuickApprove('APPROVED')} className="flex-[1.5] py-4 bg-primary text-white rounded-xl font-semibold uppercase text-[10px] shadow-xl flex items-center justify-center gap-2 hover:bg-primary-hover transition-colors">
                   {isApproving ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle size={16} />} Approve
                 </button>
               </div>

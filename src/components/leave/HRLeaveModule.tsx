@@ -260,7 +260,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
                 <button disabled={isProcessing} onClick={() => handleVerify('REJECTED')} className="flex-1 py-4 bg-rose-50 text-rose-600 rounded-xl font-semibold uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors">
                   <Ban size={16}/> Decline
                 </button>
-                <button disabled={isProcessing} onClick={() => handleVerify('APPROVED')} className="flex-[1.5] py-4 bg-emerald-600 text-white rounded-xl font-semibold uppercase text-[10px] shadow-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors">
+                <button disabled={isProcessing} onClick={() => handleVerify('APPROVED')} className="flex-[1.5] py-4 bg-primary text-white rounded-xl font-semibold uppercase text-[10px] shadow-xl flex items-center justify-center gap-2 hover:bg-primary-hover transition-colors">
                   {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <FileCheck size={16} />} Approve
                 </button>
               </div>

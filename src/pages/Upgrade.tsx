@@ -128,7 +128,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-emerald-800 mb-2">You're All Set!</h2>
           <p className="text-emerald-600 mb-6">Your organization has full access to all features.</p>
-          <button onClick={onBack} className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all">
+          <button onClick={onBack} className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-hover transition-all">
             Back to Dashboard
           </button>
         </div>
@@ -453,7 +453,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
             <button
               onClick={handleAcceptAds}
               disabled={isLoading}
-              className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-primary text-white rounded-xl font-bold hover:bg-primary-hover transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isLoading && <Loader2 size={18} className="animate-spin" />}
               Accept & Continue Free
