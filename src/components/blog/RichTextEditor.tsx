@@ -6,7 +6,7 @@ import {
   Link, ImageIcon, Code,
   AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Minus, Type,
-  Lock, Unlock,
+  Lock, Unlock, Link2, Unlink,
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -22,6 +22,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [aspectLocked, setAspectLocked] = useState(true);
   const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
+  const [imgAlign, setImgAlign] = useState<'left' | 'center' | 'right'>('left');
+  const [imgLink, setImgLink] = useState<string>('');
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number; aspect: number; handle: string } | null>(null);
 
   // Sync external value to editor on mount or when value changes externally
@@ -48,6 +50,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
     const w = img.offsetWidth;
     const h = img.offsetHeight;
     setImgDims({ w, h });
+
+    // Detect current alignment from inline styles
+    const ml = img.style.marginLeft;
+    const mr = img.style.marginRight;
+    if (ml === 'auto' && mr === 'auto') setImgAlign('center');
+    else if (ml === 'auto' && mr === '0px') setImgAlign('right');
+    else setImgAlign('left');
+
+    // Detect existing link wrapper
+    const parent = img.parentElement;
+    if (parent && parent.tagName === 'A') {
+      setImgLink((parent as HTMLAnchorElement).href);
+    } else {
+      setImgLink('');
+    }
   }, []);
 
   const handleEditorClick = useCallback((e: React.MouseEvent) => {
@@ -145,6 +162,52 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
     }
     handleInput();
   }, [selectedImage, aspectLocked, handleInput]);
+
+  // Image alignment handler
+  const alignImage = useCallback((align: 'left' | 'center' | 'right') => {
+    if (!selectedImage) return;
+    selectedImage.style.display = 'block';
+    switch (align) {
+      case 'left':
+        selectedImage.style.marginLeft = '0';
+        selectedImage.style.marginRight = 'auto';
+        break;
+      case 'center':
+        selectedImage.style.marginLeft = 'auto';
+        selectedImage.style.marginRight = 'auto';
+        break;
+      case 'right':
+        selectedImage.style.marginLeft = 'auto';
+        selectedImage.style.marginRight = '0';
+        break;
+    }
+    setImgAlign(align);
+    handleInput();
+  }, [selectedImage, handleInput]);
+
+  // Image link handler
+  const toggleImageLink = useCallback(() => {
+    if (!selectedImage) return;
+    const parent = selectedImage.parentElement;
+
+    if (parent && parent.tagName === 'A') {
+      // Unwrap: move img out of the <a>, then remove the <a>
+      parent.replaceWith(selectedImage);
+      setImgLink('');
+    } else {
+      const url = prompt('Enter link URL for this image:');
+      if (url) {
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        selectedImage.replaceWith(anchor);
+        anchor.appendChild(selectedImage);
+        setImgLink(url);
+      }
+    }
+    handleInput();
+  }, [selectedImage, handleInput]);
 
   // Deselect if selected image is removed from DOM
   useEffect(() => {
@@ -378,7 +441,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
                 />
               ))}
 
-              {/* Floating dimension toolbar */}
+              {/* Floating image toolbar */}
               <div
                 style={{
                   position: 'absolute',
@@ -389,14 +452,55 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg shadow-lg px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg shadow-lg px-2 py-1.5 text-xs">
+                  {/* Alignment buttons */}
+                  <button
+                    type="button"
+                    onClick={() => alignImage('left')}
+                    title="Align left"
+                    className={`p-1 rounded transition-colors ${imgAlign === 'left' ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <AlignLeft size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alignImage('center')}
+                    title="Align center"
+                    className={`p-1 rounded transition-colors ${imgAlign === 'center' ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <AlignCenter size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alignImage('right')}
+                    title="Align right"
+                    className={`p-1 rounded transition-colors ${imgAlign === 'right' ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    <AlignRight size={12} />
+                  </button>
+
+                  <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
+                  {/* Link button */}
+                  <button
+                    type="button"
+                    onClick={toggleImageLink}
+                    title={imgLink ? 'Remove link' : 'Add link'}
+                    className={`p-1 rounded transition-colors ${imgLink ? 'text-primary bg-primary/10' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    {imgLink ? <Unlink size={12} /> : <Link2 size={12} />}
+                  </button>
+
+                  <div className="w-px h-4 bg-slate-200 mx-0.5" />
+
+                  {/* Dimension inputs */}
                   <label className="text-slate-500">W</label>
                   <input
                     type="number"
                     min={1}
                     value={imgDims.w}
                     onChange={(e) => setWidth(Number(e.target.value))}
-                    className="w-16 border border-slate-200 rounded px-1.5 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-14 border border-slate-200 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <button
                     type="button"
@@ -412,7 +516,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
                     min={1}
                     value={imgDims.h}
                     onChange={(e) => setHeight(Number(e.target.value))}
-                    className="w-16 border border-slate-200 rounded px-1.5 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-14 border border-slate-200 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <span className="text-slate-400">px</span>
                 </div>
