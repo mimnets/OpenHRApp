@@ -23,7 +23,7 @@ interface AttendanceProps {
 const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) => {
   // 1. Logic Hooks
   const {
-    currentTime, activeRecord, isLoading, status, submitPunch
+    currentTime, activeRecord, appConfig, isLoading, status, submitPunch
   } = useAttendance(user, onFinish);
 
   const {
@@ -159,6 +159,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
 
       <AttendanceActions
         dutyType={dutyType}
+        dutyLabel={dutyType === 'FACTORY' ? (appConfig?.dutyLabel2 || 'Factory') : (appConfig?.dutyLabel1 || 'Office')}
         remarks={remarks}
         setRemarks={setRemarks}
         onSubmit={handlePunchSubmit}
