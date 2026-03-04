@@ -48,12 +48,14 @@ Trigger notifications for:
 - Manager approves/rejects -> Employee gets `LEAVE` notification
 - Leave forwarded to HR -> HR users get `LEAVE` notification
 
-### Phase 3: Attendance Reminders (Planned)
+### Phase 3: Attendance Notifications (Partially Implemented)
 
-Trigger notifications for:
-- Daily check-in reminder (configurable time)
-- Missed check-out alert
-- Late arrival notification to manager
+**Implemented (event-driven):**
+- Late check-in -> Manager gets `ATTENDANCE` notification (triggered in `saveAttendance()`)
+- Missed check-out / auto-close -> Employee gets `ATTENDANCE` notification (triggered in `getActiveAttendance()`)
+
+**Deferred (requires scheduled infra):**
+- Daily check-in reminder (see `Others/ATTENDANCE_NOTIFICATIONS_PLAN.md` for options)
 
 ### Phase 4: Review Notifications (Planned)
 
