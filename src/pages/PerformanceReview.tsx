@@ -12,13 +12,13 @@ interface Props {
 }
 
 const PerformanceReview: React.FC<Props> = ({ user }) => {
-  const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
+  const isAdmin = user.role === 'ADMIN' || user.role === 'HR' || user.role === 'SUPER_ADMIN';
   const isManager = user.role === 'MANAGER' || user.role === 'TEAM_LEAD' || user.role === 'MANAGEMENT';
 
   const { canPerformAction, subscription } = useSubscription();
   const canWrite = canPerformAction('write');
 
-  const { data, isLoading, refreshData } = usePerformanceReview(user);
+  const { data, isLoading, error, refreshData } = usePerformanceReview(user);
 
   if (isLoading) {
     return (
@@ -28,6 +28,11 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
     );
   }
 
+  // Show fetch error if any
+  if (error) {
+    console.warn('[PerformanceReview] Error state:', error);
+  }
+
   // Past reviews for the employee (from non-active cycles)
   const pastReviews = data.reviews.filter(
     r => r.employeeId === user.id && r.cycleId !== data.activeCycle?.id
@@ -35,6 +40,14 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      {/* Data Fetch Error */}
+      {error && (
+        <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm">{error}</span>
+        </div>
+      )}
+
       {/* Subscription Warning */}
       {!canWrite && (
         <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -51,20 +64,23 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
       <EmployeeReviewModule
         user={user}
         activeCycle={data.activeCycle}
+        upcomingCycle={data.upcomingCycle}
         myReview={data.myReview}
         pastReviews={pastReviews}
         onRefresh={refreshData}
         readOnly={!canWrite}
+        reviewConfig={data.reviewConfig}
       />
 
       {/* Manager Module */}
-      {isManager && (
+      {(isManager || data.directReportReviews.length > 0) && (
         <div className="pt-12 border-t border-slate-100">
           <ManagerReviewModule
             user={user}
             directReportReviews={data.directReportReviews}
             onRefresh={refreshData}
             readOnly={!canWrite}
+            reviewConfig={data.reviewConfig}
           />
         </div>
       )}
@@ -78,6 +94,7 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
             allReviews={data.allReviews}
             onRefresh={refreshData}
             readOnly={!canWrite}
+            reviewConfig={data.reviewConfig}
           />
         </div>
       )}

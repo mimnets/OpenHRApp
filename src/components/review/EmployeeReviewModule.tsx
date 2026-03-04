@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Send, FileText, ChevronDown, ChevronUp, Loader2, CheckCircle2 } from 'lucide-react';
+import { Send, FileText, ChevronDown, ChevronUp, Loader2, CheckCircle2, Calendar } from 'lucide-react';
 import { hrService } from '../../services/hrService';
-import { PerformanceReview, ReviewCycle, CompetencyRating, CompetencyId } from '../../types';
-import { PERFORMANCE_COMPETENCIES } from '../../constants';
+import { PerformanceReview, ReviewCycle, CompetencyRating, OrgReviewConfig, CustomCompetency } from '../../types';
 import CompetencyRatingCard from './CompetencyRatingCard';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
 import ReviewStatusBadge from './ReviewStatusBadge';
@@ -11,19 +10,25 @@ import ReviewStatusBadge from './ReviewStatusBadge';
 interface Props {
   user: any;
   activeCycle: ReviewCycle | null;
+  upcomingCycle?: ReviewCycle | null;
   myReview: PerformanceReview | null;
   pastReviews: PerformanceReview[];
   onRefresh: () => void;
   readOnly?: boolean;
+  reviewConfig: OrgReviewConfig;
 }
 
-const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pastReviews, onRefresh, readOnly = false }) => {
+const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycle, myReview, pastReviews, onRefresh, readOnly = false, reviewConfig }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
-  const [ratings, setRatings] = useState<Record<CompetencyId, { rating: number; comment: string }>>(() => {
+
+  const competencies = reviewConfig.competencies;
+  const ratingScale = reviewConfig.ratingScale.labels;
+
+  const [ratings, setRatings] = useState<Record<string, { rating: number; comment: string }>>(() => {
     const initial: any = {};
-    PERFORMANCE_COMPETENCIES.forEach(c => {
+    competencies.forEach(c => {
       const existing = myReview?.selfRatings.find(r => r.competencyId === c.id);
       initial[c.id] = {
         rating: existing?.rating || 0,
@@ -34,13 +39,12 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
   });
 
   const canSubmit = myReview?.status === 'DRAFT' && !readOnly;
-  const allRated = PERFORMANCE_COMPETENCIES.every(c => ratings[c.id].rating > 0);
+  const allRated = competencies.every(c => ratings[c.id]?.rating > 0);
 
   const handleCreateAndOpen = async () => {
     if (!activeCycle || readOnly) return;
     setIsProcessing(true);
     try {
-      // Fetch employee details for line manager
       const employees = await hrService.getEmployees();
       const me = employees.find((e: any) => e.id === user.id);
       const manager = me?.lineManagerId ? employees.find((e: any) => e.id === me.lineManagerId) : null;
@@ -49,7 +53,7 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
         activeCycle.id,
         user.id,
         user.name,
-        manager?.id,
+        me?.lineManagerId || manager?.id,
         manager?.name,
       );
       onRefresh();
@@ -64,7 +68,7 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
     if (!myReview || !canSubmit || !allRated) return;
     setIsProcessing(true);
     try {
-      const selfRatings: CompetencyRating[] = PERFORMANCE_COMPETENCIES.map(c => ({
+      const selfRatings: CompetencyRating[] = competencies.map(c => ({
         competencyId: c.id,
         rating: ratings[c.id].rating,
         comment: ratings[c.id].comment,
@@ -78,11 +82,11 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
     }
   };
 
-  const updateRating = (id: CompetencyId, rating: number) => {
+  const updateRating = (id: string, rating: number) => {
     setRatings(prev => ({ ...prev, [id]: { ...prev[id], rating } }));
   };
 
-  const updateComment = (id: CompetencyId, comment: string) => {
+  const updateComment = (id: string, comment: string) => {
     setRatings(prev => ({ ...prev, [id]: { ...prev[id], comment } }));
   };
 
@@ -91,6 +95,15 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
     if (rated.length === 0) return 0;
     return (rated.reduce((sum, r) => sum + r.rating, 0) / rated.length).toFixed(1);
   };
+
+  // Resolve competency info: try org config first, then fall back for legacy IDs
+  const resolveCompetency = (competencyId: string): CustomCompetency => {
+    const found = competencies.find(c => c.id === competencyId);
+    if (found) return found;
+    return { id: competencyId, name: competencyId.replace(/_/g, ' '), description: '', behaviors: [] };
+  };
+
+  const maxRating = reviewConfig.ratingScale.max;
 
   return (
     <div className="space-y-6">
@@ -108,11 +121,25 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
       </div>
 
       {/* No Active Cycle */}
-      {!activeCycle && (
+      {!activeCycle && !upcomingCycle && (
         <div className="bg-slate-50 border border-slate-100 rounded-2xl p-8 text-center">
           <FileText size={40} className="mx-auto text-slate-300 mb-3" />
           <p className="text-slate-500 font-medium">No active review cycle at this time.</p>
           <p className="text-xs text-slate-400 mt-1">Your HR team will open a cycle when it's time for reviews.</p>
+        </div>
+      )}
+
+      {/* Upcoming Cycle Preview */}
+      {!activeCycle && upcomingCycle && (
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-center">
+          <Calendar size={36} className="mx-auto text-blue-400 mb-3" />
+          <p className="font-semibold text-blue-800">{upcomingCycle.name}</p>
+          <p className="text-sm text-blue-600 mt-1">
+            Review period: {new Date(upcomingCycle.startDate).toLocaleDateString()} — {new Date(upcomingCycle.endDate).toLocaleDateString()}
+          </p>
+          <p className="text-xs text-blue-500 mt-2">
+            Opens on <span className="font-semibold">{new Date(upcomingCycle.reviewStartDate).toLocaleDateString()}</span> — you'll be able to start your self-assessment then.
+          </p>
         </div>
       )}
 
@@ -145,18 +172,19 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
           <div>
             <h3 className="font-semibold text-slate-800 mb-3">Self-Assessment</h3>
             <div className="space-y-3">
-              {PERFORMANCE_COMPETENCIES.map(comp => (
+              {competencies.map(comp => (
                 <CompetencyRatingCard
                   key={comp.id}
                   competencyName={comp.name}
                   description={comp.description}
                   behaviors={comp.behaviors}
-                  rating={canSubmit ? ratings[comp.id].rating : (myReview.selfRatings.find(r => r.competencyId === comp.id)?.rating || 0)}
-                  comment={canSubmit ? ratings[comp.id].comment : (myReview.selfRatings.find(r => r.competencyId === comp.id)?.comment || '')}
+                  rating={canSubmit ? (ratings[comp.id]?.rating || 0) : (myReview.selfRatings.find(r => r.competencyId === comp.id)?.rating || 0)}
+                  comment={canSubmit ? (ratings[comp.id]?.comment || '') : (myReview.selfRatings.find(r => r.competencyId === comp.id)?.comment || '')}
                   onRatingChange={canSubmit ? (v) => updateRating(comp.id, v) : undefined}
                   onCommentChange={canSubmit ? (v) => updateComment(comp.id, v) : undefined}
                   readOnly={!canSubmit}
                   label="Self"
+                  ratingScale={ratingScale}
                 />
               ))}
             </div>
@@ -167,18 +195,19 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
             <div>
               <h3 className="font-semibold text-slate-800 mb-3">Manager Assessment</h3>
               <div className="space-y-3">
-                {PERFORMANCE_COMPETENCIES.map(comp => {
-                  const mRating = myReview.managerRatings.find(r => r.competencyId === comp.id);
+                {myReview.managerRatings.filter(r => r.rating > 0).map(mRating => {
+                  const comp = resolveCompetency(mRating.competencyId);
                   return (
                     <CompetencyRatingCard
-                      key={comp.id}
+                      key={mRating.competencyId}
                       competencyName={comp.name}
                       description={comp.description}
                       behaviors={comp.behaviors}
-                      rating={mRating?.rating || 0}
-                      comment={mRating?.comment || ''}
+                      rating={mRating.rating}
+                      comment={mRating.comment}
                       readOnly
                       label="Manager"
+                      ratingScale={ratingScale}
                     />
                   );
                 })}
@@ -226,7 +255,7 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, myReview, pa
             </div>
           )}
           {canSubmit && !allRated && (
-            <p className="text-xs text-slate-400 text-right">Please rate all 6 competencies before submitting.</p>
+            <p className="text-xs text-slate-400 text-right">Please rate all {competencies.length} competencies before submitting.</p>
           )}
         </div>
       )}
