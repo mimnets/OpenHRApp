@@ -1,6 +1,8 @@
 
 import { apiClient } from './api.client';
 import { Announcement, AnnouncementPriority, Role } from '../types';
+import { notificationService } from './notification.service';
+import { employeeService } from './employee.service';
 
 export const announcementService = {
   async getAnnouncements(): Promise<Announcement[]> {
@@ -54,8 +56,39 @@ export const announcementService = {
     };
 
     try {
-      await apiClient.pb.collection('announcements').create(payload);
+      const record = await apiClient.pb.collection('announcements').create(payload);
       apiClient.notify();
+
+      // Generate notifications for target users
+      try {
+        const employees = await employeeService.getEmployees();
+        const targetUsers = employees.filter(emp => {
+          // Exclude the author
+          if (emp.id === data.authorId) return false;
+          // Filter by target roles (empty = all users)
+          if (data.targetRoles && data.targetRoles.length > 0) {
+            return data.targetRoles.includes(emp.role);
+          }
+          return true;
+        });
+
+        if (targetUsers.length > 0) {
+          await notificationService.createBulkNotifications(
+            targetUsers.map(emp => ({
+              userId: emp.id,
+              type: 'ANNOUNCEMENT' as const,
+              title: data.title,
+              message: data.content.length > 200 ? data.content.substring(0, 200) + '...' : data.content,
+              priority: data.priority,
+              referenceId: record.id,
+              referenceType: 'announcements',
+              actionUrl: 'announcements',
+            }))
+          );
+        }
+      } catch (notifErr: any) {
+        console.error("[AnnouncementService] Failed to create notifications:", notifErr?.message || notifErr);
+      }
     } catch (err: any) {
       if (err.response?.id) { apiClient.notify(); return; }
       throw new Error('Failed to create announcement');
