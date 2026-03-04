@@ -6,6 +6,7 @@ import { leaveService } from './leave.service';
 import { organizationService } from './organization.service';
 import { verificationService } from './verification.service';
 import { shiftService } from './shift.service';
+import { reviewService } from './review.service';
 import { apiClient } from './api.client';
 
 export const hrService = {
@@ -71,5 +72,19 @@ export const hrService = {
   deleteShift: shiftService.deleteShift.bind(shiftService),
   getShiftOverrides: shiftService.getShiftOverrides.bind(shiftService),
   setShiftOverrides: shiftService.setShiftOverrides.bind(shiftService),
-  resolveShiftForEmployee: shiftService.resolveShiftForEmployee.bind(shiftService)
+  resolveShiftForEmployee: shiftService.resolveShiftForEmployee.bind(shiftService),
+
+  // Performance Reviews
+  getReviewCycles: reviewService.getReviewCycles,
+  createReviewCycle: reviewService.createReviewCycle,
+  updateReviewCycle: reviewService.updateReviewCycle,
+  deleteReviewCycle: reviewService.deleteReviewCycle,
+  getReviews: reviewService.getReviews,
+  getReviewById: reviewService.getReviewById,
+  createReview: reviewService.createReview,
+  submitSelfAssessment: reviewService.submitSelfAssessment,
+  submitManagerReview: reviewService.submitManagerReview,
+  finalizeReview: reviewService.finalizeReview,
+  calculateAttendanceSummary: reviewService.calculateAttendanceSummary,
+  calculateLeaveSummary: reviewService.calculateLeaveSummary,
 };

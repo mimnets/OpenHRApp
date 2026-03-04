@@ -13,6 +13,7 @@ import {
   List,
   History,
   Shield,
+  ClipboardCheck,
 } from 'lucide-react';
 import { AdBanner } from './ads';
 
@@ -40,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
     { id: 'attendance-audit', label: 'Attendance Audit', icon: List, roles: ['ADMIN', 'HR', 'MANAGER'] },
     { id: 'leave', label: 'Leave', icon: CalendarDays, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'employees', label: 'Team Directory', icon: Users, roles: ['ADMIN', 'HR', 'MANAGER'] },
+    { id: 'performance-review', label: 'Performance', icon: ClipboardCheck, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'organization', label: 'Organization', icon: Network, roles: ['ADMIN', 'HR'] },
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'HR'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'HR'] },
