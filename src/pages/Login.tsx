@@ -1,4 +1,20 @@
 
+declare global {
+  interface Window {
+    PasswordCredential: typeof PasswordCredential;
+  }
+  interface PasswordCredentialData {
+    id: string;
+    password: string;
+    name?: string;
+    iconURL?: string;
+  }
+  class PasswordCredential extends Credential {
+    constructor(data: PasswordCredentialData);
+    readonly password: string;
+  }
+}
+
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send, Home } from 'lucide-react';
 import { hrService } from '../services/hrService';
@@ -137,10 +153,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     setIsLoading(true);
     setError('');
     setShowResend(false);
-    
+
     try {
       const result = await hrService.login(email, password);
       if (result.user) {
+        // Trigger browser/OS "Save Password" prompt via Credential Management API
+        if (window.PasswordCredential) {
+          try {
+            const cred = new window.PasswordCredential({
+              id: email,
+              password: password,
+              name: result.user.name || email,
+            });
+            await navigator.credentials.store(cred);
+          } catch (_) { /* Silently ignore if browser blocks it */ }
+        }
         onLoginSuccess(result.user);
       } else {
         const msg = result.error || 'Verification Failed. Check credentials.';

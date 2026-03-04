@@ -1,6 +1,8 @@
 package com.openhrapp;
 
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
@@ -27,9 +29,13 @@ public class MainActivity extends BridgeActivity {
             // Enable geolocation
             settings.setGeolocationEnabled(true);
 
-            // Enable password saving / autofill
+            // Enable autofill for password saving
+            // Android 8.0+ (API 26+): use Autofill Framework
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                webView.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+            }
+            // Fallback for older devices
             settings.setSaveFormData(true);
-            settings.setSavePassword(true);
         }
     }
 
