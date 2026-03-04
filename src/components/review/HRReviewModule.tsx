@@ -2,23 +2,31 @@
 import React, { useState } from 'react';
 import {
   Settings, Plus, Trash2, Edit3, Loader2, X, CheckCircle2, ChevronDown, ChevronUp,
-  Calendar, BarChart3,
+  Calendar, BarChart3, Sliders,
 } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import {
-  ReviewCycle, PerformanceReview, CompetencyId, HROverallRating,
+  ReviewCycle, PerformanceReview, OrgReviewConfig, CustomCompetency,
   ReviewCycleType, ReviewCycleStatus,
 } from '../../types';
-import { PERFORMANCE_COMPETENCIES, HR_OVERALL_RATINGS } from '../../constants';
 import ReviewStatusBadge from './ReviewStatusBadge';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
+import AdminReviewFormModal from './AdminReviewFormModal';
+
+interface Employee {
+  id: string;
+  name: string;
+  department: string;
+}
 
 interface Props {
   user: any;
   cycles: ReviewCycle[];
   allReviews: PerformanceReview[];
+  employees?: Employee[];
   onRefresh: () => void;
   readOnly?: boolean;
+  reviewConfig: OrgReviewConfig;
 }
 
 const CYCLE_TYPES: { value: ReviewCycleType; label: string }[] = [
@@ -33,13 +41,20 @@ const CYCLE_STATUSES: { value: ReviewCycleStatus; label: string }[] = [
   { value: 'ARCHIVED', label: 'Archived' },
 ];
 
-const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, readOnly = false }) => {
+const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees = [], onRefresh, readOnly = false, reviewConfig }) => {
   const [showCycleForm, setShowCycleForm] = useState(false);
   const [editingCycle, setEditingCycle] = useState<ReviewCycle | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [showCycles, setShowCycles] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [editingReview, setEditingReview] = useState<PerformanceReview | null>(null);
+
+  const competencies = reviewConfig.competencies;
+  const ratingScale = reviewConfig.ratingScale;
+  const overallRatings = reviewConfig.overallRatings;
 
   // Cycle form state
   const [cycleForm, setCycleForm] = useState({
@@ -55,9 +70,21 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
 
   // Finalization form state
   const [finalRemarks, setFinalRemarks] = useState('');
-  const [overallRating, setOverallRating] = useState<HROverallRating | ''>('');
+  const [overallRating, setOverallRating] = useState<string>('');
+
+  // Review Settings state
+  const [editConfig, setEditConfig] = useState<OrgReviewConfig>(reviewConfig);
+  const [editingCompetencyIdx, setEditingCompetencyIdx] = useState<number | null>(null);
+  const [compForm, setCompForm] = useState<CustomCompetency>({ id: '', name: '', description: '', behaviors: [] });
+  const [compBehaviorInput, setCompBehaviorInput] = useState('');
 
   const selectedReview = allReviews.find(r => r.id === selectedReviewId);
+
+  const resolveCompetency = (competencyId: string): CustomCompetency => {
+    const found = competencies.find(c => c.id === competencyId);
+    if (found) return found;
+    return { id: competencyId, name: competencyId.replace(/_/g, ' '), description: '', behaviors: [] };
+  };
 
   const resetCycleForm = () => {
     setCycleForm({
@@ -96,7 +123,7 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
         reviewEndDate: cycleForm.reviewEndDate,
         status: cycleForm.status,
         isActive: cycleForm.isActive,
-        activeCompetencies: PERFORMANCE_COMPETENCIES.map(c => c.id) as CompetencyId[],
+        activeCompetencies: competencies.map(c => c.id),
         organizationId: '',
       };
       if (editingCycle) {
@@ -130,13 +157,140 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
     if (!selectedReview || !overallRating || readOnly) return;
     setIsProcessing(true);
     try {
-      await hrService.finalizeReview(selectedReview.id, finalRemarks, overallRating as HROverallRating, user.id);
+      await hrService.finalizeReview(selectedReview.id, finalRemarks, overallRating, user.id);
       setSelectedReviewId(null);
       setFinalRemarks('');
       setOverallRating('');
       onRefresh();
     } catch (e) {
       console.error('Failed to finalize review:', e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    if (!confirm('Delete this performance review? This cannot be undone.')) return;
+    setIsProcessing(true);
+    try {
+      await hrService.deleteReview(id);
+      setSelectedReviewId(null);
+      onRefresh();
+    } catch (e) {
+      console.error('Failed to delete review:', e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const openCreateReview = () => {
+    setEditingReview(null);
+    setShowReviewModal(true);
+  };
+
+  const openEditReview = (review: PerformanceReview) => {
+    setEditingReview(review);
+    setShowReviewModal(true);
+  };
+
+  // ─── Review Settings Handlers ──────────────────────────────────
+
+  const openSettings = () => {
+    setEditConfig(JSON.parse(JSON.stringify(reviewConfig)));
+    setShowSettings(true);
+    setEditingCompetencyIdx(null);
+  };
+
+  const openCompetencyForm = (idx: number | null) => {
+    setEditingCompetencyIdx(idx);
+    if (idx !== null) {
+      const c = editConfig.competencies[idx];
+      setCompForm({ ...c });
+      setCompBehaviorInput('');
+    } else {
+      setCompForm({ id: '', name: '', description: '', behaviors: [] });
+      setCompBehaviorInput('');
+    }
+  };
+
+  const saveCompetency = () => {
+    if (!compForm.name.trim()) return;
+    const next = { ...editConfig };
+    const comp = {
+      ...compForm,
+      id: compForm.id || compForm.name.toUpperCase().replace(/\s+/g, '_'),
+    };
+    if (editingCompetencyIdx !== null) {
+      next.competencies[editingCompetencyIdx] = comp;
+    } else {
+      next.competencies = [...next.competencies, comp];
+    }
+    setEditConfig(next);
+    setEditingCompetencyIdx(null);
+  };
+
+  const deleteCompetency = (idx: number) => {
+    const next = { ...editConfig };
+    next.competencies = next.competencies.filter((_, i) => i !== idx);
+    setEditConfig(next);
+  };
+
+  const addBehavior = () => {
+    if (!compBehaviorInput.trim()) return;
+    setCompForm(prev => ({ ...prev, behaviors: [...prev.behaviors, compBehaviorInput.trim()] }));
+    setCompBehaviorInput('');
+  };
+
+  const removeBehavior = (idx: number) => {
+    setCompForm(prev => ({ ...prev, behaviors: prev.behaviors.filter((_, i) => i !== idx) }));
+  };
+
+  const updateRatingScaleMax = (max: number) => {
+    const labels: { value: number; label: string; color: string }[] = [];
+    for (let i = 1; i <= max; i++) {
+      const existing = editConfig.ratingScale.labels.find(l => l.value === i);
+      labels.push(existing || { value: i, label: `Level ${i}`, color: 'bg-slate-500' });
+    }
+    setEditConfig(prev => ({ ...prev, ratingScale: { min: 1, max, labels } }));
+  };
+
+  const updateRatingLabel = (idx: number, label: string) => {
+    const next = { ...editConfig };
+    next.ratingScale.labels[idx] = { ...next.ratingScale.labels[idx], label };
+    setEditConfig(next);
+  };
+
+  const addOverallRating = () => {
+    setEditConfig(prev => ({
+      ...prev,
+      overallRatings: [...prev.overallRatings, { value: `CUSTOM_${Date.now()}`, label: 'New Rating', color: 'bg-slate-500' }],
+    }));
+  };
+
+  const updateOverallRating = (idx: number, field: string, value: string) => {
+    const next = { ...editConfig };
+    (next.overallRatings[idx] as any)[field] = value;
+    if (field === 'label') {
+      next.overallRatings[idx].value = value.toUpperCase().replace(/\s+/g, '_');
+    }
+    setEditConfig(next);
+  };
+
+  const deleteOverallRating = (idx: number) => {
+    setEditConfig(prev => ({
+      ...prev,
+      overallRatings: prev.overallRatings.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const handleSaveSettings = async () => {
+    setIsProcessing(true);
+    try {
+      await hrService.setReviewConfig(editConfig);
+      setShowSettings(false);
+      onRefresh();
+    } catch (e) {
+      console.error('Failed to save review config:', e);
     } finally {
       setIsProcessing(false);
     }
@@ -160,6 +314,8 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
     return (rated.reduce((sum, r) => sum + r.rating, 0) / rated.length).toFixed(1);
   };
 
+  const maxRating = ratingScale.max;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -168,6 +324,14 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
           <Settings size={20} className="text-primary" />
           <h2 className="text-xl font-bold text-slate-900">HR Review Management</h2>
         </div>
+        {!readOnly && (
+          <button
+            onClick={openSettings}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-primary bg-primary-light/50 rounded-xl hover:bg-primary-light transition-colors"
+          >
+            <Sliders size={14} /> Review Settings
+          </button>
+        )}
       </div>
 
       {/* Stats Row */}
@@ -203,7 +367,6 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
 
         {showCycles && (
           <div className="px-5 pb-5 space-y-3">
-            {/* Cycle List */}
             {cycles.map(cycle => (
               <div key={cycle.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
                 <div>
@@ -234,7 +397,6 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
               </div>
             ))}
 
-            {/* Add Cycle Button */}
             {!readOnly && !showCycleForm && (
               <button
                 onClick={() => { resetCycleForm(); setShowCycleForm(true); }}
@@ -244,7 +406,6 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
               </button>
             )}
 
-            {/* Cycle Form */}
             {showCycleForm && (
               <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -333,17 +494,27 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
             <BarChart3 size={16} className="text-primary" />
             <h3 className="font-semibold text-slate-900">All Reviews</h3>
           </div>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none"
-          >
-            <option value="ALL">All Status</option>
-            <option value="DRAFT">Draft</option>
-            <option value="SELF_REVIEW_SUBMITTED">Submitted</option>
-            <option value="MANAGER_REVIEWED">Manager Reviewed</option>
-            <option value="COMPLETED">Completed</option>
-          </select>
+          <div className="flex items-center gap-2">
+            {!readOnly && (
+              <button
+                onClick={openCreateReview}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-primary rounded-lg hover:opacity-90 transition-colors"
+              >
+                <Plus size={14} /> Create Review
+              </button>
+            )}
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              className="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none"
+            >
+              <option value="ALL">All Status</option>
+              <option value="DRAFT">Draft</option>
+              <option value="SELF_REVIEW_SUBMITTED">Submitted</option>
+              <option value="MANAGER_REVIEWED">Manager Reviewed</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
         </div>
 
         {filteredReviews.length === 0 && (
@@ -372,7 +543,27 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
                   {review.managerRatings.some(r => r.rating > 0) && ` | Mgr Avg: ${avgRating(review.managerRatings)}`}
                 </p>
               </div>
-              <ReviewStatusBadge status={review.status} />
+              <div className="flex items-center gap-2">
+                {!readOnly && (
+                  <>
+                    <button
+                      onClick={e => { e.stopPropagation(); openEditReview(review); }}
+                      className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+                      title="Edit review"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDeleteReview(review.id); }}
+                      className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                      title="Delete review"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
+                <ReviewStatusBadge status={review.status} />
+              </div>
             </div>
 
             {/* Expanded Detail */}
@@ -385,13 +576,13 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
                   <div>
                     <h4 className="text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wider">Self-Assessment</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {PERFORMANCE_COMPETENCIES.map(comp => {
-                        const r = review.selfRatings.find(x => x.competencyId === comp.id);
+                      {review.selfRatings.filter(r => r.rating > 0).map(r => {
+                        const comp = resolveCompetency(r.competencyId);
                         return (
-                          <div key={comp.id} className="bg-slate-50 rounded-lg p-2">
+                          <div key={r.competencyId} className="bg-slate-50 rounded-lg p-2">
                             <p className="text-xs font-medium text-slate-700">{comp.name}</p>
-                            <p className="text-lg font-bold text-slate-900">{r?.rating || '—'}<span className="text-xs text-slate-400">/5</span></p>
-                            {r?.comment && <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{r.comment}</p>}
+                            <p className="text-lg font-bold text-slate-900">{r.rating}<span className="text-xs text-slate-400">/{maxRating}</span></p>
+                            {r.comment && <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{r.comment}</p>}
                           </div>
                         );
                       })}
@@ -404,13 +595,13 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
                   <div>
                     <h4 className="text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wider">Manager Assessment</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      {PERFORMANCE_COMPETENCIES.map(comp => {
-                        const r = review.managerRatings.find(x => x.competencyId === comp.id);
+                      {review.managerRatings.filter(r => r.rating > 0).map(r => {
+                        const comp = resolveCompetency(r.competencyId);
                         return (
-                          <div key={comp.id} className="bg-slate-50 rounded-lg p-2">
+                          <div key={r.competencyId} className="bg-slate-50 rounded-lg p-2">
                             <p className="text-xs font-medium text-slate-700">{comp.name}</p>
-                            <p className="text-lg font-bold text-slate-900">{r?.rating || '—'}<span className="text-xs text-slate-400">/5</span></p>
-                            {r?.comment && <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{r.comment}</p>}
+                            <p className="text-lg font-bold text-slate-900">{r.rating}<span className="text-xs text-slate-400">/{maxRating}</span></p>
+                            {r.comment && <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{r.comment}</p>}
                           </div>
                         );
                       })}
@@ -427,11 +618,11 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
                       <label className="text-xs text-green-700 font-medium mb-1 block">Overall Rating</label>
                       <select
                         value={overallRating}
-                        onChange={e => setOverallRating(e.target.value as HROverallRating)}
+                        onChange={e => setOverallRating(e.target.value)}
                         className="w-full text-sm border border-green-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-200 bg-white"
                       >
                         <option value="">Select rating...</option>
-                        {HR_OVERALL_RATINGS.map(r => (
+                        {overallRatings.map(r => (
                           <option key={r.value} value={r.value}>{r.label}</option>
                         ))}
                       </select>
@@ -491,6 +682,138 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, onRefresh, 
           </div>
         ))}
       </div>
+
+      {/* ─── Admin Review Form Modal ───────────────────────────── */}
+      {showReviewModal && (
+        <AdminReviewFormModal
+          mode={editingReview ? 'edit' : 'create'}
+          review={editingReview}
+          employees={employees}
+          cycles={cycles}
+          onClose={() => { setShowReviewModal(false); setEditingReview(null); }}
+          onSaved={() => { setShowReviewModal(false); setEditingReview(null); onRefresh(); }}
+        />
+      )}
+
+      {/* ─── Review Settings Modal ──────────────────────────────── */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="p-6 bg-primary text-white flex justify-between items-center flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <Sliders size={20} />
+                <h3 className="text-lg font-semibold uppercase tracking-tight">Review Settings</h3>
+              </div>
+              <button onClick={() => setShowSettings(false)} className="hover:bg-white/10 p-2 rounded-lg"><X size={24} /></button>
+            </div>
+
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              {/* Competencies Section */}
+              <div>
+                <h4 className="font-semibold text-sm text-slate-900 mb-3">Competencies ({editConfig.competencies.length})</h4>
+                <div className="space-y-2">
+                  {editConfig.competencies.map((comp, idx) => (
+                    <div key={comp.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
+                      <div>
+                        <p className="font-medium text-sm text-slate-900">{comp.name}</p>
+                        <p className="text-[10px] text-slate-400">{comp.description.slice(0, 80)}{comp.description.length > 80 ? '...' : ''}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => openCompetencyForm(idx)} className="p-1.5 text-slate-400 hover:text-primary"><Edit3 size={14} /></button>
+                        <button onClick={() => deleteCompetency(idx)} className="p-1.5 text-slate-400 hover:text-red-500"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {editingCompetencyIdx !== null || editingCompetencyIdx === null ? null : null}
+                {/* Competency Form */}
+                {editingCompetencyIdx !== undefined && editingCompetencyIdx !== null ? (
+                  <div className="mt-3 bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                    <h5 className="font-semibold text-xs text-slate-700">Edit Competency</h5>
+                    <input placeholder="Name" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" value={compForm.name} onChange={e => setCompForm(p => ({ ...p, name: e.target.value }))} />
+                    <textarea placeholder="Description" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" rows={2} value={compForm.description} onChange={e => setCompForm(p => ({ ...p, description: e.target.value }))} />
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Behaviors</p>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {compForm.behaviors.map((b, i) => (
+                          <span key={i} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            {b} <button onClick={() => removeBehavior(i)} className="text-slate-400 hover:text-red-500"><X size={10} /></button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input placeholder="Add behavior..." className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5" value={compBehaviorInput} onChange={e => setCompBehaviorInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addBehavior())} />
+                        <button type="button" onClick={addBehavior} className="px-3 py-1.5 bg-slate-100 rounded-lg text-xs font-semibold hover:bg-slate-200">Add</button>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setEditingCompetencyIdx(null)} className="px-3 py-1.5 text-xs text-slate-500">Cancel</button>
+                      <button onClick={saveCompetency} className="px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold">Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openCompetencyForm(null)}
+                    className="mt-3 w-full flex items-center justify-center gap-2 p-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-500 hover:border-primary/30 hover:text-primary"
+                  >
+                    <Plus size={14} /> Add Competency
+                  </button>
+                )}
+                {/* Show add form when adding new (editingCompetencyIdx is null but form was opened) */}
+              </div>
+
+              {/* Rating Scale Section */}
+              <div>
+                <h4 className="font-semibold text-sm text-slate-900 mb-3">Rating Scale (1—{editConfig.ratingScale.max})</h4>
+                <div className="flex items-center gap-3 mb-3">
+                  <label className="text-xs text-slate-500">Max Rating:</label>
+                  <input type="number" min={2} max={10} className="w-20 text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-center font-bold" value={editConfig.ratingScale.max} onChange={e => updateRatingScaleMax(Number(e.target.value))} />
+                </div>
+                <div className="space-y-2">
+                  {editConfig.ratingScale.labels.map((label, idx) => (
+                    <div key={label.value} className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-slate-600 w-6 text-center">{label.value}</span>
+                      <input className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5" value={label.label} onChange={e => updateRatingLabel(idx, e.target.value)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Overall Ratings Section */}
+              <div>
+                <h4 className="font-semibold text-sm text-slate-900 mb-3">Overall HR Ratings</h4>
+                <div className="space-y-2">
+                  {editConfig.overallRatings.map((rating, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-1.5" value={rating.label} onChange={e => updateOverallRating(idx, 'label', e.target.value)} placeholder="Label" />
+                      <button onClick={() => deleteOverallRating(idx)} className="p-1.5 text-slate-400 hover:text-red-500"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={addOverallRating}
+                  className="mt-2 w-full flex items-center justify-center gap-2 p-2 border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-500 hover:border-primary/30 hover:text-primary"
+                >
+                  <Plus size={14} /> Add Rating Option
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0">
+              <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 text-sm text-slate-600 hover:text-slate-900">Cancel</button>
+              <button
+                onClick={handleSaveSettings}
+                disabled={isProcessing}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50"
+              >
+                {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

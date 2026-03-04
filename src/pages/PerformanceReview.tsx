@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useSubscription } from '../context/SubscriptionContext';
 import { usePerformanceReview } from '../hooks/review/usePerformanceReview';
+import { hrService } from '../services/hrService';
 import EmployeeReviewModule from '../components/review/EmployeeReviewModule';
 import ManagerReviewModule from '../components/review/ManagerReviewModule';
 import HRReviewModule from '../components/review/HRReviewModule';
@@ -19,6 +20,16 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
   const canWrite = canPerformAction('write');
 
   const { data, isLoading, error, refreshData } = usePerformanceReview(user);
+
+  const [employees, setEmployees] = useState<{ id: string; name: string; department: string }[]>([]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      hrService.getEmployees().then(emps =>
+        setEmployees(emps.map((e: any) => ({ id: e.id, name: e.name, department: e.department || '' })))
+      ).catch(() => {});
+    }
+  }, [isAdmin]);
 
   if (isLoading) {
     return (
@@ -92,6 +103,7 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
             user={user}
             cycles={data.cycles}
             allReviews={data.allReviews}
+            employees={employees}
             onRefresh={refreshData}
             readOnly={!canWrite}
             reviewConfig={data.reviewConfig}

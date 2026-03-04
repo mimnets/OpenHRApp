@@ -6,12 +6,11 @@ import {
   CompetencyRating,
   AttendanceSummary,
   LeaveSummary,
-  CompetencyId,
-  HROverallRating,
 } from '../types';
 import { consolidateAttendance } from '../utils/attendanceUtils';
 
-const COMPETENCY_KEYS: CompetencyId[] = [
+// Legacy competency keys used for backward compat when reading old individual-column reviews
+const LEGACY_COMPETENCY_KEYS = [
   'AGILITY',
   'COLLABORATION',
   'CUSTOMER_FOCUS',
@@ -20,8 +19,8 @@ const COMPETENCY_KEYS: CompetencyId[] = [
   'INNOVATION_MINDSET',
 ];
 
-const competencyFieldName = (id: CompetencyId): string => {
-  return id.toLowerCase(); // e.g. CUSTOMER_FOCUS -> customer_focus
+const competencyFieldName = (id: string): string => {
+  return id.toLowerCase();
 };
 
 const mapCycleRecord = (r: any): ReviewCycle => ({
@@ -32,24 +31,63 @@ const mapCycleRecord = (r: any): ReviewCycle => ({
   endDate: r.end_date,
   reviewStartDate: r.review_start_date,
   reviewEndDate: r.review_end_date,
-  activeCompetencies: r.active_competencies || COMPETENCY_KEYS,
+  activeCompetencies: r.active_competencies || LEGACY_COMPETENCY_KEYS,
   isActive: r.is_active || false,
   status: r.status || 'UPCOMING',
   organizationId: r.organization_id,
 });
 
-const mapReviewRecord = (r: any): PerformanceReview => {
-  const selfRatings: CompetencyRating[] = COMPETENCY_KEYS.map(id => ({
-    competencyId: id,
-    rating: r[`self_${competencyFieldName(id)}_rating`] || 0,
-    comment: r[`self_${competencyFieldName(id)}_comment`] || '',
-  }));
+const parseJsonField = (val: any): any[] => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try { return JSON.parse(val); } catch { return []; }
+  }
+  return [];
+};
 
-  const managerRatings: CompetencyRating[] = COMPETENCY_KEYS.map(id => ({
-    competencyId: id,
-    rating: r[`manager_${competencyFieldName(id)}_rating`] || 0,
-    comment: r[`manager_${competencyFieldName(id)}_comment`] || '',
-  }));
+const mapReviewRecord = (r: any): PerformanceReview => {
+  // Try JSON fields first (new format), fall back to legacy individual columns
+  let selfRatings: CompetencyRating[] = parseJsonField(r.self_ratings);
+  let managerRatings: CompetencyRating[] = parseJsonField(r.manager_ratings);
+
+  // Backward compat: if JSON fields are empty, read from old individual columns
+  if (selfRatings.length === 0) {
+    selfRatings = LEGACY_COMPETENCY_KEYS.map(id => ({
+      competencyId: id,
+      rating: r[`self_${competencyFieldName(id)}_rating`] || 0,
+      comment: r[`self_${competencyFieldName(id)}_comment`] || '',
+    }));
+  }
+  if (managerRatings.length === 0) {
+    managerRatings = LEGACY_COMPETENCY_KEYS.map(id => ({
+      competencyId: id,
+      rating: r[`manager_${competencyFieldName(id)}_rating`] || 0,
+      comment: r[`manager_${competencyFieldName(id)}_comment`] || '',
+    }));
+  }
+
+  // Parse leave summary — try JSON first, then legacy fields
+  let leaveSummary: LeaveSummary;
+  const leaveSummaryJson = r.leave_summary_json ? parseJsonField(r.leave_summary_json) : null;
+  if (leaveSummaryJson && typeof leaveSummaryJson === 'object' && !Array.isArray(leaveSummaryJson)) {
+    leaveSummary = leaveSummaryJson as any;
+  } else {
+    // Legacy format
+    const typeBreakdown: Record<string, number> = {};
+    if (r.annual_leave_taken) typeBreakdown['ANNUAL'] = r.annual_leave_taken;
+    if (r.casual_leave_taken) typeBreakdown['CASUAL'] = r.casual_leave_taken;
+    if (r.sick_leave_taken) typeBreakdown['SICK'] = r.sick_leave_taken;
+    if (r.unpaid_leave_taken) typeBreakdown['UNPAID'] = r.unpaid_leave_taken;
+    leaveSummary = {
+      typeBreakdown,
+      totalLeaveDays: r.total_leave_days || 0,
+      annualLeaveTaken: r.annual_leave_taken || 0,
+      casualLeaveTaken: r.casual_leave_taken || 0,
+      sickLeaveTaken: r.sick_leave_taken || 0,
+      unpaidLeaveTaken: r.unpaid_leave_taken || 0,
+    };
+  }
 
   return {
     id: r.id,
@@ -72,13 +110,7 @@ const mapReviewRecord = (r: any): PerformanceReview => {
       earlyOutDays: r.early_out_days || 0,
       attendancePercentage: r.attendance_percentage || 0,
     },
-    leaveSummary: {
-      annualLeaveTaken: r.annual_leave_taken || 0,
-      casualLeaveTaken: r.casual_leave_taken || 0,
-      sickLeaveTaken: r.sick_leave_taken || 0,
-      unpaidLeaveTaken: r.unpaid_leave_taken || 0,
-      totalLeaveDays: r.total_leave_days || 0,
-    },
+    leaveSummary,
     hrFinalRemarks: r.hr_final_remarks || undefined,
     hrOverallRating: r.hr_overall_rating || undefined,
     finalizedBy: r.finalized_by || undefined,
@@ -92,10 +124,13 @@ export const reviewService = {
   async getReviewCycles(): Promise<ReviewCycle[]> {
     if (!apiClient.pb || !apiClient.isConfigured()) return [];
     try {
+      const orgId = apiClient.getOrganizationId();
+      console.log('[ReviewService] Fetching cycles, orgId:', orgId, 'authValid:', apiClient.pb.authStore.isValid);
       const records = await apiClient.pb.collection('review_cycles').getFullList({ sort: '-created' });
+      console.log('[ReviewService] Raw cycle records:', records.length, records.map(r => ({ id: r.id, name: r.name, org: r.organization_id })));
       return records.map(mapCycleRecord);
     } catch (e: any) {
-      console.error('[ReviewService] Failed to fetch cycles:', e?.message || e);
+      console.error('[ReviewService] Failed to fetch cycles:', e?.message || e, e?.response || '', e?.data || '');
       return [];
     }
   },
@@ -110,7 +145,7 @@ export const reviewService = {
       end_date: data.endDate,
       review_start_date: data.reviewStartDate,
       review_end_date: data.reviewEndDate,
-      active_competencies: data.activeCompetencies || COMPETENCY_KEYS,
+      active_competencies: data.activeCompetencies || [],
       is_active: data.isActive || false,
       status: data.status || 'UPCOMING',
       organization_id: orgId,
@@ -164,7 +199,15 @@ export const reviewService = {
     if (!apiClient.pb || !apiClient.isConfigured()) return [];
     try {
       const records = await apiClient.pb.collection('performance_reviews').getFullList({ sort: '-created' });
-      return records.map(mapReviewRecord);
+      const reviews: PerformanceReview[] = [];
+      for (const r of records) {
+        try {
+          reviews.push(mapReviewRecord(r));
+        } catch (mapErr) {
+          console.warn('[ReviewService] Failed to map review record:', r.id, mapErr);
+        }
+      }
+      return reviews;
     } catch (e: any) {
       console.error('[ReviewService] Failed to fetch reviews:', e?.message || e);
       return [];
@@ -194,7 +237,7 @@ export const reviewService = {
 
     // Calculate attendance & leave summaries for the cycle period
     let attendanceSummary: AttendanceSummary = { totalWorkingDays: 0, presentDays: 0, lateDays: 0, absentDays: 0, earlyOutDays: 0, attendancePercentage: 0 };
-    let leaveSummary: LeaveSummary = { annualLeaveTaken: 0, casualLeaveTaken: 0, sickLeaveTaken: 0, unpaidLeaveTaken: 0, totalLeaveDays: 0 };
+    let leaveSummary: LeaveSummary = { typeBreakdown: {}, totalLeaveDays: 0 };
 
     try {
       const cycle = await apiClient.pb.collection('review_cycles').getOne(cycleId);
@@ -221,11 +264,11 @@ export const reviewService = {
       absent_days: attendanceSummary.absentDays,
       early_out_days: attendanceSummary.earlyOutDays,
       attendance_percentage: attendanceSummary.attendancePercentage,
-      // Leave summary
-      annual_leave_taken: leaveSummary.annualLeaveTaken,
-      casual_leave_taken: leaveSummary.casualLeaveTaken,
-      sick_leave_taken: leaveSummary.sickLeaveTaken,
-      unpaid_leave_taken: leaveSummary.unpaidLeaveTaken,
+      // Leave summary (legacy columns for backward compat)
+      annual_leave_taken: leaveSummary.typeBreakdown['ANNUAL'] || 0,
+      casual_leave_taken: leaveSummary.typeBreakdown['CASUAL'] || 0,
+      sick_leave_taken: leaveSummary.typeBreakdown['SICK'] || 0,
+      unpaid_leave_taken: leaveSummary.typeBreakdown['UNPAID'] || 0,
       total_leave_days: leaveSummary.totalLeaveDays,
     };
 
@@ -246,8 +289,10 @@ export const reviewService = {
     const payload: any = {
       status: 'SELF_REVIEW_SUBMITTED',
       submitted_at: now,
+      self_ratings: JSON.stringify(selfRatings),
     };
 
+    // Also write legacy individual columns for backward compat
     selfRatings.forEach(r => {
       const field = competencyFieldName(r.competencyId);
       payload[`self_${field}_rating`] = r.rating;
@@ -269,8 +314,10 @@ export const reviewService = {
     const payload: any = {
       status: 'MANAGER_REVIEWED',
       manager_reviewed_at: now,
+      manager_ratings: JSON.stringify(managerRatings),
     };
 
+    // Also write legacy individual columns for backward compat
     managerRatings.forEach(r => {
       const field = competencyFieldName(r.competencyId);
       payload[`manager_${field}_rating`] = r.rating;
@@ -286,7 +333,7 @@ export const reviewService = {
     }
   },
 
-  async finalizeReview(reviewId: string, hrRemarks: string, overallRating: HROverallRating, finalizedBy: string): Promise<void> {
+  async finalizeReview(reviewId: string, hrRemarks: string, overallRating: string, finalizedBy: string): Promise<void> {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
     const now = new Date().toISOString().replace('T', ' ').split('.')[0];
     const payload: any = {
@@ -303,6 +350,32 @@ export const reviewService = {
     } catch (e: any) {
       console.error('[ReviewService] Failed to finalize review:', e?.message || e);
       throw new Error('Failed to finalize review');
+    }
+  },
+
+  async deleteReview(id: string): Promise<void> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    try {
+      await apiClient.pb.collection('performance_reviews').delete(id);
+      apiClient.notify();
+    } catch (e: any) {
+      console.error('[ReviewService] Failed to delete review:', e?.message || e);
+      throw new Error('Failed to delete performance review');
+    }
+  },
+
+  async adminUpdateReview(id: string, data: { lineManagerId?: string; managerName?: string; status?: string }): Promise<void> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    const payload: any = {};
+    if (data.lineManagerId !== undefined) payload.line_manager_id = data.lineManagerId;
+    if (data.managerName !== undefined) payload.manager_name = data.managerName;
+    if (data.status !== undefined) payload.status = data.status;
+    try {
+      await apiClient.pb.collection('performance_reviews').update(id, payload);
+      apiClient.notify();
+    } catch (e: any) {
+      console.error('[ReviewService] Failed to admin-update review:', e?.message || e);
+      throw new Error('Failed to update performance review');
     }
   },
 
@@ -351,8 +424,9 @@ export const reviewService = {
   },
 
   async calculateLeaveSummary(employeeId: string, startDate: string, endDate: string): Promise<LeaveSummary> {
-    const summary: LeaveSummary = { annualLeaveTaken: 0, casualLeaveTaken: 0, sickLeaveTaken: 0, unpaidLeaveTaken: 0, totalLeaveDays: 0 };
-    if (!apiClient.pb || !apiClient.isConfigured()) return summary;
+    const typeBreakdown: Record<string, number> = {};
+    let totalLeaveDays = 0;
+    if (!apiClient.pb || !apiClient.isConfigured()) return { typeBreakdown, totalLeaveDays };
 
     try {
       const records = await apiClient.pb.collection('leaves').getFullList({
@@ -362,16 +436,13 @@ export const reviewService = {
       records.forEach(r => {
         const days = r.total_days || 0;
         const type = (r.type || '').toUpperCase();
-        if (type === 'ANNUAL') summary.annualLeaveTaken += days;
-        else if (type === 'CASUAL') summary.casualLeaveTaken += days;
-        else if (type === 'SICK') summary.sickLeaveTaken += days;
-        else if (type === 'UNPAID') summary.unpaidLeaveTaken += days;
-        summary.totalLeaveDays += days;
+        typeBreakdown[type] = (typeBreakdown[type] || 0) + days;
+        totalLeaveDays += days;
       });
     } catch (e: any) {
       console.error('[ReviewService] Failed to calculate leave summary:', e?.message || e);
     }
 
-    return summary;
+    return { typeBreakdown, totalLeaveDays };
   },
 };
