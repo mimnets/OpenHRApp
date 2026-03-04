@@ -307,3 +307,73 @@ export interface RegistrationData {
   address?: string;
   logo?: File | null;
 }
+
+// Performance Review Types
+export type ReviewCycleType = 'MID_YEAR' | 'YEAR_END';
+export type ReviewCycleStatus = 'UPCOMING' | 'OPEN' | 'CLOSED' | 'ARCHIVED';
+export type ReviewStatus = 'DRAFT' | 'SELF_REVIEW_SUBMITTED' | 'MANAGER_REVIEWED' | 'COMPLETED';
+export type CompetencyId = 'AGILITY' | 'COLLABORATION' | 'CUSTOMER_FOCUS' | 'DEVELOPING_OTHERS' | 'GLOBAL_MINDSET' | 'INNOVATION_MINDSET';
+export type HROverallRating = 'EXCELLENT' | 'VERY_GOOD' | 'GOOD' | 'NEEDS_IMPROVEMENT' | 'UNSATISFACTORY';
+
+export interface ReviewCycle {
+  id: string;
+  name: string;
+  cycleType: ReviewCycleType;
+  startDate: string;
+  endDate: string;
+  reviewStartDate: string;
+  reviewEndDate: string;
+  activeCompetencies: CompetencyId[];
+  isActive: boolean;
+  status: ReviewCycleStatus;
+  organizationId: string;
+}
+
+export interface CompetencyRating {
+  competencyId: CompetencyId;
+  rating: number;
+  comment: string;
+}
+
+export interface AttendanceSummary {
+  totalWorkingDays: number;
+  presentDays: number;
+  lateDays: number;
+  absentDays: number;
+  earlyOutDays: number;
+  attendancePercentage: number;
+}
+
+export interface LeaveSummary {
+  annualLeaveTaken: number;
+  casualLeaveTaken: number;
+  sickLeaveTaken: number;
+  unpaidLeaveTaken: number;
+  totalLeaveDays: number;
+}
+
+export interface PerformanceReview {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  cycleId: string;
+  lineManagerId?: string;
+  managerName?: string;
+  status: ReviewStatus;
+  submittedAt?: string;
+  managerReviewedAt?: string;
+  completedAt?: string;
+  // Self-assessment ratings
+  selfRatings: CompetencyRating[];
+  // Manager ratings
+  managerRatings: CompetencyRating[];
+  // Attendance summary
+  attendanceSummary: AttendanceSummary;
+  // Leave summary
+  leaveSummary: LeaveSummary;
+  // HR finalization
+  hrFinalRemarks?: string;
+  hrOverallRating?: HROverallRating;
+  finalizedBy?: string;
+  organizationId: string;
+}
