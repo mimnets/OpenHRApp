@@ -22,7 +22,7 @@ const steps = [
     icon: Rocket,
     step: '03',
     title: 'Start Managing',
-    description: 'Track attendance, manage leave requests, and generate reports — all from day one.',
+    description: 'Track attendance, manage leave requests, run performance reviews, and generate reports — all from day one.',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
   },
