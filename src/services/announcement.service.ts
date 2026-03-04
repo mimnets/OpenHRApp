@@ -3,6 +3,7 @@ import { apiClient } from './api.client';
 import { Announcement, AnnouncementPriority, Role } from '../types';
 import { notificationService } from './notification.service';
 import { employeeService } from './employee.service';
+import { organizationService } from './organization.service';
 
 export const announcementService = {
   async getAnnouncements(): Promise<Announcement[]> {
@@ -59,8 +60,13 @@ export const announcementService = {
       const record = await apiClient.pb.collection('announcements').create(payload);
       apiClient.notify();
 
-      // Generate notifications for target users
+      // Generate notifications for target users (if ANNOUNCEMENT type is enabled)
       try {
+        const orgConfig = await organizationService.getNotificationConfig();
+        if (!orgConfig.enabledTypes.includes('ANNOUNCEMENT')) {
+          return; // Org has disabled announcement notifications
+        }
+
         const employees = await employeeService.getEmployees();
         const targetUsers = employees.filter(emp => {
           // Exclude the author

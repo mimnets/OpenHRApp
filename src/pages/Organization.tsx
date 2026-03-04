@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useOrganization } from '../hooks/organization/useOrganization';
 import { hrService } from '../services/hrService';
-import { Holiday, Team, OfficeLocation, LeaveWorkflow, Shift, ShiftOverride } from '../types';
+import { Holiday, Team, OfficeLocation, LeaveWorkflow, Shift, ShiftOverride, CustomLeaveType } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 
 // Import sub-components
@@ -17,15 +17,16 @@ import { OrgLeaves } from '../components/organization/OrgLeaves';
 import { OrgHolidays } from '../components/organization/OrgHolidays';
 import { OrgSystem } from '../components/organization/OrgSystem';
 import { OrgShifts } from '../components/organization/OrgShifts';
+import { OrgNotifications } from '../components/organization/OrgNotifications';
 
-type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'SHIFTS' | 'WORKFLOW' | 'LEAVES' | 'HOLIDAYS' | 'SYSTEM';
+type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'SHIFTS' | 'WORKFLOW' | 'LEAVES' | 'HOLIDAYS' | 'NOTIFICATIONS' | 'SYSTEM';
 
 const Organization: React.FC = () => {
   const {
-      departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shiftOverrides,
+      departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shiftOverrides, notificationConfig,
       isLoading, isSaving,
       updateDepartments, updateDesignations, updateHolidays, saveTeam, deleteTeam,
-      updateLeavePolicy, saveConfig, updateWorkflows, updateShiftOverrides
+      updateLeavePolicy, saveConfig, updateWorkflows, updateShiftOverrides, saveNotificationConfig
   } = useOrganization();
 
   // Shifts managed locally with dedicated collection CRUD
@@ -37,6 +38,7 @@ const Organization: React.FC = () => {
       setShifts(shiftsData);
     };
     loadShifts();
+    hrService.getLeaveTypes().then(setLeaveTypes).catch(() => {});
   }, []);
 
   // Subscription check
@@ -55,7 +57,8 @@ const Organization: React.FC = () => {
   const [holidayForm, setHolidayForm] = useState<Partial<Holiday>>({ name: '', date: '', type: 'FESTIVAL', isGovernment: true });
   const [teamForm, setTeamForm] = useState<Partial<Team>>({ name: '', leaderId: '', department: '' });
   const [locationForm, setLocationForm] = useState<Partial<OfficeLocation>>({ name: '', lat: 0, lng: 0, radius: 500 });
-  const [overrideForm, setOverrideForm] = useState({ employeeId: '', ANNUAL: leavePolicy.defaults.ANNUAL, CASUAL: leavePolicy.defaults.CASUAL, SICK: leavePolicy.defaults.SICK });
+  const [leaveTypes, setLeaveTypes] = useState<CustomLeaveType[]>([]);
+  const [overrideForm, setOverrideForm] = useState<Record<string, any>>({ employeeId: '' });
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [shiftForm, setShiftForm] = useState<Partial<Shift>>({ name: '', startTime: '09:00', endTime: '18:00', lateGracePeriod: 5, earlyOutGracePeriod: 15, earliestCheckIn: '06:00', autoSessionCloseTime: '23:59', workingDays: ['Monday','Tuesday','Wednesday','Thursday','Sunday'], isDefault: false });
   const [shiftOverrideForm, setShiftOverrideForm] = useState({ employeeId: '', shiftId: '', startDate: '', endDate: '', reason: '' });
@@ -77,7 +80,10 @@ const Organization: React.FC = () => {
       const loc = (config.officeLocations && index !== null) ? config.officeLocations[index] : { name: '', lat: 23.8103, lng: 90.4125, radius: 500 };
       setLocationForm(loc);
     } else if (type === 'OVERRIDE') {
-      setOverrideForm({ employeeId: '', ANNUAL: leavePolicy.defaults.ANNUAL, CASUAL: leavePolicy.defaults.CASUAL, SICK: leavePolicy.defaults.SICK });
+      const balanceTypes = leaveTypes.filter(t => t.hasBalance);
+      const form: Record<string, any> = { employeeId: '' };
+      balanceTypes.forEach(lt => { form[lt.id] = leavePolicy.defaults[lt.id] || 0; });
+      setOverrideForm(form);
     } else if (type === 'SHIFT') {
       if (index !== null) {
         setShiftForm({ ...shifts[index] });
@@ -125,11 +131,10 @@ const Organization: React.FC = () => {
       } else if (modalType === 'OVERRIDE') {
         if (!overrideForm.employeeId) return;
         const next = { ...leavePolicy };
-        next.overrides[overrideForm.employeeId] = {
-          ANNUAL: overrideForm.ANNUAL,
-          CASUAL: overrideForm.CASUAL,
-          SICK: overrideForm.SICK
-        };
+        const balanceTypes = leaveTypes.filter(t => t.hasBalance);
+        const overrideValues: Record<string, number> = {};
+        balanceTypes.forEach(lt => { overrideValues[lt.id] = overrideForm[lt.id] || 0; });
+        next.overrides[overrideForm.employeeId] = overrideValues;
         await updateLeavePolicy(next);
       } else if (modalType === 'SHIFT') {
         if (editIndex !== null) {
@@ -222,7 +227,7 @@ const Organization: React.FC = () => {
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Policies</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
-            {(['WORKFLOW', 'LEAVES', 'HOLIDAYS', 'SYSTEM'] as OrgTab[]).map(tab => (
+            {(['WORKFLOW', 'LEAVES', 'HOLIDAYS', 'NOTIFICATIONS', 'SYSTEM'] as OrgTab[]).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
             ))}
           </div>
@@ -305,6 +310,10 @@ const Organization: React.FC = () => {
            />
         )}
 
+        {activeTab === 'NOTIFICATIONS' && (
+           <OrgNotifications config={notificationConfig} onSave={saveNotificationConfig} />
+        )}
+
         {activeTab === 'SYSTEM' && (
            <OrgSystem config={config} onSave={saveConfig} />
         )}
@@ -355,10 +364,13 @@ const Organization: React.FC = () => {
                           {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
                        </select>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
-                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Annual</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.ANNUAL} onChange={e => setOverrideForm({...overrideForm, ANNUAL: parseInt(e.target.value)})} /></div>
-                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Casual</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.CASUAL} onChange={e => setOverrideForm({...overrideForm, CASUAL: parseInt(e.target.value)})} /></div>
-                       <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Sick</label><input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm.SICK} onChange={e => setOverrideForm({...overrideForm, SICK: parseInt(e.target.value)})} /></div>
+                    <div className={`grid grid-cols-${Math.min(leaveTypes.filter(t => t.hasBalance).length, 4)} gap-3`}>
+                       {leaveTypes.filter(t => t.hasBalance).map(lt => (
+                         <div key={lt.id} className="space-y-1">
+                           <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">{lt.name.replace(' Leave', '')}</label>
+                           <input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-center" value={overrideForm[lt.id] || 0} onChange={e => setOverrideForm({...overrideForm, [lt.id]: parseInt(e.target.value)})} />
+                         </div>
+                       ))}
                     </div>
                  </div>
               )}

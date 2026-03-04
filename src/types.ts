@@ -336,6 +336,22 @@ export interface AppNotification {
   updated: string;
 }
 
+// Notification Config Types
+export type EmailDigestFrequency = 'IMMEDIATE' | 'DAILY' | 'WEEKLY' | 'OFF';
+
+export interface OrgNotificationConfig {
+  enabledTypes: NotificationType[];
+  emailDigestFrequency: EmailDigestFrequency;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;   // HH:mm
+  quietHoursEnd: string;     // HH:mm
+}
+
+export interface UserNotificationPreferences {
+  mutedTypes: NotificationType[];
+  emailDigestFrequency: EmailDigestFrequency;
+}
+
 // Performance Review Types
 export type ReviewCycleType = 'MID_YEAR' | 'YEAR_END';
 export type ReviewCycleStatus = 'UPCOMING' | 'OPEN' | 'CLOSED' | 'ARCHIVED';
