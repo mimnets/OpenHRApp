@@ -24,6 +24,7 @@ import LandingPage from './pages/LandingPage';
 import SuperAdmin from './pages/SuperAdmin';
 import Upgrade from './pages/Upgrade';
 import PerformanceReview from './pages/PerformanceReview';
+import Announcements from './pages/Announcements';
 import { VerifyAccount } from './pages/VerifyAccount';
 import { SuspendedPage } from './components/subscription';
 import BlogPage from './pages/BlogPage';
@@ -322,6 +323,7 @@ const AppContent: React.FC = () => {
       case 'attendance-logs': return <AttendanceLogs user={user} viewMode="MY" />;
       case 'attendance-audit': return <AttendanceLogs user={user} viewMode="AUDIT" />;
       case 'leave': return <Leave user={user} autoOpen={navParams?.autoOpen} />;
+      case 'announcements': return <Announcements user={user} />;
       case 'performance-review': return <PerformanceReview user={user} />;
       case 'settings': return <Settings user={user} />;
       case 'reports': return <Reports user={user} />;

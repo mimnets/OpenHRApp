@@ -5,6 +5,7 @@ import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AdBanner } from '../ads';
+import { AnnouncementWidget } from './AnnouncementWidget';
 
 interface Props {
   data: DashboardData;
@@ -81,6 +82,9 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
            </button>
         </div>
       )}
+
+      {/* Announcements Widget */}
+      <AnnouncementWidget user={data.freshUser} onNavigate={onNavigate} />
     </div>
   );
 };

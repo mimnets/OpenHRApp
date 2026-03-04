@@ -5,6 +5,7 @@ import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AdBanner } from '../ads';
+import { AnnouncementWidget } from './AnnouncementWidget';
 
 interface Props {
   data: DashboardData;
@@ -13,7 +14,8 @@ interface Props {
 }
 
 export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate }) => {
-  const totalRemaining = (data.userBalance?.ANNUAL || 0) + (data.userBalance?.CASUAL || 0) + (data.userBalance?.SICK || 0);
+  const balanceTypes = data.leaveTypes?.filter(t => t.hasBalance) || [];
+  const totalRemaining = balanceTypes.reduce((sum, t) => sum + ((data.userBalance?.[t.id] as number) || 0), 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -48,18 +50,12 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
             <div className="px-8 -mt-6">
               <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-lg space-y-8">
                 <div className="flex justify-around items-center divide-x divide-slate-100">
-                  <div className="text-center flex-1">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Annual</p>
-                    <p className="text-2xl font-semibold text-primary">{data.userBalance?.ANNUAL || 0}</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Sick</p>
-                    <p className="text-2xl font-semibold text-primary">{data.userBalance?.SICK || 0}</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Casual</p>
-                    <p className="text-2xl font-semibold text-primary">{data.userBalance?.CASUAL || 0}</p>
-                  </div>
+                  {balanceTypes.map(lt => (
+                    <div key={lt.id} className="text-center flex-1">
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">{lt.name.replace(' Leave', '')}</p>
+                      <p className="text-2xl font-semibold text-primary">{(data.userBalance?.[lt.id] as number) || 0}</p>
+                    </div>
+                  ))}
                 </div>
 
                 <p className="text-center text-sm text-slate-500 font-medium">
@@ -98,6 +94,9 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
               <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Out of {data.teamMembersCount}</p>
             </div>
           </div>
+
+          {/* Announcements Widget */}
+          <AnnouncementWidget user={data.freshUser} onNavigate={onNavigate} />
         </>
       )}
     </div>

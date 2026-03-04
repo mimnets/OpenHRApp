@@ -151,7 +151,7 @@ export interface LeaveRequest {
   employeeId: string;
   employeeName: string;
   lineManagerId?: string;
-  type: 'ANNUAL' | 'CASUAL' | 'SICK' | 'MATERNITY' | 'PATERNITY' | 'EARNED' | 'UNPAID';
+  type: string;
   startDate: string;
   endDate: string;
   totalDays: number;
@@ -165,22 +165,12 @@ export interface LeaveRequest {
 
 export interface LeaveBalance {
   employeeId: string;
-  ANNUAL: number;
-  CASUAL: number;
-  SICK: number;
+  [key: string]: string | number;
 }
 
 export interface LeavePolicy {
-  defaults: {
-    ANNUAL: number;
-    CASUAL: number;
-    SICK: number;
-  };
-  overrides: Record<string, { // Key is employeeId
-    ANNUAL: number;
-    CASUAL: number;
-    SICK: number;
-  }>;
+  defaults: Record<string, number>;
+  overrides: Record<string, Record<string, number>>;
 }
 
 export interface LeaveWorkflow {
@@ -308,12 +298,55 @@ export interface RegistrationData {
   logo?: File | null;
 }
 
+// Announcement Types
+export type AnnouncementPriority = 'NORMAL' | 'URGENT';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  priority: AnnouncementPriority;
+  targetRoles: Role[];
+  expiresAt?: string;
+  organizationId: string;
+  created: string;
+  updated: string;
+}
+
 // Performance Review Types
 export type ReviewCycleType = 'MID_YEAR' | 'YEAR_END';
 export type ReviewCycleStatus = 'UPCOMING' | 'OPEN' | 'CLOSED' | 'ARCHIVED';
 export type ReviewStatus = 'DRAFT' | 'SELF_REVIEW_SUBMITTED' | 'MANAGER_REVIEWED' | 'COMPLETED';
-export type CompetencyId = 'AGILITY' | 'COLLABORATION' | 'CUSTOMER_FOCUS' | 'DEVELOPING_OTHERS' | 'GLOBAL_MINDSET' | 'INNOVATION_MINDSET';
-export type HROverallRating = 'EXCELLENT' | 'VERY_GOOD' | 'GOOD' | 'NEEDS_IMPROVEMENT' | 'UNSATISFACTORY';
+export type CompetencyId = string;
+export type HROverallRating = string;
+
+export interface CustomCompetency {
+  id: string;
+  name: string;
+  description: string;
+  behaviors: string[];
+}
+
+export interface CustomRatingScale {
+  min: number;
+  max: number;
+  labels: { value: number; label: string; color: string }[];
+}
+
+export interface OrgReviewConfig {
+  competencies: CustomCompetency[];
+  ratingScale: CustomRatingScale;
+  overallRatings: { value: string; label: string; color: string }[];
+}
+
+export interface CustomLeaveType {
+  id: string;
+  name: string;
+  color: string;
+  hasBalance: boolean;
+}
 
 export interface ReviewCycle {
   id: string;
@@ -323,14 +356,14 @@ export interface ReviewCycle {
   endDate: string;
   reviewStartDate: string;
   reviewEndDate: string;
-  activeCompetencies: CompetencyId[];
+  activeCompetencies: string[];
   isActive: boolean;
   status: ReviewCycleStatus;
   organizationId: string;
 }
 
 export interface CompetencyRating {
-  competencyId: CompetencyId;
+  competencyId: string;
   rating: number;
   comment: string;
 }
@@ -345,11 +378,13 @@ export interface AttendanceSummary {
 }
 
 export interface LeaveSummary {
-  annualLeaveTaken: number;
-  casualLeaveTaken: number;
-  sickLeaveTaken: number;
-  unpaidLeaveTaken: number;
+  typeBreakdown: Record<string, number>;
   totalLeaveDays: number;
+  // Legacy fields for backward compat with old reviews
+  annualLeaveTaken?: number;
+  casualLeaveTaken?: number;
+  sickLeaveTaken?: number;
+  unpaidLeaveTaken?: number;
 }
 
 export interface PerformanceReview {

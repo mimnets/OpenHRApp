@@ -7,6 +7,7 @@ import { organizationService } from './organization.service';
 import { verificationService } from './verification.service';
 import { shiftService } from './shift.service';
 import { reviewService } from './review.service';
+import { announcementService } from './announcement.service';
 import { apiClient } from './api.client';
 
 export const hrService = {
@@ -61,6 +62,10 @@ export const hrService = {
   setWorkflows: organizationService.setWorkflows,
   getLeavePolicy: organizationService.getLeavePolicy,
   setLeavePolicy: organizationService.setLeavePolicy,
+  getReviewConfig: organizationService.getReviewConfig,
+  setReviewConfig: organizationService.setReviewConfig,
+  getLeaveTypes: organizationService.getLeaveTypes,
+  setLeaveTypes: organizationService.setLeaveTypes,
   sendCustomEmail: organizationService.sendCustomEmail,
   getReportQueueLog: organizationService.getReportQueueLog,
   testPocketBaseConnection: organizationService.testPocketBaseConnection,
@@ -87,4 +92,10 @@ export const hrService = {
   finalizeReview: reviewService.finalizeReview,
   calculateAttendanceSummary: reviewService.calculateAttendanceSummary,
   calculateLeaveSummary: reviewService.calculateLeaveSummary,
+
+  // Announcements
+  getAnnouncements: announcementService.getAnnouncements,
+  createAnnouncement: announcementService.createAnnouncement,
+  updateAnnouncement: announcementService.updateAnnouncement,
+  deleteAnnouncement: announcementService.deleteAnnouncement,
 };
