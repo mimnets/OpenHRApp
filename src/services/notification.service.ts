@@ -158,6 +158,45 @@ export const notificationService = {
     apiClient.notify();
   },
 
+  async getAllNotifications(): Promise<AppNotification[]> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    try {
+      const records = await apiClient.pb.collection('notifications').getFullList({
+        sort: '-created',
+      });
+      return records.map(r => ({
+        id: r.id.toString().trim(),
+        userId: r.user_id || '',
+        type: (r.type || 'SYSTEM') as NotificationType,
+        title: r.title || '',
+        message: r.message || undefined,
+        isRead: !!r.is_read,
+        priority: (r.priority || 'NORMAL') as NotificationPriority,
+        referenceId: r.reference_id || undefined,
+        referenceType: r.reference_type || undefined,
+        actionUrl: r.action_url || undefined,
+        metadata: r.metadata || undefined,
+        organizationId: r.organization_id,
+        created: r.created,
+        updated: r.updated,
+      }));
+    } catch (e: any) {
+      console.error("[NotificationService] Failed to fetch all notifications:", e?.message || e);
+      return [];
+    }
+  },
+
+  async deleteNotification(id: string): Promise<void> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    try {
+      await apiClient.pb.collection('notifications').delete(id);
+      apiClient.notify();
+    } catch (e: any) {
+      console.error("[NotificationService] Failed to delete notification:", e?.message || e);
+      throw new Error('Failed to delete notification');
+    }
+  },
+
   async getUserPreferences(): Promise<UserNotificationPreferences> {
     const userId = apiClient.pb?.authStore.model?.id;
     if (!userId) return DEFAULT_USER_NOTIFICATION_PREFS;

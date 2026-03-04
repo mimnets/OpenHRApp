@@ -91,6 +91,8 @@ export const hrService = {
   submitSelfAssessment: reviewService.submitSelfAssessment,
   submitManagerReview: reviewService.submitManagerReview,
   finalizeReview: reviewService.finalizeReview,
+  deleteReview: reviewService.deleteReview,
+  adminUpdateReview: reviewService.adminUpdateReview,
   calculateAttendanceSummary: reviewService.calculateAttendanceSummary,
   calculateLeaveSummary: reviewService.calculateLeaveSummary,
 
@@ -102,6 +104,10 @@ export const hrService = {
 
   // Notifications
   getNotifications: notificationService.getNotifications,
+  getAllNotifications: notificationService.getAllNotifications,
+  deleteNotification: notificationService.deleteNotification,
+  createNotification: notificationService.createNotification,
+  createBulkNotifications: notificationService.createBulkNotifications,
   getUnreadCount: notificationService.getUnreadCount,
   markAsRead: notificationService.markAsRead,
   markAllAsRead: notificationService.markAllAsRead,
