@@ -1,6 +1,6 @@
 import { apiClient } from './api.client';
-import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow } from '../types';
-import { DEFAULT_CONFIG, BD_HOLIDAYS } from '../constants';
+import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, CustomLeaveType, OrgNotificationConfig } from '../types';
+import { DEFAULT_CONFIG, BD_HOLIDAYS, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
 import { shiftService } from './shift.service';
 
 // Internal Cache
@@ -9,6 +9,9 @@ let cachedDepartments: string[] | null = null;
 let cachedDesignations: string[] | null = null;
 let cachedHolidays: Holiday[] | null = null;
 let cachedLeavePolicy: LeavePolicy | null = null;
+let cachedReviewConfig: OrgReviewConfig | null = null;
+let cachedLeaveTypes: CustomLeaveType[] | null = null;
+let cachedNotificationConfig: OrgNotificationConfig | null = null;
 
 // Helper functions extracted to avoid 'this' binding issues
 async function getSetting(key: string, defaultValue: any) {
@@ -56,6 +59,9 @@ export const organizationService = {
     cachedDesignations = null;
     cachedHolidays = null;
     cachedLeavePolicy = null;
+    cachedReviewConfig = null;
+    cachedLeaveTypes = null;
+    cachedNotificationConfig = null;
     shiftService.clearCache();
   },
 
@@ -196,6 +202,48 @@ export const organizationService = {
   async setLeavePolicy(policy: LeavePolicy) {
     await setSetting('leave_policy', policy);
     cachedLeavePolicy = policy;
+    apiClient.notify();
+  },
+
+  // Review Config
+  async getReviewConfig(): Promise<OrgReviewConfig> {
+    if (cachedReviewConfig) return cachedReviewConfig;
+    const val = await getSetting('review_config', DEFAULT_REVIEW_CONFIG);
+    cachedReviewConfig = val;
+    return val;
+  },
+
+  async setReviewConfig(config: OrgReviewConfig) {
+    await setSetting('review_config', config);
+    cachedReviewConfig = config;
+    apiClient.notify();
+  },
+
+  // Leave Types
+  async getLeaveTypes(): Promise<CustomLeaveType[]> {
+    if (cachedLeaveTypes) return cachedLeaveTypes;
+    const val = await getSetting('leave_types', DEFAULT_LEAVE_TYPES);
+    cachedLeaveTypes = val;
+    return val;
+  },
+
+  async setLeaveTypes(types: CustomLeaveType[]) {
+    await setSetting('leave_types', types);
+    cachedLeaveTypes = types;
+    apiClient.notify();
+  },
+
+  // Notification Config
+  async getNotificationConfig(): Promise<OrgNotificationConfig> {
+    if (cachedNotificationConfig) return cachedNotificationConfig;
+    const val = await getSetting('notification_config', DEFAULT_NOTIFICATION_CONFIG);
+    cachedNotificationConfig = val;
+    return val;
+  },
+
+  async setNotificationConfig(config: OrgNotificationConfig) {
+    await setSetting('notification_config', config);
+    cachedNotificationConfig = config;
     apiClient.notify();
   },
 

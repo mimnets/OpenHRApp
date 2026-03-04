@@ -1,4 +1,4 @@
-import { Holiday, AppConfig, CompetencyId, HROverallRating } from './types';
+import { Holiday, AppConfig, CustomCompetency, CustomLeaveType, OrgReviewConfig, OrgNotificationConfig, UserNotificationPreferences } from './types';
 
 export const DEPARTMENTS = [
   "Engineering",
@@ -43,12 +43,7 @@ export const BD_HOLIDAYS: Holiday[] = [
   { id: 'bd-h9', date: '2024-06-17', name: 'Eid-ul-Adha', isGovernment: true, type: 'ISLAMIC' },
 ];
 
-export const PERFORMANCE_COMPETENCIES: {
-  id: CompetencyId;
-  name: string;
-  description: string;
-  behaviors: string[];
-}[] = [
+export const DEFAULT_COMPETENCIES: CustomCompetency[] = [
   {
     id: 'AGILITY',
     name: 'Agility',
@@ -87,7 +82,10 @@ export const PERFORMANCE_COMPETENCIES: {
   },
 ];
 
-export const RATING_SCALE: {
+// Keep old name as alias for backward compat during transition
+export const PERFORMANCE_COMPETENCIES = DEFAULT_COMPETENCIES;
+
+export const DEFAULT_RATING_SCALE: {
   value: number;
   label: string;
   color: string;
@@ -99,8 +97,10 @@ export const RATING_SCALE: {
   { value: 5, label: 'Outstanding', color: 'bg-green-500' },
 ];
 
-export const HR_OVERALL_RATINGS: {
-  value: HROverallRating;
+export const RATING_SCALE = DEFAULT_RATING_SCALE;
+
+export const DEFAULT_OVERALL_RATINGS: {
+  value: string;
   label: string;
   color: string;
 }[] = [
@@ -110,6 +110,41 @@ export const HR_OVERALL_RATINGS: {
   { value: 'NEEDS_IMPROVEMENT', label: 'Needs Improvement', color: 'bg-orange-500' },
   { value: 'UNSATISFACTORY', label: 'Unsatisfactory', color: 'bg-red-500' },
 ];
+
+export const HR_OVERALL_RATINGS = DEFAULT_OVERALL_RATINGS;
+
+export const DEFAULT_LEAVE_TYPES: CustomLeaveType[] = [
+  { id: 'ANNUAL', name: 'Annual Leave', color: 'bg-primary', hasBalance: true },
+  { id: 'CASUAL', name: 'Casual Leave', color: 'bg-emerald-500', hasBalance: true },
+  { id: 'SICK', name: 'Sick Leave', color: 'bg-rose-500', hasBalance: true },
+  { id: 'MATERNITY', name: 'Maternity Leave', color: 'bg-pink-500', hasBalance: false },
+  { id: 'PATERNITY', name: 'Paternity Leave', color: 'bg-indigo-500', hasBalance: false },
+  { id: 'EARNED', name: 'Earned Leave', color: 'bg-amber-500', hasBalance: false },
+  { id: 'UNPAID', name: 'Unpaid Leave', color: 'bg-slate-500', hasBalance: false },
+];
+
+export const DEFAULT_REVIEW_CONFIG: OrgReviewConfig = {
+  competencies: DEFAULT_COMPETENCIES,
+  ratingScale: {
+    min: 1,
+    max: 5,
+    labels: DEFAULT_RATING_SCALE,
+  },
+  overallRatings: DEFAULT_OVERALL_RATINGS,
+};
+
+export const DEFAULT_NOTIFICATION_CONFIG: OrgNotificationConfig = {
+  enabledTypes: ['ANNOUNCEMENT', 'LEAVE', 'ATTENDANCE', 'REVIEW', 'SYSTEM'],
+  emailDigestFrequency: 'IMMEDIATE',
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
+};
+
+export const DEFAULT_USER_NOTIFICATION_PREFS: UserNotificationPreferences = {
+  mutedTypes: [],
+  emailDigestFrequency: 'IMMEDIATE',
+};
 
 export const DEFAULT_CONFIG: AppConfig = {
   companyName: "OpenHRApp Solutions Ltd.",

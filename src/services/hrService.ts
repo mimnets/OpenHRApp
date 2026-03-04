@@ -105,4 +105,10 @@ export const hrService = {
   getUnreadCount: notificationService.getUnreadCount,
   markAsRead: notificationService.markAsRead,
   markAllAsRead: notificationService.markAllAsRead,
+  getUserNotificationPreferences: notificationService.getUserPreferences,
+  setUserNotificationPreferences: notificationService.setUserPreferences,
+
+  // Notification Config (Org-level)
+  getNotificationConfig: organizationService.getNotificationConfig,
+  setNotificationConfig: organizationService.setNotificationConfig,
 };

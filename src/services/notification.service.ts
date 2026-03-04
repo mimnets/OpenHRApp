@@ -1,6 +1,8 @@
 
 import { apiClient } from './api.client';
-import { AppNotification, NotificationType, NotificationPriority } from '../types';
+import { AppNotification, NotificationType, NotificationPriority, UserNotificationPreferences } from '../types';
+import { organizationService } from './organization.service';
+import { DEFAULT_USER_NOTIFICATION_PREFS } from '../constants';
 
 export const notificationService = {
   async getNotifications(): Promise<AppNotification[]> {
@@ -153,6 +155,19 @@ export const notificationService = {
     });
 
     await Promise.all(promises);
+    apiClient.notify();
+  },
+
+  async getUserPreferences(): Promise<UserNotificationPreferences> {
+    const userId = apiClient.pb?.authStore.model?.id;
+    if (!userId) return DEFAULT_USER_NOTIFICATION_PREFS;
+    return organizationService.getSetting(`notification_prefs_${userId}`, DEFAULT_USER_NOTIFICATION_PREFS);
+  },
+
+  async setUserPreferences(prefs: UserNotificationPreferences): Promise<void> {
+    const userId = apiClient.pb?.authStore.model?.id;
+    if (!userId) return;
+    await organizationService.setSetting(`notification_prefs_${userId}`, prefs);
     apiClient.notify();
   },
 };
