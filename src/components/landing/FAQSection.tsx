@@ -55,6 +55,19 @@ const faqs = [
     ],
   },
   {
+    category: 'Performance Reviews',
+    items: [
+      {
+        q: 'How do performance reviews work?',
+        a: 'Performance reviews follow a 3-step flow: employees complete a self-assessment, their manager provides an evaluation, and HR finalizes the review. Each step includes customizable competencies and a configurable rating scale.',
+      },
+      {
+        q: 'Can I customize the review competencies and rating scale?',
+        a: 'Yes. Admins can configure competencies, behaviors, and rating scale labels from organization settings. This lets you tailor reviews to match your company\'s values and evaluation criteria.',
+      },
+    ],
+  },
+  {
     category: 'PWA & Mobile',
     items: [
       {
