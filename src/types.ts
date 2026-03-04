@@ -315,6 +315,27 @@ export interface Announcement {
   updated: string;
 }
 
+// Notification Types
+export type NotificationType = 'ANNOUNCEMENT' | 'LEAVE' | 'ATTENDANCE' | 'REVIEW' | 'SYSTEM';
+export type NotificationPriority = 'NORMAL' | 'URGENT';
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message?: string;
+  isRead: boolean;
+  priority: NotificationPriority;
+  referenceId?: string;
+  referenceType?: string;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
+  organizationId: string;
+  created: string;
+  updated: string;
+}
+
 // Performance Review Types
 export type ReviewCycleType = 'MID_YEAR' | 'YEAR_END';
 export type ReviewCycleStatus = 'UPCOMING' | 'OPEN' | 'CLOSED' | 'ARCHIVED';

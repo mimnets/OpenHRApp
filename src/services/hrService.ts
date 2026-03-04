@@ -8,6 +8,7 @@ import { verificationService } from './verification.service';
 import { shiftService } from './shift.service';
 import { reviewService } from './review.service';
 import { announcementService } from './announcement.service';
+import { notificationService } from './notification.service';
 import { apiClient } from './api.client';
 
 export const hrService = {
@@ -98,4 +99,10 @@ export const hrService = {
   createAnnouncement: announcementService.createAnnouncement,
   updateAnnouncement: announcementService.updateAnnouncement,
   deleteAnnouncement: announcementService.deleteAnnouncement,
+
+  // Notifications
+  getNotifications: notificationService.getNotifications,
+  getUnreadCount: notificationService.getUnreadCount,
+  markAsRead: notificationService.markAsRead,
+  markAllAsRead: notificationService.markAllAsRead,
 };

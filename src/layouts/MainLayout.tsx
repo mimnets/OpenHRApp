@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Database, Menu, X, LayoutDashboard, Clock, CalendarDays, UserCircle, Sun, Moon } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import NotificationBell from '../components/notifications/NotificationBell';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { SubscriptionBanner } from '../components/subscription';
@@ -81,6 +82,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
+              <NotificationBell onNavigate={handleNavigate} />
               <div
                 className="cursor-pointer"
                 onClick={() => handleNavigate('profile')}
