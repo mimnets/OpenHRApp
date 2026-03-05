@@ -1625,10 +1625,11 @@ function getCountryDefaults(countryCode) {
 // GET /api/openhr/notification-stats — Platform-wide notification counts (bypasses API rules)
 routerAdd("GET", "/api/openhr/notification-stats", (e) => {
     try {
-        if (!e.auth || !e.auth.record) {
+        const authRecord = e.auth;
+        if (!authRecord) {
             return e.json(401, { message: "Unauthorized" });
         }
-        const role = e.auth.record.getString("role");
+        const role = authRecord.getString("role");
         if (role !== "SUPER_ADMIN") {
             return e.json(403, { message: "Super Admin access required" });
         }
@@ -1663,10 +1664,11 @@ routerAdd("GET", "/api/openhr/notification-stats", (e) => {
 // POST /api/openhr/purge-all-notifications — Delete ALL notifications platform-wide (bypasses API rules)
 routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
     try {
-        if (!e.auth || !e.auth.record) {
+        const authRecord = e.auth;
+        if (!authRecord) {
             return e.json(401, { message: "Unauthorized" });
         }
-        const role = e.auth.record.getString("role");
+        const role = authRecord.getString("role");
         if (role !== "SUPER_ADMIN") {
             return e.json(403, { message: "Super Admin access required" });
         }
