@@ -1639,7 +1639,7 @@ routerAdd("GET", "/api/openhr/notification-stats", (e) => {
         let unread = 0;
 
         try {
-            const allRecords = $app.findAllRecordsByFilter("notifications", "id != ''");
+            const allRecords = $app.findRecordsByFilter("notifications", "id != ''", "-created", 10000, 0);
             total = allRecords.length;
 
             for (let i = 0; i < allRecords.length; i++) {
@@ -1677,16 +1677,26 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
         let errors = 0;
 
         try {
-            const records = $app.findAllRecordsByFilter("notifications", "id != ''");
-            console.log("[PURGE-NOTIF] Found", records.length, "notifications to delete");
-
-            for (let i = 0; i < records.length; i++) {
-                try {
-                    $app.delete(records[i]);
-                    deleted++;
-                } catch (delErr) {
-                    errors++;
-                    console.log("[PURGE-NOTIF] Delete error for", records[i].id, ":", delErr.toString());
+            // Delete in batches - fetch 500 at a time, keep going until none remain
+            let hasMore = true;
+            while (hasMore) {
+                const records = $app.findRecordsByFilter("notifications", "id != ''", "-created", 500, 0);
+                if (!records || records.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+                console.log("[PURGE-NOTIF] Deleting batch of", records.length, "notifications");
+                for (let i = 0; i < records.length; i++) {
+                    try {
+                        $app.delete(records[i]);
+                        deleted++;
+                    } catch (delErr) {
+                        errors++;
+                        console.log("[PURGE-NOTIF] Delete error for", records[i].id, ":", delErr.toString());
+                    }
+                }
+                if (records.length < 500) {
+                    hasMore = false;
                 }
             }
         } catch (findErr) {
