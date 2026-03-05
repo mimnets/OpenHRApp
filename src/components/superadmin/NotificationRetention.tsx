@@ -160,6 +160,7 @@ const NotificationRetention: React.FC<NotificationRetentionProps> = ({ onMessage
     setIsPurging(true);
     try {
       const response = await apiClient.pb?.send('/api/openhr/purge-all-notifications', { method: 'POST' });
+      console.log('[NotificationRetention] Purge response:', JSON.stringify(response));
       const deleted = response?.deleted || 0;
       const errors = response?.errors || 0;
 
