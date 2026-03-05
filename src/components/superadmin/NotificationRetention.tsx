@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Bell, Trash2, Clock, AlertTriangle, CheckCircle2, RefreshCw, Mail, MailOpen } from 'lucide-react';
+import { Loader2, Bell, Clock, AlertTriangle, CheckCircle2, RefreshCw, Mail, MailOpen, Zap } from 'lucide-react';
 import { apiClient } from '../../services/api.client';
 
 interface NotificationStats {
@@ -31,7 +31,7 @@ const NotificationRetention: React.FC<NotificationRetentionProps> = ({ onMessage
   const [stats, setStats] = useState<NotificationStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isRunningCleanup, setIsRunningCleanup] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
   const [retentionDays, setRetentionDays] = useState(30);
 
   useEffect(() => {
@@ -70,25 +70,19 @@ const NotificationRetention: React.FC<NotificationRetentionProps> = ({ onMessage
         // Not found
       }
 
-      // Count notifications
+      // Get platform-wide notification counts via custom endpoint (bypasses API rules)
       let totalNotifications = 0;
       let readNotifications = 0;
       let unreadNotifications = 0;
       try {
-        const allResult = await apiClient.pb?.collection('notifications').getList(1, 1, {
-          requestKey: 'count_all_notifs'
-        });
-        totalNotifications = allResult?.totalItems || 0;
-
-        const readResult = await apiClient.pb?.collection('notifications').getList(1, 1, {
-          filter: 'is_read = true',
-          requestKey: 'count_read_notifs'
-        });
-        readNotifications = readResult?.totalItems || 0;
-
-        unreadNotifications = totalNotifications - readNotifications;
+        const response = await apiClient.pb?.send('/api/openhr/notification-stats', { method: 'GET' });
+        if (response) {
+          totalNotifications = response.total || 0;
+          readNotifications = response.read || 0;
+          unreadNotifications = response.unread || 0;
+        }
       } catch (e) {
-        console.log('[NotificationRetention] Error counting notifications:', e);
+        console.log('[NotificationRetention] Error fetching notification stats:', e);
       }
 
       setStats({
@@ -158,47 +152,27 @@ const NotificationRetention: React.FC<NotificationRetentionProps> = ({ onMessage
     }
   };
 
-  const handleManualCleanup = async () => {
-    if (!confirm(`This will permanently delete all notifications older than ${retentionDays} days.\n\nThis action cannot be undone. Continue?`)) {
+  const handlePurgeAll = async () => {
+    if (!confirm('Are you sure you want to DELETE ALL notifications?\n\nThis will permanently remove every notification for ALL users across ALL organizations.\n\nThis action cannot be undone.')) {
       return;
     }
 
-    setIsRunningCleanup(true);
+    setIsPurging(true);
     try {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-      const cutoffStr = cutoffDate.toISOString().replace('T', ' ');
-
-      let cleaned = 0;
-      let errors = 0;
-
-      const records = await apiClient.pb?.collection('notifications').getFullList({
-        filter: `created < "${cutoffStr}"`,
-        fields: 'id',
-        requestKey: 'cleanup_notifs_fetch'
-      });
-
-      if (records && records.length > 0) {
-        for (const record of records) {
-          try {
-            await apiClient.pb?.collection('notifications').delete(record.id);
-            cleaned++;
-          } catch (e) {
-            errors++;
-          }
-        }
-      }
+      const response = await apiClient.pb?.send('/api/openhr/purge-all-notifications', { method: 'POST' });
+      const deleted = response?.deleted || 0;
+      const errors = response?.errors || 0;
 
       onMessage({
-        type: 'success',
-        text: `Cleanup complete! Deleted ${cleaned} notifications${errors > 0 ? `, ${errors} errors` : ''}`
+        type: errors > 0 ? 'error' : 'success',
+        text: `Purge complete! Deleted ${deleted} notifications${errors > 0 ? `, ${errors} errors` : ''}`
       });
       await loadStats();
     } catch (e: any) {
-      console.error('[NotificationRetention] Cleanup error:', e);
-      onMessage({ type: 'error', text: 'Failed to run cleanup: ' + (e.message || 'Unknown error') });
+      console.error('[NotificationRetention] Purge error:', e);
+      onMessage({ type: 'error', text: 'Failed to purge notifications: ' + (e.message || 'Unknown error') });
     } finally {
-      setIsRunningCleanup(false);
+      setIsPurging(false);
     }
   };
 
@@ -277,6 +251,26 @@ const NotificationRetention: React.FC<NotificationRetentionProps> = ({ onMessage
         </div>
       </div>
 
+      {/* Purge All Section */}
+      <div className="bg-red-50 rounded-2xl border border-red-200 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-bold text-red-900">Purge All Notifications</h4>
+            <p className="text-sm text-red-700 mt-1">
+              Permanently delete every notification for all users across all organizations.
+            </p>
+          </div>
+          <button
+            onClick={handlePurgeAll}
+            disabled={isPurging || (stats?.totalNotifications || 0) === 0}
+            className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPurging ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} />}
+            Purge All ({stats?.totalNotifications || 0})
+          </button>
+        </div>
+      </div>
+
       {/* Last Cleanup Info */}
       {stats?.lastCleanup && (
         <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
@@ -344,15 +338,6 @@ const NotificationRetention: React.FC<NotificationRetentionProps> = ({ onMessage
           >
             {isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
             Save Retention Policy
-          </button>
-
-          <button
-            onClick={handleManualCleanup}
-            disabled={isRunningCleanup}
-            className="px-6 py-3 bg-red-50 text-red-700 rounded-xl font-bold flex items-center gap-2 hover:bg-red-100 transition-all disabled:opacity-50"
-          >
-            {isRunningCleanup ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-            Run Cleanup Now
           </button>
         </div>
 
