@@ -75,6 +75,7 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
   // Review Settings state
   const [editConfig, setEditConfig] = useState<OrgReviewConfig>(reviewConfig);
   const [editingCompetencyIdx, setEditingCompetencyIdx] = useState<number | null>(null);
+  const [showCompForm, setShowCompForm] = useState(false);
   const [compForm, setCompForm] = useState<CustomCompetency>({ id: '', name: '', description: '', behaviors: [] });
   const [compBehaviorInput, setCompBehaviorInput] = useState('');
 
@@ -199,10 +200,12 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
     setEditConfig(JSON.parse(JSON.stringify(reviewConfig)));
     setShowSettings(true);
     setEditingCompetencyIdx(null);
+    setShowCompForm(false);
   };
 
   const openCompetencyForm = (idx: number | null) => {
     setEditingCompetencyIdx(idx);
+    setShowCompForm(true);
     if (idx !== null) {
       const c = editConfig.competencies[idx];
       setCompForm({ ...c });
@@ -227,6 +230,7 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
     }
     setEditConfig(next);
     setEditingCompetencyIdx(null);
+    setShowCompForm(false);
   };
 
   const deleteCompetency = (idx: number) => {
@@ -726,11 +730,10 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
                   ))}
                 </div>
 
-                {editingCompetencyIdx !== null || editingCompetencyIdx === null ? null : null}
                 {/* Competency Form */}
-                {editingCompetencyIdx !== undefined && editingCompetencyIdx !== null ? (
+                {showCompForm ? (
                   <div className="mt-3 bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-                    <h5 className="font-semibold text-xs text-slate-700">Edit Competency</h5>
+                    <h5 className="font-semibold text-xs text-slate-700">{editingCompetencyIdx !== null ? 'Edit' : 'Add'} Competency</h5>
                     <input placeholder="Name" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" value={compForm.name} onChange={e => setCompForm(p => ({ ...p, name: e.target.value }))} />
                     <textarea placeholder="Description" className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2" rows={2} value={compForm.description} onChange={e => setCompForm(p => ({ ...p, description: e.target.value }))} />
                     <div>
@@ -748,7 +751,7 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
                       </div>
                     </div>
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => setEditingCompetencyIdx(null)} className="px-3 py-1.5 text-xs text-slate-500">Cancel</button>
+                      <button onClick={() => { setEditingCompetencyIdx(null); setShowCompForm(false); }} className="px-3 py-1.5 text-xs text-slate-500">Cancel</button>
                       <button onClick={saveCompetency} className="px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold">Save</button>
                     </div>
                   </div>
@@ -760,7 +763,6 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
                     <Plus size={14} /> Add Competency
                   </button>
                 )}
-                {/* Show add form when adding new (editingCompetencyIdx is null but form was opened) */}
               </div>
 
               {/* Rating Scale Section */}
