@@ -25,6 +25,7 @@ import SuperAdmin from './pages/SuperAdmin';
 import Upgrade from './pages/Upgrade';
 import PerformanceReview from './pages/PerformanceReview';
 import Announcements from './pages/Announcements';
+import AdminNotifications from './pages/AdminNotifications';
 import { VerifyAccount } from './pages/VerifyAccount';
 import { SuspendedPage } from './components/subscription';
 import BlogPage from './pages/BlogPage';
@@ -324,6 +325,7 @@ const AppContent: React.FC = () => {
       case 'attendance-audit': return <AttendanceLogs user={user} viewMode="AUDIT" />;
       case 'leave': return <Leave user={user} autoOpen={navParams?.autoOpen} />;
       case 'announcements': return <Announcements user={user} />;
+      case 'admin-notifications': return <AdminNotifications user={user} />;
       case 'performance-review': return <PerformanceReview user={user} />;
       case 'settings': return <Settings user={user} />;
       case 'reports': return <Reports user={user} />;

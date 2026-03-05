@@ -311,7 +311,7 @@ const Organization: React.FC = () => {
         )}
 
         {activeTab === 'NOTIFICATIONS' && (
-           <OrgNotifications config={notificationConfig} onSave={saveNotificationConfig} employees={employees} />
+           <OrgNotifications config={notificationConfig} onSave={saveNotificationConfig} />
         )}
 
         {activeTab === 'SYSTEM' && (
