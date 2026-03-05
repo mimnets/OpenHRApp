@@ -14,9 +14,10 @@ import { PublicAdBanner } from '../components/ads';
 interface LandingPageProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  onLoginSuccess?: (user: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick, onLoginSuccess }) => {
   useEffect(() => {
     // Enable smooth scrolling for the page
     document.documentElement.style.scrollBehavior = 'smooth';
@@ -27,8 +28,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      <Navbar onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} />
-      <HeroSection onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} />
+      <Navbar onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
+      <HeroSection onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
       <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-hero" /></div>
       <FeaturesSection />
       <HowItWorksSection />

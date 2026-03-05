@@ -1,16 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X, Sun, Moon, Mail, Lock, Eye, EyeOff, LogIn, RefreshCw, AlertCircle, Building2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { hrService } from '../../services/hrService';
 
 interface NavbarProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  onLoginSuccess?: (user: any) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
+const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick, onLoginSuccess }) => {
   const { darkMode, setDarkModePreference } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileEmail, setMobileEmail] = useState('');
+  const [mobilePassword, setMobilePassword] = useState('');
+  const [mobileShowPw, setMobileShowPw] = useState(false);
+  const [mobileError, setMobileError] = useState('');
+  const [mobileLoading, setMobileLoading] = useState(false);
+
+  const handleMobileLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileEmail || !mobilePassword) return;
+    setMobileLoading(true);
+    setMobileError('');
+    try {
+      const result = await hrService.login(mobileEmail, mobilePassword);
+      if (result.user) {
+        setMobileOpen(false);
+        onLoginSuccess?.(result.user);
+      } else {
+        setMobileError(result.error || 'Login failed.');
+      }
+    } catch (err: any) {
+      setMobileError(err.message || 'Something went wrong.');
+    } finally {
+      setMobileLoading(false);
+    }
+  };
 
   const toggleDarkMode = () => {
     setDarkModePreference(darkMode ? 'light' : 'dark');
@@ -84,7 +111,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
             </button>
             <button
               onClick={onLoginClick}
-              className="px-5 py-2.5 text-sm font-bold text-slate-700 hover:text-primary transition-colors"
+              className="px-5 py-2.5 text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors border border-slate-200"
             >
               Login
             </button>
@@ -138,19 +165,58 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 {link.label}
               </button>
             ))}
-            <div className="pt-3 mt-3 border-t border-slate-100 space-y-2">
-              <button
-                onClick={() => { setMobileOpen(false); onLoginClick(); }}
-                className="block w-full px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-xl text-center"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => { setMobileOpen(false); onRegisterClick(); }}
-                className="block w-full px-4 py-3 bg-primary text-white text-sm font-bold rounded-xl text-center hover:bg-primary-hover transition-colors"
-              >
-                Get Started Free
-              </button>
+            <div className="pt-3 mt-3 border-t border-slate-100">
+              <form onSubmit={handleMobileLogin} className="space-y-2.5" autoComplete="on">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                  <input
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    required
+                    value={mobileEmail}
+                    onChange={e => setMobileEmail(e.target.value)}
+                    placeholder="Email address"
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
+                  />
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                  <input
+                    type={mobileShowPw ? 'text' : 'password'}
+                    name="password"
+                    autoComplete="current-password"
+                    required
+                    value={mobilePassword}
+                    onChange={e => setMobilePassword(e.target.value)}
+                    placeholder="Password"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
+                  />
+                  <button type="button" onClick={() => setMobileShowPw(!mobileShowPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5">
+                    {mobileShowPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                {mobileError && (
+                  <div className="flex items-center gap-2 p-2 bg-rose-50 border border-rose-100 rounded-xl">
+                    <AlertCircle size={13} className="text-rose-500 flex-shrink-0" />
+                    <p className="text-[11px] font-semibold text-rose-600">{mobileError}</p>
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={mobileLoading}
+                  className="w-full py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  {mobileLoading ? <RefreshCw size={15} className="animate-spin" /> : <><LogIn size={15} /> Login</>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMobileOpen(false); onRegisterClick(); }}
+                  className="w-full py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl font-semibold text-xs hover:bg-white hover:border-slate-300 transition-all flex items-center justify-center gap-2"
+                >
+                  <Building2 size={14} /> Register New Organization
+                </button>
+              </form>
             </div>
           </div>
         </div>

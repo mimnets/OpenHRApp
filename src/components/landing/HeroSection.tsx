@@ -1,12 +1,39 @@
-import React from 'react';
-import { ArrowRight, Clock, CreditCard, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, Clock, CreditCard, Zap, LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, RefreshCw, Building2 } from 'lucide-react';
+import { hrService } from '../../services/hrService';
 
 interface HeroSectionProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  onLoginSuccess?: (user: any) => void;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick, onLoginSuccess }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleMobileLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const result = await hrService.login(email, password);
+      if (result.user) {
+        onLoginSuccess?.(result.user);
+      } else {
+        setError(result.error || 'Login failed. Check your credentials.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <section className="relative pt-28 md:pt-36 pb-16 md:pb-24 overflow-hidden">
       {/* Background gradients */}
@@ -32,19 +59,89 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
             Streamline attendance tracking, leave management, and employee records — all in one powerful platform built for growing teams.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            <button
-              onClick={onRegisterClick}
-              className="w-full sm:w-auto px-8 py-4 bg-primary text-white font-bold text-sm rounded-2xl hover:bg-primary-hover transition-all shadow-sm flex items-center justify-center gap-2"
-            >
-              Get Started Free <ArrowRight size={18} />
-            </button>
+          {/* Mobile: Inline Login Form */}
+          <div className="sm:hidden mb-10">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-left">
+              <div className="flex items-center gap-2 mb-4">
+                <LogIn size={16} className="text-primary" />
+                <h3 className="text-sm font-bold text-slate-900">Sign in to your account</h3>
+              </div>
+
+              <form onSubmit={handleMobileLogin} className="space-y-3" autoComplete="on">
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Email address"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Password"
+                    className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 p-2.5 bg-rose-50 border border-rose-100 rounded-xl">
+                    <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
+                    <p className="text-[11px] font-semibold text-rose-600">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-sm"
+                >
+                  {isLoading ? <RefreshCw size={16} className="animate-spin" /> : <><LogIn size={16} /> Login</>}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onRegisterClick}
+                  className="w-full py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl font-semibold text-xs hover:bg-white hover:border-slate-300 transition-all flex items-center justify-center gap-2"
+                >
+                  <Building2 size={14} /> Register New Organization
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Desktop: CTA Buttons */}
+          <div className="hidden sm:flex items-center justify-center gap-4 mb-12">
             <button
               onClick={onLoginClick}
-              className="w-full sm:w-auto px-8 py-4 bg-white text-slate-700 font-bold text-sm rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+              className="px-8 py-4 bg-slate-900 text-white font-bold text-sm rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
             >
-              Login to Your Account
+              <LogIn size={18} /> Login to Your Account
+            </button>
+            <button
+              onClick={onRegisterClick}
+              className="px-8 py-4 bg-primary text-white font-bold text-sm rounded-2xl hover:bg-primary-hover transition-all shadow-sm flex items-center justify-center gap-2"
+            >
+              Get Started Free <ArrowRight size={18} />
             </button>
           </div>
 

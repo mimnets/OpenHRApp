@@ -281,6 +281,7 @@ const AppContent: React.FC = () => {
       <LandingPage
         onLoginClick={() => setShowLanding(false)}
         onRegisterClick={() => { setShowLanding(false); setShowRegister(true); }}
+        onLoginSuccess={login}
       />
     );
   }
