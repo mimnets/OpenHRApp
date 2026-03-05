@@ -106,6 +106,7 @@ export const hrService = {
   getNotifications: notificationService.getNotifications,
   getAllNotifications: notificationService.getAllNotifications,
   deleteNotification: notificationService.deleteNotification,
+  deleteAllNotifications: notificationService.deleteAllNotifications,
   createNotification: notificationService.createNotification,
   createBulkNotifications: notificationService.createBulkNotifications,
   getUnreadCount: notificationService.getUnreadCount,

@@ -36,6 +36,7 @@ const AdminNotifications: React.FC<Props> = (_props) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
@@ -85,6 +86,20 @@ const AdminNotifications: React.FC<Props> = (_props) => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL notifications?\n\nThis will permanently remove all notifications (read and unread) for the entire organization.\n\nThis action cannot be undone.')) return;
+    setIsDeletingAll(true);
+    try {
+      const deleted = await hrService.deleteAllNotifications();
+      setNotifications([]);
+      alert(`Successfully deleted ${deleted} notifications.`);
+    } catch {
+      alert('Failed to delete all notifications.');
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   const filtered = notifications.filter(n => {
     const matchesSearch = !search ||
       n.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -106,12 +121,22 @@ const AdminNotifications: React.FC<Props> = (_props) => {
             <p className="text-xs text-slate-400 font-medium">Send and manage notifications for your organization</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowSendModal(true)}
-          className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-primary rounded-xl hover:opacity-90 transition-colors shadow-sm"
-        >
-          <Send size={16} /> Send Notification
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDeleteAll}
+            disabled={isDeletingAll || notifications.length === 0}
+            className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-red-700 bg-red-50 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeletingAll ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            Delete All
+          </button>
+          <button
+            onClick={() => setShowSendModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-primary rounded-xl hover:opacity-90 transition-colors shadow-sm"
+          >
+            <Send size={16} /> Send Notification
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter */}

@@ -197,6 +197,32 @@ export const notificationService = {
     }
   },
 
+  async deleteAllNotifications(): Promise<number> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return 0;
+    try {
+      const records = await apiClient.pb.collection('notifications').getFullList({
+        fields: 'id',
+      });
+
+      let deleted = 0;
+      for (const r of records) {
+        try {
+          await apiClient.pb.collection('notifications').delete(r.id);
+          deleted++;
+        } catch (e: any) {
+          console.error("[NotificationService] Failed to delete notification", r.id, ":", e?.message || e);
+        }
+      }
+
+      console.log(`[NotificationService] Deleted ${deleted}/${records.length} notifications`);
+      apiClient.notify();
+      return deleted;
+    } catch (e: any) {
+      console.error("[NotificationService] Failed to delete all notifications:", e?.message || e);
+      throw new Error('Failed to delete all notifications');
+    }
+  },
+
   async getUserPreferences(): Promise<UserNotificationPreferences> {
     const userId = apiClient.pb?.authStore.model?.id;
     if (!userId) return DEFAULT_USER_NOTIFICATION_PREFS;
