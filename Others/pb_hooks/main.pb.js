@@ -1638,7 +1638,7 @@ routerAdd("GET", "/api/openhr/notification-stats", (e) => {
         let unread = 0;
 
         try {
-            const allRecords = $app.findRecordsByFilter("notifications", "1=1", {}, "", 0, 0);
+            const allRecords = $app.findRecordsByFilter("notifications", "id != ''");
             total = allRecords.length;
 
             for (let i = 0; i < allRecords.length; i++) {
@@ -1679,7 +1679,7 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
         let hasMore = true;
         while (hasMore) {
             try {
-                const records = $app.findRecordsByFilter("notifications", "1=1", {}, "", BATCH_SIZE, 0);
+                const records = $app.findRecordsByFilter("notifications", "id != ''", {}, "-created", BATCH_SIZE, 0);
                 if (records.length === 0) {
                     hasMore = false;
                     break;
