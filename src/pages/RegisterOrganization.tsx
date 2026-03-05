@@ -102,7 +102,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-10 space-y-6">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-10 space-y-6">
           {error && (
             <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold flex gap-2">
               <CheckCircle2 size={16} className="rotate-45" /> {error}
@@ -118,7 +118,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Country</label>
                 <div className="relative">
@@ -137,7 +137,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Logo (Optional)</label>
                 <div className="relative">
                   <Upload className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <input type="file" accept="image/*" className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200" onChange={handleLogoChange} />
+                  <input type="file" accept="image/*" className="w-full min-w-0 pl-14 pr-2 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all file:mr-2 file:py-1 file:px-2 sm:file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200" onChange={handleLogoChange} />
                 </div>
                 {logoPreview && (
                   <div className="mt-2 flex justify-center">
@@ -171,7 +171,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Password</label>
                 <div className="relative">

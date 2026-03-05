@@ -5,13 +5,13 @@ import { useTheme } from '../../context/ThemeContext';
 interface NavbarProps {
   onLoginClick: () => void;
   onRegisterClick: () => void;
+  onLoginSuccess?: (user: any) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
   const { darkMode, setDarkModePreference } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const toggleDarkMode = () => {
     setDarkModePreference(darkMode ? 'light' : 'dark');
   };
@@ -84,7 +84,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
             </button>
             <button
               onClick={onLoginClick}
-              className="px-5 py-2.5 text-sm font-bold text-slate-700 hover:text-primary transition-colors"
+              className="px-5 py-2.5 text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors border border-slate-200"
             >
               Login
             </button>
@@ -138,20 +138,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 {link.label}
               </button>
             ))}
-            <div className="pt-3 mt-3 border-t border-slate-100 space-y-2">
-              <button
-                onClick={() => { setMobileOpen(false); onLoginClick(); }}
-                className="block w-full px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-xl text-center"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => { setMobileOpen(false); onRegisterClick(); }}
-                className="block w-full px-4 py-3 bg-primary text-white text-sm font-bold rounded-xl text-center hover:bg-primary-hover transition-colors"
-              >
-                Get Started Free
-              </button>
-            </div>
           </div>
         </div>
       )}

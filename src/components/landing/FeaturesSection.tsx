@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Calendar, Users, BarChart3 } from 'lucide-react';
+import { MapPin, Calendar, Users, BarChart3, ClipboardCheck } from 'lucide-react';
 
 const features = [
   {
@@ -30,6 +30,13 @@ const features = [
     color: 'text-amber-600',
     bg: 'bg-amber-50',
   },
+  {
+    icon: ClipboardCheck,
+    title: 'Performance Reviews',
+    description: 'Run structured review cycles with self-assessments, manager evaluations, and HR finalization. Customizable competencies and rating scales.',
+    color: 'text-rose-600',
+    bg: 'bg-rose-50',
+  },
 ];
 
 const FeaturesSection: React.FC = () => {
@@ -43,12 +50,12 @@ const FeaturesSection: React.FC = () => {
             Everything You Need
           </h2>
           <p className="text-slate-500 text-lg">
-            One platform to manage your entire HR workflow — from attendance to analytics.
+            One platform to manage your entire HR workflow — from attendance to performance reviews.
           </p>
         </div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
             <div
               key={feature.title}

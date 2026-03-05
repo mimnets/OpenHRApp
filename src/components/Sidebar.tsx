@@ -13,6 +13,9 @@ import {
   List,
   History,
   Shield,
+  ClipboardCheck,
+  Megaphone,
+  Bell,
 } from 'lucide-react';
 import { AdBanner } from './ads';
 
@@ -39,7 +42,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
     { id: 'attendance-logs', label: 'My Attendance', icon: History, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'attendance-audit', label: 'Attendance Audit', icon: List, roles: ['ADMIN', 'HR', 'MANAGER'] },
     { id: 'leave', label: 'Leave', icon: CalendarDays, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
+    { id: 'admin-notifications', label: 'Notifications', icon: Bell, roles: ['ADMIN', 'HR'] },
     { id: 'employees', label: 'Team Directory', icon: Users, roles: ['ADMIN', 'HR', 'MANAGER'] },
+    { id: 'performance-review', label: 'Performance', icon: ClipboardCheck, roles: ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] },
     { id: 'organization', label: 'Organization', icon: Network, roles: ['ADMIN', 'HR'] },
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'HR'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'HR'] },

@@ -3,6 +3,7 @@ import { apiClient } from './api.client';
 import { Attendance } from '../types';
 import { organizationService } from './organization.service';
 import { shiftService } from './shift.service';
+import { notificationService } from './notification.service';
 
 const mapAttendance = (r: any): Attendance => ({
   id: r.id.toString().trim(),
@@ -71,6 +72,13 @@ export const attendanceService = {
       const m = now.getMinutes().toString().padStart(2, '0');
       const currentTimeStr = `${h}:${m}`;
 
+      // Check if ATTENDANCE notifications are enabled (for missed check-out alerts)
+      let attendanceNotificationsEnabled = false;
+      try {
+        const orgConfig = await organizationService.getNotificationConfig();
+        attendanceNotificationsEnabled = orgConfig.enabledTypes.includes('ATTENDANCE');
+      } catch { /* ignore */ }
+
       for (const item of result.items) {
         if (item.date < today) {
           // Past unclosed session: Close immediately
@@ -78,6 +86,16 @@ export const attendanceService = {
             check_out: autoCloseTime,
             remarks: (item.remarks || "") + " [System: Auto-Closed Past Date]"
           });
+          // Missed check-out alert
+          if (attendanceNotificationsEnabled) {
+            notificationService.createNotification({
+              userId: item.employee_id,
+              type: 'ATTENDANCE',
+              title: 'Your session was auto-closed',
+              message: `Check-out was missing for ${item.date}. Session closed at ${autoCloseTime}.`,
+              referenceType: 'attendance',
+            }).catch(() => {});
+          }
         } else if (item.date === today) {
           // Same day session: Check if we passed the allowed max time
           if (currentTimeStr >= autoCloseTime) {
@@ -86,6 +104,16 @@ export const attendanceService = {
                 check_out: autoCloseTime,
                 remarks: (item.remarks || "") + " [System: Max Time Reached]"
              });
+             // Missed check-out alert
+             if (attendanceNotificationsEnabled) {
+               notificationService.createNotification({
+                 userId: item.employee_id,
+                 type: 'ATTENDANCE',
+                 title: 'Your session was auto-closed',
+                 message: `Max time reached. Session closed at ${autoCloseTime}.`,
+                 referenceType: 'attendance',
+               }).catch(() => {});
+             }
              // Do not set as activeToday, effectively logging user out of session
           } else {
              // Valid active session
@@ -117,6 +145,28 @@ export const attendanceService = {
     if (data.selfie) payload.selfie = data.selfie;
     await apiClient.pb.collection('attendance').create(apiClient.toFormData(payload, 'selfie.jpg'));
     apiClient.notify();
+
+    // Late Alert: notify line manager if status is LATE
+    if (data.status === 'LATE') {
+      try {
+        const orgConfig = await organizationService.getNotificationConfig();
+        if (orgConfig.enabledTypes.includes('ATTENDANCE')) {
+          const empRecord = await apiClient.pb.collection('users').getOne(data.employeeId.trim());
+          const managerId = empRecord.line_manager_id;
+          if (managerId) {
+            await notificationService.createNotification({
+              userId: managerId,
+              type: 'ATTENDANCE',
+              title: `${data.employeeName} checked in late`,
+              message: `Checked in at ${data.checkIn} on ${data.date}`,
+              referenceType: 'attendance',
+            });
+          }
+        }
+      } catch (e: any) {
+        console.error("[AttendanceService] Failed to send late alert:", e?.message || e);
+      }
+    }
   },
 
   async updateAttendance(id: string, data: Partial<Attendance>) {

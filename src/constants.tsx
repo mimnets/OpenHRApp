@@ -1,4 +1,4 @@
-import { Holiday, AppConfig } from './types';
+import { Holiday, AppConfig, CustomCompetency, CustomLeaveType, OrgReviewConfig, OrgNotificationConfig, UserNotificationPreferences } from './types';
 
 export const DEPARTMENTS = [
   "Engineering",
@@ -42,6 +42,109 @@ export const BD_HOLIDAYS: Holiday[] = [
   { id: 'bd-h8', date: '2024-04-11', name: 'Eid-ul-Fitr (Day 2)', isGovernment: true, type: 'ISLAMIC' },
   { id: 'bd-h9', date: '2024-06-17', name: 'Eid-ul-Adha', isGovernment: true, type: 'ISLAMIC' },
 ];
+
+export const DEFAULT_COMPETENCIES: CustomCompetency[] = [
+  {
+    id: 'AGILITY',
+    name: 'Agility',
+    description: 'Adapts quickly to changing priorities and drives transparent change management.',
+    behaviors: ['Transparency in change', 'Involving others in decisions', 'Building flexible teams', 'Making timely decisions'],
+  },
+  {
+    id: 'COLLABORATION',
+    name: 'Collaboration',
+    description: 'Works effectively across teams, shares knowledge, and builds trust.',
+    behaviors: ['Knowledge sharing', 'Strengthening networks', 'Welcoming diversity of opinion', 'Building trust'],
+  },
+  {
+    id: 'CUSTOMER_FOCUS',
+    name: 'Customer Focus',
+    description: 'Understands and anticipates customer needs to deliver exceptional value.',
+    behaviors: ['Understanding customer needs', 'Building relationships', 'Engaging in digital dialog', 'Confirming satisfaction'],
+  },
+  {
+    id: 'DEVELOPING_OTHERS',
+    name: 'Developing Others',
+    description: 'Invests in the growth of team members through coaching, feedback, and development opportunities.',
+    behaviors: ['Motivating the team', 'Setting development priorities', 'Providing constructive feedback', 'Assessing capabilities'],
+  },
+  {
+    id: 'GLOBAL_MINDSET',
+    name: 'Global Mindset',
+    description: 'Thinks broadly about enterprise impact and adapts across cultural contexts.',
+    behaviors: ['Enterprise-wide understanding', 'Awareness of implications', 'Cultural adaptation', 'Cross-functional thinking'],
+  },
+  {
+    id: 'INNOVATION_MINDSET',
+    name: 'Innovation Mindset',
+    description: 'Encourages experimentation, embraces new ideas, and drives creative solutions.',
+    behaviors: ['Rapid prototyping', 'Sharing ideas openly', 'Encouraging experimentation', 'Creative expression'],
+  },
+];
+
+// Keep old name as alias for backward compat during transition
+export const PERFORMANCE_COMPETENCIES = DEFAULT_COMPETENCIES;
+
+export const DEFAULT_RATING_SCALE: {
+  value: number;
+  label: string;
+  color: string;
+}[] = [
+  { value: 1, label: 'Needs Significant Improvement', color: 'bg-red-500' },
+  { value: 2, label: 'Below Expectations', color: 'bg-orange-500' },
+  { value: 3, label: 'Meets Expectations', color: 'bg-yellow-500' },
+  { value: 4, label: 'Exceeds Expectations', color: 'bg-blue-500' },
+  { value: 5, label: 'Outstanding', color: 'bg-green-500' },
+];
+
+export const RATING_SCALE = DEFAULT_RATING_SCALE;
+
+export const DEFAULT_OVERALL_RATINGS: {
+  value: string;
+  label: string;
+  color: string;
+}[] = [
+  { value: 'EXCELLENT', label: 'Excellent', color: 'bg-green-500' },
+  { value: 'VERY_GOOD', label: 'Very Good', color: 'bg-blue-500' },
+  { value: 'GOOD', label: 'Good', color: 'bg-yellow-500' },
+  { value: 'NEEDS_IMPROVEMENT', label: 'Needs Improvement', color: 'bg-orange-500' },
+  { value: 'UNSATISFACTORY', label: 'Unsatisfactory', color: 'bg-red-500' },
+];
+
+export const HR_OVERALL_RATINGS = DEFAULT_OVERALL_RATINGS;
+
+export const DEFAULT_LEAVE_TYPES: CustomLeaveType[] = [
+  { id: 'ANNUAL', name: 'Annual Leave', color: 'bg-primary', hasBalance: true },
+  { id: 'CASUAL', name: 'Casual Leave', color: 'bg-emerald-500', hasBalance: true },
+  { id: 'SICK', name: 'Sick Leave', color: 'bg-rose-500', hasBalance: true },
+  { id: 'MATERNITY', name: 'Maternity Leave', color: 'bg-pink-500', hasBalance: false },
+  { id: 'PATERNITY', name: 'Paternity Leave', color: 'bg-indigo-500', hasBalance: false },
+  { id: 'EARNED', name: 'Earned Leave', color: 'bg-amber-500', hasBalance: false },
+  { id: 'UNPAID', name: 'Unpaid Leave', color: 'bg-slate-500', hasBalance: false },
+];
+
+export const DEFAULT_REVIEW_CONFIG: OrgReviewConfig = {
+  competencies: DEFAULT_COMPETENCIES,
+  ratingScale: {
+    min: 1,
+    max: 5,
+    labels: DEFAULT_RATING_SCALE,
+  },
+  overallRatings: DEFAULT_OVERALL_RATINGS,
+};
+
+export const DEFAULT_NOTIFICATION_CONFIG: OrgNotificationConfig = {
+  enabledTypes: ['ANNOUNCEMENT', 'LEAVE', 'ATTENDANCE', 'REVIEW', 'SYSTEM'],
+  emailDigestFrequency: 'IMMEDIATE',
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
+};
+
+export const DEFAULT_USER_NOTIFICATION_PREFS: UserNotificationPreferences = {
+  mutedTypes: [],
+  emailDigestFrequency: 'IMMEDIATE',
+};
 
 export const DEFAULT_CONFIG: AppConfig = {
   companyName: "OpenHRApp Solutions Ltd.",

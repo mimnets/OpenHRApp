@@ -537,3 +537,116 @@ cronAdd("selfie_cleanup", "0 2 * * *", () => {
         console.log("[CRON] Error in selfie cleanup: " + err.toString());
     }
 });
+
+/* ============================================================
+   NOTIFICATION RETENTION CLEANUP
+   Job ID: "notification_cleanup"
+   Schedule: "0 3 * * *" (Every day at 3 AM)
+   Purpose: Delete old notifications to keep the database clean
+   ============================================================ */
+cronAdd("notification_cleanup", "0 3 * * *", () => {
+    console.log("[CRON] Running notification retention cleanup...");
+
+    try {
+        // Get global retention setting (default 30 days)
+        let retentionDays = 30;
+        try {
+            const globalSetting = $app.findFirstRecordByFilter("settings", "key = 'notification_retention_days'");
+            if (globalSetting) {
+                const value = globalSetting.get("value");
+                retentionDays = parseInt(value) || 30;
+            }
+        } catch (e) {
+            // Use default if not found
+        }
+
+        // Calculate cutoff date
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+        const cutoffStr = cutoffDate.toISOString().replace('T', ' ');
+
+        console.log("[CRON] Deleting notifications older than:", cutoffStr, "(retention:", retentionDays, "days)");
+
+        // Find old notifications (batch process)
+        let totalCleaned = 0;
+        let totalErrors = 0;
+        const BATCH_SIZE = 500;
+
+        try {
+            const records = $app.findRecordsByFilter(
+                "notifications",
+                "created < {:cutoffStr}",
+                { cutoffStr: cutoffStr },
+                "-created",
+                BATCH_SIZE,
+                0
+            );
+
+            console.log("[CRON] Found", records.length, "old notifications to delete");
+
+            for (let i = 0; i < records.length; i++) {
+                const record = records[i];
+                try {
+                    $app.delete(record);
+                    totalCleaned++;
+                } catch (deleteErr) {
+                    totalErrors++;
+                    console.log("[CRON] Failed to delete notification", record.id, ":", deleteErr.toString());
+                }
+            }
+        } catch (findErr) {
+            console.log("[CRON] Error finding notifications:", findErr.toString());
+        }
+
+        // Log cleanup stats to a system record for Super Admin visibility
+        try {
+            let logSetting = null;
+            try {
+                logSetting = $app.findFirstRecordByFilter("settings", "key = 'notification_cleanup_log'");
+            } catch (e) {}
+
+            const logData = {
+                lastRun: new Date().toISOString(),
+                recordsCleaned: totalCleaned,
+                errors: totalErrors,
+                retentionDays: retentionDays,
+                cutoffDate: cutoffStr
+            };
+
+            if (logSetting) {
+                logSetting.set("value", logData);
+                $app.save(logSetting);
+            } else {
+                try {
+                    let systemOrgId = null;
+                    try {
+                        const sysOrg = $app.findFirstRecordByFilter("organizations", "name = '__SYSTEM__'");
+                        systemOrgId = sysOrg.id;
+                    } catch (e) {
+                        const superAdmin = $app.findFirstRecordByFilter("users", "role = 'SUPER_ADMIN'");
+                        if (superAdmin) {
+                            systemOrgId = superAdmin.getString("organization_id");
+                        }
+                    }
+
+                    if (systemOrgId) {
+                        const settingsCollection = $app.findCollectionByNameOrId("settings");
+                        const newLog = new Record(settingsCollection);
+                        newLog.set("key", "notification_cleanup_log");
+                        newLog.set("value", logData);
+                        newLog.set("organization_id", systemOrgId);
+                        $app.save(newLog);
+                    }
+                } catch (createErr) {
+                    console.log("[CRON] Could not save notification cleanup log:", createErr.toString());
+                }
+            }
+        } catch (logErr) {
+            console.log("[CRON] Error logging notification cleanup stats:", logErr.toString());
+        }
+
+        console.log("[CRON] Notification cleanup completed. Deleted:", totalCleaned, "| Errors:", totalErrors);
+    } catch (err) {
+        console.log("[CRON] Error in notification cleanup: " + err.toString());
+    }
+});

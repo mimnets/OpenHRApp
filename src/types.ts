@@ -151,7 +151,7 @@ export interface LeaveRequest {
   employeeId: string;
   employeeName: string;
   lineManagerId?: string;
-  type: 'ANNUAL' | 'CASUAL' | 'SICK' | 'MATERNITY' | 'PATERNITY' | 'EARNED' | 'UNPAID';
+  type: string;
   startDate: string;
   endDate: string;
   totalDays: number;
@@ -165,22 +165,12 @@ export interface LeaveRequest {
 
 export interface LeaveBalance {
   employeeId: string;
-  ANNUAL: number;
-  CASUAL: number;
-  SICK: number;
+  [key: string]: string | number;
 }
 
 export interface LeavePolicy {
-  defaults: {
-    ANNUAL: number;
-    CASUAL: number;
-    SICK: number;
-  };
-  overrides: Record<string, { // Key is employeeId
-    ANNUAL: number;
-    CASUAL: number;
-    SICK: number;
-  }>;
+  defaults: Record<string, number>;
+  overrides: Record<string, Record<string, number>>;
 }
 
 export interface LeaveWorkflow {
@@ -306,4 +296,156 @@ export interface RegistrationData {
   country: string;
   address?: string;
   logo?: File | null;
+}
+
+// Announcement Types
+export type AnnouncementPriority = 'NORMAL' | 'URGENT';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  priority: AnnouncementPriority;
+  targetRoles: Role[];
+  expiresAt?: string;
+  organizationId: string;
+  created: string;
+  updated: string;
+}
+
+// Notification Types
+export type NotificationType = 'ANNOUNCEMENT' | 'LEAVE' | 'ATTENDANCE' | 'REVIEW' | 'SYSTEM';
+export type NotificationPriority = 'NORMAL' | 'URGENT';
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message?: string;
+  isRead: boolean;
+  priority: NotificationPriority;
+  referenceId?: string;
+  referenceType?: string;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
+  organizationId: string;
+  created: string;
+  updated: string;
+}
+
+// Notification Config Types
+export type EmailDigestFrequency = 'IMMEDIATE' | 'DAILY' | 'WEEKLY' | 'OFF';
+
+export interface OrgNotificationConfig {
+  enabledTypes: NotificationType[];
+  emailDigestFrequency: EmailDigestFrequency;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;   // HH:mm
+  quietHoursEnd: string;     // HH:mm
+}
+
+export interface UserNotificationPreferences {
+  mutedTypes: NotificationType[];
+  emailDigestFrequency: EmailDigestFrequency;
+}
+
+// Performance Review Types
+export type ReviewCycleType = 'MID_YEAR' | 'YEAR_END';
+export type ReviewCycleStatus = 'UPCOMING' | 'OPEN' | 'CLOSED' | 'ARCHIVED';
+export type ReviewStatus = 'DRAFT' | 'SELF_REVIEW_SUBMITTED' | 'MANAGER_REVIEWED' | 'COMPLETED';
+export type CompetencyId = string;
+export type HROverallRating = string;
+
+export interface CustomCompetency {
+  id: string;
+  name: string;
+  description: string;
+  behaviors: string[];
+}
+
+export interface CustomRatingScale {
+  min: number;
+  max: number;
+  labels: { value: number; label: string; color: string }[];
+}
+
+export interface OrgReviewConfig {
+  competencies: CustomCompetency[];
+  ratingScale: CustomRatingScale;
+  overallRatings: { value: string; label: string; color: string }[];
+}
+
+export interface CustomLeaveType {
+  id: string;
+  name: string;
+  color: string;
+  hasBalance: boolean;
+}
+
+export interface ReviewCycle {
+  id: string;
+  name: string;
+  cycleType: ReviewCycleType;
+  startDate: string;
+  endDate: string;
+  reviewStartDate: string;
+  reviewEndDate: string;
+  activeCompetencies: string[];
+  isActive: boolean;
+  status: ReviewCycleStatus;
+  organizationId: string;
+}
+
+export interface CompetencyRating {
+  competencyId: string;
+  rating: number;
+  comment: string;
+}
+
+export interface AttendanceSummary {
+  totalWorkingDays: number;
+  presentDays: number;
+  lateDays: number;
+  absentDays: number;
+  earlyOutDays: number;
+  attendancePercentage: number;
+}
+
+export interface LeaveSummary {
+  typeBreakdown: Record<string, number>;
+  totalLeaveDays: number;
+  // Legacy fields for backward compat with old reviews
+  annualLeaveTaken?: number;
+  casualLeaveTaken?: number;
+  sickLeaveTaken?: number;
+  unpaidLeaveTaken?: number;
+}
+
+export interface PerformanceReview {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  cycleId: string;
+  lineManagerId?: string;
+  managerName?: string;
+  status: ReviewStatus;
+  submittedAt?: string;
+  managerReviewedAt?: string;
+  completedAt?: string;
+  // Self-assessment ratings
+  selfRatings: CompetencyRating[];
+  // Manager ratings
+  managerRatings: CompetencyRating[];
+  // Attendance summary
+  attendanceSummary: AttendanceSummary;
+  // Leave summary
+  leaveSummary: LeaveSummary;
+  // HR finalization
+  hrFinalRemarks?: string;
+  hrOverallRating?: HROverallRating;
+  finalizedBy?: string;
+  organizationId: string;
 }

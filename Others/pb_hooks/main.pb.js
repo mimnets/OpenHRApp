@@ -1618,4 +1618,97 @@ function getCountryDefaults(countryCode) {
     };
 }
 
+/* ============================================================
+   SUPER ADMIN: NOTIFICATION MANAGEMENT ENDPOINTS
+   ============================================================ */
+
+// GET /api/openhr/notification-stats — Platform-wide notification counts (bypasses API rules)
+routerAdd("GET", "/api/openhr/notification-stats", (e) => {
+    try {
+        const authRecord = e.auth;
+        if (!authRecord) {
+            return e.json(401, { message: "Unauthorized" });
+        }
+        const role = authRecord.getString("role");
+        if (role !== "SUPER_ADMIN") {
+            return e.json(403, { message: "Super Admin access required" });
+        }
+
+        let total = 0;
+        let read = 0;
+        let unread = 0;
+
+        try {
+            const allRecords = $app.findRecordsByFilter("notifications", "id != ''", "-created", 10000, 0);
+            total = allRecords.length;
+
+            for (let i = 0; i < allRecords.length; i++) {
+                if (allRecords[i].getBool("is_read")) {
+                    read++;
+                } else {
+                    unread++;
+                }
+            }
+        } catch (findErr) {
+            // Collection might be empty
+            console.log("[NOTIF-STATS] Find error (likely empty):", findErr.toString());
+        }
+
+        return e.json(200, { total: total, read: read, unread: unread });
+    } catch (err) {
+        console.log("[NOTIF-STATS] Error:", err.toString());
+        return e.json(500, { message: "Internal Server Error" });
+    }
+});
+
+// POST /api/openhr/purge-all-notifications — Delete ALL notifications platform-wide (bypasses API rules)
+routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
+    try {
+        const authRecord = e.auth;
+        if (!authRecord) {
+            return e.json(401, { message: "Unauthorized" });
+        }
+        const role = authRecord.getString("role");
+        if (role !== "SUPER_ADMIN") {
+            return e.json(403, { message: "Super Admin access required" });
+        }
+
+        let deleted = 0;
+        let errors = 0;
+
+        try {
+            // Delete in batches - fetch 500 at a time, keep going until none remain
+            let hasMore = true;
+            while (hasMore) {
+                const records = $app.findRecordsByFilter("notifications", "id != ''", "-created", 500, 0);
+                if (!records || records.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+                console.log("[PURGE-NOTIF] Deleting batch of", records.length, "notifications");
+                for (let i = 0; i < records.length; i++) {
+                    try {
+                        $app.delete(records[i]);
+                        deleted++;
+                    } catch (delErr) {
+                        errors++;
+                        console.log("[PURGE-NOTIF] Delete error for", records[i].id, ":", delErr.toString());
+                    }
+                }
+                if (records.length < 500) {
+                    hasMore = false;
+                }
+            }
+        } catch (findErr) {
+            console.log("[PURGE-NOTIF] Find error:", findErr.toString());
+        }
+
+        console.log("[PURGE-NOTIF] Purge complete. Deleted:", deleted, "| Errors:", errors);
+        return e.json(200, { deleted: deleted, errors: errors });
+    } catch (err) {
+        console.log("[PURGE-NOTIF] Error:", err.toString());
+        return e.json(500, { message: "Internal Server Error" });
+    }
+});
+
 console.log("[HOOKS] OpenHR System Hooks loaded successfully with country-based registration support.");
