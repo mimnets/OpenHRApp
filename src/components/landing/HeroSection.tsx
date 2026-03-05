@@ -42,25 +42,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/10 rounded-full mb-6">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-xs font-bold text-primary">Free & Open-Source HR Platform</span>
-          </div>
-
-          {/* Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-slate-900 tracking-tight leading-[1.1] mb-6">
-            Modern HR Management{' '}
-            <span className="text-primary">Made Simple</span>
-          </h1>
-
-          {/* Subtext */}
-          <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Streamline attendance tracking, leave management, and employee records — all in one powerful platform built for growing teams.
-          </p>
-
-          {/* Mobile: Inline Login Form */}
-          <div className="sm:hidden mb-10">
+          {/* Mobile: Inline Login Form (above headline) */}
+          <div className="sm:hidden mb-8">
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm text-left">
               <div className="flex items-center gap-2 mb-4">
                 <LogIn size={16} className="text-primary" />
@@ -128,6 +111,23 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
               </form>
             </div>
           </div>
+
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/10 rounded-full mb-6">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-xs font-bold text-primary">Free & Open-Source HR Platform</span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-slate-900 tracking-tight leading-[1.1] mb-6">
+            Modern HR Management{' '}
+            <span className="text-primary">Made Simple</span>
+          </h1>
+
+          {/* Subtext */}
+          <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Streamline attendance tracking, leave management, and employee records — all in one powerful platform built for growing teams.
+          </p>
 
           {/* Desktop: CTA Buttons */}
           <div className="hidden sm:flex items-center justify-center gap-4 mb-12">
