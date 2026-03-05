@@ -177,19 +177,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
             </div>
           </div>
 
-          {/* Screenshot Preview */}
-          <div className="relative max-w-5xl mx-auto">
+          {/* Screenshot Preview (desktop only) */}
+          <div className="relative max-w-5xl mx-auto hidden sm:block">
             <div className="absolute inset-0 bg-gradient-to-t from-[#f8fafc] via-transparent to-transparent z-10 pointer-events-none"></div>
             <div className="rounded-2xl overflow-hidden shadow-xl shadow-slate-900/10 border border-slate-200/60">
               <img
                 src="./img/screenshot-wide.webp"
                 alt="OpenHRApp Dashboard"
-                className="w-full hidden sm:block"
-              />
-              <img
-                src="./img/screenshot-mobile.webp"
-                alt="OpenHRApp Mobile"
-                className="w-full sm:hidden"
+                className="w-full"
               />
             </div>
           </div>
