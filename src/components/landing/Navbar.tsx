@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon, Mail, Lock, Eye, EyeOff, LogIn, RefreshCw, AlertCircle, Building2 } from 'lucide-react';
+import { Menu, X, Sun, Moon, Download, Share, MoreVertical, Smartphone } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { hrService } from '../../services/hrService';
 
 interface NavbarProps {
   onLoginClick: () => void;
@@ -9,33 +8,42 @@ interface NavbarProps {
   onLoginSuccess?: (user: any) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick, onLoginSuccess }) => {
+const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
   const { darkMode, setDarkModePreference } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileEmail, setMobileEmail] = useState('');
-  const [mobilePassword, setMobilePassword] = useState('');
-  const [mobileShowPw, setMobileShowPw] = useState(false);
-  const [mobileError, setMobileError] = useState('');
-  const [mobileLoading, setMobileLoading] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [canPrompt, setCanPrompt] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
-  const handleMobileLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mobileEmail || !mobilePassword) return;
-    setMobileLoading(true);
-    setMobileError('');
-    try {
-      const result = await hrService.login(mobileEmail, mobilePassword);
-      if (result.user) {
-        setMobileOpen(false);
-        onLoginSuccess?.(result.user);
-      } else {
-        setMobileError(result.error || 'Login failed.');
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
+    setIsAndroid(/Android|HarmonyOS/i.test(ua));
+    setIsInstalled(
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true
+    );
+    if ((window as any).deferredPWAPrompt) setCanPrompt(true);
+    const handler = () => setCanPrompt(true);
+    window.addEventListener('pwa-install-available', handler);
+    return () => window.removeEventListener('pwa-install-available', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    const promptEvent = (window as any).deferredPWAPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === 'accepted') {
+        (window as any).deferredPWAPrompt = null;
+        setCanPrompt(false);
       }
-    } catch (err: any) {
-      setMobileError(err.message || 'Something went wrong.');
-    } finally {
-      setMobileLoading(false);
+    } else {
+      setShowInstallGuide(true);
+      setMobileOpen(false);
     }
   };
 
@@ -165,59 +173,103 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick, onLoginS
                 {link.label}
               </button>
             ))}
-            <div className="pt-3 mt-3 border-t border-slate-100">
-              <form onSubmit={handleMobileLogin} className="space-y-2.5" autoComplete="on">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-                  <input
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    required
-                    value={mobileEmail}
-                    onChange={e => setMobileEmail(e.target.value)}
-                    placeholder="Email address"
-                    className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
-                  />
+            {/* Install & Download */}
+            {!isInstalled && (
+              <div className="pt-3 mt-3 border-t border-slate-100 space-y-2">
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/10 rounded-xl text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Download size={18} />
+                  <div className="text-left">
+                    <p className="text-sm font-bold">{canPrompt ? 'Install App' : 'Install Guide'}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Add to your home screen</p>
+                  </div>
+                </button>
+
+                {isAndroid && (
+                  <a
+                    href="https://cdn.openhrapp.com/openhrapp.apk"
+                    download
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors"
+                  >
+                    <Smartphone size={18} />
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Download APK</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Android app direct download</p>
+                    </div>
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Install Guide Modal */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-xl animate-in slide-in-from-bottom-10 border border-slate-100">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Download size={16} className="text-primary" /> Install Guide
+              </h3>
+              <button onClick={() => setShowInstallGuide(false)} className="p-2 bg-slate-100 rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            {isIOS ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 font-medium">Install OpenHR on your iPhone or iPad:</p>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-500"><Share size={16} /></div>
+                  <p className="text-xs font-bold text-slate-700">1. Tap the <span className="text-blue-600">Share</span> button in Safari</p>
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-                  <input
-                    type={mobileShowPw ? 'text' : 'password'}
-                    name="password"
-                    autoComplete="current-password"
-                    required
-                    value={mobilePassword}
-                    onChange={e => setMobilePassword(e.target.value)}
-                    placeholder="Password"
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-400"
-                  />
-                  <button type="button" onClick={() => setMobileShowPw(!mobileShowPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5">
-                    {mobileShowPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-900 font-bold text-sm">+</div>
+                  <p className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Add to Home Screen</span></p>
                 </div>
-                {mobileError && (
-                  <div className="flex items-center gap-2 p-2 bg-rose-50 border border-rose-100 rounded-xl">
-                    <AlertCircle size={13} className="text-rose-500 flex-shrink-0" />
-                    <p className="text-[11px] font-semibold text-rose-600">{mobileError}</p>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600 font-bold text-[10px]">Add</div>
+                  <p className="text-xs font-bold text-slate-700">3. Tap <span className="text-blue-600">Add</span> to confirm</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500 font-medium">Install OpenHR from your browser:</p>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-600"><MoreVertical size={16} /></div>
+                  <p className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Menu</span> button (&#8942; or &#8943;)</p>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary"><Download size={16} /></div>
+                  <p className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span> or <span className="text-slate-900">Add to Home Screen</span></p>
+                </div>
+
+                {isAndroid && (
+                  <div className="pt-3 mt-3 border-t border-slate-100">
+                    <p className="text-xs text-slate-500 font-medium mb-3">Or download the Android app directly:</p>
+                    <a
+                      href="https://cdn.openhrapp.com/openhrapp.apk"
+                      download
+                      onClick={() => setShowInstallGuide(false)}
+                      className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+                    >
+                      <Download size={14} /> Download APK
+                    </a>
+                    <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">Enable "Install from unknown sources" if prompted. The APK auto-updates.</p>
                   </div>
                 )}
-                <button
-                  type="submit"
-                  disabled={mobileLoading}
-                  className="w-full py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-                >
-                  {mobileLoading ? <RefreshCw size={15} className="animate-spin" /> : <><LogIn size={15} /> Login</>}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMobileOpen(false); onRegisterClick(); }}
-                  className="w-full py-2.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl font-semibold text-xs hover:bg-white hover:border-slate-300 transition-all flex items-center justify-center gap-2"
-                >
-                  <Building2 size={14} /> Register New Organization
-                </button>
-              </form>
-            </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowInstallGuide(false)}
+              className="w-full mt-5 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-hover transition-colors"
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}
