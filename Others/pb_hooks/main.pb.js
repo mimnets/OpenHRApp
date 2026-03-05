@@ -1639,7 +1639,7 @@ routerAdd("GET", "/api/openhr/notification-stats", (e) => {
         let unread = 0;
 
         try {
-            const allRecords = $app.findRecordsByFilter("notifications", "id != ''");
+            const allRecords = $app.findAllRecordsByFilter("notifications", "id != ''");
             total = allRecords.length;
 
             for (let i = 0; i < allRecords.length; i++) {
@@ -1675,31 +1675,22 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
 
         let deleted = 0;
         let errors = 0;
-        const BATCH_SIZE = 500;
 
-        // Keep deleting in batches until none remain
-        let hasMore = true;
-        while (hasMore) {
-            try {
-                const records = $app.findRecordsByFilter("notifications", "id != ''", {}, "-created", BATCH_SIZE, 0);
-                if (records.length === 0) {
-                    hasMore = false;
-                    break;
-                }
+        try {
+            const records = $app.findAllRecordsByFilter("notifications", "id != ''");
+            console.log("[PURGE-NOTIF] Found", records.length, "notifications to delete");
 
-                for (let i = 0; i < records.length; i++) {
-                    try {
-                        $app.delete(records[i]);
-                        deleted++;
-                    } catch (delErr) {
-                        errors++;
-                        console.log("[PURGE-NOTIF] Delete error:", delErr.toString());
-                    }
+            for (let i = 0; i < records.length; i++) {
+                try {
+                    $app.delete(records[i]);
+                    deleted++;
+                } catch (delErr) {
+                    errors++;
+                    console.log("[PURGE-NOTIF] Delete error for", records[i].id, ":", delErr.toString());
                 }
-            } catch (findErr) {
-                hasMore = false;
-                console.log("[PURGE-NOTIF] Find error (likely empty):", findErr.toString());
             }
+        } catch (findErr) {
+            console.log("[PURGE-NOTIF] Find error:", findErr.toString());
         }
 
         console.log("[PURGE-NOTIF] Purge complete. Deleted:", deleted, "| Errors:", errors);
