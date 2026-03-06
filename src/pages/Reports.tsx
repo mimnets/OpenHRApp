@@ -310,8 +310,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     setIsGeneratingPDF(true);
     try {
       const jsPDFModule = await import('jspdf');
-      await import('jspdf-autotable');
-      const jsPDF = jsPDFModule.default;
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      if (autoTableModule.applyPlugin) autoTableModule.applyPlugin(jsPDF);
 
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -408,9 +409,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       }
 
       doc.save(`OpenHR_${reportType}_Export.pdf`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Please try again.");
+      alert("Failed to generate PDF: " + (err?.message || err));
     } finally {
       setIsGeneratingPDF(false);
     }
