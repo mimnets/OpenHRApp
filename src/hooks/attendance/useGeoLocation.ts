@@ -28,7 +28,7 @@ export const useGeoLocation = () => {
     loadConfig();
   }, []);
 
-  const matchOffice = (lat: number, lng: number, fences: OfficeLocation[]): string => {
+  const matchOffice = (lat: number, lng: number, fences: OfficeLocation[]): string | null => {
     for (const office of fences) {
       const latDiff = Math.abs(office.lat - lat);
       const lngDiff = Math.abs(office.lng - lng);
@@ -36,7 +36,45 @@ export const useGeoLocation = () => {
         return office.name;
       }
     }
-    return 'Remote Area';
+    return null; // No geofence match — will attempt reverse geocoding
+  };
+
+  // Reverse geocode using OpenStreetMap Nominatim (free, no API key needed)
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      if (!response.ok) throw new Error('Geocode failed');
+      const data = await response.json();
+
+      if (data.address) {
+        const addr = data.address;
+        // Build a concise readable address from parts
+        const parts: string[] = [];
+        if (addr.road || addr.pedestrian) parts.push(addr.road || addr.pedestrian);
+        if (addr.neighbourhood || addr.suburb) parts.push(addr.neighbourhood || addr.suburb);
+        if (addr.city || addr.town || addr.village) parts.push(addr.city || addr.town || addr.village);
+        if (parts.length > 0) return parts.join(', ');
+      }
+
+      if (data.display_name) {
+        // Truncate long display names to first 3 meaningful parts
+        const parts = data.display_name.split(', ').slice(0, 3);
+        return parts.join(', ');
+      }
+
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    } catch {
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+  };
+
+  const resolveAddress = async (lat: number, lng: number, fences: OfficeLocation[]): Promise<string> => {
+    const officeName = matchOffice(lat, lng, fences);
+    if (officeName) return officeName;
+    return await reverseGeocode(lat, lng);
   };
 
   const detectLocation = useCallback(async (force: boolean = false) => {
@@ -61,7 +99,8 @@ export const useGeoLocation = () => {
 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        setLocation({ lat, lng, address: matchOffice(lat, lng, geoFences) });
+        const address = await resolveAddress(lat, lng, geoFences);
+        setLocation({ lat, lng, address });
       } else {
         // Web fallback
         if (!navigator.geolocation) {
@@ -70,14 +109,9 @@ export const useGeoLocation = () => {
           return;
         }
 
-        await new Promise<void>((resolve, reject) => {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const lat = pos.coords.latitude;
-              const lng = pos.coords.longitude;
-              setLocation({ lat, lng, address: matchOffice(lat, lng, geoFences) });
-              resolve();
-            },
+            resolve,
             (err) => {
               console.error('Location error', err);
               reject(err);
@@ -85,6 +119,11 @@ export const useGeoLocation = () => {
             { enableHighAccuracy: true, timeout: 15000, maximumAge: force ? 0 : 60000 }
           );
         });
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const address = await resolveAddress(lat, lng, geoFences);
+        setLocation({ lat, lng, address });
       }
     } catch (err: any) {
       setError('Location access denied or unavailable.');
@@ -113,7 +152,9 @@ export const useGeoLocation = () => {
           if (pos) {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
-            setLocation({ lat, lng, address: matchOffice(lat, lng, geoFences) });
+            resolveAddress(lat, lng, geoFences).then(address => {
+              setLocation({ lat, lng, address });
+            });
           }
         }
       );
