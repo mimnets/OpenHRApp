@@ -1766,33 +1766,47 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
             var fields = imageFieldMap[collectionName];
 
             onRecordCreateRequest(function(e) {
-                for (var f = 0; f < fields.length; f++) {
-                    var files = e.filesMap[fields[f]];
-                    if (files && files.length > 0) {
-                        for (var j = 0; j < files.length; j++) {
-                            var ct = files[j].header && files[j].header["Content-Type"] ? files[j].header["Content-Type"][0] : "";
-                            var name = files[j].name || "";
-                            if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
-                                console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                try {
+                    var fm = e.filesMap || {};
+                    for (var f = 0; f < fields.length; f++) {
+                        var files = fm[fields[f]];
+                        if (files && files.length > 0) {
+                            for (var j = 0; j < files.length; j++) {
+                                var hdr = files[j].header || {};
+                                var ctArr = hdr["Content-Type"] || [];
+                                var ct = ctArr.length > 0 ? ctArr[0] : "";
+                                var name = files[j].name || "";
+                                if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
+                                    console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                                }
                             }
                         }
                     }
+                } catch (err) {
+                    console.log("[WEBP-WARN] Check failed (non-blocking): " + err.toString());
                 }
                 return e.next();
             }, collectionName);
 
             onRecordUpdateRequest(function(e) {
-                for (var f = 0; f < fields.length; f++) {
-                    var files = e.filesMap[fields[f]];
-                    if (files && files.length > 0) {
-                        for (var j = 0; j < files.length; j++) {
-                            var ct = files[j].header && files[j].header["Content-Type"] ? files[j].header["Content-Type"][0] : "";
-                            var name = files[j].name || "";
-                            if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
-                                console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                try {
+                    var fm = e.filesMap || {};
+                    for (var f = 0; f < fields.length; f++) {
+                        var files = fm[fields[f]];
+                        if (files && files.length > 0) {
+                            for (var j = 0; j < files.length; j++) {
+                                var hdr = files[j].header || {};
+                                var ctArr = hdr["Content-Type"] || [];
+                                var ct = ctArr.length > 0 ? ctArr[0] : "";
+                                var name = files[j].name || "";
+                                if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
+                                    console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                                }
                             }
                         }
                     }
+                } catch (err) {
+                    console.log("[WEBP-WARN] Check failed (non-blocking): " + err.toString());
                 }
                 return e.next();
             }, collectionName);
