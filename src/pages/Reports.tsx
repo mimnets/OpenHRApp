@@ -34,7 +34,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   // Filter States
   const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
   const [employeeFilter, setEmployeeFilter] = useState('All Employees');
-  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   
   // Recipient State
