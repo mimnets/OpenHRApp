@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, FileText, ChevronDown, ChevronUp, Loader2, CheckCircle2, Calendar, Download, RefreshCw } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { apiClient } from '../../services/api.client';
@@ -64,6 +64,22 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycl
     });
     return initial;
   });
+
+  // Sync ratings state when competencies change (e.g. new competency added in settings)
+  useEffect(() => {
+    setRatings(prev => {
+      const updated = { ...prev };
+      let changed = false;
+      competencies.forEach(c => {
+        if (!(c.id in updated)) {
+          const existing = myReview?.selfRatings.find(r => r.competencyId === c.id);
+          updated[c.id] = { rating: existing?.rating || 0, comment: existing?.comment || '' };
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+  }, [competencies, myReview]);
 
   const canSubmit = myReview?.status === 'DRAFT' && !readOnly;
   const allRated = competencies.every(c => ratings[c.id]?.rating > 0);

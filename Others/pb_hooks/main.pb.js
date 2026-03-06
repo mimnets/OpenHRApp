@@ -1,5 +1,5 @@
 
-console.log("[HOOKS] Loading OpenHR System Hooks (v0.37 - Employee Verification Email Support)...");
+console.log("[HOOKS] Loading OpenHR System Hooks (v0.41)...");
 
 /* ============================================================
    1. SECURE REGISTRATION ENDPOINT (Public)
@@ -173,7 +173,7 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             // Re-fetch the user record to ensure it's fully saved before sending email
             const savedUser = $app.findRecordById("users", user.id);
 
-            // Use PocketBase's mails helper to send verification email
+            // Use PocketBase's built-in verification email
             $mails.sendRecordVerification($app, savedUser);
 
             console.log("[REGISTER] Verification email sent successfully to: " + email);
@@ -1506,7 +1506,6 @@ try {
             console.log("[EMPLOYEE-CREATE] Sending verification email to new employee:", email);
 
             // Use PocketBase's built-in verification email
-            // This ensures proper token generation and uses the configured email template
             $mails.sendRecordVerification($app, user);
 
             console.log("[EMPLOYEE-CREATE] Verification email sent successfully to:", email);

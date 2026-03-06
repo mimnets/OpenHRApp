@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Send, Loader2 } from 'lucide-react';
 import { hrService } from '../../services/hrService';
-import { PerformanceReview, CompetencyRating, CompetencyId } from '../../types';
-import { PERFORMANCE_COMPETENCIES } from '../../constants';
+import { PerformanceReview, CompetencyRating, OrgReviewConfig } from '../../types';
 import CompetencyRatingCard from './CompetencyRatingCard';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
 import ReviewStatusBadge from './ReviewStatusBadge';
@@ -13,18 +12,38 @@ interface Props {
   directReportReviews: PerformanceReview[];
   onRefresh: () => void;
   readOnly?: boolean;
+  reviewConfig: OrgReviewConfig;
 }
 
-const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews, onRefresh, readOnly = false }) => {
+const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews, onRefresh, readOnly = false, reviewConfig }) => {
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [managerRatings, setManagerRatings] = useState<Record<CompetencyId, { rating: number; comment: string }>>(() => {
+
+  const competencies = reviewConfig.competencies;
+  const ratingScale = reviewConfig.ratingScale.labels;
+
+  const [managerRatings, setManagerRatings] = useState<Record<string, { rating: number; comment: string }>>(() => {
     const initial: any = {};
-    PERFORMANCE_COMPETENCIES.forEach(c => {
+    competencies.forEach(c => {
       initial[c.id] = { rating: 0, comment: '' };
     });
     return initial;
   });
+
+  // Sync managerRatings state when competencies change (e.g. new competency added in settings)
+  useEffect(() => {
+    setManagerRatings(prev => {
+      const updated = { ...prev };
+      let changed = false;
+      competencies.forEach(c => {
+        if (!(c.id in updated)) {
+          updated[c.id] = { rating: 0, comment: '' };
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+  }, [competencies]);
 
   const pendingReviews = directReportReviews.filter(r => r.status === 'SELF_REVIEW_SUBMITTED');
   const reviewedByMe = directReportReviews.filter(r => r.status === 'MANAGER_REVIEWED' || r.status === 'COMPLETED');
@@ -33,7 +52,7 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
   const openReview = (review: PerformanceReview) => {
     setSelectedReviewId(review.id);
     const initial: any = {};
-    PERFORMANCE_COMPETENCIES.forEach(c => {
+    competencies.forEach(c => {
       const existing = review.managerRatings.find(r => r.competencyId === c.id);
       initial[c.id] = { rating: existing?.rating || 0, comment: existing?.comment || '' };
     });
@@ -41,13 +60,13 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
   };
 
   const canRate = selectedReview?.status === 'SELF_REVIEW_SUBMITTED' && !readOnly;
-  const allRated = PERFORMANCE_COMPETENCIES.every(c => managerRatings[c.id].rating > 0);
+  const allRated = competencies.every(c => managerRatings[c.id]?.rating > 0);
 
   const handleSubmit = async () => {
     if (!selectedReview || !canRate || !allRated) return;
     setIsProcessing(true);
     try {
-      const ratings: CompetencyRating[] = PERFORMANCE_COMPETENCIES.map(c => ({
+      const ratings: CompetencyRating[] = competencies.map(c => ({
         competencyId: c.id,
         rating: managerRatings[c.id].rating,
         comment: managerRatings[c.id].comment,
@@ -62,11 +81,11 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
     }
   };
 
-  const updateRating = (id: CompetencyId, rating: number) => {
+  const updateRating = (id: string, rating: number) => {
     setManagerRatings(prev => ({ ...prev, [id]: { ...prev[id], rating } }));
   };
 
-  const updateComment = (id: CompetencyId, comment: string) => {
+  const updateComment = (id: string, comment: string) => {
     setManagerRatings(prev => ({ ...prev, [id]: { ...prev[id], comment } }));
   };
 
@@ -127,7 +146,7 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
 
           {/* Side-by-side: Self vs Manager Ratings */}
           <div className="space-y-3">
-            {PERFORMANCE_COMPETENCIES.map(comp => {
+            {competencies.map(comp => {
               const selfRating = selectedReview.selfRatings.find(r => r.competencyId === comp.id);
               return (
                 <div key={comp.id} className="space-y-2">
@@ -140,18 +159,20 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
                     comment={selfRating?.comment || ''}
                     readOnly
                     label="Employee Self"
+                    ratingScale={ratingScale}
                   />
                   {/* Manager's rating */}
                   <CompetencyRatingCard
                     competencyName={comp.name}
                     description=""
                     behaviors={[]}
-                    rating={managerRatings[comp.id].rating}
-                    comment={managerRatings[comp.id].comment}
+                    rating={managerRatings[comp.id]?.rating || 0}
+                    comment={managerRatings[comp.id]?.comment || ''}
                     onRatingChange={canRate ? (v) => updateRating(comp.id, v) : undefined}
                     onCommentChange={canRate ? (v) => updateComment(comp.id, v) : undefined}
                     readOnly={!canRate}
                     label="Your Rating"
+                    ratingScale={ratingScale}
                   />
                 </div>
               );
@@ -171,7 +192,7 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
             </div>
           )}
           {canRate && !allRated && (
-            <p className="text-xs text-slate-400 text-right">Please rate all 6 competencies before submitting.</p>
+            <p className="text-xs text-slate-400 text-right">Please rate all {competencies.length} competencies before submitting.</p>
           )}
         </div>
       )}

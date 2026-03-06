@@ -383,6 +383,24 @@ cronAdd("daily_attendance_report", "0 23 * * *", () => {
                     const admin = admins[a];
                     const adminEmail = admin.getString("email");
 
+                    // In-app bell notification
+                    try {
+                        const notifCollection = $app.findCollectionByNameOrId("notifications");
+                        const notifRecord = new Record(notifCollection);
+                        notifRecord.set("user_id", admin.id);
+                        notifRecord.set("organization_id", orgId);
+                        notifRecord.set("type", "ATTENDANCE");
+                        notifRecord.set("title", "Daily Attendance Report: " + dateStr);
+                        notifRecord.set("message", "Present: " + presentCount + " | Late: " + lateCount + " | Absent: " + absentCount + " | On Leave: " + onLeaveCount);
+                        notifRecord.set("is_read", false);
+                        notifRecord.set("priority", absentCount > 0 ? "URGENT" : "NORMAL");
+                        notifRecord.set("action_url", "attendance");
+                        $app.save(notifRecord);
+                    } catch (notifErr) {
+                        console.log("[CRON] Failed to create daily report notification: " + notifErr.toString());
+                    }
+
+                    // Email notification
                     try {
                         const message = new MailerMessage({
                             from: { address: senderAddress, name: senderName },
