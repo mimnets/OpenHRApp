@@ -1,5 +1,25 @@
 
-console.log("[HOOKS] Loading OpenHR System Hooks (v0.37 - Employee Verification Email Support)...");
+console.log("[HOOKS] Loading OpenHR System Hooks (v0.38 - Fix Verification Email URL)...");
+
+// ────────────────────────────────────────────────────────────────
+// FIX: Ensure PocketBase appUrl does NOT include /_/ suffix
+// PocketBase uses meta.appUrl to build verification email links.
+// If it ends with /_/ the redirect will 404 on the frontend SPA.
+// ────────────────────────────────────────────────────────────────
+try {
+    var settings = $app.settings();
+    var currentUrl = (settings.meta.appUrl || "").replace(/\/+$/, "");
+
+    // Strip /_/ or /_  suffix if present (PocketBase admin dashboard path)
+    if (currentUrl.endsWith("/_") || currentUrl.endsWith("/_/")) {
+        var fixedUrl = currentUrl.replace(/\/_\/?$/, "");
+        settings.meta.appUrl = fixedUrl;
+        $app.save(settings);
+        console.log("[HOOKS] Fixed appUrl: '" + currentUrl + "' → '" + fixedUrl + "'");
+    }
+} catch (e) {
+    console.log("[HOOKS] Could not check/fix appUrl (non-fatal): " + e.toString());
+}
 
 /* ============================================================
    1. SECURE REGISTRATION ENDPOINT (Public)

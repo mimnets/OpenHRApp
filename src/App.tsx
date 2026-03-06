@@ -60,7 +60,7 @@ const AppContent: React.FC = () => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     const search = window.location.search;
-    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/'];
+    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/_/', '/_'];
 
     // Don't show 404 if URL contains a verification token
     if (new URLSearchParams(search).has('token')) return false;
@@ -69,6 +69,12 @@ const AppContent: React.FC = () => {
 
     // Don't show 404 for hash-based routes (blog, tutorials, etc.)
     if (hash && hash !== '#' && hash !== '#/') return false;
+
+    // Clean up /_/ path (PocketBase admin path leaked into verification URLs)
+    if (path === '/_/' || path === '/_') {
+      window.history.replaceState(null, '', '/' + search + hash);
+      return false;
+    }
 
     return !knownPaths.includes(path);
   });
@@ -177,11 +183,19 @@ const AppContent: React.FC = () => {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const search = window.location.search;
-      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/'];
+      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/_/', '/_'];
 
       // Never show 404 for verification tokens or hash-based routes
       const hasToken = new URLSearchParams(search).has('token') || hash.includes('token=') || hash.includes('/auth/confirm-verification/');
       const hasHashRoute = hash && hash !== '#' && hash !== '#/';
+
+      // Clean up /_/ path (PocketBase admin path leaked into verification URLs)
+      if (path === '/_/' || path === '/_') {
+        window.history.replaceState(null, '', '/' + search + hash);
+        setPolicyRoute(null);
+        setIs404(false);
+        return;
+      }
 
       if (path === '/privacy' || path === '/privacy/') {
         setPolicyRoute('privacy');
