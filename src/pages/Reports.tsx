@@ -1,13 +1,38 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, MapPin, 
+import {
+  FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, FileDown, MapPin,
   Activity, AlertCircle, HelpCircle, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square, Layout
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
+import { apiClient } from '../services/api.client';
 import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday, Shift } from '../types';
 import { consolidateAttendance } from '../utils/attendanceUtils';
+
+const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+};
+
+const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxSize / img.naturalWidth, maxSize / img.naturalHeight);
+      resolve({ w: img.naturalWidth * ratio, h: img.naturalHeight * ratio });
+    };
+    img.onerror = () => resolve({ w: maxSize, h: maxSize });
+    img.src = dataUrl;
+  });
 
 interface ReportsProps {
   user: User;
@@ -34,14 +59,18 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   // Filter States
   const [selectedDepts, setSelectedDepts] = useState<string[]>([]);
   const [employeeFilter, setEmployeeFilter] = useState('All Employees');
-  const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   
   // Recipient State
   const [customRecipients, setCustomRecipients] = useState('');
 
+  // Org Info for PDF header
+  const [orgInfo, setOrgInfo] = useState<{ name: string; address: string; logoDataUrl: string | null }>({ name: '', address: '', logoDataUrl: null });
+
   // UI States
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -101,6 +130,21 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         setShiftOverrides(overridesList);
         setSelectedDepts(depts);
         setCustomRecipients(config.defaultReportRecipient || user.email || '');
+
+        // Fetch organization info for PDF header
+        try {
+          const orgId = apiClient.getOrganizationId();
+          if (orgId && apiClient.pb) {
+            const org = await apiClient.pb.collection('organizations').getOne(orgId);
+            let logoDataUrl: string | null = null;
+            if (org.logo) {
+              const logoUrl = apiClient.pb!.files.getURL(org, org.logo);
+              logoDataUrl = await fetchImageAsDataUrl(logoUrl);
+            }
+            setOrgInfo({ name: org.name || '', address: org.address || '', logoDataUrl });
+          }
+        } catch (e) { console.warn("Failed to fetch org info for PDF header"); }
+
         await fetchLogs();
       } catch (err) {
         console.error("Report data load failed", err);
@@ -234,27 +278,32 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     });
   }, [reportType, startDate, endDate, selectedDepts, employeeFilter, attendance, employees, leaves, appConfig, holidays]);
 
+  const getCleanReportData = () => {
+    return reportData.map((row: any) => {
+      const emp = employees.find(e => e.id === row.employeeId);
+      const fullRow: any = {
+        Employee_ID: emp?.employeeId || '',
+        Name: row.employeeName || row.name || 'N/A',
+        Date: row.date || row.startDate || 'N/A',
+        Status_Type: row.status || row.type || 'N/A',
+        Check_In: row.checkIn || 'N/A',
+        Check_Out: row.checkOut || 'N/A',
+        Location: row.location?.address || 'N/A',
+        Latitude: row.location?.lat || 'N/A',
+        Longitude: row.location?.lng || 'N/A',
+        Remarks: row.remarks || row.reason || ''
+      };
+      const filteredRow: any = {};
+      Object.keys(enabledColumns).forEach(col => { if (enabledColumns[col]) filteredRow[col] = fullRow[col]; });
+      return filteredRow;
+    });
+  };
+
   const downloadCSV = () => {
     if (reportData.length === 0) { alert("No data to export."); return; }
     setIsGenerating(true);
     setTimeout(() => {
-      const cleanData = reportData.map((row: any) => {
-        const fullRow: any = {
-          Employee_ID: row.employeeId || row.id || 'N/A',
-          Name: row.employeeName || row.name || 'N/A',
-          Date: row.date || row.startDate || 'N/A',
-          Status_Type: row.status || row.type || 'N/A',
-          Check_In: row.checkIn || 'N/A',
-          Check_Out: row.checkOut || 'N/A',
-          Location: row.location?.address || 'N/A',
-          Latitude: row.location?.lat || 'N/A',
-          Longitude: row.location?.lng || 'N/A',
-          Remarks: row.remarks || row.reason || ''
-        };
-        const filteredRow: any = {};
-        Object.keys(enabledColumns).forEach(col => { if (enabledColumns[col]) filteredRow[col] = fullRow[col]; });
-        return filteredRow;
-      });
+      const cleanData = getCleanReportData();
       const headers = Object.keys(cleanData[0]).join(",");
       const rows = cleanData.map(obj => Object.values(obj).map(val => `"${String(val).replace(/"/g, '""')}"`).join(","));
       const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + "\n" + rows.join("\n");
@@ -266,6 +315,119 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       document.body.removeChild(link);
       setIsGenerating(false);
     }, 500);
+  };
+
+  const downloadPDF = async () => {
+    if (reportData.length === 0) { alert("No data to export."); return; }
+    setIsGeneratingPDF(true);
+    try {
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      if (autoTableModule.applyPlugin) autoTableModule.applyPlugin(jsPDF);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // --- Header ---
+      let cursorY = 15;
+      const logoSize = 20;
+      let textStartX = 14;
+
+      if (orgInfo.logoDataUrl) {
+        try {
+          const logoDims = await getScaledLogoDims(orgInfo.logoDataUrl, logoSize);
+          doc.addImage(orgInfo.logoDataUrl, 'PNG', 14, cursorY - 5, logoDims.w, logoDims.h);
+          textStartX = 14 + logoDims.w + 6;
+        } catch { /* skip logo on error */ }
+      }
+
+      if (orgInfo.name) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(orgInfo.name, textStartX, cursorY + 2);
+      }
+      if (orgInfo.address) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(orgInfo.address, textStartX, cursorY + 9);
+      }
+
+      cursorY += Math.max(logoSize, 14) + 6;
+
+      // --- Title & Date Range ---
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${reportType} Report`, 14, cursorY);
+      cursorY += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Date Range: ${startDate} to ${endDate}`, 14, cursorY);
+      cursorY += 10;
+
+      // --- Summary Stats ---
+      const totalRecords = reportData.length;
+      const presentCount = reportData.filter((r: any) => r.status === 'PRESENT').length;
+      const absentCount = reportData.filter((r: any) => r.status === 'ABSENT').length;
+      const lateCount = reportData.filter((r: any) => r.status === 'LATE').length;
+      const otherCount = totalRecords - presentCount - absentCount - lateCount;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('Summary', 14, cursorY);
+      cursorY += 5;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      const statsText = `Total: ${totalRecords}    Present: ${presentCount}    Absent: ${absentCount}    Late: ${lateCount}    Other: ${otherCount}`;
+      doc.text(statsText, 14, cursorY);
+      cursorY += 8;
+
+      // --- Table ---
+      const cleanData = getCleanReportData();
+      const columns = Object.keys(cleanData[0]);
+      const tableHeaders = columns.map(col => {
+        const opt = columnOptions.find(o => o.key === col);
+        return opt ? opt.label : col;
+      });
+      const tableRows = cleanData.map(row => columns.map(col => String(row[col] ?? '')));
+
+      (doc as any).autoTable({
+        startY: cursorY,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+        bodyStyles: { fontSize: 7, textColor: [30, 41, 59] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        styles: { cellPadding: 2, overflow: 'linebreak' },
+      });
+
+      // --- Footer on each page ---
+      const totalPages = (doc as any).internal.getNumberOfPages();
+      const now = new Date().toLocaleString();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Generated by OpenHR on ${now}`, 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+      }
+
+      doc.save(`OpenHR_${reportType}_Export.pdf`);
+    } catch (err: any) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF: " + (err?.message || err));
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const handleEmailSummary = async () => {
@@ -365,7 +527,10 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 </div>
               </div>
 
-              <div className="pt-10 border-t border-slate-50"><button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="w-full flex items-center justify-center gap-3 py-6 bg-primary text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} Generate CSV Export</button></div>
+              <div className="pt-10 border-t border-slate-50 flex gap-3">
+                <button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="flex-1 flex items-center justify-center gap-3 py-6 bg-primary text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} CSV Export</button>
+                <button onClick={downloadPDF} disabled={isGeneratingPDF || reportData.length === 0} className="flex-1 flex items-center justify-center gap-3 py-6 bg-slate-900 text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="animate-spin" size={18} /> : <FileDown size={18} />} PDF Export</button>
+              </div>
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 animate-in slide-in-from-right-4 duration-500">
@@ -381,7 +546,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
              <div className="p-8 bg-white/5 rounded-xl border border-white/10 text-center space-y-6"><div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Records to Export</p><p className="text-6xl font-semibold text-white">{reportData.length}</p></div><div className="h-px bg-white/10 w-1/2 mx-auto"></div><div className="space-y-1"><p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Departments Scoped</p><div className="flex flex-wrap justify-center gap-1.5 px-2">{selectedDepts.length === dbDepartments.length ? (<span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">Entire Organization</span>) : selectedDepts.length === 0 ? (<span className="text-[9px] font-bold text-rose-400">No Selection</span>) : (selectedDepts.slice(0, 3).map(d => (<span key={d} className="text-[8px] font-semibold text-white bg-white/10 px-2 py-0.5 rounded-full uppercase truncate max-w-[80px]">{d}</span>)))}{selectedDepts.length > 3 && (<span className="text-[8px] font-semibold text-white bg-indigo-500/20 px-2 py-0.5 rounded-full uppercase">+{selectedDepts.length - 3} More</span>)}</div></div></div>
              <div className="space-y-4"><div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500"><Activity size={14} className="text-indigo-400" /> Recent Email Activity</div><div className="bg-slate-900 border border-white/10 rounded-3xl p-2 max-h-48 overflow-y-auto no-scrollbar space-y-1">{emailLogs.length === 0 ? (<p className="text-center text-[9px] font-semibold text-slate-600 uppercase py-4">No recent activity</p>) : (emailLogs.map(log => (<div key={log.id} className="p-3 bg-white/5 rounded-2xl flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-[9px] font-bold text-white truncate">{log.recipient_email}</p><p className="text-[8px] font-medium text-slate-500 truncate">{log.subject}</p></div><div className={`px-2 py-0.5 rounded-full text-[8px] font-semibold uppercase ${log.status === 'SENT' ? 'bg-emerald-500/20 text-emerald-400' : log.status === 'FAILED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{log.status}</div></div>)))}</div>{emailLogs.some(l => l.status === 'FAILED') && (<div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex gap-2"><AlertCircle size={14} className="text-rose-400 flex-shrink-0" /><p className="text-[9px] font-medium text-rose-300 leading-tight">Some emails failed. Verify SMTP settings in Admin Panel &gt; Settings &gt; Mail.</p></div>)}{isHookMissing && (<div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2"><HelpCircle size={14} className="text-amber-400 flex-shrink-0" /><div className="space-y-1"><p className="text-[9px] font-bold text-amber-300 leading-tight uppercase">Backend Hook Not Detected</p><p className="text-[8px] font-medium text-amber-400/80 leading-tight">Emails are stuck in PENDING. Ensure <code>main.pb.js</code> is in your PocketBase <code>pb_hooks</code> folder.</p></div></div>)}</div>
            </div>
-           <div className="p-6 bg-indigo-500/10 rounded-xl border border-indigo-500/20"><p className="text-[9px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p><div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase"><p>Format: UTF-8 CSV</p><p>Mode: First & Last Punch</p><p>Columns: {Object.values(enabledColumns).filter(Boolean).length} Active</p></div></div>
+           <div className="p-6 bg-indigo-500/10 rounded-xl border border-indigo-500/20"><p className="text-[9px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p><div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase"><p>Format: CSV / PDF</p><p>Mode: First & Last Punch</p><p>Columns: {Object.values(enabledColumns).filter(Boolean).length} Active</p></div></div>
         </div>
       </div>
     </div>
