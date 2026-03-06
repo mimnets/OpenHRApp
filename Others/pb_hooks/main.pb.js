@@ -27,9 +27,10 @@ try {
                 console.log("[HOOKS] Rewrote verification URL to clean format for: " + (e.record ? e.record.getString("email") : "unknown"));
             }
         } catch (err) {
-            // If rewrite fails, PocketBase still sends its default email (with /_/ URL)
             console.log("[HOOKS] URL rewrite failed (sending default): " + err.toString());
         }
+        // MUST call e.next() to continue the hook chain and actually send the email
+        e.next();
     });
 } catch (e) {
     console.log("[HOOKS] Mailer hook not available: " + e.toString());
