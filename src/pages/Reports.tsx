@@ -269,8 +269,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
 
   const getCleanReportData = () => {
     return reportData.map((row: any) => {
+      const emp = employees.find(e => e.id === row.employeeId);
       const fullRow: any = {
-        Employee_ID: row.employeeId || row.id || 'N/A',
+        Employee_ID: emp?.employeeId || '',
         Name: row.employeeName || row.name || 'N/A',
         Date: row.date || row.startDate || 'N/A',
         Status_Type: row.status || row.type || 'N/A',
