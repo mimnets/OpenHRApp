@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Clock, CreditCard, Zap, LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, RefreshCw, Building2, Download, RotateCcw, Smartphone, Share, MoreVertical, X } from 'lucide-react';
+import { ArrowRight, Clock, CreditCard, Zap, LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, RefreshCw, Building2, Download, RotateCcw, Smartphone, Share, MoreVertical, X, Send } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 
 interface HeroSectionProps {
@@ -14,6 +14,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [canPrompt, setCanPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -59,17 +60,34 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
     window.location.reload();
   };
 
+  const handleResendVerification = async () => {
+    if (!email) return;
+    try {
+      await hrService.requestVerificationEmail(email);
+      alert("A new verification link has been sent to your email.");
+      setShowResend(false);
+      setError('');
+    } catch (e) {
+      alert("Failed to send verification email.");
+    }
+  };
+
   const handleMobileLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
     setIsLoading(true);
     setError('');
+    setShowResend(false);
     try {
       const result = await hrService.login(email, password);
       if (result.user) {
         onLoginSuccess?.(result.user);
       } else {
-        setError(result.error || 'Login failed. Check your credentials.');
+        const msg = result.error || 'Login failed. Check your credentials.';
+        setError(msg);
+        if (msg.toLowerCase().includes('verified') || msg.toLowerCase().includes('verification')) {
+          setShowResend(true);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong.');
@@ -131,9 +149,20 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 p-2.5 bg-rose-50 border border-rose-100 rounded-xl">
-                    <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
-                    <p className="text-[11px] font-semibold text-rose-600">{error}</p>
+                  <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
+                      <p className="text-[11px] font-semibold text-rose-600">{error}</p>
+                    </div>
+                    {showResend && (
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        className="mt-2 w-full flex items-center justify-center gap-1.5 bg-white px-3 py-2 rounded-lg shadow-sm text-[11px] font-bold text-rose-600 hover:text-rose-800 border border-rose-100 transition-colors"
+                      >
+                        <Send size={12} /> Resend Verification Link
+                      </button>
+                    )}
                   </div>
                 )}
 
