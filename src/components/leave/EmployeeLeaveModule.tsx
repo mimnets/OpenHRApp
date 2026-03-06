@@ -20,6 +20,17 @@ const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   } catch { return null; }
 };
 
+const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxSize / img.naturalWidth, maxSize / img.naturalHeight);
+      resolve({ w: img.naturalWidth * ratio, h: img.naturalHeight * ratio });
+    };
+    img.onerror = () => resolve({ w: maxSize, h: maxSize });
+    img.src = dataUrl;
+  });
+
 interface Props {
   user: any;
   balance: LeaveBalance | null;
@@ -152,8 +163,9 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
       let textStartX = 14;
       if (logoDataUrl) {
         try {
-          doc.addImage(logoDataUrl, 'PNG', 14, y - 4, logoSize, logoSize);
-          textStartX = 14 + logoSize + 5;
+          const logoDims = await getScaledLogoDims(logoDataUrl, logoSize);
+          doc.addImage(logoDataUrl, 'PNG', 14, y - 4, logoDims.w, logoDims.h);
+          textStartX = 14 + logoDims.w + 5;
         } catch { /* skip logo */ }
       }
       if (orgName) {
