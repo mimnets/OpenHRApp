@@ -4,12 +4,12 @@
 // ⚠️  Each .pb.js file runs in its own isolated JS scope.
 //     Functions defined in other hook files are NOT available here.
 
-console.log("[HOOKS] Loading Review Cycle Notifications (v1.0)...");
+console.log("[HOOKS] Loading Review Cycle Notifications (v2.0)...");
 
 // ────────────────────────────────────────────────────────────────
 // Helper: Create an in-app notification record
 // ────────────────────────────────────────────────────────────────
-function createNotification(userId, orgId, type, title, message, priority, referenceId, referenceType) {
+function createNotification(userId, orgId, type, title, message, priority, referenceId, referenceType, actionUrl) {
     try {
         const collection = $app.findCollectionByNameOrId("notifications");
         const record = new Record(collection);
@@ -22,6 +22,7 @@ function createNotification(userId, orgId, type, title, message, priority, refer
         record.set("priority", priority || "NORMAL");
         record.set("reference_id", referenceId || "");
         record.set("reference_type", referenceType || "review_cycle");
+        record.set("action_url", actionUrl || "performance-review");
         $app.save(record);
     } catch (err) {
         console.log("[REVIEW-NOTIF] Failed to create notification for user " + userId + ": " + err.toString());
@@ -503,5 +504,260 @@ cronAdd("review_cycle_transition", "0 0 * * *", () => {
         console.log("[REVIEW-CRON] Fatal error: " + err.toString());
     }
 });
+
+/* ============================================================
+   PERFORMANCE REVIEW STATUS CHANGE NOTIFICATIONS
+   Triggers on update of performance_reviews collection.
+
+   Status Flow:
+     DRAFT → SELF_REVIEW_SUBMITTED  (Employee submits self-assessment)
+     SELF_REVIEW_SUBMITTED → MANAGER_REVIEWED  (Manager submits review)
+     MANAGER_REVIEWED → COMPLETED  (Admin/HR finalizes)
+   ============================================================ */
+onRecordAfterUpdateSuccess((e) => {
+    const record = e.record;
+    const newStatus = record.getString("status");
+    const oldStatus = record.original().getString("status");
+
+    // Only trigger on actual status transitions
+    if (!newStatus || newStatus === oldStatus) return;
+
+    const reviewId = record.id;
+    const empId = record.getString("employee_id");
+    const empName = record.getString("employee_name");
+    const managerId = record.getString("line_manager_id");
+    const managerName = record.getString("manager_name");
+    const orgId = record.getString("organization_id");
+    const cycleId = record.getString("cycle_id");
+
+    console.log("[REVIEW-NOTIF] Status change: " + oldStatus + " → " + newStatus + " for review " + reviewId + " (employee: " + empName + ")");
+
+    try {
+        // Get org name for emails
+        let orgName = "your organization";
+        try {
+            const org = $app.findRecordById("organizations", orgId);
+            orgName = org.getString("name") || orgName;
+        } catch (e) {}
+
+        // Get cycle name
+        let cycleName = "Performance Review";
+        try {
+            const cycle = $app.findRecordById("review_cycles", cycleId);
+            cycleName = cycle.getString("name") || cycleName;
+        } catch (e) {}
+
+        // Get employee email
+        let empEmail = "";
+        try {
+            const emp = $app.findRecordById("users", empId);
+            empEmail = emp.getString("email");
+        } catch (e) {}
+
+        // Get manager email
+        let managerEmail = "";
+        if (managerId) {
+            try {
+                const mgr = $app.findRecordById("users", managerId);
+                managerEmail = mgr.getString("email");
+            } catch (e) {}
+        }
+
+        // Get Admin/HR users
+        let adminHrUsers = [];
+        try {
+            adminHrUsers = $app.findRecordsByFilter(
+                "users",
+                "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR') && status = 'ACTIVE'",
+                { orgId: orgId }
+            );
+        } catch (e) {}
+
+        // ──────────────────────────────────────────────────────
+        // A. SELF_REVIEW_SUBMITTED — Employee submitted self-assessment
+        //    Notify: Admin/HR + Manager
+        // ──────────────────────────────────────────────────────
+        if (newStatus === "SELF_REVIEW_SUBMITTED" && oldStatus === "DRAFT") {
+            var submittedAt = formatDate(record.getString("submitted_at"));
+
+            // Notify Manager — action required
+            if (managerId && managerEmail) {
+                createNotification(
+                    managerId, orgId, "REVIEW",
+                    "Review Submitted: " + empName,
+                    empName + " has submitted their self-assessment for '" + cycleName + "'. Please review and rate their performance.",
+                    "NORMAL", reviewId, "performance_review"
+                );
+
+                sendEmail(managerEmail,
+                    "Action Required: Review " + empName + "'s Self-Assessment — " + cycleName,
+                    "<h2>Employee Self-Assessment Submitted</h2>" +
+                    "<p>Dear " + (managerName || "Manager") + ",</p>" +
+                    "<p><strong>" + empName + "</strong> has submitted their self-assessment for the review cycle <strong>" + cycleName + "</strong>.</p>" +
+                    "<table style='border-collapse:collapse;margin:12px 0;'>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Employee</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + empName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Review Cycle</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + cycleName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Submitted</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + submittedAt + "</td></tr>" +
+                    "</table>" +
+                    "<p><strong>Action Required:</strong> Please log in to <strong>OpenHR</strong> to review and rate " + empName + "'s performance.</p>"
+                );
+            }
+
+            // Notify Admin/HR — FYI
+            for (var a = 0; a < adminHrUsers.length; a++) {
+                var admin = adminHrUsers[a];
+                if (admin.id === empId) continue; // Skip if employee is admin
+
+                createNotification(
+                    admin.id, orgId, "REVIEW",
+                    "Self-Assessment Submitted: " + empName,
+                    empName + " has submitted their self-assessment for '" + cycleName + "'." +
+                    (managerId ? " Awaiting manager review by " + (managerName || "their manager") + "." : " No manager assigned."),
+                    "NORMAL", reviewId, "performance_review"
+                );
+
+                sendEmail(admin.getString("email"),
+                    "Self-Assessment Submitted: " + empName + " — " + cycleName,
+                    "<h2>Self-Assessment Submitted</h2>" +
+                    "<p>Dear " + admin.getString("name") + ",</p>" +
+                    "<p><strong>" + empName + "</strong> has submitted their self-assessment for <strong>" + cycleName + "</strong>.</p>" +
+                    "<table style='border-collapse:collapse;margin:12px 0;'>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Employee</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + empName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Review Cycle</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + cycleName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Next Step</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" +
+                    (managerId ? "Awaiting manager review by " + (managerName || "assigned manager") : "No manager assigned — requires admin action") +
+                    "</td></tr>" +
+                    "</table>" +
+                    "<p>Log in to <strong>OpenHR</strong> to view the review details.</p>"
+                );
+            }
+
+            console.log("[REVIEW-NOTIF] SELF_REVIEW_SUBMITTED notifications sent for: " + empName);
+        }
+
+        // ──────────────────────────────────────────────────────
+        // B. MANAGER_REVIEWED — Manager submitted their review
+        //    Notify: Admin/HR + Employee
+        // ──────────────────────────────────────────────────────
+        if (newStatus === "MANAGER_REVIEWED" && oldStatus === "SELF_REVIEW_SUBMITTED") {
+            var reviewedAt = formatDate(record.getString("manager_reviewed_at"));
+
+            // Notify Employee — manager has reviewed
+            if (empEmail) {
+                createNotification(
+                    empId, orgId, "REVIEW",
+                    "Manager Review Complete: " + cycleName,
+                    (managerName || "Your manager") + " has completed their review of your performance for '" + cycleName + "'. Awaiting final HR review.",
+                    "NORMAL", reviewId, "performance_review"
+                );
+
+                sendEmail(empEmail,
+                    "Manager Review Completed — " + cycleName,
+                    "<h2>Manager Review Completed</h2>" +
+                    "<p>Dear " + empName + ",</p>" +
+                    "<p>Your manager <strong>" + (managerName || "your manager") + "</strong> has completed their review of your performance for <strong>" + cycleName + "</strong>.</p>" +
+                    "<table style='border-collapse:collapse;margin:12px 0;'>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Review Cycle</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + cycleName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reviewed By</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + (managerName || "Your Manager") + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reviewed On</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + reviewedAt + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Next Step</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>Awaiting final HR/Admin review</td></tr>" +
+                    "</table>" +
+                    "<p>You will be notified once the final review is completed. Log in to <strong>OpenHR</strong> to view details.</p>"
+                );
+            }
+
+            // Notify Admin/HR — action required for finalization
+            for (var a = 0; a < adminHrUsers.length; a++) {
+                var admin = adminHrUsers[a];
+
+                createNotification(
+                    admin.id, orgId, "REVIEW",
+                    "Manager Review Complete: " + empName,
+                    (managerName || "Manager") + " has reviewed " + empName + "'s performance for '" + cycleName + "'. Ready for final HR review.",
+                    "NORMAL", reviewId, "performance_review"
+                );
+
+                sendEmail(admin.getString("email"),
+                    "Action Required: Finalize Review for " + empName + " — " + cycleName,
+                    "<h2>Manager Review Completed — Ready for Finalization</h2>" +
+                    "<p>Dear " + admin.getString("name") + ",</p>" +
+                    "<p>The manager review for <strong>" + empName + "</strong> has been completed by <strong>" + (managerName || "their manager") + "</strong> for <strong>" + cycleName + "</strong>.</p>" +
+                    "<table style='border-collapse:collapse;margin:12px 0;'>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Employee</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + empName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Manager</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + (managerName || "N/A") + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Review Cycle</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + cycleName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reviewed On</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + reviewedAt + "</td></tr>" +
+                    "</table>" +
+                    "<p><strong>Action Required:</strong> Please log in to <strong>OpenHR</strong> to finalize the review with HR remarks and overall rating.</p>"
+                );
+            }
+
+            console.log("[REVIEW-NOTIF] MANAGER_REVIEWED notifications sent for: " + empName);
+        }
+
+        // ──────────────────────────────────────────────────────
+        // C. COMPLETED — Admin/HR finalized the review
+        //    Notify: Employee + Manager
+        // ──────────────────────────────────────────────────────
+        if (newStatus === "COMPLETED" && oldStatus === "MANAGER_REVIEWED") {
+            var completedAt = formatDate(record.getString("completed_at"));
+            var overallRating = record.getString("hr_overall_rating") || "N/A";
+            var hrRemarks = record.getString("hr_final_remarks") || "No remarks";
+
+            // Notify Employee — review completed
+            if (empEmail) {
+                createNotification(
+                    empId, orgId, "REVIEW",
+                    "Review Completed: " + cycleName,
+                    "Your performance review for '" + cycleName + "' has been finalized. Overall Rating: " + overallRating + ".",
+                    "NORMAL", reviewId, "performance_review"
+                );
+
+                sendEmail(empEmail,
+                    "Performance Review Completed — " + cycleName + " (" + orgName + ")",
+                    "<h2>Performance Review Completed</h2>" +
+                    "<p>Dear " + empName + ",</p>" +
+                    "<p>Your performance review for <strong>" + cycleName + "</strong> has been finalized.</p>" +
+                    "<table style='border-collapse:collapse;margin:12px 0;'>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Review Cycle</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + cycleName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Overall Rating</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'><strong style='color:#10b981;'>" + overallRating + "</strong></td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>HR Remarks</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + hrRemarks + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Completed On</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + completedAt + "</td></tr>" +
+                    "</table>" +
+                    "<p>Log in to <strong>OpenHR</strong> to view your full review details.</p>"
+                );
+            }
+
+            // Notify Manager — review completed for their report
+            if (managerId && managerEmail) {
+                createNotification(
+                    managerId, orgId, "REVIEW",
+                    "Review Finalized: " + empName,
+                    "The performance review for " + empName + " ('" + cycleName + "') has been finalized by HR. Overall Rating: " + overallRating + ".",
+                    "NORMAL", reviewId, "performance_review"
+                );
+
+                sendEmail(managerEmail,
+                    "Review Finalized: " + empName + " — " + cycleName,
+                    "<h2>Performance Review Finalized</h2>" +
+                    "<p>Dear " + (managerName || "Manager") + ",</p>" +
+                    "<p>The performance review for your direct report <strong>" + empName + "</strong> has been finalized for <strong>" + cycleName + "</strong>.</p>" +
+                    "<table style='border-collapse:collapse;margin:12px 0;'>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Employee</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + empName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Review Cycle</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + cycleName + "</td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Overall Rating</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'><strong style='color:#10b981;'>" + overallRating + "</strong></td></tr>" +
+                    "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>HR Remarks</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + hrRemarks + "</td></tr>" +
+                    "</table>" +
+                    "<p>Log in to <strong>OpenHR</strong> to view the full review.</p>"
+                );
+            }
+
+            console.log("[REVIEW-NOTIF] COMPLETED notifications sent for: " + empName);
+        }
+
+    } catch (err) {
+        console.log("[REVIEW-NOTIF] Error in performance_reviews update hook: " + err.toString());
+    }
+}, "performance_reviews");
 
 console.log("[HOOKS] Review Cycle Notifications loaded successfully.");
