@@ -23,6 +23,17 @@ const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   } catch { return null; }
 };
 
+const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxSize / img.naturalWidth, maxSize / img.naturalHeight);
+      resolve({ w: img.naturalWidth * ratio, h: img.naturalHeight * ratio });
+    };
+    img.onerror = () => resolve({ w: maxSize, h: maxSize });
+    img.src = dataUrl;
+  });
+
 interface ReportsProps {
   user: User;
 }
@@ -325,8 +336,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
 
       if (orgInfo.logoDataUrl) {
         try {
-          doc.addImage(orgInfo.logoDataUrl, 'PNG', 14, cursorY - 5, logoSize, logoSize);
-          textStartX = 14 + logoSize + 6;
+          const logoDims = await getScaledLogoDims(orgInfo.logoDataUrl, logoSize);
+          doc.addImage(orgInfo.logoDataUrl, 'PNG', 14, cursorY - 5, logoDims.w, logoDims.h);
+          textStartX = 14 + logoDims.w + 6;
         } catch { /* skip logo on error */ }
       }
 
