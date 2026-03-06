@@ -84,7 +84,7 @@ export const useCamera = () => {
       }
       ctx.drawImage(video, 0, 0);
     }
-    return canvas.toDataURL('image/jpeg', 0.8);
+    return canvas.toDataURL('image/webp', 0.8);
   };
 
   /** Capacitor fallback: take a single photo when live stream isn't available */

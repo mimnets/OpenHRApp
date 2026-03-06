@@ -1,5 +1,6 @@
 
 import { pb, isPocketBaseConfigured } from './pocketbase';
+import { convertToWebP } from '../utils/imageConvert';
 
 const subscribers: Set<() => void> = new Set();
 
@@ -37,16 +38,19 @@ export const apiClient = {
     return new Blob([u8arr], { type: mime });
   },
 
-  toFormData(data: any, fileName: string = 'file.jpg') {
+  async toFormData(data: any, fileName: string = 'file.webp') {
     const formData = new FormData();
-    Object.keys(data).forEach(key => {
+    for (const key of Object.keys(data)) {
       const value = data[key];
-      if (typeof value === 'string' && value.startsWith('data:')) {
+      if (typeof value === 'string' && value.startsWith('data:image/')) {
+        const webpBlob = await convertToWebP(value);
+        formData.append(key, webpBlob, fileName);
+      } else if (typeof value === 'string' && value.startsWith('data:')) {
         formData.append(key, this.dataURLtoBlob(value), fileName);
       } else if (value !== null && value !== undefined) {
         formData.append(key, value);
       }
-    });
+    }
     return formData;
   }
 };

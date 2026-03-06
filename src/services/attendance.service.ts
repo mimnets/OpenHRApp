@@ -143,7 +143,7 @@ export const attendanceService = {
       organization_id: orgId
     };
     if (data.selfie) payload.selfie = data.selfie;
-    await apiClient.pb.collection('attendance').create(apiClient.toFormData(payload, 'selfie.jpg'));
+    await apiClient.pb.collection('attendance').create(await apiClient.toFormData(payload, 'selfie.webp'));
     apiClient.notify();
 
     // Late Alert: notify line manager if status is LATE

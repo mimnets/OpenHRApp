@@ -1,5 +1,6 @@
 import { ShowcaseOrganization } from '../types';
 import { pb } from './pocketbase';
+import { convertFileToWebP } from '../utils/imageConvert';
 
 function normalizeUrl(url?: string): string {
   if (!url || !url.trim()) return '';
@@ -77,7 +78,10 @@ export const showcaseService = {
     try {
       const formData = new FormData();
       formData.append('name', data.name);
-      if (data.logo) formData.append('logo', data.logo);
+      if (data.logo) {
+        const webpLogo = await convertFileToWebP(data.logo);
+        formData.append('logo', webpLogo);
+      }
       if (data.country) formData.append('country', data.country);
       if (data.industry) formData.append('industry', data.industry);
       const url = normalizeUrl(data.websiteUrl);
@@ -106,7 +110,10 @@ export const showcaseService = {
     try {
       const formData = new FormData();
       if (data.name !== undefined) formData.append('name', data.name);
-      if (data.logo) formData.append('logo', data.logo);
+      if (data.logo) {
+        const webpLogo = await convertFileToWebP(data.logo);
+        formData.append('logo', webpLogo);
+      }
       if (data.country !== undefined) formData.append('country', data.country);
       if (data.industry !== undefined) formData.append('industry', data.industry);
       if (data.websiteUrl !== undefined) formData.append('website_url', normalizeUrl(data.websiteUrl));

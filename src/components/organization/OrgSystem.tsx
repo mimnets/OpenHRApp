@@ -4,6 +4,7 @@ import { Globe, Moon, MapPin, Upload, Building2, Tag } from 'lucide-react';
 import { AppConfig } from '../../types';
 import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 import { apiClient } from '../../services/api.client';
+import { convertFileToWebP } from '../../utils/imageConvert';
 
 interface Props {
   config: AppConfig;
@@ -86,7 +87,8 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
       formData.append('country', orgData.country);
       formData.append('address', orgData.address);
       if (logoFile) {
-        formData.append('logo', logoFile);
+        const webpLogo = await convertFileToWebP(logoFile);
+        formData.append('logo', webpLogo);
       }
 
       await apiClient.pb.collection('organizations').update(orgId, formData);

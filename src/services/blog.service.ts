@@ -1,6 +1,7 @@
 
 import { apiClient } from './api.client';
 import { BlogPost } from '../types';
+import { convertFileToWebP } from '../utils/imageConvert';
 
 // Build correct file URL using PocketBase base URL (not appURL from backend)
 const buildFileUrl = (collectionName: string, recordId: string, fileName: string): string => {
@@ -157,11 +158,12 @@ export const blogService = {
 
       // If there's a file, use FormData; otherwise use plain object
       if (data.coverImage) {
+        const webpCover = await convertFileToWebP(data.coverImage);
         const formData = new FormData();
         Object.entries(record).forEach(([key, val]) => {
           if (val !== undefined && val !== null) formData.append(key, val);
         });
-        formData.append('cover_image', data.coverImage);
+        formData.append('cover_image', webpCover);
         await apiClient.pb.collection('blog_posts').create(formData);
       } else {
         await apiClient.pb.collection('blog_posts').create(record);
@@ -205,11 +207,12 @@ export const blogService = {
 
       // If there's a new file, use FormData; otherwise use plain object
       if (data.coverImage) {
+        const webpCover = await convertFileToWebP(data.coverImage);
         const formData = new FormData();
         Object.entries(record).forEach(([key, val]) => {
           if (val !== undefined && val !== null) formData.append(key, String(val));
         });
-        formData.append('cover_image', data.coverImage);
+        formData.append('cover_image', webpCover);
         await apiClient.pb.collection('blog_posts').update(id, formData);
       } else {
         await apiClient.pb.collection('blog_posts').update(id, record);
