@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Loader2, Save, X, RefreshCw, MapPin, AlertTriangle
+  Loader2, Save, X, RefreshCw, MapPin, AlertTriangle, Search
 } from 'lucide-react';
 import { useOrganization } from '../hooks/organization/useOrganization';
 import { hrService } from '../services/hrService';
@@ -62,6 +62,7 @@ const Organization: React.FC = () => {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [shiftForm, setShiftForm] = useState<Partial<Shift>>({ name: '', startTime: '09:00', endTime: '18:00', lateGracePeriod: 5, earlyOutGracePeriod: 15, earliestCheckIn: '06:00', autoSessionCloseTime: '23:59', workingDays: ['Monday','Tuesday','Wednesday','Thursday','Sunday'], isDefault: false });
   const [shiftOverrideForm, setShiftOverrideForm] = useState({ employeeId: '', shiftId: '', startDate: '', endDate: '', reason: '' });
+  const [memberSearch, setMemberSearch] = useState('');
 
   // --- Handlers ---
 
@@ -76,6 +77,7 @@ const Organization: React.FC = () => {
       const targetTeamId = index !== null ? teams[index].id : '';
       const existingMembers = employees.filter(e => e.teamId === targetTeamId).map(e => e.id);
       setSelectedEmployeeIds(new Set(existingMembers));
+      setMemberSearch('');
     } else if (type === 'LOCATION') {
       const loc = (config.officeLocations && index !== null) ? config.officeLocations[index] : { name: '', lat: 23.8103, lng: 90.4125, radius: 500 };
       setLocationForm(loc);
@@ -380,7 +382,26 @@ const Organization: React.FC = () => {
                     <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Team Name</label><input required className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary-light transition-all" value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} /></div>
                     <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Department</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.department} onChange={e => setTeamForm({...teamForm, department: e.target.value})}>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                     <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Team Lead</label><select className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" value={teamForm.leaderId} onChange={e => setTeamForm({...teamForm, leaderId: e.target.value})}><option value="">-- Assign Lead --</option>{employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Members ({selectedEmployeeIds.size})</label><div className="h-40 overflow-y-auto border border-slate-200 rounded-xl p-2 grid grid-cols-2 gap-2 bg-slate-50/50">{employees.map(e => (<div key={e.id} onClick={() => { const next = new Set(selectedEmployeeIds); if (next.has(e.id)) next.delete(e.id); else next.add(e.id); setSelectedEmployeeIds(next); }} className={`p-2 rounded-lg text-xs font-bold cursor-pointer border ${selectedEmployeeIds.has(e.id) ? 'bg-primary-light border-primary text-primary' : 'bg-white border-slate-100 text-slate-500'}`}>{e.name}</div>))}</div></div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Members ({selectedEmployeeIds.size})</label>
+                      <div className="relative mb-2">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search employees..."
+                          value={memberSearch}
+                          onChange={e => setMemberSearch(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-4 focus:ring-primary-light transition-all"
+                        />
+                      </div>
+                      <div className="h-40 overflow-y-auto border border-slate-200 rounded-xl p-2 grid grid-cols-2 gap-2 bg-slate-50/50">
+                        {employees
+                          .filter(e => !memberSearch || e.name.toLowerCase().includes(memberSearch.toLowerCase()) || (e.employeeId && e.employeeId.toLowerCase().includes(memberSearch.toLowerCase())))
+                          .map(e => (
+                            <div key={e.id} onClick={() => { const next = new Set(selectedEmployeeIds); if (next.has(e.id)) next.delete(e.id); else next.add(e.id); setSelectedEmployeeIds(next); }} className={`p-2 rounded-lg text-xs font-bold cursor-pointer border ${selectedEmployeeIds.has(e.id) ? 'bg-primary-light border-primary text-primary' : 'bg-white border-slate-100 text-slate-500'}`}>{e.name}</div>
+                          ))}
+                      </div>
+                    </div>
                  </div>
               )}
 
