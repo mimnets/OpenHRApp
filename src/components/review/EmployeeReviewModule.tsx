@@ -1,11 +1,36 @@
 
 import React, { useState } from 'react';
-import { Send, FileText, ChevronDown, ChevronUp, Loader2, CheckCircle2, Calendar } from 'lucide-react';
+import { Send, FileText, ChevronDown, ChevronUp, Loader2, CheckCircle2, Calendar, Download, RefreshCw } from 'lucide-react';
 import { hrService } from '../../services/hrService';
+import { apiClient } from '../../services/api.client';
 import { PerformanceReview, ReviewCycle, CompetencyRating, OrgReviewConfig, CustomCompetency } from '../../types';
 import CompetencyRatingCard from './CompetencyRatingCard';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
 import ReviewStatusBadge from './ReviewStatusBadge';
+
+const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+};
+
+const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxSize / img.naturalWidth, maxSize / img.naturalHeight);
+      resolve({ w: img.naturalWidth * ratio, h: img.naturalHeight * ratio });
+    };
+    img.onerror = () => resolve({ w: maxSize, h: maxSize });
+    img.src = dataUrl;
+  });
 
 interface Props {
   user: any;
@@ -16,12 +41,14 @@ interface Props {
   onRefresh: () => void;
   readOnly?: boolean;
   reviewConfig: OrgReviewConfig;
+  cycles?: ReviewCycle[];
 }
 
-const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycle, myReview, pastReviews, onRefresh, readOnly = false, reviewConfig }) => {
+const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycle, myReview, pastReviews, onRefresh, readOnly = false, reviewConfig, cycles }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
 
   const competencies = reviewConfig.competencies;
   const ratingScale = reviewConfig.ratingScale.labels;
@@ -105,6 +132,222 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycl
 
   const maxRating = reviewConfig.ratingScale.max;
 
+  const generateReviewPdf = async (review: PerformanceReview, cycleName?: string) => {
+    setGeneratingPdfId(review.id);
+    try {
+      // Fetch org info
+      let orgName = '', orgAddress = '', logoDataUrl: string | null = null;
+      try {
+        const orgId = apiClient.getOrganizationId();
+        if (orgId && apiClient.pb) {
+          const org = await apiClient.pb.collection('organizations').getOne(orgId);
+          orgName = org.name || '';
+          orgAddress = org.address || '';
+          if (org.logo) {
+            const logoUrl = apiClient.pb.files.getURL(org, org.logo);
+            logoDataUrl = await fetchImageAsDataUrl(logoUrl);
+          }
+        }
+      } catch { /* proceed without org info */ }
+
+      const resolvedCycleName = cycleName || cycles?.find(c => c.id === review.cycleId)?.name || review.cycleId;
+
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      if (autoTableModule.applyPlugin) autoTableModule.applyPlugin(jsPDF);
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 15;
+
+      // Header: logo + org name + address
+      const logoSize = 18;
+      let textStartX = 14;
+      if (logoDataUrl) {
+        try {
+          const logoDims = await getScaledLogoDims(logoDataUrl, logoSize);
+          doc.addImage(logoDataUrl, 'PNG', 14, y - 4, logoDims.w, logoDims.h);
+          textStartX = 14 + logoDims.w + 5;
+        } catch { /* skip logo */ }
+      }
+      if (orgName) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(orgName, textStartX, y + 2);
+        if (orgAddress) {
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.text(orgAddress, textStartX, y + 8);
+        }
+      }
+      y += 20;
+
+      // HR line
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(14, y, pageWidth - 14, y);
+      y += 12;
+
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Performance Review Report', pageWidth / 2, y, { align: 'center' });
+      y += 10;
+
+      // Cycle name
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text(resolvedCycleName, pageWidth / 2, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      y += 10;
+
+      // Helper for sections
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const checkPageBreak = (needed: number) => {
+        if (y + needed > pageHeight - 15) {
+          doc.addPage();
+          y = 20;
+        }
+      };
+
+      const drawSection = (title: string, rows: [string, string][]) => {
+        checkPageBreak(20);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 80);
+        doc.text(title, 14, y);
+        y += 2;
+        doc.setDrawColor(220);
+        doc.line(14, y, pageWidth - 14, y);
+        y += 6;
+
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        rows.forEach(([label, value]) => {
+          checkPageBreak(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text(label + ':', 18, y);
+          doc.setFont('helvetica', 'normal');
+          const lines = doc.splitTextToSize(value || 'N/A', pageWidth - 70);
+          doc.text(lines, 65, y);
+          y += lines.length * 5 + 2;
+        });
+        y += 4;
+      };
+
+      // Employee Info
+      drawSection('Employee Information', [
+        ['Name', review.employeeName || user.name || ''],
+        ['Employee ID', user.employeeId || ''],
+        ['Department', user.department || ''],
+        ['Designation', user.designation || ''],
+        ['Manager', review.managerName || 'N/A'],
+      ]);
+
+      // Attendance Summary
+      const att = review.attendanceSummary;
+      drawSection('Attendance Summary', [
+        ['Total Working Days', String(att.totalWorkingDays)],
+        ['Present', String(att.presentDays)],
+        ['Late', String(att.lateDays)],
+        ['Absent', String(att.absentDays)],
+        ['Early Out', String(att.earlyOutDays)],
+        ['Attendance %', `${att.attendancePercentage}%`],
+      ]);
+
+      // Leave Summary
+      const leaveRows: [string, string][] = Object.entries(review.leaveSummary.typeBreakdown || {}).map(
+        ([type, days]) => [type.replace(/_/g, ' '), String(days)]
+      );
+      leaveRows.push(['Total Leave Days', String(review.leaveSummary.totalLeaveDays)]);
+      drawSection('Leave Summary', leaveRows);
+
+      // Competency Ratings Table
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(80, 80, 80);
+      doc.text('Competency Ratings', 14, y);
+      y += 2;
+      doc.setDrawColor(220);
+      doc.line(14, y, pageWidth - 14, y);
+      y += 4;
+
+      const tableBody = competencies.map(comp => {
+        const selfR = review.selfRatings.find(r => r.competencyId === comp.id);
+        const mgrR = review.managerRatings.find(r => r.competencyId === comp.id);
+        return [
+          comp.name,
+          selfR?.rating ? `${selfR.rating}/${maxRating}` : '-',
+          selfR?.comment || '-',
+          mgrR?.rating ? `${mgrR.rating}/${maxRating}` : '-',
+          mgrR?.comment || '-',
+        ];
+      });
+
+      (doc as any).autoTable({
+        startY: y,
+        head: [['Competency', 'Self Rating', 'Self Comment', 'Manager Rating', 'Manager Comment']],
+        body: tableBody,
+        margin: { left: 14, right: 14 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [70, 70, 70] },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 18, halign: 'center' },
+          2: { cellWidth: 45 },
+          3: { cellWidth: 18, halign: 'center' },
+          4: { cellWidth: 45 },
+        },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+
+      // Rating Summary
+      drawSection('Rating Summary', [
+        ['Self Average', `${avgRating(review.selfRatings)}/${maxRating}`],
+        ['Manager Average', `${avgRating(review.managerRatings)}/${maxRating}`],
+      ]);
+
+      // HR Final Assessment (only if COMPLETED)
+      if (review.status === 'COMPLETED') {
+        drawSection('HR Final Assessment', [
+          ['Overall Rating', review.hrOverallRating?.replace(/_/g, ' ') || 'N/A'],
+          ['HR Remarks', review.hrFinalRemarks || 'N/A'],
+        ]);
+      }
+
+      // Signature lines — ensure they fit on the page
+      const sigSpaceNeeded = 30; // space needed for signature block
+      if (y + sigSpaceNeeded > pageHeight - 15) {
+        doc.addPage();
+        y = 30;
+      }
+      const sigY = y + 20;
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.3);
+      doc.line(25, sigY, 90, sigY);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Employee Signature', 35, sigY + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(review.employeeName || user.name || '', 40, sigY + 10);
+      doc.line(pageWidth - 90, sigY, pageWidth - 25, sigY);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Manager/Approver Signature', pageWidth - 85, sigY + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(review.managerName || 'N/A', pageWidth - 70, sigY + 10);
+
+      const safeCycleName = resolvedCycleName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeName = (review.employeeName || user.name || 'Employee').replace(/[^a-zA-Z0-9_-]/g, '_');
+      doc.save(`Performance_Review_${safeCycleName}_${safeName}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate review PDF', err);
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -117,7 +360,21 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycl
               : 'No active review cycle'}
           </p>
         </div>
-        {myReview && <ReviewStatusBadge status={myReview.status} />}
+        {myReview && (
+          <div className="flex items-center gap-2">
+            {(myReview.status === 'MANAGER_REVIEWED' || myReview.status === 'COMPLETED') && (
+              <button
+                onClick={() => generateReviewPdf(myReview, activeCycle?.name)}
+                disabled={generatingPdfId === myReview.id}
+                className="p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+                title="Download PDF"
+              >
+                {generatingPdfId === myReview.id ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+              </button>
+            )}
+            <ReviewStatusBadge status={myReview.status} />
+          </div>
+        )}
       </div>
 
       {/* No Active Cycle */}
@@ -280,10 +537,22 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycl
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-sm text-slate-900">Cycle: {review.cycleId}</p>
+                      <p className="font-medium text-sm text-slate-900">Cycle: {cycles?.find(c => c.id === review.cycleId)?.name || review.cycleId}</p>
                       <p className="text-xs text-slate-400">Self Avg: {avgRating(review.selfRatings)}</p>
                     </div>
-                    <ReviewStatusBadge status={review.status} />
+                    <div className="flex items-center gap-2">
+                      {(review.status === 'MANAGER_REVIEWED' || review.status === 'COMPLETED') && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); generateReviewPdf(review); }}
+                          disabled={generatingPdfId === review.id}
+                          className="p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+                          title="Download PDF"
+                        >
+                          {generatingPdfId === review.id ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+                        </button>
+                      )}
+                      <ReviewStatusBadge status={review.status} />
+                    </div>
                   </div>
                   {expandedHistoryId === review.id && (
                     <div className="mt-3 pt-3 border-t border-slate-50">

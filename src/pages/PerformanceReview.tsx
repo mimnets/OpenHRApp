@@ -81,6 +81,7 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
         onRefresh={refreshData}
         readOnly={!canWrite}
         reviewConfig={data.reviewConfig}
+        cycles={data.cycles}
       />
 
       {/* Manager Module */}
