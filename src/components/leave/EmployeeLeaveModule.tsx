@@ -1,9 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Send, RefreshCw, X, AlertCircle, Info } from 'lucide-react';
+import { Plus, Send, RefreshCw, X, AlertCircle, Info, Download } from 'lucide-react';
 import { employeeService } from '../../services/employeeService';
 import { hrService } from '../../services/hrService';
-import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift } from '../../types';
+import { apiClient } from '../../services/api.client';
+import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift, CustomLeaveType } from '../../types';
+import { DEFAULT_LEAVE_TYPES } from '../../constants';
+
+const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+};
 
 interface Props {
   user: any;
@@ -30,17 +45,20 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
   const [employeeShift, setEmployeeShift] = useState<Shift | null>(null);
   const [calculatedDays, setCalculatedDays] = useState(0);
   const [calculationDetails, setCalculationDetails] = useState<string>('');
+  const [leaveTypes, setLeaveTypes] = useState<CustomLeaveType[]>(DEFAULT_LEAVE_TYPES);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialOpen) setShowForm(true);
     const loadMeta = async () => {
-      const [hols, cfg] = await Promise.all([
+      const [hols, cfg, lt] = await Promise.all([
         hrService.getHolidays(),
-        hrService.getConfig()
+        hrService.getConfig(),
+        hrService.getLeaveTypes(),
       ]);
       setHolidays(hols);
       setConfig(cfg);
-      // Resolve employee's shift
+      setLeaveTypes(lt);
       const shift = await hrService.resolveShiftForEmployee(user.id, user.shiftId);
       setEmployeeShift(shift);
     };
@@ -90,9 +108,156 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
 
   const getAvailableBalance = (type: string) => {
     if (!balance) return 0;
-    const key = type as keyof Pick<LeaveBalance, 'ANNUAL' | 'CASUAL' | 'SICK'>;
-    return balance[key] || 0;
+    return (balance[type] as number) || 0;
   };
+
+  const generateLeavePdf = async (req: LeaveRequest) => {
+    setGeneratingPdfId(req.id);
+    try {
+      // Fetch org info
+      let orgName = '', orgAddress = '', logoDataUrl: string | null = null;
+      try {
+        const orgId = apiClient.getOrganizationId();
+        if (orgId && apiClient.pb) {
+          const org = await apiClient.pb.collection('organizations').getOne(orgId);
+          orgName = org.name || '';
+          orgAddress = org.address || '';
+          if (org.logo) {
+            const logoUrl = apiClient.pb.files.getURL(org, org.logo);
+            logoDataUrl = await fetchImageAsDataUrl(logoUrl);
+          }
+        }
+      } catch { /* proceed without org info */ }
+
+      // Fetch manager name
+      let managerName = 'N/A';
+      try {
+        if (req.lineManagerId && apiClient.pb) {
+          const mgr = await apiClient.pb.collection('users').getOne(req.lineManagerId);
+          managerName = mgr.name || 'N/A';
+        }
+      } catch { /* proceed with N/A */ }
+
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      if (autoTableModule.applyPlugin) autoTableModule.applyPlugin(jsPDF);
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 15;
+
+      // Header: logo + org name + address
+      const logoSize = 18;
+      let textStartX = 14;
+      if (logoDataUrl) {
+        try {
+          doc.addImage(logoDataUrl, 'PNG', 14, y - 4, logoSize, logoSize);
+          textStartX = 14 + logoSize + 5;
+        } catch { /* skip logo */ }
+      }
+      if (orgName) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(orgName, textStartX, y + 2);
+        if (orgAddress) {
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.text(orgAddress, textStartX, y + 8);
+        }
+      }
+      y += 20;
+
+      // HR line
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(14, y, pageWidth - 14, y);
+      y += 12;
+
+      // Title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Leave Application', pageWidth / 2, y, { align: 'center' });
+      y += 14;
+
+      // Helper for sections
+      const drawSection = (title: string, rows: [string, string][]) => {
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 80);
+        doc.text(title, 14, y);
+        y += 2;
+        doc.setDrawColor(220);
+        doc.line(14, y, pageWidth - 14, y);
+        y += 6;
+
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        rows.forEach(([label, value]) => {
+          doc.setFont('helvetica', 'bold');
+          doc.text(label + ':', 18, y);
+          doc.setFont('helvetica', 'normal');
+          const lines = doc.splitTextToSize(value || 'N/A', pageWidth - 70);
+          doc.text(lines, 65, y);
+          y += lines.length * 5 + 2;
+        });
+        y += 4;
+      };
+
+      // Applicant Info
+      drawSection('Applicant Information', [
+        ['Name', user.name || ''],
+        ['Employee ID', user.employeeId || ''],
+        ['Department', user.department || ''],
+        ['Designation', user.designation || ''],
+      ]);
+
+      // Leave Details
+      drawSection('Leave Details', [
+        ['Type', req.type],
+        ['Start Date', req.startDate],
+        ['End Date', req.endDate],
+        ['Total Days', String(req.totalDays)],
+        ['Reason', req.reason || ''],
+      ]);
+
+      // Approval Status
+      const statusLabel = req.status.replace('_', ' ');
+      drawSection('Approval Status', [
+        ['Status', statusLabel],
+        ['Manager', managerName],
+        ['Manager Remarks', req.managerRemarks || 'N/A'],
+        ['Approver Remarks', req.approverRemarks || 'N/A'],
+        ['Applied Date', req.appliedDate || ''],
+      ]);
+
+      // Signature lines at bottom
+      const sigY = Math.max(y + 20, 250);
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.3);
+      // Employee signature
+      doc.line(25, sigY, 90, sigY);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Employee Signature', 35, sigY + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(user.name || '', 40, sigY + 10);
+      // Manager signature
+      doc.line(pageWidth - 90, sigY, pageWidth - 25, sigY);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Manager/Approver Signature', pageWidth - 85, sigY + 5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(managerName, pageWidth - 70, sigY + 10);
+
+      doc.save(`Leave_Application_${req.type}_${req.startDate}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate leave PDF', err);
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
+
+  const balanceTypes = leaveTypes.filter(t => t.hasBalance);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +285,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
         reason: formData.reason
       }, user);
       setShowForm(false);
-      setFormData({ type: 'ANNUAL', start: '', end: '', reason: '' });
+      setFormData({ type: leaveTypes[0]?.id || 'ANNUAL', start: '', end: '', reason: '' });
       onRefresh();
     } catch (err: any) {
       setError(err.message || "Submission failed");
@@ -146,22 +311,14 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Annual</p>
-          <p className="text-4xl font-semibold text-primary">{balance?.ANNUAL || 0}</p>
-          <p className="text-[9px] font-bold text-slate-300 uppercase">Days Remaining</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Casual</p>
-          <p className="text-4xl font-semibold text-emerald-600">{balance?.CASUAL || 0}</p>
-          <p className="text-[9px] font-bold text-slate-300 uppercase">Days Remaining</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Sick</p>
-          <p className="text-4xl font-semibold text-rose-600">{balance?.SICK || 0}</p>
-          <p className="text-[9px] font-bold text-slate-300 uppercase">Days Remaining</p>
-        </div>
+      <div className={`grid grid-cols-1 md:grid-cols-${Math.min(balanceTypes.length, 4)} gap-6`}>
+        {balanceTypes.map(lt => (
+          <div key={lt.id} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{lt.name.replace(' Leave', '')}</p>
+            <p className="text-4xl font-semibold text-primary">{getAvailableBalance(lt.id)}</p>
+            <p className="text-[9px] font-bold text-slate-300 uppercase">Days Remaining</p>
+          </div>
+        ))}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-100 p-8">
@@ -176,11 +333,21 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{req.startDate} — {req.endDate}</p>
                  </div>
               </div>
-              <div className="flex items-center justify-between w-full sm:w-auto sm:flex-col sm:items-end pl-6 sm:pl-0 sm:gap-1">
-                <span className={`px-3 py-1 rounded-lg text-[9px] font-semibold uppercase whitespace-nowrap ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {req.status.replace('_', ' ')}
-                </span>
-                <p className="text-[10px] font-bold text-slate-400">{req.totalDays} Day{req.totalDays !== 1 ? 's' : ''}</p>
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`px-3 py-1 rounded-lg text-[9px] font-semibold uppercase whitespace-nowrap ${req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : req.status === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {req.status.replace('_', ' ')}
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-400">{req.totalDays} Day{req.totalDays !== 1 ? 's' : ''}</p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); generateLeavePdf(req); }}
+                  disabled={generatingPdfId === req.id}
+                  className="p-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+                  title="Download PDF"
+                >
+                  {generatingPdfId === req.id ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+                </button>
               </div>
             </div>
           ))}
@@ -201,7 +368,9 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
               <div className="space-y-1">
                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Leave Type</label>
                  <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-sm outline-none" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-                    <option value="ANNUAL">Annual Leave</option><option value="CASUAL">Casual Leave</option><option value="SICK">Sick Leave</option>
+                    {leaveTypes.filter(t => t.hasBalance).map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
                  </select>
               </div>
 
