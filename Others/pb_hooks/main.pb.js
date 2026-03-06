@@ -1745,4 +1745,60 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
     }
 });
 
+// ────────────────────────────────────────────────────────────────
+// WebP image format validation (lenient — log only, don't reject)
+// Warns when non-webp images are uploaded so we can track adoption.
+// ────────────────────────────────────────────────────────────────
+(function() {
+    var imageFieldMap = {
+        "users": ["avatar"],
+        "attendance": ["selfie"],
+        "organizations": ["logo"],
+        "blog_posts": ["cover_image"],
+        "tutorials": ["cover_image"],
+        "showcase_organizations": ["logo"],
+        "upgrade_requests": ["donation_screenshot"]
+    };
+
+    var collections = Object.keys(imageFieldMap);
+    for (var i = 0; i < collections.length; i++) {
+        (function(collectionName) {
+            var fields = imageFieldMap[collectionName];
+
+            onRecordCreateRequest(function(e) {
+                for (var f = 0; f < fields.length; f++) {
+                    var files = e.filesMap[fields[f]];
+                    if (files && files.length > 0) {
+                        for (var j = 0; j < files.length; j++) {
+                            var ct = files[j].header && files[j].header["Content-Type"] ? files[j].header["Content-Type"][0] : "";
+                            var name = files[j].name || "";
+                            if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
+                                console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                            }
+                        }
+                    }
+                }
+                return e.next();
+            }, collectionName);
+
+            onRecordUpdateRequest(function(e) {
+                for (var f = 0; f < fields.length; f++) {
+                    var files = e.filesMap[fields[f]];
+                    if (files && files.length > 0) {
+                        for (var j = 0; j < files.length; j++) {
+                            var ct = files[j].header && files[j].header["Content-Type"] ? files[j].header["Content-Type"][0] : "";
+                            var name = files[j].name || "";
+                            if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
+                                console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                            }
+                        }
+                    }
+                }
+                return e.next();
+            }, collectionName);
+        })(collections[i]);
+    }
+    console.log("[HOOKS] WebP validation hooks registered (lenient mode).");
+})();
+
 console.log("[HOOKS] OpenHR System Hooks loaded successfully with country-based registration support.");

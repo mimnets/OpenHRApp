@@ -1,6 +1,7 @@
 
 import { apiClient } from './api.client';
 import { Tutorial } from '../types';
+import { convertFileToWebP } from '../utils/imageConvert';
 
 // Build correct file URL using PocketBase base URL (not appURL from backend)
 const buildFileUrl = (collectionName: string, recordId: string, fileName: string): string => {
@@ -167,11 +168,12 @@ export const tutorialService = {
       }
 
       if (data.coverImage) {
+        const webpCover = await convertFileToWebP(data.coverImage);
         const formData = new FormData();
         Object.entries(record).forEach(([key, val]) => {
           if (val !== undefined && val !== null) formData.append(key, String(val));
         });
-        formData.append('cover_image', data.coverImage);
+        formData.append('cover_image', webpCover);
         await apiClient.pb.collection('tutorials').create(formData);
       } else {
         await apiClient.pb.collection('tutorials').create(record);
@@ -218,11 +220,12 @@ export const tutorialService = {
       if (data.publishedAt !== undefined) record.published_at = data.publishedAt;
 
       if (data.coverImage) {
+        const webpCover = await convertFileToWebP(data.coverImage);
         const formData = new FormData();
         Object.entries(record).forEach(([key, val]) => {
           if (val !== undefined && val !== null) formData.append(key, String(val));
         });
-        formData.append('cover_image', data.coverImage);
+        formData.append('cover_image', webpCover);
         await apiClient.pb.collection('tutorials').update(id, formData);
       } else {
         await apiClient.pb.collection('tutorials').update(id, record);

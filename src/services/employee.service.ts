@@ -101,7 +101,7 @@ export const employeeService = {
     console.log('[EmployeeService] Original input:', { teamId: emp.teamId, shiftId: emp.shiftId });
 
     if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
-      await apiClient.pb.collection('users').create(apiClient.toFormData(pbData, 'avatar.jpg'));
+      await apiClient.pb.collection('users').create(await apiClient.toFormData(pbData, 'avatar.webp'));
     } else {
       await apiClient.pb.collection('users').create(pbData);
     }
@@ -117,7 +117,7 @@ export const employeeService = {
     console.log('[EmployeeService] Processed data:', { team_id: pbData.team_id, shift_id: pbData.shift_id, line_manager_id: pbData.line_manager_id });
 
     if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
-      const result = await apiClient.pb.collection('users').update(id.trim(), apiClient.toFormData(pbData, 'avatar.jpg'));
+      const result = await apiClient.pb.collection('users').update(id.trim(), await apiClient.toFormData(pbData, 'avatar.webp'));
       console.log('[EmployeeService] Update result:', result);
     } else {
       delete pbData.avatar;
