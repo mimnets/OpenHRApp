@@ -1,11 +1,32 @@
 
-console.log("[HOOKS] Loading OpenHR System Hooks (v0.38 - Fix Verification Email URL)...");
+console.log("[HOOKS] Loading OpenHR System Hooks (v0.39 - Robust Verification Email URL Fix)...");
 
 // ────────────────────────────────────────────────────────────────
 // FIX: Ensure PocketBase appUrl does NOT include /_/ suffix
 // PocketBase uses meta.appUrl to build verification email links.
 // If it ends with /_/ the redirect will 404 on the frontend SPA.
 // ────────────────────────────────────────────────────────────────
+
+// Helper: fix appUrl and send verification email safely
+// Runs BEFORE every verification email send to guarantee correct URL
+function safeSendVerification(app, userRecord) {
+    // Fix appUrl right before sending (in case admin re-set it with /_/)
+    try {
+        var s = app.settings();
+        var url = (s.meta.appUrl || "").replace(/\/+$/, "");
+        if (url.endsWith("/_") || url.endsWith("/_/")) {
+            s.meta.appUrl = url.replace(/\/_\/?$/, "");
+            app.save(s);
+            console.log("[HOOKS] Fixed appUrl before verification send: '" + url + "' → '" + s.meta.appUrl + "'");
+        }
+    } catch (e) {
+        console.log("[HOOKS] appUrl fix attempt (non-fatal): " + e.toString());
+    }
+    // Send the verification email
+    $mails.sendRecordVerification(app, userRecord);
+}
+
+// Also fix on startup
 try {
     var settings = $app.settings();
     var currentUrl = (settings.meta.appUrl || "").replace(/\/+$/, "");
@@ -15,10 +36,32 @@ try {
         var fixedUrl = currentUrl.replace(/\/_\/?$/, "");
         settings.meta.appUrl = fixedUrl;
         $app.save(settings);
-        console.log("[HOOKS] Fixed appUrl: '" + currentUrl + "' → '" + fixedUrl + "'");
+        console.log("[HOOKS] Fixed appUrl on startup: '" + currentUrl + "' → '" + fixedUrl + "'");
     }
 } catch (e) {
     console.log("[HOOKS] Could not check/fix appUrl (non-fatal): " + e.toString());
+}
+
+// Hook: Fix appUrl before PocketBase's built-in verification email send
+// This catches the "Resend Verification" flow from the frontend SDK
+// (pb.collection('users').requestVerification(email)) which bypasses our custom hooks
+try {
+    onMailerRecordVerificationSend((e) => {
+        try {
+            var s = $app.settings();
+            var url = (s.meta.appUrl || "").replace(/\/+$/, "");
+            if (url.endsWith("/_") || url.endsWith("/_/")) {
+                s.meta.appUrl = url.replace(/\/_\/?$/, "");
+                $app.save(s);
+                console.log("[HOOKS] Fixed appUrl in mailer hook: '" + url + "' → '" + s.meta.appUrl + "'");
+            }
+        } catch (fixErr) {
+            console.log("[HOOKS] appUrl fix in mailer hook (non-fatal): " + fixErr.toString());
+        }
+    });
+} catch (e) {
+    // Hook may not be available in all PocketBase versions — fallback is the startup fix
+    console.log("[HOOKS] onMailerRecordVerificationSend hook not available (non-fatal): " + e.toString());
 }
 
 /* ============================================================
@@ -193,8 +236,8 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             // Re-fetch the user record to ensure it's fully saved before sending email
             const savedUser = $app.findRecordById("users", user.id);
 
-            // Use PocketBase's mails helper to send verification email
-            $mails.sendRecordVerification($app, savedUser);
+            // Use safe wrapper that fixes appUrl before sending
+            safeSendVerification($app, savedUser);
 
             console.log("[REGISTER] Verification email sent successfully to: " + email);
         } catch (err) {
@@ -1525,9 +1568,8 @@ try {
         try {
             console.log("[EMPLOYEE-CREATE] Sending verification email to new employee:", email);
 
-            // Use PocketBase's built-in verification email
-            // This ensures proper token generation and uses the configured email template
-            $mails.sendRecordVerification($app, user);
+            // Use safe wrapper that fixes appUrl before sending
+            safeSendVerification($app, user);
 
             console.log("[EMPLOYEE-CREATE] Verification email sent successfully to:", email);
         } catch (emailErr) {
