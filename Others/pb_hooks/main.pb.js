@@ -1,77 +1,5 @@
 
-console.log("[HOOKS] Loading OpenHR System Hooks (v0.40 - Custom Verification Email)...");
-
-// ────────────────────────────────────────────────────────────────
-// Custom verification email sender
-// PocketBase's built-in $mails.sendRecordVerification() ALWAYS adds
-// /_/#/auth/confirm-verification/{TOKEN} to the appUrl — this is
-// PocketBase's admin dashboard path and causes 404 on the SPA frontend.
-// This helper sends a custom email with a clean URL: {appUrl}/?token={TOKEN}
-// ────────────────────────────────────────────────────────────────
-function safeSendVerification(app, userRecord) {
-    var settings = app.settings();
-    var meta = settings.meta || {};
-    var appUrl = (meta.appUrl || "https://www.openhrapp.com").replace(/\/+$/, "");
-    var senderAddress = meta.senderAddress || "noreply@openhr.app";
-    var senderName = meta.senderName || "OpenHR";
-    var userEmail = userRecord.getString("email");
-    var userName = userRecord.getString("name") || userEmail;
-
-    // Generate verification token using PocketBase's token system
-    var token = $tokens.recordVerification(app, userRecord);
-    var verifyUrl = appUrl + "/?token=" + token;
-
-    var htmlBody = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">' +
-        '<div style="text-align:center;margin-bottom:24px;">' +
-        '<h2 style="color:#1a73e8;">Verify Your Email Address</h2>' +
-        '</div>' +
-        '<p>Hello ' + userName + ',</p>' +
-        '<p>Thank you for registering with OpenHR. Please click the button below to verify your email address:</p>' +
-        '<div style="text-align:center;margin:32px 0;">' +
-        '<a href="' + verifyUrl + '" style="background-color:#1a73e8;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:6px;font-size:16px;font-weight:bold;display:inline-block;">Verify Email</a>' +
-        '</div>' +
-        '<p style="color:#666;font-size:13px;">If the button doesn\'t work, copy and paste this link into your browser:</p>' +
-        '<p style="color:#1a73e8;font-size:13px;word-break:break-all;">' + verifyUrl + '</p>' +
-        '<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">' +
-        '<p style="color:#999;font-size:12px;">If you did not create an account, you can safely ignore this email.</p>' +
-        '</body></html>';
-
-    var message = new MailerMessage({
-        from: { address: senderAddress, name: senderName },
-        to: [{ address: userEmail }],
-        subject: "Verify your OpenHR account",
-        html: htmlBody
-    });
-
-    app.newMailClient().send(message);
-    console.log("[HOOKS] Custom verification email sent to: " + userEmail + " (URL: " + appUrl + "/?token=***)");
-}
-
-// ────────────────────────────────────────────────────────────────
-// Intercept PocketBase's built-in "Resend Verification" API
-// When frontend calls pb.collection('users').requestVerification(email),
-// PocketBase sends its default email with /_/ URL. We intercept this
-// and send our custom email instead, then prevent the default.
-// ────────────────────────────────────────────────────────────────
-try {
-    onMailerRecordVerificationSend((e) => {
-        try {
-            var record = e.record;
-            if (record) {
-                console.log("[HOOKS] Intercepting PocketBase verification email for: " + record.getString("email"));
-                safeSendVerification($app, record);
-            }
-        } catch (err) {
-            console.log("[HOOKS] Custom verification in mailer hook failed, allowing default: " + err.toString());
-            return; // Allow default email if custom fails
-        }
-        // Prevent PocketBase's default verification email (with /_/ URL)
-        e.preventDefault();
-    });
-    console.log("[HOOKS] Verification email interceptor registered.");
-} catch (e) {
-    console.log("[HOOKS] onMailerRecordVerificationSend not available: " + e.toString());
-}
+console.log("[HOOKS] Loading OpenHR System Hooks (v0.41)...");
 
 /* ============================================================
    1. SECURE REGISTRATION ENDPOINT (Public)
@@ -245,8 +173,8 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             // Re-fetch the user record to ensure it's fully saved before sending email
             const savedUser = $app.findRecordById("users", user.id);
 
-            // Use safe wrapper that fixes appUrl before sending
-            safeSendVerification($app, savedUser);
+            // Use PocketBase's built-in verification email
+            $mails.sendRecordVerification($app, savedUser);
 
             console.log("[REGISTER] Verification email sent successfully to: " + email);
         } catch (err) {
@@ -1577,8 +1505,8 @@ try {
         try {
             console.log("[EMPLOYEE-CREATE] Sending verification email to new employee:", email);
 
-            // Use safe wrapper that fixes appUrl before sending
-            safeSendVerification($app, user);
+            // Use PocketBase's built-in verification email
+            $mails.sendRecordVerification($app, user);
 
             console.log("[EMPLOYEE-CREATE] Verification email sent successfully to:", email);
         } catch (emailErr) {
