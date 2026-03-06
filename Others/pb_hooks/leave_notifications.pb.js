@@ -1,9 +1,34 @@
 // pb_hooks/leave_notifications.pb.js
-// Leave Workflow Email Notifications
+// Leave Workflow Email + In-App (Bell) Notifications
 //
 // ⚠️  IMPORTANT: Each .pb.js file runs in its own isolated JS scope.
 //     Functions defined in other hook files (e.g. main.pb.js) are NOT
 //     available here. Always inline any shared logic.
+
+console.log("[HOOKS] Loading Leave Notifications (v2.0)...");
+
+// ────────────────────────────────────────────────────────────────
+// Helper: Create an in-app notification record (bell icon)
+// ────────────────────────────────────────────────────────────────
+function createNotification(userId, orgId, title, message, priority, referenceId) {
+    try {
+        var collection = $app.findCollectionByNameOrId("notifications");
+        var record = new Record(collection);
+        record.set("user_id", userId);
+        record.set("organization_id", orgId);
+        record.set("type", "LEAVE");
+        record.set("title", title);
+        record.set("message", message || "");
+        record.set("is_read", false);
+        record.set("priority", priority || "NORMAL");
+        record.set("reference_id", referenceId || "");
+        record.set("reference_type", "leave");
+        record.set("action_url", "leaves");
+        $app.save(record);
+    } catch (err) {
+        console.log("[LEAVE-NOTIF] Failed to create notification for user " + userId + ": " + err.toString());
+    }
+}
 
 // ============================================================
 // 1. LEAVE CREATED → Notify Employee + Manager + Admin/HR
@@ -49,9 +74,15 @@ onRecordAfterCreateSuccess((e) => {
             "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reason</b></td>    <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + reason    + "</td></tr>" +
             "</table>";
 
-        // A. Notify Employee — submission confirmation
+        // A. Notify Employee — submission confirmation (email + bell)
         try {
             const pendingLabel = (status === "PENDING_HR") ? "pending HR review" : "pending manager review";
+
+            createNotification(empId, orgId,
+                "Leave Submitted: " + type,
+                "Your " + type + " leave request (" + startDate + " to " + endDate + ") is now " + pendingLabel + ".",
+                "NORMAL", record.id);
+
             $app.newMailClient().send(new MailerMessage({
                 from: sender,
                 to:   [{ address: empEmail }],
@@ -67,11 +98,17 @@ onRecordAfterCreateSuccess((e) => {
             console.log("[LEAVE-EMAIL] Failed to notify employee on submit: " + err.toString());
         }
 
-        // B. Notify Manager — action required
+        // B. Notify Manager — action required (email + bell)
         if (managerId && status === "PENDING_MANAGER") {
             try {
                 const manager      = $app.findRecordById("users", managerId);
                 const managerEmail = manager.getString("email"); // ✅
+
+                createNotification(managerId, orgId,
+                    "Leave Approval Required: " + empName,
+                    empName + " has requested " + type + " leave (" + days + " days, " + startDate + " to " + endDate + ").",
+                    "NORMAL", record.id);
+
                 $app.newMailClient().send(new MailerMessage({
                     from: sender,
                     to:   [{ address: managerEmail }],
@@ -87,7 +124,7 @@ onRecordAfterCreateSuccess((e) => {
             }
         }
 
-        // C. Notify Admin/HR — FYI on new submission
+        // C. Notify Admin/HR — FYI on new submission (email + bell)
         try {
             const admins = $app.findRecordsByFilter(
                 "users",
@@ -95,7 +132,13 @@ onRecordAfterCreateSuccess((e) => {
             );
             for (let i = 0; i < admins.length; i++) {
                 const adminEmail = admins[i].getString("email"); // ✅
-                if (adminEmail === empEmail) continue;
+                if (admins[i].id === empId) continue;
+
+                createNotification(admins[i].id, orgId,
+                    "New Leave Request: " + empName,
+                    empName + " requested " + type + " leave (" + days + " days). Status: " + status + ".",
+                    "NORMAL", record.id);
+
                 try {
                     $app.newMailClient().send(new MailerMessage({
                         from: sender,
@@ -172,7 +215,7 @@ onRecordAfterUpdateSuccess((e) => {
         if (status === "PENDING_HR") {
             const managerRemarks = record.getString("manager_remarks") || "No remarks";
 
-            // Notify HR/Admin — action required
+            // Notify HR/Admin — action required (email + bell)
             try {
                 const hrStaff = $app.findRecordsByFilter(
                     "users",
@@ -180,6 +223,12 @@ onRecordAfterUpdateSuccess((e) => {
                 );
                 for (let i = 0; i < hrStaff.length; i++) {
                     const hrEmail = hrStaff[i].getString("email"); // ✅
+
+                    createNotification(hrStaff[i].id, orgId,
+                        "HR Approval Required: " + empName,
+                        empName + "'s " + type + " leave was approved by manager. Awaiting your final decision.",
+                        "NORMAL", record.id);
+
                     try {
                         $app.newMailClient().send(new MailerMessage({
                             from: sender,
@@ -201,7 +250,12 @@ onRecordAfterUpdateSuccess((e) => {
                 console.log("[LEAVE-EMAIL] Could not find HR staff: " + err.toString());
             }
 
-            // Notify Employee — waiting on HR
+            // Notify Employee — waiting on HR (email + bell)
+            createNotification(empId, orgId,
+                "Leave Update: Manager Approved",
+                "Your " + type + " leave request was approved by your manager. Pending HR final approval.",
+                "NORMAL", record.id);
+
             try {
                 $app.newMailClient().send(new MailerMessage({
                     from: sender,
@@ -226,6 +280,34 @@ onRecordAfterUpdateSuccess((e) => {
         if (status === "APPROVED") {
             const managerRemarks  = record.getString("manager_remarks")  || "No remarks";
             const approverRemarks = record.getString("approver_remarks") || "No remarks";
+
+            // Bell: Employee
+            createNotification(empId, orgId,
+                "Leave Approved: " + type,
+                "Your " + type + " leave (" + startDate + " to " + endDate + ") has been approved.",
+                "NORMAL", record.id);
+
+            // Bell: Manager
+            if (managerId) {
+                createNotification(managerId, orgId,
+                    "Leave Approved: " + empName,
+                    empName + "'s " + type + " leave (" + startDate + " to " + endDate + ") was approved.",
+                    "NORMAL", record.id);
+            }
+
+            // Bell: Admin/HR
+            try {
+                const approvalAdmins = $app.findRecordsByFilter(
+                    "users",
+                    "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+                );
+                for (let ai = 0; ai < approvalAdmins.length; ai++) {
+                    createNotification(approvalAdmins[ai].id, orgId,
+                        "Leave Approved: " + empName,
+                        empName + "'s " + type + " leave (" + days + " days) was approved.",
+                        "NORMAL", record.id);
+                }
+            } catch (err) {}
 
             // Notify Employee
             try {
@@ -301,6 +383,34 @@ onRecordAfterUpdateSuccess((e) => {
             const managerRemarks  = record.getString("manager_remarks")  || "No remarks";
             const approverRemarks = record.getString("approver_remarks") || "No remarks";
             const rejectRemarks   = (approverRemarks !== "No remarks") ? approverRemarks : managerRemarks;
+
+            // Bell: Employee
+            createNotification(empId, orgId,
+                "Leave Rejected: " + type,
+                "Your " + type + " leave (" + startDate + " to " + endDate + ") has been rejected. Reason: " + rejectRemarks,
+                "URGENT", record.id);
+
+            // Bell: Manager
+            if (managerId) {
+                createNotification(managerId, orgId,
+                    "Leave Rejected: " + empName,
+                    empName + "'s " + type + " leave request was rejected.",
+                    "NORMAL", record.id);
+            }
+
+            // Bell: Admin/HR
+            try {
+                const rejectAdmins = $app.findRecordsByFilter(
+                    "users",
+                    "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+                );
+                for (let ri = 0; ri < rejectAdmins.length; ri++) {
+                    createNotification(rejectAdmins[ri].id, orgId,
+                        "Leave Rejected: " + empName,
+                        empName + "'s " + type + " leave request was rejected.",
+                        "NORMAL", record.id);
+                }
+            } catch (err) {}
 
             // Notify Employee
             try {
