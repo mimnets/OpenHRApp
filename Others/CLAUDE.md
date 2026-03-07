@@ -360,8 +360,8 @@ ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must 
 
 | File | Purpose | Hooks/Endpoints |
 |------|---------|-----------------|
-| `main.pb.js` | Core system | Registration, auth, subscription, blog, tutorials, contact, ads, WebP validation, email queue |
-| `leave_notifications.pb.js` | Leave emails + bells | onRecordAfterCreate/UpdateSuccess for `leaves` |
+| `main.pb.js` | Core system | Registration, auth, subscription, blog, tutorials, contact, ads, WebP validation, email queue, **leave notifications (email + bell)** |
+| `leave_notifications.pb.js` | DEPRECATED backup — leave hooks now in main.pb.js | DO NOT deploy alongside main.pb.js |
 | `attendance_notifications.pb.js` | Attendance emails + bells | Late check-in alerts, checkout reminders, holiday alerts, auto-absent notifications |
 | `review_notifications.pb.js` | Review emails + bells | Cycle open/close, self-assessment reminders, status change notifications |
 | `cron.pb.js` | Scheduled jobs | Trial expiration, auto-absent, daily attendance report, selfie cleanup, notification cleanup |
@@ -583,7 +583,7 @@ ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must 
 | `src/hooks/attendance/useGeoLocation.ts` | Location hook (native + browser) |
 | `src/components/ErrorBoundary.tsx` | Error boundary for native features |
 | `Others/pb_hooks/main.pb.js` | Core PocketBase hooks + 16 API endpoints |
-| `Others/pb_hooks/leave_notifications.pb.js` | Leave email + bell notifications |
+| `Others/pb_hooks/leave_notifications.pb.js` | DEPRECATED — leave hooks now in main.pb.js (standalone backup only) |
 | `Others/pb_hooks/attendance_notifications.pb.js` | Attendance notifications + cron reminders |
 | `Others/pb_hooks/review_notifications.pb.js` | Performance review notifications + cycle transitions |
 | `Others/pb_hooks/cron.pb.js` | 5 scheduled cron jobs |

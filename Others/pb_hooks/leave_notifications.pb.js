@@ -1,11 +1,19 @@
 // pb_hooks/leave_notifications.pb.js
-// Leave Workflow Email + In-App (Bell) Notifications
+// ════════════════════════════════════════════════════════════════
+// ⚠️  DEPRECATED — Leave hooks have been MOVED into main.pb.js
+//     to guarantee they load (main.pb.js is always deployed).
+//
+//     DO NOT deploy this file alongside main.pb.js or you will
+//     get DUPLICATE emails and notifications.
+//
+//     This file is kept as a standalone backup only.
+// ════════════════════════════════════════════════════════════════
 //
 // ⚠️  IMPORTANT: Each .pb.js file runs in its own isolated JS scope.
 //     Functions defined in other hook files (e.g. main.pb.js) are NOT
 //     available here. Always inline any shared logic.
 
-console.log("[HOOKS] Loading Leave Notifications (v2.0)...");
+console.log("[HOOKS] Loading Leave Notifications (v2.0) — STANDALONE BACKUP...");
 
 // ────────────────────────────────────────────────────────────────
 // Helper: Create an in-app notification record (bell icon)
