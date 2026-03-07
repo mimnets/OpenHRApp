@@ -502,7 +502,8 @@ routerAdd("GET", "/api/openhr/diagnose-leave", (e) => {
         try {
             var admins = $app.findRecordsByFilter(
                 "users",
-                "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+                "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                { orgId: orgId }
             );
             var adminList = [];
             for (var i = 0; i < admins.length; i++) {
@@ -2083,7 +2084,8 @@ try {
             try {
                 var admins = $app.findRecordsByFilter(
                     "users",
-                    "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+                    "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                    { orgId: orgId }
                 );
                 for (var i = 0; i < admins.length; i++) {
                     var adminEmail = admins[i].getString("email");
@@ -2173,7 +2175,8 @@ try {
                 try {
                     var hrStaff = $app.findRecordsByFilter(
                         "users",
-                        "organization_id = '" + orgId + "' && (role = 'HR' || role = 'ADMIN')"
+                        "organization_id = {:orgId} && (role = 'HR' || role = 'ADMIN')",
+                        { orgId: orgId }
                     );
                     for (var i = 0; i < hrStaff.length; i++) {
                         var hrEmail = hrStaff[i].getString("email");
@@ -2240,7 +2243,8 @@ try {
                 }
                 try {
                     var approvalAdmins = $app.findRecordsByFilter("users",
-                        "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')");
+                        "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                        { orgId: orgId });
                     for (var ai = 0; ai < approvalAdmins.length; ai++) {
                         createLeaveNotification(approvalAdmins[ai].id, orgId, "Leave Approved: " + empName,
                             empName + "'s " + type + " leave (" + days + " days) was approved.", "NORMAL", record.id);
@@ -2289,7 +2293,8 @@ try {
                 // Email: Admin/HR
                 try {
                     var adminsAppr = $app.findRecordsByFilter("users",
-                        "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')");
+                        "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                        { orgId: orgId });
                     for (var j = 0; j < adminsAppr.length; j++) {
                         var adEmail = adminsAppr[j].getString("email");
                         try {
@@ -2326,7 +2331,8 @@ try {
                 }
                 try {
                     var rejectAdmins = $app.findRecordsByFilter("users",
-                        "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')");
+                        "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                        { orgId: orgId });
                     for (var ri = 0; ri < rejectAdmins.length; ri++) {
                         createLeaveNotification(rejectAdmins[ri].id, orgId, "Leave Rejected: " + empName,
                             empName + "'s " + type + " leave request was rejected.", "NORMAL", record.id);
@@ -2374,7 +2380,8 @@ try {
                 // Email: Admin/HR
                 try {
                     var rejAdmins = $app.findRecordsByFilter("users",
-                        "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')");
+                        "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                        { orgId: orgId });
                     for (var rj = 0; rj < rejAdmins.length; rj++) {
                         var rjEmail = rejAdmins[rj].getString("email");
                         try {
