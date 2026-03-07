@@ -396,6 +396,175 @@ routerAdd("POST", "/api/openhr/test-email", (e) => {
 });
 
 /* ============================================================
+   2B-2. LEAVE NOTIFICATION DIAGNOSTIC (Auth required)
+   GET /api/openhr/diagnose-leave?leaveId=XXXXX
+   Tests every step of the leave notification flow and reports
+   exactly which step fails.
+   ============================================================ */
+routerAdd("GET", "/api/openhr/diagnose-leave", (e) => {
+    var results = [];
+    function log(step, ok, detail) {
+        results.push({ step: step, ok: ok, detail: detail });
+    }
+
+    try {
+        // Auth check
+        if (!e.auth || !e.auth.record) {
+            return e.json(401, { message: "Login required" });
+        }
+        log("1. Auth", true, "Authenticated as: " + e.auth.record.getString("email"));
+
+        // SMTP / sender config
+        var sender = {};
+        try {
+            var meta = $app.settings().meta || {};
+            sender = { address: meta.senderAddress || "", name: meta.senderName || "" };
+            var smtpEnabled = $app.settings().smtp && $app.settings().smtp.enabled;
+            log("2. SMTP Config", !!sender.address, "senderAddress=" + sender.address + ", senderName=" + sender.name + ", smtp.enabled=" + smtpEnabled);
+            if ($app.settings().smtp) {
+                log("2a. SMTP Details", true, "host=" + ($app.settings().smtp.host || "NOT SET") + ", port=" + ($app.settings().smtp.port || "NOT SET"));
+            }
+        } catch (err) {
+            log("2. SMTP Config", false, "Error: " + err.toString());
+        }
+
+        // Get leave record
+        var leaveId = "";
+        try {
+            var qi = e.request.url.query;
+            if (qi && qi.get) {
+                leaveId = qi.get("leaveId") || "";
+            }
+        } catch (err) {
+            // Try alternative query parsing
+            try {
+                var url = e.request.url.string();
+                var match = url.match(/leaveId=([^&]+)/);
+                if (match) leaveId = match[1];
+            } catch (err2) {}
+        }
+
+        if (!leaveId) {
+            // Find most recent leave
+            try {
+                var recent = $app.findRecordsByFilter("leaves", "id != ''", "-created", 1, 0);
+                if (recent && recent.length > 0) {
+                    leaveId = recent[0].id;
+                    log("3. Leave Record", true, "No leaveId param — using most recent: " + leaveId);
+                } else {
+                    log("3. Leave Record", false, "No leaves found in database");
+                    return e.json(200, { results: results });
+                }
+            } catch (err) {
+                log("3. Leave Record", false, "Could not find any leaves: " + err.toString());
+                return e.json(200, { results: results });
+            }
+        }
+
+        var leave;
+        try {
+            leave = $app.findRecordById("leaves", leaveId);
+            log("3. Leave Record", true, "Found leave id=" + leaveId +
+                " | employee_id=" + leave.getString("employee_id") +
+                " | line_manager_id=" + leave.getString("line_manager_id") +
+                " | status=" + leave.getString("status") +
+                " | org_id=" + leave.getString("organization_id"));
+        } catch (err) {
+            log("3. Leave Record", false, "Leave not found (id=" + leaveId + "): " + err.toString());
+            return e.json(200, { results: results });
+        }
+
+        // Look up employee
+        var empId = leave.getString("employee_id");
+        var employee;
+        try {
+            employee = $app.findRecordById("users", empId);
+            log("4. Employee Lookup", true, "Found: " + employee.getString("name") + " <" + employee.getString("email") + ">");
+        } catch (err) {
+            log("4. Employee Lookup", false, "Employee NOT found (id=" + empId + "): " + err.toString());
+        }
+
+        // Look up manager
+        var managerId = leave.getString("line_manager_id");
+        if (managerId) {
+            try {
+                var manager = $app.findRecordById("users", managerId);
+                log("5. Manager Lookup", true, "Found: " + manager.getString("name") + " <" + manager.getString("email") + ">");
+            } catch (err) {
+                log("5. Manager Lookup", false, "Manager NOT found (id=" + managerId + "): " + err.toString());
+            }
+        } else {
+            log("5. Manager Lookup", false, "No line_manager_id set on this leave record");
+        }
+
+        // Look up admins
+        var orgId = leave.getString("organization_id");
+        try {
+            var admins = $app.findRecordsByFilter(
+                "users",
+                "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+            );
+            var adminList = [];
+            for (var i = 0; i < admins.length; i++) {
+                adminList.push(admins[i].getString("name") + " <" + admins[i].getString("email") + ">");
+            }
+            log("6. Admin/HR Lookup", admins.length > 0, "Found " + admins.length + ": " + adminList.join(", "));
+        } catch (err) {
+            log("6. Admin/HR Lookup", false, "Query failed: " + err.toString());
+        }
+
+        // Test notification creation
+        try {
+            var notifCollection = $app.findCollectionByNameOrId("notifications");
+            log("7. Notifications Collection", true, "Collection exists (id=" + notifCollection.id + ")");
+
+            // Actually create a test notification
+            var testNotif = new Record(notifCollection);
+            testNotif.set("user_id", e.auth.record.id);
+            testNotif.set("organization_id", orgId);
+            testNotif.set("type", "LEAVE");
+            testNotif.set("title", "DIAGNOSTIC TEST — Leave Notification");
+            testNotif.set("message", "This is a test notification from the diagnostic endpoint. You can delete it.");
+            testNotif.set("is_read", false);
+            testNotif.set("priority", "NORMAL");
+            testNotif.set("reference_id", leaveId);
+            testNotif.set("reference_type", "leave");
+            testNotif.set("action_url", "leaves");
+            $app.save(testNotif);
+            log("7a. Create Test Notification", true, "Created notification id=" + testNotif.id + " — check your bell icon!");
+        } catch (err) {
+            log("7. Notifications", false, "FAILED: " + err.toString());
+        }
+
+        // Test email sending
+        if (employee && sender.address) {
+            try {
+                var empEmail = employee.getString("email");
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to: [{ address: empEmail }],
+                    subject: "DIAGNOSTIC TEST — Leave Email",
+                    html: "<h2>Leave Notification Diagnostic</h2>" +
+                          "<p>If you see this email, SMTP is working correctly for leave notifications!</p>" +
+                          "<p>Leave ID: " + leaveId + "</p>" +
+                          "<p style='color:#6b7280;'>This is a test. You can ignore this email.</p>",
+                }));
+                log("8. Send Test Email", true, "Email sent to " + empEmail + " from " + sender.address);
+            } catch (err) {
+                log("8. Send Test Email", false, "FAILED: " + err.toString());
+            }
+        } else {
+            log("8. Send Test Email", false, "Skipped — " + (!employee ? "employee not found" : "no sender address configured"));
+        }
+
+        return e.json(200, { results: results });
+    } catch (err) {
+        log("FATAL", false, err.toString());
+        return e.json(500, { results: results, error: err.toString() });
+    }
+});
+
+/* ============================================================
    2C. ADMIN VERIFICATION ENDPOINT (Secure)
    ============================================================ */
 routerAdd("POST", "/api/openhr/admin-verify-user", (e) => {
