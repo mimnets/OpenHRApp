@@ -15,7 +15,7 @@ npx cap run android         # Build and run on connected Android device
 npx cap doctor              # Verify all Capacitor versions match
 ```
 
-Backend: PocketBase server must be running. Deploy `Others/pb_hooks/main.pb.js` to PocketBase's `pb_hooks/` folder for email notifications.
+Backend: PocketBase server must be running. Deploy ALL `.pb.js` files from `Others/pb_hooks/` to PocketBase's `pb_hooks/` folder (see PocketBase Hooks section below).
 
 ---
 
@@ -243,7 +243,72 @@ npx cap run android --livereload
 | `src/config/database.ts` | PocketBase URL config |
 | `src/types.ts` | All TypeScript entity interfaces |
 | `Others/pb_hooks/main.pb.js` | PocketBase hooks + subscription API |
+| `Others/pb_hooks/leave_notifications.pb.js` | Leave email + bell notifications |
+| `Others/pb_hooks/attendance_notifications.pb.js` | Attendance email + bell notifications |
+| `Others/pb_hooks/review_notifications.pb.js` | Performance review notifications |
 | `Others/pb_hooks/cron.pb.js` | Daily subscription expiration cron |
+
+---
+
+## PocketBase Hooks — MUST FOLLOW
+
+### Deployment
+ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must be deployed to the PocketBase server's `pb_hooks/` directory. Missing any file will silently disable that feature (no emails, no notifications).
+
+**Required files on server:**
+- `main.pb.js` — Registration, auth, subscription, contact form, WebP validation
+- `leave_notifications.pb.js` — Leave email + in-app (bell) notifications
+- `attendance_notifications.pb.js` — Attendance notifications
+- `review_notifications.pb.js` — Performance review notifications
+- `cron.pb.js` — Daily subscription expiration cron
+- `setup_collections.pb.js` — Collection setup helper
+
+### Hook Coding Standards — MUST FOLLOW
+1. **Always wrap hook registrations in try-catch** — prevents one failed hook from crashing the entire file:
+   ```js
+   try {
+       onRecordAfterCreateSuccess((e) => { ... }, "collection_name");
+   } catch(e) {
+       console.log("[HOOKS] Could not register hook: " + e.toString());
+   }
+   ```
+2. **Each `.pb.js` file runs in its own isolated JS scope** — you CANNOT call functions defined in other `.pb.js` files. Always inline shared logic.
+3. **Use `getString()` to read record fields** — never use `.email()` or direct property access on PocketBase records.
+4. **Always add console.log at file load** — e.g., `console.log("[HOOKS] Loading Feature X...")` at the top and `console.log("[HOOKS] Feature X loaded successfully.")` at the bottom to confirm the file loaded.
+5. **Update hooks must check if the relevant field actually changed** before sending notifications, to prevent duplicates:
+   ```js
+   var oldStatus = e.record.original().getString("status");
+   if (oldStatus === newStatus) return; // skip if unchanged
+   ```
+6. **Sender config must be inlined** in every file (not shared across files):
+   ```js
+   const meta = $app.settings().meta || {};
+   const sender = { address: meta.senderAddress || "noreply@openhr.app", name: meta.senderName || "OpenHR System" };
+   ```
+7. **Never delete or remove notification hooks** without explicit approval — they are critical for user communication.
+
+### Email + Notification Matrix (Leave Workflow)
+
+| Event | Employee | Manager | Admin/HR |
+|-------|----------|---------|----------|
+| Leave Created (pending) | Email + Bell: "Submitted" | Email + Bell: "Action Required" | Email + Bell: "New Request" |
+| Leave Created (direct APPROVED) | Email + Bell: "Approved" | Email + Bell: "FYI Approved" | Email + Bell: "Approved" |
+| Manager Approved → PENDING_HR | Email + Bell: "Manager Approved" | — | Email + Bell: "HR Review Required" |
+| Final APPROVED | Email + Bell: "Fully Approved" | Email + Bell: "Final Approved" | Email + Bell: "Fully Approved" |
+| REJECTED | Email + Bell: "Rejected" | Email + Bell: "Rejected" | Email + Bell: "Rejected" |
+
+### Notification Collection Fields
+The `notifications` collection must have these fields:
+- `user_id` (relation → users) — recipient
+- `organization_id` (relation → organizations) — org scoping
+- `type` (text) — e.g., "LEAVE", "ATTENDANCE", "REVIEW"
+- `title` (text) — short title for bell display
+- `message` (text) — detailed message
+- `is_read` (bool) — read status
+- `priority` (text) — "NORMAL" or "URGENT"
+- `reference_id` (text) — ID of the related record
+- `reference_type` (text) — e.g., "leave", "attendance"
+- `action_url` (text) — navigation target in the app
 
 ---
 
