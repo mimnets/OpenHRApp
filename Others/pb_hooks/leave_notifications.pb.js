@@ -33,6 +33,7 @@ function createNotification(userId, orgId, title, message, priority, referenceId
 // ============================================================
 // 1. LEAVE CREATED → Notify Employee + Manager + Admin/HR
 // ============================================================
+try {
 onRecordAfterCreateSuccess((e) => {
     const record    = e.record;
     const empId     = record.getString("employee_id");
@@ -162,11 +163,15 @@ onRecordAfterCreateSuccess((e) => {
         console.log("[LEAVE-EMAIL] Error in leave create hook: " + err.toString());
     }
 }, "leaves");
+} catch(e) {
+    console.log("[HOOKS] Could not register leave create hook: " + e.toString());
+}
 
 
 // ============================================================
 // 2. LEAVE UPDATED → Notify based on status transition
 // ============================================================
+try {
 onRecordAfterUpdateSuccess((e) => {
     const record    = e.record;
     const status    = record.getString("status");
@@ -483,3 +488,8 @@ onRecordAfterUpdateSuccess((e) => {
         console.log("[LEAVE-EMAIL] Error in leave update hook: " + err.toString());
     }
 }, "leaves");
+} catch(e) {
+    console.log("[HOOKS] Could not register leave update hook: " + e.toString());
+}
+
+console.log("[HOOKS] Leave Notifications hooks loaded successfully.");
