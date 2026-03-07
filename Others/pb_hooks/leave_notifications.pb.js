@@ -75,80 +75,126 @@ onRecordAfterCreateSuccess((e) => {
             "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reason</b></td>    <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + reason    + "</td></tr>" +
             "</table>";
 
-        // A. Notify Employee — submission confirmation (email + bell)
+        // ── Check if this is an admin-created APPROVED leave ──
+        var isDirectApproval = (status === "APPROVED");
+
+        // A. Notify Employee — submission confirmation or direct approval (email + bell)
         try {
-            const pendingLabel = (status === "PENDING_HR") ? "pending HR review" : "pending manager review";
+            if (isDirectApproval) {
+                // Admin created leave as APPROVED directly
+                var approverRemarks = record.getString("approver_remarks") || "No remarks";
 
-            createNotification(empId, orgId,
-                "Leave Submitted: " + type,
-                "Your " + type + " leave request (" + startDate + " to " + endDate + ") is now " + pendingLabel + ".",
-                "NORMAL", record.id);
-
-            $app.newMailClient().send(new MailerMessage({
-                from: sender,
-                to:   [{ address: empEmail }],
-                subject: "Leave Application Submitted: " + type,
-                html: "<h2>Leave Application Received</h2>" +
-                      "<p>Hi <b>" + empName + "</b>,</p>" +
-                      "<p>Your leave request has been submitted and is now <b>" + pendingLabel + "</b>.</p>" +
-                      detailsHtml +
-                      "<p style='color:#6b7280;font-size:13px;'>You will receive another email when the status changes.</p>",
-            }));
-            console.log("[LEAVE-EMAIL] Employee notified on submit: " + empEmail);
-        } catch (err) {
-            console.log("[LEAVE-EMAIL] Failed to notify employee on submit: " + err.toString());
-        }
-
-        // B. Notify Manager — action required (email + bell)
-        if (managerId && status === "PENDING_MANAGER") {
-            try {
-                const manager      = $app.findRecordById("users", managerId);
-                const managerEmail = manager.getString("email"); // ✅
-
-                createNotification(managerId, orgId,
-                    "Leave Approval Required: " + empName,
-                    empName + " has requested " + type + " leave (" + days + " days, " + startDate + " to " + endDate + ").",
+                createNotification(empId, orgId,
+                    "Leave Approved: " + type,
+                    "Your " + type + " leave (" + startDate + " to " + endDate + ") has been approved.",
                     "NORMAL", record.id);
 
                 $app.newMailClient().send(new MailerMessage({
                     from: sender,
-                    to:   [{ address: managerEmail }],
-                    subject: "Action Required: " + type + " Leave — " + empName,
-                    html: "<h2>Leave Approval Required</h2>" +
-                          "<p><b>" + empName + "</b> has submitted a leave request that requires your approval.</p>" +
+                    to:   [{ address: empEmail }],
+                    subject: "✅ Leave Approved: " + type + " (" + startDate + " to " + endDate + ")",
+                    html: "<h2>Leave Request Approved</h2>" +
+                          "<p>Hi <b>" + empName + "</b>,</p>" +
+                          "<p>Your leave request has been <b style='color:#10b981;'>approved</b> by your administrator.</p>" +
                           detailsHtml +
-                          "<p>Please log in to the <b>OpenHR portal</b> to Approve or Reject this request.</p>",
+                          "<p><b>Remarks:</b> " + approverRemarks + "</p>" +
+                          "<p style='color:#6b7280;font-size:13px;'>Enjoy your time off!</p>",
                 }));
-                console.log("[LEAVE-EMAIL] Manager notified on submit: " + managerEmail);
+                console.log("[LEAVE-EMAIL] Employee notified (direct approval): " + empEmail);
+            } else {
+                // Normal submission — pending review
+                var pendingLabel = (status === "PENDING_HR") ? "pending HR review" : "pending manager review";
+
+                createNotification(empId, orgId,
+                    "Leave Submitted: " + type,
+                    "Your " + type + " leave request (" + startDate + " to " + endDate + ") is now " + pendingLabel + ".",
+                    "NORMAL", record.id);
+
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to:   [{ address: empEmail }],
+                    subject: "Leave Application Submitted: " + type,
+                    html: "<h2>Leave Application Received</h2>" +
+                          "<p>Hi <b>" + empName + "</b>,</p>" +
+                          "<p>Your leave request has been submitted and is now <b>" + pendingLabel + "</b>.</p>" +
+                          detailsHtml +
+                          "<p style='color:#6b7280;font-size:13px;'>You will receive another email when the status changes.</p>",
+                }));
+                console.log("[LEAVE-EMAIL] Employee notified on submit: " + empEmail);
+            }
+        } catch (err) {
+            console.log("[LEAVE-EMAIL] Failed to notify employee on submit: " + err.toString());
+        }
+
+        // B. Notify Manager — action required (email + bell) OR FYI on direct approval
+        if (managerId) {
+            try {
+                var manager      = $app.findRecordById("users", managerId);
+                var managerEmail = manager.getString("email");
+
+                if (isDirectApproval) {
+                    // FYI: admin approved directly
+                    createNotification(managerId, orgId,
+                        "Leave Approved: " + empName,
+                        empName + "'s " + type + " leave (" + startDate + " to " + endDate + ") was approved by admin.",
+                        "NORMAL", record.id);
+
+                    $app.newMailClient().send(new MailerMessage({
+                        from: sender,
+                        to:   [{ address: managerEmail }],
+                        subject: "Leave Approved: " + empName + " — " + type,
+                        html: "<h2>Leave Approved by Admin</h2>" +
+                              "<p>A leave request for <b>" + empName + "</b> has been <b style='color:#10b981;'>approved</b> by the administrator.</p>" +
+                              detailsHtml,
+                    }));
+                    console.log("[LEAVE-EMAIL] Manager notified (direct approval): " + managerEmail);
+                } else if (status === "PENDING_MANAGER") {
+                    // Action required
+                    createNotification(managerId, orgId,
+                        "Leave Approval Required: " + empName,
+                        empName + " has requested " + type + " leave (" + days + " days, " + startDate + " to " + endDate + ").",
+                        "NORMAL", record.id);
+
+                    $app.newMailClient().send(new MailerMessage({
+                        from: sender,
+                        to:   [{ address: managerEmail }],
+                        subject: "Action Required: " + type + " Leave — " + empName,
+                        html: "<h2>Leave Approval Required</h2>" +
+                              "<p><b>" + empName + "</b> has submitted a leave request that requires your approval.</p>" +
+                              detailsHtml +
+                              "<p>Please log in to the <b>OpenHR portal</b> to Approve or Reject this request.</p>",
+                    }));
+                    console.log("[LEAVE-EMAIL] Manager notified on submit: " + managerEmail);
+                }
             } catch (err) {
                 console.log("[LEAVE-EMAIL] Failed to notify manager on submit: " + err.toString());
             }
         }
 
-        // C. Notify Admin/HR — FYI on new submission (email + bell)
+        // C. Notify Admin/HR — FYI on new submission or confirmation of direct approval (email + bell)
         try {
-            const admins = $app.findRecordsByFilter(
+            var admins = $app.findRecordsByFilter(
                 "users",
                 "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
             );
-            for (let i = 0; i < admins.length; i++) {
-                const adminEmail = admins[i].getString("email"); // ✅
+            for (var i = 0; i < admins.length; i++) {
+                var adminEmail = admins[i].getString("email");
                 if (admins[i].id === empId) continue;
 
                 createNotification(admins[i].id, orgId,
-                    "New Leave Request: " + empName,
-                    empName + " requested " + type + " leave (" + days + " days). Status: " + status + ".",
+                    isDirectApproval ? "Leave Approved: " + empName : "New Leave Request: " + empName,
+                    empName + " " + (isDirectApproval ? "was granted" : "requested") + " " + type + " leave (" + days + " days). Status: " + status + ".",
                     "NORMAL", record.id);
 
                 try {
                     $app.newMailClient().send(new MailerMessage({
                         from: sender,
                         to:   [{ address: adminEmail }],
-                        subject: "New Leave Request: " + empName + " — " + type,
-                        html: "<h2>New Leave Application</h2>" +
-                              "<p>A new leave request has been submitted in your organisation.</p>" +
+                        subject: (isDirectApproval ? "Leave Approved: " : "New Leave Request: ") + empName + " — " + type,
+                        html: "<h2>" + (isDirectApproval ? "Leave Approved" : "New Leave Application") + "</h2>" +
+                              "<p>" + (isDirectApproval ? "The following leave has been approved." : "A new leave request has been submitted in your organisation.") + "</p>" +
                               detailsHtml +
-                              "<p>Current Status: <b>" + status + "</b></p>",
+                              "<p>Status: <b style='color:" + (isDirectApproval ? "#10b981" : "#f59e0b") + ";'>" + status + "</b></p>",
                     }));
                     console.log("[LEAVE-EMAIL] Admin/HR notified on submit: " + adminEmail);
                 } catch (err) {
@@ -180,6 +226,19 @@ onRecordAfterUpdateSuccess((e) => {
     const orgId     = record.getString("organization_id");
 
     if (!status) return;
+
+    // Only send notifications when status actually changed
+    try {
+        var oldStatus = e.record.original().getString("status");
+        if (oldStatus === status) {
+            console.log("[LEAVE-EMAIL] Status unchanged (" + status + "), skipping notifications.");
+            return;
+        }
+        console.log("[LEAVE-EMAIL] Status changed: " + oldStatus + " → " + status);
+    } catch (origErr) {
+        // If we can't determine old status, proceed (first-time scenario)
+        console.log("[LEAVE-EMAIL] Could not read original status, proceeding: " + origErr.toString());
+    }
 
     try {
         // Sender — inlined
