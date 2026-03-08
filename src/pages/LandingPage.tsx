@@ -10,6 +10,7 @@ import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
 import ShowcaseSection from '../components/landing/ShowcaseSection';
 import { PublicAdBanner } from '../components/ads';
+import { updatePageMeta, setJsonLd } from '../utils/seo';
 
 interface LandingPageProps {
   onLoginClick: () => void;
@@ -21,8 +22,75 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
   useEffect(() => {
     // Enable smooth scrolling for the page
     document.documentElement.style.scrollBehavior = 'smooth';
+
+    // Reset meta to defaults for the landing page
+    updatePageMeta(
+      'OpenHRApp - Open Source HR Management System | Free HRMS Software',
+      'OpenHRApp is a free, open-source HR management system for organizations. Features include attendance tracking, leave management, employee directory, and local compliance tools.',
+      'https://openhrapp.com/'
+    );
+
+    // Set combined JSON-LD for landing page
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'SoftwareApplication',
+          name: 'OpenHRApp',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web, Android, iOS',
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+          description: 'Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.',
+          url: 'https://openhrapp.com',
+          image: 'https://openhrapp.com/img/screenshot-wide.png',
+        },
+        {
+          '@type': 'FAQPage',
+          mainEntity: [
+            {
+              '@type': 'Question',
+              name: 'What is OpenHRApp?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'OpenHRApp is a modern, open-source HR management platform that helps organizations manage attendance, leave, and employee records in one place. It works as a Progressive Web App (PWA) on any device.',
+              },
+            },
+            {
+              '@type': 'Question',
+              name: 'Is OpenHRApp really free?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'Yes! OpenHRApp offers a free ad-supported plan for small teams. We also offer premium plans with additional features like advanced analytics, priority support, and no ads.',
+              },
+            },
+            {
+              '@type': 'Question',
+              name: 'How does selfie-based attendance work?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'Employees check in by taking a selfie through the app. The system captures the photo along with GPS coordinates and timestamp, ensuring authentic and verifiable attendance records.',
+              },
+            },
+            {
+              '@type': 'Question',
+              name: 'How do employees apply for leave?',
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: 'Employees select their leave type, dates, and add an optional reason through the app. Managers receive a notification and can approve or reject with one click.',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
     return () => {
       document.documentElement.style.scrollBehavior = '';
+      setJsonLd(null);
     };
   }, []);
 

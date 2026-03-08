@@ -1,5 +1,6 @@
 import { apiClient } from './api.client';
 import { UpgradeRequest, DonationTier } from '../types';
+import { convertFileToWebP } from '../utils/imageConvert';
 
 export const upgradeService = {
   /**
@@ -30,7 +31,8 @@ export const upgradeService = {
       formData.append('donation_reference', data.donationReference);
 
       if (data.donationScreenshot) {
-        formData.append('donation_screenshot', data.donationScreenshot);
+        const webpScreenshot = await convertFileToWebP(data.donationScreenshot);
+        formData.append('donation_screenshot', webpScreenshot);
       }
 
       const record = await apiClient.pb.collection('upgrade_requests').create(formData);

@@ -1,5 +1,40 @@
 
-console.log("[HOOKS] Loading OpenHR System Hooks (v0.41)...");
+console.log("[HOOKS] Loading OpenHR System Hooks (v0.43 - Clean Verification URLs)...");
+
+// ────────────────────────────────────────────────────────────────
+// Rewrite verification email URLs before PocketBase sends them.
+// PocketBase generates: {appUrl}/_/#/auth/confirm-verification/{TOKEN}
+// We rewrite to:        {appUrl}/?token={TOKEN}
+// This runs for both registration and "Resend Verification" flows.
+// ────────────────────────────────────────────────────────────────
+try {
+    onMailerRecordVerificationSend((e) => {
+        try {
+            var html = e.message.html;
+            // Match PocketBase's default verification URL pattern and extract the token
+            // Pattern: {appUrl}/_/#/auth/confirm-verification/{TOKEN}
+            var regex = /href="([^"]*\/_\/#\/auth\/confirm-verification\/([^"?&#]+))"/g;
+            var match = regex.exec(html);
+            if (match) {
+                var fullOldUrl = match[1];
+                var token = match[2];
+                var settings = $app.settings();
+                var meta = settings.meta || {};
+                var appUrl = (meta.appUrl || "https://www.openhrapp.com").replace(/\/+$/, "");
+                var cleanUrl = appUrl + "/?token=" + token;
+                // Replace all occurrences of the old URL (href and plain text links)
+                e.message.html = html.split(fullOldUrl).join(cleanUrl);
+                console.log("[HOOKS] Rewrote verification URL to clean format for: " + (e.record ? e.record.getString("email") : "unknown"));
+            }
+        } catch (err) {
+            console.log("[HOOKS] URL rewrite failed (sending default): " + err.toString());
+        }
+        // MUST call e.next() to continue the hook chain and actually send the email
+        e.next();
+    });
+} catch (e) {
+    console.log("[HOOKS] Mailer hook not available: " + e.toString());
+}
 
 /* ============================================================
    1. SECURE REGISTRATION ENDPOINT (Public)
@@ -173,7 +208,7 @@ routerAdd("POST", "/api/openhr/register", (e) => {
             // Re-fetch the user record to ensure it's fully saved before sending email
             const savedUser = $app.findRecordById("users", user.id);
 
-            // Use PocketBase's built-in verification email
+            // Use PocketBase's built-in verification email (URL rewritten by onMailerRecordVerificationSend hook)
             $mails.sendRecordVerification($app, savedUser);
 
             console.log("[REGISTER] Verification email sent successfully to: " + email);
@@ -340,19 +375,193 @@ routerAdd("POST", "/api/openhr/test-email", (e) => {
         const testEmail = data.email || "test@example.com";
         
         try {
+            var meta = $app.settings().meta || {};
+            var senderAddr = meta.senderAddress || "noreply@openhr.app";
+            var senderName = meta.senderName || "OpenHR System";
             const message = new MailerMessage({
-                from: { address: "noreply@yourdomain.com", name: "OpenHR System" },
+                from: { address: senderAddr, name: senderName },
                 to: [{ address: testEmail }],
                 subject: "Test Email from OpenHR",
-                html: "<h1>Test Email</h1><p>If you see this, email is configured correctly!</p>",
+                html: "<h1>Test Email</h1><p>If you see this, email is configured correctly!</p>" +
+                      "<p style='color:#6b7280;font-size:12px;'>Sent from: " + senderAddr + "</p>",
             });
             $app.newMailClient().send(message);
-            return e.json(200, { success: true, message: "Test email sent!" });
+            return e.json(200, { success: true, message: "Test email sent to " + testEmail + " from " + senderAddr });
         } catch (mailErr) {
             return e.json(400, { message: "Email test failed: " + mailErr.toString() });
         }
     } catch (globalErr) {
         return e.json(500, { message: "Test failed: " + globalErr.toString() });
+    }
+});
+
+/* ============================================================
+   2B-2. LEAVE NOTIFICATION DIAGNOSTIC (Auth required)
+   GET /api/openhr/diagnose-leave?leaveId=XXXXX
+   Tests every step of the leave notification flow and reports
+   exactly which step fails.
+   ============================================================ */
+routerAdd("GET", "/api/openhr/diagnose-leave", (e) => {
+    var results = [];
+    function log(step, ok, detail) {
+        results.push({ step: step, ok: ok, detail: detail });
+    }
+
+    try {
+        // Auth check
+        if (!e.auth || !e.auth.record) {
+            return e.json(401, { message: "Login required" });
+        }
+        log("1. Auth", true, "Authenticated as: " + e.auth.record.getString("email"));
+
+        // SMTP / sender config
+        var sender = {};
+        try {
+            var meta = $app.settings().meta || {};
+            sender = { address: meta.senderAddress || "", name: meta.senderName || "" };
+            var smtpEnabled = $app.settings().smtp && $app.settings().smtp.enabled;
+            log("2. SMTP Config", !!sender.address, "senderAddress=" + sender.address + ", senderName=" + sender.name + ", smtp.enabled=" + smtpEnabled);
+            if ($app.settings().smtp) {
+                log("2a. SMTP Details", true, "host=" + ($app.settings().smtp.host || "NOT SET") + ", port=" + ($app.settings().smtp.port || "NOT SET"));
+            }
+        } catch (err) {
+            log("2. SMTP Config", false, "Error: " + err.toString());
+        }
+
+        // Get leave record
+        var leaveId = "";
+        try {
+            var qi = e.request.url.query;
+            if (qi && qi.get) {
+                leaveId = qi.get("leaveId") || "";
+            }
+        } catch (err) {
+            // Try alternative query parsing
+            try {
+                var url = e.request.url.string();
+                var match = url.match(/leaveId=([^&]+)/);
+                if (match) leaveId = match[1];
+            } catch (err2) {}
+        }
+
+        if (!leaveId) {
+            // Find most recent leave
+            try {
+                var recent = $app.findRecordsByFilter("leaves", "id != ''", "-created", 1, 0);
+                if (recent && recent.length > 0) {
+                    leaveId = recent[0].id;
+                    log("3. Leave Record", true, "No leaveId param — using most recent: " + leaveId);
+                } else {
+                    log("3. Leave Record", false, "No leaves found in database");
+                    return e.json(200, { results: results });
+                }
+            } catch (err) {
+                log("3. Leave Record", false, "Could not find any leaves: " + err.toString());
+                return e.json(200, { results: results });
+            }
+        }
+
+        var leave;
+        try {
+            leave = $app.findRecordById("leaves", leaveId);
+            log("3. Leave Record", true, "Found leave id=" + leaveId +
+                " | employee_id=" + leave.getString("employee_id") +
+                " | line_manager_id=" + leave.getString("line_manager_id") +
+                " | status=" + leave.getString("status") +
+                " | org_id=" + leave.getString("organization_id"));
+        } catch (err) {
+            log("3. Leave Record", false, "Leave not found (id=" + leaveId + "): " + err.toString());
+            return e.json(200, { results: results });
+        }
+
+        // Look up employee
+        var empId = leave.getString("employee_id");
+        var employee;
+        try {
+            employee = $app.findRecordById("users", empId);
+            log("4. Employee Lookup", true, "Found: " + employee.getString("name") + " <" + employee.getString("email") + ">");
+        } catch (err) {
+            log("4. Employee Lookup", false, "Employee NOT found (id=" + empId + "): " + err.toString());
+        }
+
+        // Look up manager
+        var managerId = leave.getString("line_manager_id");
+        if (managerId) {
+            try {
+                var manager = $app.findRecordById("users", managerId);
+                log("5. Manager Lookup", true, "Found: " + manager.getString("name") + " <" + manager.getString("email") + ">");
+            } catch (err) {
+                log("5. Manager Lookup", false, "Manager NOT found (id=" + managerId + "): " + err.toString());
+            }
+        } else {
+            log("5. Manager Lookup", false, "No line_manager_id set on this leave record");
+        }
+
+        // Look up admins
+        var orgId = leave.getString("organization_id");
+        try {
+            var admins = $app.findRecordsByFilter(
+                "users",
+                "organization_id = {:orgId} && (role = 'ADMIN' || role = 'HR')",
+                { orgId: orgId }
+            );
+            var adminList = [];
+            for (var i = 0; i < admins.length; i++) {
+                adminList.push(admins[i].getString("name") + " <" + admins[i].getString("email") + ">");
+            }
+            log("6. Admin/HR Lookup", admins.length > 0, "Found " + admins.length + ": " + adminList.join(", "));
+        } catch (err) {
+            log("6. Admin/HR Lookup", false, "Query failed: " + err.toString());
+        }
+
+        // Test notification creation
+        try {
+            var notifCollection = $app.findCollectionByNameOrId("notifications");
+            log("7. Notifications Collection", true, "Collection exists (id=" + notifCollection.id + ")");
+
+            // Actually create a test notification
+            var testNotif = new Record(notifCollection);
+            testNotif.set("user_id", e.auth.record.id);
+            testNotif.set("organization_id", orgId);
+            testNotif.set("type", "LEAVE");
+            testNotif.set("title", "DIAGNOSTIC TEST — Leave Notification");
+            testNotif.set("message", "This is a test notification from the diagnostic endpoint. You can delete it.");
+            testNotif.set("is_read", false);
+            testNotif.set("priority", "NORMAL");
+            testNotif.set("reference_id", leaveId);
+            testNotif.set("reference_type", "leave");
+            testNotif.set("action_url", "leaves");
+            $app.save(testNotif);
+            log("7a. Create Test Notification", true, "Created notification id=" + testNotif.id + " — check your bell icon!");
+        } catch (err) {
+            log("7. Notifications", false, "FAILED: " + err.toString());
+        }
+
+        // Test email sending
+        if (employee && sender.address) {
+            try {
+                var empEmail = employee.getString("email");
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to: [{ address: empEmail }],
+                    subject: "DIAGNOSTIC TEST — Leave Email",
+                    html: "<h2>Leave Notification Diagnostic</h2>" +
+                          "<p>If you see this email, SMTP is working correctly for leave notifications!</p>" +
+                          "<p>Leave ID: " + leaveId + "</p>" +
+                          "<p style='color:#6b7280;'>This is a test. You can ignore this email.</p>",
+                }));
+                log("8. Send Test Email", true, "Email sent to " + empEmail + " from " + sender.address);
+            } catch (err) {
+                log("8. Send Test Email", false, "FAILED: " + err.toString());
+            }
+        } else {
+            log("8. Send Test Email", false, "Skipped — " + (!employee ? "employee not found" : "no sender address configured"));
+        }
+
+        return e.json(200, { results: results });
+    } catch (err) {
+        log("FATAL", false, err.toString());
+        return e.json(500, { results: results, error: err.toString() });
     }
 });
 
@@ -1505,7 +1714,7 @@ try {
         try {
             console.log("[EMPLOYEE-CREATE] Sending verification email to new employee:", email);
 
-            // Use PocketBase's built-in verification email
+            // Use PocketBase's built-in verification email (URL rewritten by onMailerRecordVerificationSend hook)
             $mails.sendRecordVerification($app, user);
 
             console.log("[EMPLOYEE-CREATE] Verification email sent successfully to:", email);
@@ -1709,5 +1918,450 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
         return e.json(500, { message: "Internal Server Error" });
     }
 });
+
+// ════════════════════════════════════════════════════════════════
+// LEAVE NOTIFICATION HOOKS (Email only)
+// Restored to proven working version with string concatenation
+// for findRecordsByFilter queries.
+// ════════════════════════════════════════════════════════════════
+
+// ============================================================
+// 1. LEAVE CREATED → Notify Employee + Manager + Admin/HR
+// ============================================================
+onRecordAfterCreateSuccess((e) => {
+    const record    = e.record;
+    const empId     = record.getString("employee_id");
+    const managerId = record.getString("line_manager_id");
+    const orgId     = record.getString("organization_id");
+
+    try {
+        // Sender — inlined (cannot call functions from other .pb.js files)
+        const meta          = $app.settings().meta || {};
+        const senderAddress = meta.senderAddress || "noreply@openhr.app";
+        const senderName    = meta.senderName    || "OpenHR System";
+        const sender        = { address: senderAddress, name: senderName };
+
+        // Fetch employee record
+        let employee;
+        try {
+            employee = $app.findRecordById("users", empId);
+        } catch (err) {
+            console.log("[LEAVE-EMAIL] Employee not found: " + empId);
+            return;
+        }
+
+        const empName   = record.getString("employee_name") || employee.getString("name");
+        const empEmail  = employee.getString("email"); // ✅ getString, NOT .email()
+        const type      = record.getString("type");
+        const days      = record.getString("total_days");
+        const startDate = (record.getString("start_date") || "").split(" ")[0];
+        const endDate   = (record.getString("end_date")   || "").split(" ")[0];
+        const reason    = record.getString("reason") || "Not provided";
+        const status    = record.getString("status");
+
+        const detailsHtml =
+            "<table style='border-collapse:collapse;margin:12px 0;'>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Employee</b></td>  <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + empName   + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Leave Type</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + type      + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Duration</b></td>  <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + days      + " Day(s)</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>From</b></td>      <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + startDate + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>To</b></td>        <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + endDate   + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reason</b></td>    <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + reason    + "</td></tr>" +
+            "</table>";
+
+        // A. Notify Employee — submission confirmation
+        try {
+            const pendingLabel = (status === "PENDING_HR") ? "pending HR review" : "pending manager review";
+            $app.newMailClient().send(new MailerMessage({
+                from: sender,
+                to:   [{ address: empEmail }],
+                subject: "Leave Application Submitted: " + type,
+                html: "<h2>Leave Application Received</h2>" +
+                      "<p>Hi <b>" + empName + "</b>,</p>" +
+                      "<p>Your leave request has been submitted and is now <b>" + pendingLabel + "</b>.</p>" +
+                      detailsHtml +
+                      "<p style='color:#6b7280;font-size:13px;'>You will receive another email when the status changes.</p>",
+            }));
+            console.log("[LEAVE-EMAIL] Employee notified on submit: " + empEmail);
+        } catch (err) {
+            console.log("[LEAVE-EMAIL] Failed to notify employee on submit: " + err.toString());
+        }
+
+        // B. Notify Manager — action required
+        if (managerId && status === "PENDING_MANAGER") {
+            try {
+                const manager      = $app.findRecordById("users", managerId);
+                const managerEmail = manager.getString("email"); // ✅
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to:   [{ address: managerEmail }],
+                    subject: "Action Required: " + type + " Leave — " + empName,
+                    html: "<h2>Leave Approval Required</h2>" +
+                          "<p><b>" + empName + "</b> has submitted a leave request that requires your approval.</p>" +
+                          detailsHtml +
+                          "<p>Please log in to the <b>OpenHR portal</b> to Approve or Reject this request.</p>",
+                }));
+                console.log("[LEAVE-EMAIL] Manager notified on submit: " + managerEmail);
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Failed to notify manager on submit: " + err.toString());
+            }
+        }
+
+        // C. Notify Admin/HR — FYI on new submission
+        try {
+            const admins = $app.findRecordsByFilter(
+                "users",
+                "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+            );
+            for (let i = 0; i < admins.length; i++) {
+                const adminEmail = admins[i].getString("email"); // ✅
+                if (adminEmail === empEmail) continue;
+                try {
+                    $app.newMailClient().send(new MailerMessage({
+                        from: sender,
+                        to:   [{ address: adminEmail }],
+                        subject: "New Leave Request: " + empName + " — " + type,
+                        html: "<h2>New Leave Application</h2>" +
+                              "<p>A new leave request has been submitted in your organisation.</p>" +
+                              detailsHtml +
+                              "<p>Current Status: <b>" + status + "</b></p>",
+                    }));
+                    console.log("[LEAVE-EMAIL] Admin/HR notified on submit: " + adminEmail);
+                } catch (err) {
+                    console.log("[LEAVE-EMAIL] Failed to notify admin on submit: " + err.toString());
+                }
+            }
+        } catch (err) {
+            console.log("[LEAVE-EMAIL] Could not find Admin/HR users: " + err.toString());
+        }
+
+    } catch (err) {
+        console.log("[LEAVE-EMAIL] Error in leave create hook: " + err.toString());
+    }
+}, "leaves");
+
+
+// ============================================================
+// 2. LEAVE UPDATED → Notify based on status transition
+// ============================================================
+onRecordAfterUpdateSuccess((e) => {
+    const record    = e.record;
+    const status    = record.getString("status");
+    const empId     = record.getString("employee_id");
+    const managerId = record.getString("line_manager_id");
+    const orgId     = record.getString("organization_id");
+
+    if (!status) return;
+
+    try {
+        // Sender — inlined
+        const meta          = $app.settings().meta || {};
+        const senderAddress = meta.senderAddress || "noreply@openhr.app";
+        const senderName    = meta.senderName    || "OpenHR System";
+        const sender        = { address: senderAddress, name: senderName };
+
+        // Fetch employee record
+        let employee;
+        try {
+            employee = $app.findRecordById("users", empId);
+        } catch (err) {
+            console.log("[LEAVE-EMAIL] Employee not found on update: " + empId);
+            return;
+        }
+
+        const empName   = record.getString("employee_name") || employee.getString("name");
+        const empEmail  = employee.getString("email"); // ✅
+        const type      = record.getString("type");
+        const days      = record.getString("total_days");
+        const startDate = (record.getString("start_date") || "").split(" ")[0];
+        const endDate   = (record.getString("end_date")   || "").split(" ")[0];
+        const reason    = record.getString("reason") || "Not provided";
+
+        const detailsHtml =
+            "<table style='border-collapse:collapse;margin:12px 0;'>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Employee</b></td>  <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + empName   + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Leave Type</b></td><td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + type      + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Duration</b></td>  <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + days      + " Day(s)</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>From</b></td>      <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + startDate + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>To</b></td>        <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + endDate   + "</td></tr>" +
+            "<tr><td style='padding:8px 12px;border:1px solid #e5e7eb;'><b>Reason</b></td>    <td style='padding:8px 12px;border:1px solid #e5e7eb;'>" + reason    + "</td></tr>" +
+            "</table>";
+
+        // ── SCENARIO A: Manager approved → PENDING_HR ──────────────────────
+        // Recipients: HR/Admin (action required) + Employee (FYI)
+        if (status === "PENDING_HR") {
+            const managerRemarks = record.getString("manager_remarks") || "No remarks";
+
+            // Notify HR/Admin — action required
+            try {
+                const hrStaff = $app.findRecordsByFilter(
+                    "users",
+                    "organization_id = '" + orgId + "' && (role = 'HR' || role = 'ADMIN')"
+                );
+                for (let i = 0; i < hrStaff.length; i++) {
+                    const hrEmail = hrStaff[i].getString("email"); // ✅
+                    try {
+                        $app.newMailClient().send(new MailerMessage({
+                            from: sender,
+                            to:   [{ address: hrEmail }],
+                            subject: "HR Approval Required: " + empName + " — " + type + " Leave",
+                            html: "<h2>Manager Approved — HR Review Required</h2>" +
+                                  "<p>The leave request for <b>" + empName + "</b> has been " +
+                                  "<b style='color:#f59e0b;'>approved by their manager</b> and awaits your final decision.</p>" +
+                                  detailsHtml +
+                                  "<p><b>Manager Remarks:</b> " + managerRemarks + "</p>" +
+                                  "<p>Please log in to the <b>OpenHR portal</b> to approve or reject.</p>",
+                        }));
+                        console.log("[LEAVE-EMAIL] HR/Admin notified (pending_hr): " + hrEmail);
+                    } catch (err) {
+                        console.log("[LEAVE-EMAIL] Failed to notify HR (pending_hr): " + err.toString());
+                    }
+                }
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Could not find HR staff: " + err.toString());
+            }
+
+            // Notify Employee — waiting on HR
+            try {
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to:   [{ address: empEmail }],
+                    subject: "Leave Update: Manager Approved — Pending HR Review",
+                    html: "<h2>Manager Approved Your Leave</h2>" +
+                          "<p>Hi <b>" + empName + "</b>,</p>" +
+                          "<p>Your leave request has been <b style='color:#f59e0b;'>approved by your manager</b> " +
+                          "and is now pending final HR approval.</p>" +
+                          detailsHtml +
+                          "<p><b>Manager Remarks:</b> " + managerRemarks + "</p>" +
+                          "<p style='color:#6b7280;font-size:13px;'>You will receive another email once HR makes a final decision.</p>",
+                }));
+                console.log("[LEAVE-EMAIL] Employee notified (pending_hr): " + empEmail);
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Failed to notify employee (pending_hr): " + err.toString());
+            }
+        }
+
+        // ── SCENARIO B: Final APPROVED ──────────────────────────────────────
+        // Recipients: Employee + Manager + HR/Admin (all get confirmation)
+        if (status === "APPROVED") {
+            const managerRemarks  = record.getString("manager_remarks")  || "No remarks";
+            const approverRemarks = record.getString("approver_remarks") || "No remarks";
+
+            // Notify Employee
+            try {
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to:   [{ address: empEmail }],
+                    subject: "✅ Leave Approved: " + type + " (" + startDate + " to " + endDate + ")",
+                    html: "<h2>Leave Request Approved</h2>" +
+                          "<p>Hi <b>" + empName + "</b>,</p>" +
+                          "<p>Your leave request has been <b style='color:#10b981;'>fully approved</b>.</p>" +
+                          detailsHtml +
+                          "<p><b>Manager Remarks:</b> " + managerRemarks + "</p>" +
+                          "<p><b>HR/Admin Remarks:</b> " + approverRemarks + "</p>" +
+                          "<p style='color:#6b7280;font-size:13px;'>Enjoy your time off!</p>",
+                }));
+                console.log("[LEAVE-EMAIL] Employee notified (approved): " + empEmail);
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Failed to notify employee (approved): " + err.toString());
+            }
+
+            // Notify Manager
+            if (managerId) {
+                try {
+                    const manager      = $app.findRecordById("users", managerId);
+                    const managerEmail = manager.getString("email"); // ✅
+                    $app.newMailClient().send(new MailerMessage({
+                        from: sender,
+                        to:   [{ address: managerEmail }],
+                        subject: "Leave Approved (Final): " + empName + " — " + type,
+                        html: "<h2>Leave Approved — Final Decision</h2>" +
+                              "<p>The leave request you reviewed for <b>" + empName + "</b> has received " +
+                              "<b style='color:#10b981;'>final HR/Admin approval</b>.</p>" +
+                              detailsHtml +
+                              "<p><b>HR/Admin Remarks:</b> " + approverRemarks + "</p>",
+                    }));
+                    console.log("[LEAVE-EMAIL] Manager notified (approved): " + managerEmail);
+                } catch (err) {
+                    console.log("[LEAVE-EMAIL] Failed to notify manager (approved): " + err.toString());
+                }
+            }
+
+            // Notify HR/Admin — record confirmation
+            try {
+                const admins = $app.findRecordsByFilter(
+                    "users",
+                    "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+                );
+                for (let i = 0; i < admins.length; i++) {
+                    const adminEmail = admins[i].getString("email"); // ✅
+                    try {
+                        $app.newMailClient().send(new MailerMessage({
+                            from: sender,
+                            to:   [{ address: adminEmail }],
+                            subject: "Leave Approved: " + empName + " — " + type,
+                            html: "<h2>Leave Request — Fully Approved</h2>" +
+                                  "<p>This leave request has been fully approved.</p>" +
+                                  detailsHtml +
+                                  "<p><b>HR/Admin Remarks:</b> " + approverRemarks + "</p>",
+                        }));
+                        console.log("[LEAVE-EMAIL] Admin/HR notified (approved): " + adminEmail);
+                    } catch (err) {
+                        console.log("[LEAVE-EMAIL] Failed to notify admin (approved): " + err.toString());
+                    }
+                }
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Could not find admins (approved): " + err.toString());
+            }
+        }
+
+        // ── SCENARIO C: REJECTED (by Manager or HR/Admin) ──────────────────
+        // Recipients: Employee + Manager + HR/Admin
+        if (status === "REJECTED") {
+            const managerRemarks  = record.getString("manager_remarks")  || "No remarks";
+            const approverRemarks = record.getString("approver_remarks") || "No remarks";
+            const rejectRemarks   = (approverRemarks !== "No remarks") ? approverRemarks : managerRemarks;
+
+            // Notify Employee
+            try {
+                $app.newMailClient().send(new MailerMessage({
+                    from: sender,
+                    to:   [{ address: empEmail }],
+                    subject: "❌ Leave Rejected: " + type + " (" + startDate + ")",
+                    html: "<h2>Leave Request Rejected</h2>" +
+                          "<p>Hi <b>" + empName + "</b>,</p>" +
+                          "<p>Your leave request has been <b style='color:#ef4444;'>rejected</b>.</p>" +
+                          detailsHtml +
+                          "<p><b>Manager Remarks:</b> " + managerRemarks + "</p>" +
+                          "<p><b>HR/Admin Remarks:</b> " + approverRemarks + "</p>" +
+                          "<p style='color:#6b7280;font-size:13px;'>If you have questions, please contact your manager or HR department.</p>",
+                }));
+                console.log("[LEAVE-EMAIL] Employee notified (rejected): " + empEmail);
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Failed to notify employee (rejected): " + err.toString());
+            }
+
+            // Notify Manager
+            if (managerId) {
+                try {
+                    const manager      = $app.findRecordById("users", managerId);
+                    const managerEmail = manager.getString("email"); // ✅
+                    $app.newMailClient().send(new MailerMessage({
+                        from: sender,
+                        to:   [{ address: managerEmail }],
+                        subject: "Leave Rejected: " + empName + " — " + type,
+                        html: "<h2>Leave Rejected — Final Decision</h2>" +
+                              "<p>The leave request for <b>" + empName + "</b> has been <b style='color:#ef4444;'>rejected</b>.</p>" +
+                              detailsHtml +
+                              "<p><b>Rejection Reason:</b> " + rejectRemarks + "</p>",
+                    }));
+                    console.log("[LEAVE-EMAIL] Manager notified (rejected): " + managerEmail);
+                } catch (err) {
+                    console.log("[LEAVE-EMAIL] Failed to notify manager (rejected): " + err.toString());
+                }
+            }
+
+            // Notify HR/Admin
+            try {
+                const admins = $app.findRecordsByFilter(
+                    "users",
+                    "organization_id = '" + orgId + "' && (role = 'ADMIN' || role = 'HR')"
+                );
+                for (let i = 0; i < admins.length; i++) {
+                    const adminEmail = admins[i].getString("email"); // ✅
+                    try {
+                        $app.newMailClient().send(new MailerMessage({
+                            from: sender,
+                            to:   [{ address: adminEmail }],
+                            subject: "Leave Rejected: " + empName + " — " + type,
+                            html: "<h2>Leave Request — Rejected</h2>" +
+                                  "<p>The following leave request has been rejected.</p>" +
+                                  detailsHtml +
+                                  "<p><b>Rejection Reason:</b> " + rejectRemarks + "</p>",
+                        }));
+                        console.log("[LEAVE-EMAIL] Admin/HR notified (rejected): " + adminEmail);
+                    } catch (err) {
+                        console.log("[LEAVE-EMAIL] Failed to notify admin (rejected): " + err.toString());
+                    }
+                }
+            } catch (err) {
+                console.log("[LEAVE-EMAIL] Could not find admins (rejected): " + err.toString());
+            }
+        }
+
+    } catch (err) {
+        console.log("[LEAVE-EMAIL] Error in leave update hook: " + err.toString());
+    }
+}, "leaves");
+
+// ────────────────────────────────────────────────────────────────
+// WebP image format validation (lenient — log only, don't reject)
+// Warns when non-webp images are uploaded so we can track adoption.
+// ────────────────────────────────────────────────────────────────
+(function() {
+    var imageFieldMap = {
+        "users": ["avatar"],
+        "attendance": ["selfie"],
+        "organizations": ["logo"],
+        "blog_posts": ["cover_image"],
+        "tutorials": ["cover_image"],
+        "showcase_organizations": ["logo"],
+        "upgrade_requests": ["donation_screenshot"]
+    };
+
+    var collections = Object.keys(imageFieldMap);
+    for (var i = 0; i < collections.length; i++) {
+        (function(collectionName) {
+            var fields = imageFieldMap[collectionName];
+
+            onRecordCreateRequest(function(e) {
+                try {
+                    var fm = e.filesMap || {};
+                    for (var f = 0; f < fields.length; f++) {
+                        var files = fm[fields[f]];
+                        if (files && files.length > 0) {
+                            for (var j = 0; j < files.length; j++) {
+                                var hdr = files[j].header || {};
+                                var ctArr = hdr["Content-Type"] || [];
+                                var ct = ctArr.length > 0 ? ctArr[0] : "";
+                                var name = files[j].name || "";
+                                if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
+                                    console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.log("[WEBP-WARN] Check failed (non-blocking): " + err.toString());
+                }
+                return e.next();
+            }, collectionName);
+
+            onRecordUpdateRequest(function(e) {
+                try {
+                    var fm = e.filesMap || {};
+                    for (var f = 0; f < fields.length; f++) {
+                        var files = fm[fields[f]];
+                        if (files && files.length > 0) {
+                            for (var j = 0; j < files.length; j++) {
+                                var hdr = files[j].header || {};
+                                var ctArr = hdr["Content-Type"] || [];
+                                var ct = ctArr.length > 0 ? ctArr[0] : "";
+                                var name = files[j].name || "";
+                                if (ct && ct !== "image/webp" && ct.indexOf("image/") === 0) {
+                                    console.log("[WEBP-WARN] Non-webp upload on " + collectionName + "." + fields[f] + ": " + name + " (" + ct + ")");
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.log("[WEBP-WARN] Check failed (non-blocking): " + err.toString());
+                }
+                return e.next();
+            }, collectionName);
+        })(collections[i]);
+    }
+    console.log("[HOOKS] WebP validation hooks registered (lenient mode).");
+})();
 
 console.log("[HOOKS] OpenHR System Hooks loaded successfully with country-based registration support.");

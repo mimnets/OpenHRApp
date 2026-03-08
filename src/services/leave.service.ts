@@ -141,9 +141,19 @@ export const leaveService = {
     const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
     const orgId = apiClient.getOrganizationId();
 
+    // Fetch employee's line_manager_id so the hook can notify the manager
+    let lineManagerId = null;
+    try {
+      if (data.employeeId && apiClient.pb) {
+        const empRecord = await apiClient.pb.collection('users').getOne(data.employeeId.trim());
+        lineManagerId = empRecord.line_manager_id || null;
+      }
+    } catch(e) { /* non-fatal */ }
+
     const payload: any = {
       employee_id: data.employeeId.trim(),
       employee_name: data.employeeName,
+      line_manager_id: lineManagerId,
       type: data.type,
       start_date: formatPbDate(data.startDate),
       end_date: formatPbDate(data.endDate),
@@ -212,24 +222,24 @@ export const leaveService = {
   async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
     const policy = await organizationService.getLeavePolicy();
     const quota = policy.overrides[employeeId] || policy.defaults;
-    const balance: LeaveBalance = { 
-      employeeId, 
-      ANNUAL: quota.ANNUAL, 
-      CASUAL: quota.CASUAL, 
-      SICK: quota.SICK 
-    };
+    const balance: LeaveBalance = { employeeId };
+
+    // Initialize balance from quota (all types with defined quotas)
+    for (const [type, amount] of Object.entries(quota)) {
+      balance[type] = amount as number;
+    }
 
     if (!apiClient.pb || !apiClient.isConfigured()) return balance;
-    
+
     try {
       const records = await apiClient.pb.collection('leaves').getFullList({
         filter: `employee_id = "${employeeId.trim()}" && status = "APPROVED"`
       });
       records.forEach(r => {
         const type = r.type as string;
-        if (type === 'ANNUAL') balance.ANNUAL -= (r.total_days || 0);
-        else if (type === 'CASUAL') balance.CASUAL -= (r.total_days || 0);
-        else if (type === 'SICK') balance.SICK -= (r.total_days || 0);
+        if (type in balance && typeof balance[type] === 'number') {
+          (balance as any)[type] = (balance[type] as number) - (r.total_days || 0);
+        }
       });
       return balance;
     } catch (e) { return balance; }

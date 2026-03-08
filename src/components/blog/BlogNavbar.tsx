@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, Home, BookOpen, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { navigateTo } from '../../utils/seo';
 
 interface BlogNavbarProps {
   onBack: () => void;
@@ -15,21 +16,18 @@ const BlogNavbar: React.FC<BlogNavbarProps> = ({ onBack }) => {
   };
 
   const goToBlog = () => {
-    window.location.hash = '/blog';
+    navigateTo('/blog');
     setMobileOpen(false);
   };
 
   const goToTutorials = () => {
-    window.location.hash = '/how-to-use';
+    navigateTo('/how-to-use');
     setMobileOpen(false);
   };
 
   const goHome = () => {
     setMobileOpen(false);
-    // Use pushState for clean URL without trailing #
-    window.history.pushState(null, '', window.location.pathname);
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-    onBack();
+    navigateTo('/');
   };
 
   return (

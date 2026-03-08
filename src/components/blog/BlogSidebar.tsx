@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Archive, Tag, Calendar, ChevronRight } from 'lucide-react';
 import { blogService } from '../../services/blog.service';
 import { BlogPost } from '../../types';
+import { navigateTo } from '../../utils/seo';
 
 interface ArchiveEntry {
   label: string;
@@ -75,7 +76,7 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({
   };
 
   const navigateToPost = (slug: string) => {
-    window.location.hash = `/blog/${slug}`;
+    navigateTo(`/blog/${slug}`);
   };
 
   if (isLoading) {

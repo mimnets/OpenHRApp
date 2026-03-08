@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { navigateTo } from '../../utils/seo';
 
 interface NavbarProps {
   onLoginClick: () => void;
@@ -28,12 +29,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
   };
 
   const navLinks = [
-    { label: 'Features', id: 'features' },
+    { label: 'Features', id: 'features-link' },
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'FAQ', id: 'faq' },
     { label: 'Contact', id: 'contact' },
     { label: 'Blog', id: 'blog-link' },
     { label: 'Guides', id: 'tutorials-link' },
+    { label: 'Changelog', id: 'changelog-link' },
   ];
 
   return (
@@ -59,9 +61,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 key={link.id}
                 onClick={() => {
                   if (link.id === 'blog-link') {
-                    window.location.hash = '/blog';
+                    navigateTo('/blog');
                   } else if (link.id === 'tutorials-link') {
-                    window.location.hash = '/how-to-use';
+                    navigateTo('/how-to-use');
+                  } else if (link.id === 'features-link') {
+                    navigateTo('/features');
+                  } else if (link.id === 'changelog-link') {
+                    navigateTo('/changelog');
                   } else {
                     scrollTo(link.id);
                   }
@@ -125,10 +131,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 onClick={() => {
                   if (link.id === 'blog-link') {
                     setMobileOpen(false);
-                    window.location.hash = '/blog';
+                    navigateTo('/blog');
                   } else if (link.id === 'tutorials-link') {
                     setMobileOpen(false);
-                    window.location.hash = '/how-to-use';
+                    navigateTo('/how-to-use');
+                  } else if (link.id === 'changelog-link') {
+                    setMobileOpen(false);
+                    navigateTo('/changelog');
                   } else {
                     scrollTo(link.id);
                   }
