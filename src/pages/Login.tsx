@@ -33,7 +33,7 @@ const BrandLogo = () => (
       <div className="absolute inset-0 bg-primary-light blur-[50px] rounded-full -z-10 opacity-50"></div>
       <div className="relative w-full h-full bg-white rounded-[1.75rem] shadow-xl flex items-center justify-center p-4 border-2 border-primary/20">
         <img
-          src="./img/logo.webp"
+          src="/img/logo.webp"
           className="w-full h-full object-contain"
           alt="OpenHRApp Logo"
         />

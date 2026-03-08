@@ -38,7 +38,7 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
             {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={goHome}>
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center p-1.5 border border-primary/20 shadow-sm overflow-hidden">
-                <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
+                <img src="/img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
               </div>
               <span className="text-lg font-semibold tracking-tight">
                 <span className="text-primary">Open</span>

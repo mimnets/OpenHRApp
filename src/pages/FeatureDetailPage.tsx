@@ -397,6 +397,7 @@ const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack }) =
   const nextFeature = currentIndex < FEATURES.length - 1 ? FEATURES[currentIndex + 1] : null;
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (feature) {
       updatePageMeta(
         feature.metaTitle,
