@@ -41,6 +41,16 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://openhrapp.com/features/employee-directory</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/features/reports-analytics</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://openhrapp.com/changelog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

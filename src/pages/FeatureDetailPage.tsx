@@ -278,6 +278,108 @@ const FEATURES: FeatureData[] = [
       { title: 'Temporary Workers', description: 'Verify contractor and temp worker attendance without issuing badges or cards.' },
     ],
   },
+  {
+    slug: 'employee-directory',
+    title: 'Employee Directory',
+    metaTitle: 'Employee Directory & HR Database | OpenHR - Centralized Team Management',
+    metaDescription: 'Manage employee profiles, departments, and org structure in one place. Role-based access, bulk import, and searchable directory. Free open-source HRMS.',
+    icon: Users,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    border: 'border-violet-100',
+    heroDescription: 'A complete digital record of every team member. From personal details and job information to department assignments and reporting structure — everything is organized, searchable, and accessible to authorized users.',
+    sections: [
+      {
+        heading: 'Complete Employee Profiles',
+        description: 'Store all employee information in one centralized, searchable database. Each profile contains personal details, job information, emergency contacts, and employment history.',
+        bullets: [
+          'Personal details: name, email, phone, address, date of birth',
+          'Job information: designation, department, join date, employment type',
+          'Emergency contact information',
+          'Profile photo management',
+          'Employment history and status tracking',
+        ],
+      },
+      {
+        heading: 'Department & Role Management',
+        description: 'Organize your workforce by departments, designations, and teams. Assign roles that control what each employee can see and do within the system.',
+        bullets: [
+          'Create and manage departments and designations',
+          'Role-based access control: Admin, HR, Manager, Employee',
+          'Team assignments with reporting hierarchy',
+          'Department-level leave policies and settings',
+          'Organizational chart visualization',
+        ],
+      },
+      {
+        heading: 'Search, Filter & Export',
+        description: 'Find any employee instantly with powerful search and filtering. Export employee data for payroll, compliance, or reporting needs.',
+        bullets: [
+          'Full-text search across all employee fields',
+          'Filter by department, designation, status, or role',
+          'Bulk employee import from spreadsheets',
+          'Export employee data to CSV',
+          'Quick-view cards and detailed profile views',
+        ],
+      },
+    ],
+    useCases: [
+      { title: 'Growing Startups', description: 'Replace scattered spreadsheets with a proper employee database from day one.' },
+      { title: 'Multi-Department Orgs', description: 'Keep employee records organized across departments with role-based visibility.' },
+      { title: 'HR Audits', description: 'Maintain compliance-ready employee records with complete employment history.' },
+    ],
+  },
+  {
+    slug: 'reports-analytics',
+    title: 'Reports & Analytics',
+    metaTitle: 'HR Reports & Analytics | OpenHR - Data-Driven HR Decisions',
+    metaDescription: 'Generate attendance reports, leave utilization analytics, and team performance insights. Interactive charts and CSV export. Free open-source HR reporting.',
+    icon: BarChart3,
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
+    border: 'border-amber-100',
+    heroDescription: 'Turn your HR data into actionable insights. Generate comprehensive reports on attendance patterns, leave utilization, and team performance — with interactive charts and one-click CSV export.',
+    sections: [
+      {
+        heading: 'Attendance Reports',
+        description: 'Analyze attendance patterns across your organization. Identify trends in late arrivals, early departures, and absenteeism to improve workforce management.',
+        bullets: [
+          'Daily, weekly, and monthly attendance summaries',
+          'Late arrival and early departure trend analysis',
+          'Department-wise attendance comparison',
+          'Individual employee attendance history',
+          'Absenteeism rate tracking over time',
+        ],
+      },
+      {
+        heading: 'Leave Analytics',
+        description: 'Understand how leave is being utilized across your organization. Track balances, identify peak leave periods, and ensure fair distribution.',
+        bullets: [
+          'Leave utilization by type, department, and employee',
+          'Leave balance reports with carry-over tracking',
+          'Peak leave period identification',
+          'Approval rate and turnaround time metrics',
+          'Year-over-year leave trend comparison',
+        ],
+      },
+      {
+        heading: 'Export & Integration',
+        description: 'Get your data where you need it. Export any report to CSV for payroll processing, compliance filing, or further analysis in your preferred tools.',
+        bullets: [
+          'One-click CSV export for all report types',
+          'Custom date range filtering on all reports',
+          'Interactive charts with drill-down capability',
+          'Print-ready PDF report generation',
+          'Data formatted for common payroll system import',
+        ],
+      },
+    ],
+    useCases: [
+      { title: 'Payroll Processing', description: 'Export attendance and leave data directly for accurate payroll calculations.' },
+      { title: 'Management Reviews', description: 'Present workforce analytics in leadership meetings with visual dashboards.' },
+      { title: 'Compliance Reporting', description: 'Generate required HR reports for labor law compliance and audits.' },
+    ],
+  },
 ];
 
 const FEATURE_SLUGS = FEATURES.map(f => f.slug);
@@ -295,6 +397,7 @@ const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack }) =
   const nextFeature = currentIndex < FEATURES.length - 1 ? FEATURES[currentIndex + 1] : null;
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (feature) {
       updatePageMeta(
         feature.metaTitle,

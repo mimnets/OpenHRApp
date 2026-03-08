@@ -1,12 +1,20 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Home, ArrowLeft, SearchX } from 'lucide-react';
+import { updatePageMeta } from '../utils/seo';
 
 interface NotFoundPageProps {
   onGoHome: () => void;
 }
 
 const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
+  useEffect(() => {
+    updatePageMeta(
+      '404 — Page Not Found | OpenHRApp',
+      'The page you are looking for does not exist or has been moved. Return to the OpenHRApp homepage.'
+    );
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
       <div className="max-w-md mx-auto">
@@ -38,7 +46,7 @@ const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
         <div className="mt-12 pt-8 border-t border-slate-200">
           <div className="flex items-center justify-center gap-2">
             <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-1.5 border border-primary/20 shadow-sm overflow-hidden">
-              <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
+              <img src="/img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
             </div>
             <span className="text-sm font-semibold tracking-tight">
               <span className="text-primary">Open</span>

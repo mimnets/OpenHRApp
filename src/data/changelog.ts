@@ -21,6 +21,10 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'Migrated blog and tutorial routes from hash-based to clean URLs' },
       { type: 'improvement', description: 'Expanded sitemap.xml with all feature sub-pages' },
       { type: 'feature', description: 'Added /changelog page with full project history' },
+      { type: 'improvement', description: 'Added code splitting with React.lazy() for authenticated pages to reduce initial bundle size' },
+      { type: 'improvement', description: 'Added fetchpriority="high" to hero image for faster LCP' },
+      { type: 'improvement', description: 'Added unique meta tags (title, description, canonical) to Privacy Policy, Terms of Service, Download, and 404 pages' },
+      { type: 'improvement', description: 'Landing page feature cards now link to dedicated feature detail pages with Learn more CTA and View All Features button' },
     ],
   },
   {
