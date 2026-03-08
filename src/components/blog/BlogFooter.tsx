@@ -1,7 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  Youtube, Facebook, Instagram, Linkedin, Twitter, Github, Share2
+} from 'lucide-react';
+import { socialLinksService } from '../../services/sociallinks.service';
+import { SocialLink } from '../../types';
 import { navigateTo } from '../../utils/seo';
 
+const PLATFORM_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
+  youtube: Youtube,
+  facebook: Facebook,
+  instagram: Instagram,
+  linkedin: Linkedin,
+  x: Twitter,
+  tiktok: Share2,
+  github: Github,
+};
+
 const BlogFooter: React.FC = () => {
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+
+  useEffect(() => {
+    socialLinksService.getActiveLinks().then(setSocialLinks);
+  }, []);
+
   const goHome = () => {
     navigateTo('/');
   };
@@ -89,6 +110,28 @@ const BlogFooter: React.FC = () => {
           <p className="text-xs text-slate-500">
             &copy; {new Date().getFullYear()} OpenHRApp. All rights reserved.
           </p>
+
+          {/* Social Links */}
+          {socialLinks.length > 0 && (
+            <div className="flex items-center gap-3">
+              {socialLinks.map(link => {
+                const Icon = PLATFORM_ICONS[link.platform] || Share2;
+                return (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                    title={link.platform}
+                  >
+                    <Icon size={18} />
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="text-xs text-slate-500 hover:text-white transition-colors"

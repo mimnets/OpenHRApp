@@ -25,6 +25,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'Added fetchpriority="high" to hero image for faster LCP' },
       { type: 'improvement', description: 'Added unique meta tags (title, description, canonical) to Privacy Policy, Terms of Service, Download, and 404 pages' },
       { type: 'improvement', description: 'Landing page feature cards now link to dedicated feature detail pages with Learn more CTA and View All Features button' },
+      { type: 'improvement', description: 'Added social media links to Blog and Tutorials page footers for consistent branding across all pages' },
     ],
   },
   {
