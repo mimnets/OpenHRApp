@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -9,23 +9,11 @@ import MainLayout from './layouts/MainLayout';
 import CookieConsent from './components/CookieConsent';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-import Dashboard from './pages/Dashboard';
-import EmployeeDirectory from './pages/EmployeeDirectory';
-import Attendance from './pages/Attendance';
-import AttendanceLogs from './pages/AttendanceLogs';
-import Leave from './pages/Leave';
-import Settings from './pages/Settings';
-import Reports from './pages/Reports';
-import Organization from './pages/Organization';
+// Eager: public pages needed for first paint / SEO
 import Login from './pages/Login';
 import Setup from './pages/Setup';
 import RegisterOrganization from './pages/RegisterOrganization';
 import LandingPage from './pages/LandingPage';
-import SuperAdmin from './pages/SuperAdmin';
-import Upgrade from './pages/Upgrade';
-import PerformanceReview from './pages/PerformanceReview';
-import Announcements from './pages/Announcements';
-import AdminNotifications from './pages/AdminNotifications';
 import { VerifyAccount } from './pages/VerifyAccount';
 import { SuspendedPage } from './components/subscription';
 import BlogPage from './pages/BlogPage';
@@ -39,6 +27,22 @@ import DownloadPage from './pages/DownloadPage';
 import FeaturesPage from './pages/FeaturesPage';
 import FeatureDetailPage from './pages/FeatureDetailPage';
 import ChangelogPage from './pages/ChangelogPage';
+
+// Lazy: authenticated pages loaded on demand after login
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const EmployeeDirectory = lazy(() => import('./pages/EmployeeDirectory'));
+const Attendance = lazy(() => import('./pages/Attendance'));
+const AttendanceLogs = lazy(() => import('./pages/AttendanceLogs'));
+const Leave = lazy(() => import('./pages/Leave'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Organization = lazy(() => import('./pages/Organization'));
+const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
+const Upgrade = lazy(() => import('./pages/Upgrade'));
+const PerformanceReview = lazy(() => import('./pages/PerformanceReview'));
+const Announcements = lazy(() => import('./pages/Announcements'));
+const AdminNotifications = lazy(() => import('./pages/AdminNotifications'));
+
 import { navigateTo } from './utils/seo';
 
 // Parse features route from pathname
@@ -431,13 +435,19 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const suspenseFallback = (
+    <div className="h-screen w-full flex items-center justify-center bg-slate-50">
+      <Loader2 className="animate-spin text-primary" size={48} />
+    </div>
+  );
+
   if (currentPath === 'attendance') {
-    return renderContent();
+    return <Suspense fallback={suspenseFallback}>{renderContent()}</Suspense>;
   }
 
   return (
     <MainLayout currentPath={currentPath} onNavigate={handleNavigate}>
-      {renderContent()}
+      <Suspense fallback={suspenseFallback}>{renderContent()}</Suspense>
     </MainLayout>
   );
 };
