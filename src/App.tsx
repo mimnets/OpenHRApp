@@ -38,6 +38,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import DownloadPage from './pages/DownloadPage';
 import FeaturesPage from './pages/FeaturesPage';
 import FeatureDetailPage from './pages/FeatureDetailPage';
+import ChangelogPage from './pages/ChangelogPage';
 import { navigateTo } from './utils/seo';
 
 // Parse features route from pathname
@@ -50,6 +51,14 @@ const parseFeaturesRoute = (pathname: string) => {
     return { type: 'detail' as const, slug: match[1] };
   }
   return null;
+};
+
+// Parse changelog route from pathname
+const parseChangelogRoute = (pathname: string) => {
+  if (pathname === '/changelog' || pathname === '/changelog/') {
+    return true;
+  }
+  return false;
 };
 
 // Parse blog route from pathname
@@ -102,21 +111,25 @@ const AppContent: React.FC = () => {
   const [featuresRoute, setFeaturesRoute] = useState<{ type: 'list' | 'detail'; slug?: string } | null>(() => {
     return parseFeaturesRoute(window.location.pathname);
   });
+  const [changelogRoute, setChangelogRoute] = useState<boolean>(() => {
+    return parseChangelogRoute(window.location.pathname);
+  });
   const [is404, setIs404] = useState<boolean>(() => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     const search = window.location.search;
-    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/_/', '/_'];
+    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/changelog', '/changelog/', '/_/', '/_'];
 
     // Don't show 404 if URL contains a verification token
     if (new URLSearchParams(search).has('token')) return false;
     if (hash.includes('token=')) return false;
     if (hash.includes('/auth/confirm-verification/')) return false;
 
-    // Don't show 404 for blog/tutorial/features clean URL routes
+    // Don't show 404 for blog/tutorial/features/changelog clean URL routes
     if (parseBlogRoute(path)) return false;
     if (parseTutorialRoute(path)) return false;
     if (parseFeaturesRoute(path)) return false;
+    if (parseChangelogRoute(path)) return false;
 
     // Don't show 404 for hash-based routes (legacy compat)
     if (hash && hash !== '#' && hash !== '#/') return false;
@@ -133,7 +146,7 @@ const AppContent: React.FC = () => {
   // Check URL for verification token on mount
   useEffect(() => {
     // Skip if on a recognized route
-    if (policyRoute || blogRoute || tutorialRoute || featuresRoute) return;
+    if (policyRoute || blogRoute || tutorialRoute || featuresRoute || changelogRoute) return;
 
     let token: string | null = null;
 
@@ -199,18 +212,26 @@ const AppContent: React.FC = () => {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const search = window.location.search;
-      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/_/', '/_'];
+      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/changelog', '/changelog/', '/_/', '/_'];
 
       // Never show 404 for verification tokens or hash-based routes
       const hasToken = new URLSearchParams(search).has('token') || hash.includes('token=') || hash.includes('/auth/confirm-verification/');
       const hasHashRoute = hash && hash !== '#' && hash !== '#/';
 
-      const clearAll = () => { setPolicyRoute(null); setBlogRoute(null); setTutorialRoute(null); setFeaturesRoute(null); };
+      const clearAll = () => { setPolicyRoute(null); setBlogRoute(null); setTutorialRoute(null); setFeaturesRoute(null); setChangelogRoute(false); };
 
       // Clean up /_/ path (PocketBase admin path leaked into verification URLs)
       if (path === '/_/' || path === '/_') {
         window.history.replaceState(null, '', '/' + search + hash);
         clearAll();
+        setIs404(false);
+        return;
+      }
+
+      // Check changelog route
+      if (parseChangelogRoute(path)) {
+        clearAll();
+        setChangelogRoute(true);
         setIs404(false);
         return;
       }
@@ -305,7 +326,12 @@ const AppContent: React.FC = () => {
     return <FeaturesPage onBack={() => { navigateTo('/'); }} />;
   }
 
-  // Priority 0c: Public Tutorials (accessible regardless of auth)
+  // Priority 0c: Public Changelog (accessible regardless of auth)
+  if (changelogRoute) {
+    return <ChangelogPage onBack={() => { navigateTo('/'); }} />;
+  }
+
+  // Priority 0d: Public Tutorials (accessible regardless of auth)
   if (tutorialRoute) {
     if (tutorialRoute.type === 'single' && tutorialRoute.slug) {
       return <TutorialPage slug={tutorialRoute.slug} onBack={() => { navigateTo('/how-to-use'); }} />;

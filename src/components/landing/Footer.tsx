@@ -35,6 +35,7 @@ const Footer: React.FC = () => {
         { label: 'How It Works', action: () => scrollTo('how-it-works') },
         { label: 'FAQ', action: () => scrollTo('faq') },
         { label: 'Blog', action: () => { navigateTo('/blog'); } },
+        { label: 'Changelog', action: () => { navigateTo('/changelog'); } },
       ],
     },
     {
