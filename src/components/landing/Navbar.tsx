@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { navigateTo } from '../../utils/seo';
 
 interface NavbarProps {
   onLoginClick: () => void;
@@ -59,9 +60,9 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 key={link.id}
                 onClick={() => {
                   if (link.id === 'blog-link') {
-                    window.location.hash = '/blog';
+                    navigateTo('/blog');
                   } else if (link.id === 'tutorials-link') {
-                    window.location.hash = '/how-to-use';
+                    navigateTo('/how-to-use');
                   } else {
                     scrollTo(link.id);
                   }
@@ -125,10 +126,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 onClick={() => {
                   if (link.id === 'blog-link') {
                     setMobileOpen(false);
-                    window.location.hash = '/blog';
+                    navigateTo('/blog');
                   } else if (link.id === 'tutorials-link') {
                     setMobileOpen(false);
-                    window.location.hash = '/how-to-use';
+                    navigateTo('/how-to-use');
                   } else {
                     scrollTo(link.id);
                   }

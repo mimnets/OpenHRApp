@@ -36,19 +36,48 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import NotFoundPage from './pages/NotFoundPage';
 import DownloadPage from './pages/DownloadPage';
+import { navigateTo } from './utils/seo';
+
+// Parse blog route from pathname
+const parseBlogRoute = (pathname: string) => {
+  if (pathname === '/blog' || pathname === '/blog/') {
+    return { type: 'list' as const };
+  }
+  const match = pathname.match(/^\/blog\/(.+)$/);
+  if (match && match[1]) {
+    return { type: 'post' as const, slug: match[1] };
+  }
+  return null;
+};
+
+// Parse tutorial route from pathname
+const parseTutorialRoute = (pathname: string) => {
+  if (pathname === '/how-to-use' || pathname === '/how-to-use/') {
+    return { type: 'list' as const };
+  }
+  const match = pathname.match(/^\/how-to-use\/(.+)$/);
+  if (match && match[1]) {
+    return { type: 'single' as const, slug: match[1] };
+  }
+  return null;
+};
 
 const AppContent: React.FC = () => {
   const { user, isLoading, isConfigured, setConfigured, login, logout } = useAuth();
   const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
   const [currentPath, setCurrentPath] = useState('dashboard');
   const [navParams, setNavParams] = useState<any>(null);
-  
+
   // Public Pages State
   const [showLanding, setShowLanding] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
-  const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(null);
-  const [tutorialRoute, setTutorialRoute] = useState<{ type: 'list' | 'single'; slug?: string } | null>(null);
+  const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(() => {
+    return parseBlogRoute(window.location.pathname);
+  });
+  const [tutorialRoute, setTutorialRoute] = useState<{ type: 'list' | 'single'; slug?: string } | null>(() => {
+    return parseTutorialRoute(window.location.pathname);
+  });
   const [policyRoute, setPolicyRoute] = useState<'privacy' | 'terms' | 'download' | null>(() => {
     const path = window.location.pathname;
     if (path === '/privacy' || path === '/privacy/') return 'privacy';
@@ -67,7 +96,11 @@ const AppContent: React.FC = () => {
     if (hash.includes('token=')) return false;
     if (hash.includes('/auth/confirm-verification/')) return false;
 
-    // Don't show 404 for hash-based routes (blog, tutorials, etc.)
+    // Don't show 404 for blog/tutorial clean URL routes
+    if (parseBlogRoute(path)) return false;
+    if (parseTutorialRoute(path)) return false;
+
+    // Don't show 404 for hash-based routes (legacy compat)
     if (hash && hash !== '#' && hash !== '#/') return false;
 
     // Clean up /_/ path (PocketBase admin path leaked into verification URLs)
@@ -79,48 +112,10 @@ const AppContent: React.FC = () => {
     return !knownPaths.includes(path);
   });
 
-  // Parse blog route from hash
-  const parseBlogRoute = (hash: string) => {
-    if (hash === '#/blog' || hash === '#/blog/') {
-      return { type: 'list' as const };
-    }
-    const match = hash.match(/^#\/blog\/(.+)$/);
-    if (match && match[1]) {
-      return { type: 'post' as const, slug: match[1] };
-    }
-    return null;
-  };
-
-  // Parse tutorial route from hash
-  const parseTutorialRoute = (hash: string) => {
-    if (hash === '#/how-to-use' || hash === '#/how-to-use/') {
-      return { type: 'list' as const };
-    }
-    const match = hash.match(/^#\/how-to-use\/(.+)$/);
-    if (match && match[1]) {
-      return { type: 'single' as const, slug: match[1] };
-    }
-    return null;
-  };
-
-  // Check URL for verification token and blog/tutorial routes on mount
+  // Check URL for verification token on mount
   useEffect(() => {
-    // Skip hash parsing if on a clean URL policy page
-    if (policyRoute) return;
-
-    // Check for tutorial route first
-    const tutorialMatch = parseTutorialRoute(window.location.hash);
-    if (tutorialMatch) {
-      setTutorialRoute(tutorialMatch);
-      return;
-    }
-
-    // Check for blog route
-    const blogMatch = parseBlogRoute(window.location.hash);
-    if (blogMatch) {
-      setBlogRoute(blogMatch);
-      return;
-    }
+    // Skip if on a recognized route
+    if (policyRoute || blogRoute || tutorialRoute) return;
 
     let token: string | null = null;
 
@@ -149,28 +144,31 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // Listen for hash changes (blog/tutorial navigation)
+  // Legacy hash redirect: redirect old #/blog and #/how-to-use URLs to clean paths
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
 
-      const tutorialMatch = parseTutorialRoute(hash);
-      if (tutorialMatch) {
-        setTutorialRoute(tutorialMatch);
-        setBlogRoute(null);
+      // Redirect legacy hash blog routes to clean URLs
+      if (hash === '#/blog' || hash === '#/blog/') {
+        navigateTo('/blog');
+        return;
+      }
+      const blogMatch = hash.match(/^#\/blog\/(.+)$/);
+      if (blogMatch && blogMatch[1]) {
+        navigateTo(`/blog/${blogMatch[1]}`);
         return;
       }
 
-      const blogMatch = parseBlogRoute(hash);
-      if (blogMatch) {
-        setBlogRoute(blogMatch);
-        setTutorialRoute(null);
+      // Redirect legacy hash tutorial routes to clean URLs
+      if (hash === '#/how-to-use' || hash === '#/how-to-use/') {
+        navigateTo('/how-to-use');
         return;
       }
-
-      if (!hash || hash === '#' || hash === '#/') {
-        setBlogRoute(null);
-        setTutorialRoute(null);
+      const tutorialMatch = hash.match(/^#\/how-to-use\/(.+)$/);
+      if (tutorialMatch && tutorialMatch[1]) {
+        navigateTo(`/how-to-use/${tutorialMatch[1]}`);
+        return;
       }
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -193,25 +191,58 @@ const AppContent: React.FC = () => {
       if (path === '/_/' || path === '/_') {
         window.history.replaceState(null, '', '/' + search + hash);
         setPolicyRoute(null);
+        setBlogRoute(null);
+        setTutorialRoute(null);
         setIs404(false);
         return;
       }
 
+      // Check blog routes
+      const blogMatch = parseBlogRoute(path);
+      if (blogMatch) {
+        setBlogRoute(blogMatch);
+        setTutorialRoute(null);
+        setPolicyRoute(null);
+        setIs404(false);
+        return;
+      }
+
+      // Check tutorial routes
+      const tutorialMatch = parseTutorialRoute(path);
+      if (tutorialMatch) {
+        setTutorialRoute(tutorialMatch);
+        setBlogRoute(null);
+        setPolicyRoute(null);
+        setIs404(false);
+        return;
+      }
+
+      // Check policy routes
       if (path === '/privacy' || path === '/privacy/') {
         setPolicyRoute('privacy');
+        setBlogRoute(null);
+        setTutorialRoute(null);
         setIs404(false);
       } else if (path === '/terms' || path === '/terms/') {
         setPolicyRoute('terms');
+        setBlogRoute(null);
+        setTutorialRoute(null);
         setIs404(false);
       } else if (path === '/download' || path === '/download/') {
         setPolicyRoute('download');
+        setBlogRoute(null);
+        setTutorialRoute(null);
         setIs404(false);
-      } else if (!knownPaths.includes(path) && !hasToken && !hasHashRoute) {
+      } else if (path === '/' || knownPaths.includes(path) || hasToken || hasHashRoute) {
         setPolicyRoute(null);
-        setIs404(true);
+        setBlogRoute(null);
+        setTutorialRoute(null);
+        setIs404(false);
       } else {
         setPolicyRoute(null);
-        setIs404(false);
+        setBlogRoute(null);
+        setTutorialRoute(null);
+        setIs404(true);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -240,29 +271,29 @@ const AppContent: React.FC = () => {
 
   // Priority 0a: Public Policy Pages (accessible regardless of auth, clean URLs)
   if (policyRoute === 'privacy') {
-    return <PrivacyPolicyPage onBack={() => { window.history.pushState(null, '', '/'); setPolicyRoute(null); }} />;
+    return <PrivacyPolicyPage onBack={() => { navigateTo('/'); }} />;
   }
   if (policyRoute === 'terms') {
-    return <TermsOfServicePage onBack={() => { window.history.pushState(null, '', '/'); setPolicyRoute(null); }} />;
+    return <TermsOfServicePage onBack={() => { navigateTo('/'); }} />;
   }
   if (policyRoute === 'download') {
-    return <DownloadPage onBack={() => { window.history.pushState(null, '', '/'); setPolicyRoute(null); }} />;
+    return <DownloadPage onBack={() => { navigateTo('/'); }} />;
   }
 
   // Priority 0b: Public Tutorials (accessible regardless of auth)
   if (tutorialRoute) {
     if (tutorialRoute.type === 'single' && tutorialRoute.slug) {
-      return <TutorialPage slug={tutorialRoute.slug} onBack={() => { window.location.hash = '/how-to-use'; }} />;
+      return <TutorialPage slug={tutorialRoute.slug} onBack={() => { navigateTo('/how-to-use'); }} />;
     }
-    return <TutorialsPage onBack={() => { window.history.pushState(null, '', window.location.pathname); setTutorialRoute(null); }} />;
+    return <TutorialsPage onBack={() => { navigateTo('/'); }} />;
   }
 
   // Priority 0: Public Blog (accessible regardless of auth)
   if (blogRoute) {
     if (blogRoute.type === 'post' && blogRoute.slug) {
-      return <BlogPostPage slug={blogRoute.slug} onBack={() => { window.location.hash = '/blog'; }} />;
+      return <BlogPostPage slug={blogRoute.slug} onBack={() => { navigateTo('/blog'); }} />;
     }
-    return <BlogPage onBack={() => { window.history.pushState(null, '', window.location.pathname); setBlogRoute(null); }} />;
+    return <BlogPage onBack={() => { navigateTo('/'); }} />;
   }
 
   // Priority 1: Verification Flow (must come BEFORE 404 check)
@@ -272,7 +303,7 @@ const AppContent: React.FC = () => {
 
   // 404: Unknown clean URL path (after all valid routes are checked)
   if (is404) {
-    return <NotFoundPage onGoHome={() => { window.history.pushState(null, '', '/'); setIs404(false); }} />;
+    return <NotFoundPage onGoHome={() => { navigateTo('/'); }} />;
   }
 
   if (isLoading) {

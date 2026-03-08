@@ -7,6 +7,7 @@ import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
 import { sanitizeHtml } from '../utils/sanitize';
+import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 
 const BlogPostSkeleton = () => (
   <div className="animate-pulse">
@@ -48,12 +49,49 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
     loadPost();
   }, [slug]);
 
+  useEffect(() => {
+    return () => {
+      // Clean up JSON-LD when leaving the page
+      setJsonLd(null);
+    };
+  }, []);
+
   const loadPost = async () => {
     setIsLoading(true);
     setNotFound(false);
     const data = await blogService.getPostBySlug(slug);
     if (data) {
       setPost(data);
+      updatePageMeta(
+        `${data.title} | OpenHR Blog`,
+        data.excerpt || `Read ${data.title} on the OpenHR Blog.`,
+        `https://openhrapp.com/blog/${slug}`
+      );
+      setJsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: data.title,
+        description: data.excerpt || '',
+        image: data.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
+        datePublished: data.publishedAt || data.created,
+        dateModified: data.updated || data.publishedAt || data.created,
+        author: {
+          '@type': 'Person',
+          name: data.authorName || 'OpenHR Team',
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'OpenHRApp',
+          logo: {
+            '@type': 'ImageObject',
+            url: 'https://openhrapp.com/img/logo.webp',
+          },
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `https://openhrapp.com/blog/${slug}`,
+        },
+      });
     } else {
       setNotFound(true);
     }
@@ -61,7 +99,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
   };
 
   const goToBlog = () => {
-    window.location.hash = '/blog';
+    navigateTo('/blog');
   };
 
   return (

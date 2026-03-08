@@ -5,6 +5,7 @@ import { Tutorial } from '../types';
 import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
 import { sanitizeHtml } from '../utils/sanitize';
+import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 
 interface TutorialPageProps {
   slug: string;
@@ -21,6 +22,12 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
     loadData();
   }, [slug]);
 
+  useEffect(() => {
+    return () => {
+      setJsonLd(null);
+    };
+  }, []);
+
   const loadData = async () => {
     setIsLoading(true);
     setNotFound(false);
@@ -33,6 +40,36 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
     if (tutorialData) {
       setTutorial(tutorialData);
       setAllTutorials(allData.tutorials);
+      updatePageMeta(
+        `${tutorialData.title} | OpenHR Guides`,
+        tutorialData.excerpt || `Learn how to ${tutorialData.title.toLowerCase()} with OpenHR.`,
+        `https://openhrapp.com/how-to-use/${slug}`
+      );
+      setJsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: tutorialData.title,
+        description: tutorialData.excerpt || '',
+        image: tutorialData.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
+        datePublished: tutorialData.created,
+        dateModified: tutorialData.updated || tutorialData.created,
+        author: {
+          '@type': 'Person',
+          name: tutorialData.authorName || 'OpenHR Team',
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'OpenHRApp',
+          logo: {
+            '@type': 'ImageObject',
+            url: 'https://openhrapp.com/img/logo.webp',
+          },
+        },
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': `https://openhrapp.com/how-to-use/${slug}`,
+        },
+      });
     } else {
       setNotFound(true);
     }
@@ -40,11 +77,11 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
   };
 
   const goToTutorials = () => {
-    window.location.hash = '/how-to-use';
+    navigateTo('/how-to-use');
   };
 
   const navigateToTutorial = (tutorialSlug: string) => {
-    window.location.hash = `/how-to-use/${tutorialSlug}`;
+    navigateTo(`/how-to-use/${tutorialSlug}`);
   };
 
   // Build navigation context

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, Home, BookOpen, FileText, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { navigateTo } from '../../utils/seo';
 
 interface TutorialsNavbarProps {
   onBack: () => void;
@@ -15,20 +16,18 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
   };
 
   const goToTutorials = () => {
-    window.location.hash = '/how-to-use';
+    navigateTo('/how-to-use');
     setMobileOpen(false);
   };
 
   const goToBlog = () => {
-    window.location.hash = '/blog';
+    navigateTo('/blog');
     setMobileOpen(false);
   };
 
   const goHome = () => {
     setMobileOpen(false);
-    window.history.pushState(null, '', window.location.pathname);
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-    onBack();
+    navigateTo('/');
   };
 
   return (

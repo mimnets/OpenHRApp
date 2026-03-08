@@ -6,6 +6,7 @@ import { PublicAdBanner } from '../components/ads';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
+import { navigateTo, updatePageMeta } from '../utils/seo';
 
 const BlogCardSkeleton = () => (
   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-pulse">
@@ -34,6 +35,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedArchive, setSelectedArchive] = useState<{ year: number; month: number } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    updatePageMeta(
+      'Blog | OpenHR - Open Source HRMS',
+      'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
+      'https://openhrapp.com/blog'
+    );
+  }, []);
 
   useEffect(() => {
     loadPosts();
@@ -77,7 +86,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
   };
 
   const navigateToPost = (slug: string) => {
-    window.location.hash = `/blog/${slug}`;
+    navigateTo(`/blog/${slug}`);
   };
 
   const displayPosts = filteredPosts;

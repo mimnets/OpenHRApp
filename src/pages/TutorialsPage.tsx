@@ -4,6 +4,7 @@ import { tutorialService } from '../services/tutorial.service';
 import { Tutorial } from '../types';
 import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
+import { navigateTo, updatePageMeta } from '../utils/seo';
 
 interface TutorialsPageProps {
   onBack: () => void;
@@ -12,6 +13,14 @@ interface TutorialsPageProps {
 const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack }) => {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    updatePageMeta(
+      'Guides | OpenHR - Open Source HRMS',
+      'Step-by-step guides to help you get the most out of OpenHR. Learn attendance tracking, leave management, employee directory, and more.',
+      'https://openhrapp.com/how-to-use'
+    );
+  }, []);
 
   useEffect(() => {
     loadTutorials();
@@ -25,7 +34,7 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack }) => {
   };
 
   const navigateToTutorial = (slug: string) => {
-    window.location.hash = `/how-to-use/${slug}`;
+    navigateTo(`/how-to-use/${slug}`);
   };
 
   // Group tutorials: separate parents and children
