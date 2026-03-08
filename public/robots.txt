@@ -3,6 +3,7 @@ Allow: /
 Allow: /blog
 Allow: /how-to-use
 Allow: /features
+Allow: /changelog
 Allow: /download
 Allow: /privacy
 Allow: /terms

@@ -21,6 +21,7 @@ const TutorialsFooter: React.FC = () => {
         { label: 'Home', action: goHome },
         { label: 'Features', action: () => { navigateTo('/features'); } },
         { label: 'Blog', action: goToBlog },
+        { label: 'Changelog', action: () => { navigateTo('/changelog'); } },
       ],
     },
     {
