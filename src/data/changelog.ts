@@ -21,6 +21,8 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'Migrated blog and tutorial routes from hash-based to clean URLs' },
       { type: 'improvement', description: 'Expanded sitemap.xml with all feature sub-pages' },
       { type: 'feature', description: 'Added /changelog page with full project history' },
+      { type: 'improvement', description: 'Added code splitting with React.lazy() for authenticated pages to reduce initial bundle size' },
+      { type: 'improvement', description: 'Added fetchpriority="high" to hero image for faster LCP' },
     ],
   },
   {
