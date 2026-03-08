@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Shield, ArrowLeft } from 'lucide-react';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogFooter from '../components/blog/BlogFooter';
+import { updatePageMeta } from '../utils/seo';
 
 interface PrivacyPolicyPageProps {
   onBack: () => void;
@@ -11,6 +12,11 @@ interface PrivacyPolicyPageProps {
 const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
+    updatePageMeta(
+      'Privacy Policy — OpenHRApp',
+      'Learn how OpenHRApp collects, uses, and protects your personal data. Read our full privacy policy covering cookies, data retention, and your rights.',
+      'https://openhrapp.com/privacy'
+    );
   }, []);
 
   const handleBack = () => {

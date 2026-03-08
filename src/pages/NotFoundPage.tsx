@@ -1,12 +1,20 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Home, ArrowLeft, SearchX } from 'lucide-react';
+import { updatePageMeta } from '../utils/seo';
 
 interface NotFoundPageProps {
   onGoHome: () => void;
 }
 
 const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
+  useEffect(() => {
+    updatePageMeta(
+      '404 — Page Not Found | OpenHRApp',
+      'The page you are looking for does not exist or has been moved. Return to the OpenHRApp homepage.'
+    );
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
       <div className="max-w-md mx-auto">
