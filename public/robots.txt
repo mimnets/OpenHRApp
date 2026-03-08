@@ -1,13 +1,20 @@
 User-agent: *
 Allow: /
-Disallow: /#/dashboard
-Disallow: /#/employees
-Disallow: /#/attendance
-Disallow: /#/leave
-Disallow: /#/settings
-Disallow: /#/reports
-Disallow: /#/organization
-Disallow: /#/super-admin
-Disallow: /#/upgrade
+Allow: /blog
+Allow: /how-to-use
+Allow: /download
+Allow: /privacy
+Allow: /terms
+
+Disallow: /dashboard
+Disallow: /employees
+Disallow: /attendance
+Disallow: /leave
+Disallow: /settings
+Disallow: /reports
+Disallow: /organization
+Disallow: /super-admin
+Disallow: /upgrade
+Disallow: /_/
 
 Sitemap: https://openhrapp.com/sitemap.xml

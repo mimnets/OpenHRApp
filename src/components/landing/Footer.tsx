@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { socialLinksService } from '../../services/sociallinks.service';
 import { SocialLink } from '../../types';
+import { navigateTo } from '../../utils/seo';
 
 const PLATFORM_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
   youtube: Youtube,
@@ -33,15 +34,15 @@ const Footer: React.FC = () => {
         { label: 'Features', action: () => scrollTo('features') },
         { label: 'How It Works', action: () => scrollTo('how-it-works') },
         { label: 'FAQ', action: () => scrollTo('faq') },
-        { label: 'Blog', action: () => { window.location.hash = '/blog'; } },
+        { label: 'Blog', action: () => { navigateTo('/blog'); } },
       ],
     },
     {
       title: 'Resources',
       links: [
-        { label: 'Guides', action: () => { window.location.hash = '/how-to-use'; } },
+        { label: 'Guides', action: () => { navigateTo('/how-to-use'); } },
         { label: 'GitHub', action: () => window.open('https://github.com/mimnets/openhrapp', '_blank') },
-        { label: 'Download App', action: () => { window.history.pushState(null, '', '/download'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        { label: 'Download App', action: () => { navigateTo('/download'); } },
       ],
     },
     {
@@ -49,8 +50,8 @@ const Footer: React.FC = () => {
       links: [
         { label: 'About', action: () => scrollTo('features') },
         { label: 'Contact', action: () => scrollTo('contact') },
-        { label: 'Privacy Policy', action: () => { window.history.pushState(null, '', '/privacy'); window.dispatchEvent(new PopStateEvent('popstate')); } },
-        { label: 'Terms of Service', action: () => { window.history.pushState(null, '', '/terms'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        { label: 'Privacy Policy', action: () => { navigateTo('/privacy'); } },
+        { label: 'Terms of Service', action: () => { navigateTo('/terms'); } },
       ],
     },
   ];

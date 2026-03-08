@@ -1,17 +1,17 @@
 import React from 'react';
+import { navigateTo } from '../../utils/seo';
 
 const BlogFooter: React.FC = () => {
   const goHome = () => {
-    window.history.pushState(null, '', window.location.pathname);
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    navigateTo('/');
   };
 
   const goToBlog = () => {
-    window.location.hash = '/blog';
+    navigateTo('/blog');
   };
 
   const goToTutorials = () => {
-    window.location.hash = '/how-to-use';
+    navigateTo('/how-to-use');
   };
 
   const columns = [
@@ -27,7 +27,7 @@ const BlogFooter: React.FC = () => {
       links: [
         { label: 'Guides', action: goToTutorials },
         { label: 'GitHub', action: () => window.open('https://github.com/mimnets/openhrapp', '_blank') },
-        { label: 'Download App', action: () => { window.history.pushState(null, '', '/download'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        { label: 'Download App', action: () => { navigateTo('/download'); } },
       ],
     },
     {
@@ -35,8 +35,8 @@ const BlogFooter: React.FC = () => {
       links: [
         { label: 'About', action: goHome },
         { label: 'Contact', action: goHome },
-        { label: 'Privacy Policy', action: () => { window.history.pushState(null, '', '/privacy'); window.dispatchEvent(new PopStateEvent('popstate')); } },
-        { label: 'Terms of Service', action: () => { window.history.pushState(null, '', '/terms'); window.dispatchEvent(new PopStateEvent('popstate')); } },
+        { label: 'Privacy Policy', action: () => { navigateTo('/privacy'); } },
+        { label: 'Terms of Service', action: () => { navigateTo('/terms'); } },
       ],
     },
   ];
