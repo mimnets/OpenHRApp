@@ -31,7 +31,7 @@ const Footer: React.FC = () => {
     {
       title: 'Product',
       links: [
-        { label: 'Features', action: () => scrollTo('features') },
+        { label: 'Features', action: () => { navigateTo('/features'); } },
         { label: 'How It Works', action: () => scrollTo('how-it-works') },
         { label: 'FAQ', action: () => scrollTo('faq') },
         { label: 'Blog', action: () => { navigateTo('/blog'); } },

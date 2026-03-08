@@ -19,6 +19,7 @@ const BlogFooter: React.FC = () => {
       title: 'Product',
       links: [
         { label: 'Home', action: goHome },
+        { label: 'Features', action: () => { navigateTo('/features'); } },
         { label: 'Blog', action: goToBlog },
       ],
     },
