@@ -65,7 +65,7 @@ const Footer: React.FC = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm overflow-hidden">
-                <img src="./img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
+                <img src="/img/logo.webp" className="w-full h-full object-contain" alt="OpenHRApp" />
               </div>
               <span className="text-base font-semibold tracking-tight">
                 <span className="text-primary">Open</span>
