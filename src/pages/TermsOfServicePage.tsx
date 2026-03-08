@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { FileText, ArrowLeft } from 'lucide-react';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogFooter from '../components/blog/BlogFooter';
+import { updatePageMeta } from '../utils/seo';
 
 interface TermsOfServicePageProps {
   onBack: () => void;
@@ -11,6 +12,11 @@ interface TermsOfServicePageProps {
 const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
+    updatePageMeta(
+      'Terms of Service — OpenHRApp',
+      'Read the Terms of Service for OpenHRApp. Understand your rights, responsibilities, and the rules governing use of our open-source HR management platform.',
+      'https://openhrapp.com/terms'
+    );
   }, []);
 
   const handleBack = () => {

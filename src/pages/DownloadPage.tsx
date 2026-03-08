@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Download, Github, Smartphone, Monitor, Globe, Shield, Zap, Wifi } from 'lucide-react';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogFooter from '../components/blog/BlogFooter';
+import { updatePageMeta } from '../utils/seo';
 
 interface DownloadPageProps {
   onBack: () => void;
@@ -13,6 +14,11 @@ const DownloadPage: React.FC<DownloadPageProps> = ({ onBack }) => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    updatePageMeta(
+      'Download OpenHRApp — Android APK & PWA Install',
+      'Download the OpenHRApp Android APK or install as a Progressive Web App. Free, open-source HR management on any device.',
+      'https://openhrapp.com/download'
+    );
   }, []);
 
   const handleBack = () => {

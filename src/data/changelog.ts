@@ -23,6 +23,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'feature', description: 'Added /changelog page with full project history' },
       { type: 'improvement', description: 'Added code splitting with React.lazy() for authenticated pages to reduce initial bundle size' },
       { type: 'improvement', description: 'Added fetchpriority="high" to hero image for faster LCP' },
+      { type: 'improvement', description: 'Added unique meta tags (title, description, canonical) to Privacy Policy, Terms of Service, Download, and 404 pages' },
     ],
   },
   {
