@@ -291,6 +291,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
                 src="./img/screenshot-wide.webp"
                 alt="OpenHRApp Dashboard"
                 className="w-full"
+                fetchPriority="high"
               />
             </div>
           </div>
