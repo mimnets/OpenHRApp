@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Allow: /blog
 Allow: /how-to-use
+Allow: /features
 Allow: /download
 Allow: /privacy
 Allow: /terms

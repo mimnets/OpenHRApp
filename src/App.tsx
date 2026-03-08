@@ -36,7 +36,21 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import NotFoundPage from './pages/NotFoundPage';
 import DownloadPage from './pages/DownloadPage';
+import FeaturesPage from './pages/FeaturesPage';
+import FeatureDetailPage from './pages/FeatureDetailPage';
 import { navigateTo } from './utils/seo';
+
+// Parse features route from pathname
+const parseFeaturesRoute = (pathname: string) => {
+  if (pathname === '/features' || pathname === '/features/') {
+    return { type: 'list' as const };
+  }
+  const match = pathname.match(/^\/features\/(.+)$/);
+  if (match && match[1]) {
+    return { type: 'detail' as const, slug: match[1] };
+  }
+  return null;
+};
 
 // Parse blog route from pathname
 const parseBlogRoute = (pathname: string) => {
@@ -85,20 +99,24 @@ const AppContent: React.FC = () => {
     if (path === '/download' || path === '/download/') return 'download';
     return null;
   });
+  const [featuresRoute, setFeaturesRoute] = useState<{ type: 'list' | 'detail'; slug?: string } | null>(() => {
+    return parseFeaturesRoute(window.location.pathname);
+  });
   const [is404, setIs404] = useState<boolean>(() => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     const search = window.location.search;
-    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/_/', '/_'];
+    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/_/', '/_'];
 
     // Don't show 404 if URL contains a verification token
     if (new URLSearchParams(search).has('token')) return false;
     if (hash.includes('token=')) return false;
     if (hash.includes('/auth/confirm-verification/')) return false;
 
-    // Don't show 404 for blog/tutorial clean URL routes
+    // Don't show 404 for blog/tutorial/features clean URL routes
     if (parseBlogRoute(path)) return false;
     if (parseTutorialRoute(path)) return false;
+    if (parseFeaturesRoute(path)) return false;
 
     // Don't show 404 for hash-based routes (legacy compat)
     if (hash && hash !== '#' && hash !== '#/') return false;
@@ -115,7 +133,7 @@ const AppContent: React.FC = () => {
   // Check URL for verification token on mount
   useEffect(() => {
     // Skip if on a recognized route
-    if (policyRoute || blogRoute || tutorialRoute) return;
+    if (policyRoute || blogRoute || tutorialRoute || featuresRoute) return;
 
     let token: string | null = null;
 
@@ -181,18 +199,27 @@ const AppContent: React.FC = () => {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const search = window.location.search;
-      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/_/', '/_'];
+      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/_/', '/_'];
 
       // Never show 404 for verification tokens or hash-based routes
       const hasToken = new URLSearchParams(search).has('token') || hash.includes('token=') || hash.includes('/auth/confirm-verification/');
       const hasHashRoute = hash && hash !== '#' && hash !== '#/';
 
+      const clearAll = () => { setPolicyRoute(null); setBlogRoute(null); setTutorialRoute(null); setFeaturesRoute(null); };
+
       // Clean up /_/ path (PocketBase admin path leaked into verification URLs)
       if (path === '/_/' || path === '/_') {
         window.history.replaceState(null, '', '/' + search + hash);
-        setPolicyRoute(null);
-        setBlogRoute(null);
-        setTutorialRoute(null);
+        clearAll();
+        setIs404(false);
+        return;
+      }
+
+      // Check features routes (must be before blog/tutorial since /features/slug is a pattern)
+      const featuresMatch = parseFeaturesRoute(path);
+      if (featuresMatch) {
+        clearAll();
+        setFeaturesRoute(featuresMatch);
         setIs404(false);
         return;
       }
@@ -200,9 +227,8 @@ const AppContent: React.FC = () => {
       // Check blog routes
       const blogMatch = parseBlogRoute(path);
       if (blogMatch) {
+        clearAll();
         setBlogRoute(blogMatch);
-        setTutorialRoute(null);
-        setPolicyRoute(null);
         setIs404(false);
         return;
       }
@@ -210,38 +236,30 @@ const AppContent: React.FC = () => {
       // Check tutorial routes
       const tutorialMatch = parseTutorialRoute(path);
       if (tutorialMatch) {
+        clearAll();
         setTutorialRoute(tutorialMatch);
-        setBlogRoute(null);
-        setPolicyRoute(null);
         setIs404(false);
         return;
       }
 
       // Check policy routes
       if (path === '/privacy' || path === '/privacy/') {
+        clearAll();
         setPolicyRoute('privacy');
-        setBlogRoute(null);
-        setTutorialRoute(null);
         setIs404(false);
       } else if (path === '/terms' || path === '/terms/') {
+        clearAll();
         setPolicyRoute('terms');
-        setBlogRoute(null);
-        setTutorialRoute(null);
         setIs404(false);
       } else if (path === '/download' || path === '/download/') {
+        clearAll();
         setPolicyRoute('download');
-        setBlogRoute(null);
-        setTutorialRoute(null);
         setIs404(false);
       } else if (path === '/' || knownPaths.includes(path) || hasToken || hasHashRoute) {
-        setPolicyRoute(null);
-        setBlogRoute(null);
-        setTutorialRoute(null);
+        clearAll();
         setIs404(false);
       } else {
-        setPolicyRoute(null);
-        setBlogRoute(null);
-        setTutorialRoute(null);
+        clearAll();
         setIs404(true);
       }
     };
@@ -279,8 +297,15 @@ const AppContent: React.FC = () => {
   if (policyRoute === 'download') {
     return <DownloadPage onBack={() => { navigateTo('/'); }} />;
   }
+  // Priority 0b: Public Features pages (accessible regardless of auth)
+  if (featuresRoute) {
+    if (featuresRoute.type === 'detail' && featuresRoute.slug) {
+      return <FeatureDetailPage slug={featuresRoute.slug} onBack={() => { navigateTo('/features'); }} />;
+    }
+    return <FeaturesPage onBack={() => { navigateTo('/'); }} />;
+  }
 
-  // Priority 0b: Public Tutorials (accessible regardless of auth)
+  // Priority 0c: Public Tutorials (accessible regardless of auth)
   if (tutorialRoute) {
     if (tutorialRoute.type === 'single' && tutorialRoute.slug) {
       return <TutorialPage slug={tutorialRoute.slug} onBack={() => { navigateTo('/how-to-use'); }} />;

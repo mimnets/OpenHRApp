@@ -29,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
   };
 
   const navLinks = [
-    { label: 'Features', id: 'features' },
+    { label: 'Features', id: 'features-link' },
     { label: 'How It Works', id: 'how-it-works' },
     { label: 'FAQ', id: 'faq' },
     { label: 'Contact', id: 'contact' },
@@ -63,6 +63,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                     navigateTo('/blog');
                   } else if (link.id === 'tutorials-link') {
                     navigateTo('/how-to-use');
+                  } else if (link.id === 'features-link') {
+                    navigateTo('/features');
                   } else {
                     scrollTo(link.id);
                   }

@@ -11,6 +11,36 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://openhrapp.com/features</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/features/attendance-tracking</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/features/leave-management</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/features/performance-reviews</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/features/gps-geofencing</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/features/biometric-selfie-verification</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://openhrapp.com/how-to-use</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
