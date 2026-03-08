@@ -62,30 +62,6 @@
   <!-- Vital: Link to manifest at the root level -->
   <link rel="manifest" href="/manifest.json">
   
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: 'var(--primary)',
-            'primary-hover': 'var(--primary-hover)',
-            'primary-light': 'var(--primary-light)',
-          },
-          animation: {
-            'slide-up': 'slideUp 0.3s ease-out',
-          },
-          keyframes: {
-            slideUp: {
-              '0%': { transform: 'translateY(10px)', opacity: 0 },
-              '100%': { transform: 'translateY(0)', opacity: 1 },
-            }
-          }
-        }
-      }
-    }
-  </script>
   <link rel="preconnect" href="https://esm.sh" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -266,7 +242,6 @@
 </script>
 <link rel="modulepreload" href="https://esm.sh/react@19.2.3">
 <link rel="modulepreload" href="https://esm.sh/react-dom@19.2.3/client">
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-[#fcfdfe] text-slate-900">
   <div id="root">
