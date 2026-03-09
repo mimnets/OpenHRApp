@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Home, ArrowLeft, SearchX } from 'lucide-react';
-import { updatePageMeta } from '../utils/seo';
+import { updatePageMeta, navigateTo } from '../utils/seo';
 
 interface NotFoundPageProps {
   onGoHome: () => void;
@@ -36,7 +36,13 @@ const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
             <Home size={18} /> Go to Home
           </button>
           <button
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (document.referrer && document.referrer.includes(window.location.host)) {
+                window.history.back();
+              } else {
+                navigateTo('/');
+              }
+            }}
             className="w-full sm:w-auto px-6 py-3 bg-white text-slate-700 font-bold text-sm rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
           >
             <ArrowLeft size={18} /> Go Back
