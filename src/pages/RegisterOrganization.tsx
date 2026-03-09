@@ -102,7 +102,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 sm:p-10 space-y-6">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-10 space-y-6" autoComplete="on">
           {error && (
             <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold flex gap-2">
               <CheckCircle2 size={16} className="rotate-45" /> {error}
@@ -114,7 +114,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Name</label>
               <div className="relative">
                 <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. Acme Corp" value={formData.orgName} onChange={e => setFormData({...formData, orgName: e.target.value})} />
+                <input name="organization" autoComplete="organization" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. Acme Corp" value={formData.orgName} onChange={e => setFormData({...formData, orgName: e.target.value})} />
               </div>
             </div>
 
@@ -159,7 +159,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Admin Full Name</label>
               <div className="relative">
                 <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. John Doe" value={formData.adminName} onChange={e => setFormData({...formData, adminName: e.target.value})} />
+                <input name="name" autoComplete="name" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. John Doe" value={formData.adminName} onChange={e => setFormData({...formData, adminName: e.target.value})} />
               </div>
             </div>
 
@@ -167,7 +167,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
               <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Work Email</label>
               <div className="relative">
                 <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input type="email" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="name@company.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input type="email" name="email" autoComplete="email" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="name@company.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
               </div>
             </div>
 
@@ -176,13 +176,13 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <input type="password" required className="w-full pl-14 pr-2 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="********" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                  <input type="password" name="new-password" autoComplete="new-password" required className="w-full pl-14 pr-2 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="********" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Confirm</label>
                 <div className="relative">
-                  <input type="password" required className="w-full pl-5 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="********" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
+                  <input type="password" name="confirm-password" autoComplete="new-password" required className="w-full pl-5 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="********" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
                 </div>
               </div>
             </div>
