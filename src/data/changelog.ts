@@ -21,6 +21,8 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'Fixed 404 page Go Back button not working when there is no in-site navigation history' },
       { type: 'improvement', description: 'Added BreadcrumbList JSON-LD structured data to blog posts, tutorials, and feature detail pages for rich search results' },
       { type: 'improvement', description: 'Added CollectionPage JSON-LD schema to the blog listing page' },
+      { type: 'fix', description: 'Fixed iOS Safari not showing Save Password prompt on login by adding hidden form submission fallback' },
+      { type: 'fix', description: 'Added missing autocomplete, name, and id attributes to registration form inputs for better password manager support' },
     ],
   },
   {

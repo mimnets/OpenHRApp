@@ -144,6 +144,45 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     }
   };
 
+  // Trigger iOS Safari "Save Password" by submitting form to a hidden iframe.
+  // Safari only prompts password save on actual form navigation, not JS-only logins.
+  const triggerSafariPasswordSave = () => {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.name = 'safari-password-save';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/save-password'; // does not need to exist — iframe absorbs the 404
+      form.target = 'safari-password-save';
+
+      const emailInput = document.createElement('input');
+      emailInput.type = 'email';
+      emailInput.name = 'email';
+      emailInput.autocomplete = 'username';
+      emailInput.value = email;
+      form.appendChild(emailInput);
+
+      const pwInput = document.createElement('input');
+      pwInput.type = 'password';
+      pwInput.name = 'password';
+      pwInput.autocomplete = 'current-password';
+      pwInput.value = password;
+      form.appendChild(pwInput);
+
+      document.body.appendChild(form);
+      form.submit();
+
+      // Clean up after Safari has processed the submission
+      setTimeout(() => {
+        form.remove();
+        iframe.remove();
+      }, 1000);
+    } catch (_) { /* Silently ignore */ }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConfigured) {
@@ -157,8 +196,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     try {
       const result = await hrService.login(email, password);
       if (result.user) {
-        // Trigger browser/OS "Save Password" prompt via Credential Management API
+        // Trigger browser "Save Password" prompt
         if (window.PasswordCredential) {
+          // Chrome, Edge, Android — Credential Management API
           try {
             const cred = new window.PasswordCredential({
               id: email,
@@ -167,6 +207,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
             });
             await navigator.credentials.store(cred);
           } catch (_) { /* Silently ignore if browser blocks it */ }
+        } else {
+          // iOS Safari — hidden form submission to trigger native password save
+          triggerSafariPasswordSave();
         }
         onLoginSuccess(result.user);
       } else {
@@ -197,16 +240,17 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
             <BrandLogo />
 
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-6" autoComplete="on">
+            <form onSubmit={handleLogin} className="space-y-6" autoComplete="on" method="post" action="#">
               <div className="space-y-5">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
                   <div className="relative group">
                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
                     <input
+                      id="login-email"
                       type="email"
                       name="email"
-                      autoComplete="email"
+                      autoComplete="username email"
                       required
                       className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300"
                       value={email}
@@ -221,6 +265,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                   <div className="relative group">
                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
                     <input
+                      id="login-password"
                       type={showPassword ? "text" : "password"}
                       name="password"
                       autoComplete="current-password"
