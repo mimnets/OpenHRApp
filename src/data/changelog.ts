@@ -14,6 +14,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-03-09',
+    title: 'Dynamic Sitemap Generation',
+    entries: [
+      { type: 'improvement', description: 'Sitemap now auto-generates at build time, including all blog posts and tutorials from PocketBase with lastmod dates' },
+    ],
+  },
+  {
     date: '2026-03-08',
     title: 'SEO & Clean URLs',
     entries: [
