@@ -45,30 +45,55 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
         tutorialData.excerpt || `Learn how to ${tutorialData.title.toLowerCase()} with OpenHR.`,
         `https://openhrapp.com/how-to-use/${slug}`
       );
+      // Build breadcrumb items
+      const breadcrumbItems: any[] = [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+        { '@type': 'ListItem', position: 2, name: 'Guides', item: 'https://openhrapp.com/how-to-use' },
+      ];
+      let pos = 3;
+      if (tutorialData.category) {
+        breadcrumbItems.push({ '@type': 'ListItem', position: pos++, name: tutorialData.category });
+      }
+      const parent = tutorialData.parentId
+        ? allData.tutorials.find(t => t.id === tutorialData.parentId)
+        : null;
+      if (parent) {
+        breadcrumbItems.push({ '@type': 'ListItem', position: pos++, name: parent.title, item: `https://openhrapp.com/how-to-use/${parent.slug}` });
+      }
+      breadcrumbItems.push({ '@type': 'ListItem', position: pos, name: tutorialData.title, item: `https://openhrapp.com/how-to-use/${slug}` });
+
       setJsonLd({
         '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: tutorialData.title,
-        description: tutorialData.excerpt || '',
-        image: tutorialData.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
-        datePublished: tutorialData.created,
-        dateModified: tutorialData.updated || tutorialData.created,
-        author: {
-          '@type': 'Person',
-          name: tutorialData.authorName || 'OpenHR Team',
-        },
-        publisher: {
-          '@type': 'Organization',
-          name: 'OpenHRApp',
-          logo: {
-            '@type': 'ImageObject',
-            url: 'https://openhrapp.com/img/logo.webp',
+        '@graph': [
+          {
+            '@type': 'Article',
+            headline: tutorialData.title,
+            description: tutorialData.excerpt || '',
+            image: tutorialData.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
+            datePublished: tutorialData.created,
+            dateModified: tutorialData.updated || tutorialData.created,
+            author: {
+              '@type': 'Person',
+              name: tutorialData.authorName || 'OpenHR Team',
+            },
+            publisher: {
+              '@type': 'Organization',
+              name: 'OpenHRApp',
+              logo: {
+                '@type': 'ImageObject',
+                url: 'https://openhrapp.com/img/logo.webp',
+              },
+            },
+            mainEntityOfPage: {
+              '@type': 'WebPage',
+              '@id': `https://openhrapp.com/how-to-use/${slug}`,
+            },
           },
-        },
-        mainEntityOfPage: {
-          '@type': 'WebPage',
-          '@id': `https://openhrapp.com/how-to-use/${slug}`,
-        },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: breadcrumbItems,
+          },
+        ],
       });
     } else {
       setNotFound(true);

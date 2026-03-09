@@ -69,28 +69,40 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
       );
       setJsonLd({
         '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: data.title,
-        description: data.excerpt || '',
-        image: data.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
-        datePublished: data.publishedAt || data.created,
-        dateModified: data.updated || data.publishedAt || data.created,
-        author: {
-          '@type': 'Person',
-          name: data.authorName || 'OpenHR Team',
-        },
-        publisher: {
-          '@type': 'Organization',
-          name: 'OpenHRApp',
-          logo: {
-            '@type': 'ImageObject',
-            url: 'https://openhrapp.com/img/logo.webp',
+        '@graph': [
+          {
+            '@type': 'Article',
+            headline: data.title,
+            description: data.excerpt || '',
+            image: data.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
+            datePublished: data.publishedAt || data.created,
+            dateModified: data.updated || data.publishedAt || data.created,
+            author: {
+              '@type': 'Person',
+              name: data.authorName || 'OpenHR Team',
+            },
+            publisher: {
+              '@type': 'Organization',
+              name: 'OpenHRApp',
+              logo: {
+                '@type': 'ImageObject',
+                url: 'https://openhrapp.com/img/logo.webp',
+              },
+            },
+            mainEntityOfPage: {
+              '@type': 'WebPage',
+              '@id': `https://openhrapp.com/blog/${slug}`,
+            },
           },
-        },
-        mainEntityOfPage: {
-          '@type': 'WebPage',
-          '@id': `https://openhrapp.com/blog/${slug}`,
-        },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://openhrapp.com/blog' },
+              { '@type': 'ListItem', position: 3, name: data.title, item: `https://openhrapp.com/blog/${slug}` },
+            ],
+          },
+        ],
       });
     } else {
       setNotFound(true);
