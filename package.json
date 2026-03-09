@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-sitemap.mjs",
+    "sitemap": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview",
     "cap:sync": "node -e \"require('fs').rmSync('dist/downloads',{recursive:true,force:true})\" && npx cap sync android",
     "cap:open": "npx cap open android"

@@ -14,6 +14,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-03-09',
+    title: 'Dynamic Sitemap Generation',
+    entries: [
+      { type: 'improvement', description: 'Sitemap now auto-generates at build time, including all blog posts and tutorials from PocketBase with lastmod dates' },
+      { type: 'fix', description: 'Fixed 404 page Go Back button not working when there is no in-site navigation history' },
+      { type: 'improvement', description: 'Added BreadcrumbList JSON-LD structured data to blog posts, tutorials, and feature detail pages for rich search results' },
+      { type: 'improvement', description: 'Added CollectionPage JSON-LD schema to the blog listing page' },
+    ],
+  },
+  {
     date: '2026-03-08',
     title: 'SEO & Clean URLs',
     entries: [

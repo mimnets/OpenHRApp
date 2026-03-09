@@ -406,15 +406,27 @@ const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack }) =
       );
       setJsonLd({
         '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: feature.title,
-        description: feature.metaDescription,
-        url: `https://openhrapp.com/features/${feature.slug}`,
-        isPartOf: {
-          '@type': 'WebSite',
-          name: 'OpenHRApp',
-          url: 'https://openhrapp.com',
-        },
+        '@graph': [
+          {
+            '@type': 'WebPage',
+            name: feature.title,
+            description: feature.metaDescription,
+            url: `https://openhrapp.com/features/${feature.slug}`,
+            isPartOf: {
+              '@type': 'WebSite',
+              name: 'OpenHRApp',
+              url: 'https://openhrapp.com',
+            },
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Features', item: 'https://openhrapp.com/features' },
+              { '@type': 'ListItem', position: 3, name: feature.title, item: `https://openhrapp.com/features/${feature.slug}` },
+            ],
+          },
+        ],
       });
     }
     return () => { setJsonLd(null); };

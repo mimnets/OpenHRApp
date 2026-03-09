@@ -6,7 +6,7 @@ import { PublicAdBanner } from '../components/ads';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
-import { navigateTo, updatePageMeta } from '../utils/seo';
+import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 
 const BlogCardSkeleton = () => (
   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-pulse">
@@ -42,6 +42,30 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
       'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
       'https://openhrapp.com/blog'
     );
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'CollectionPage',
+          name: 'OpenHR Blog',
+          description: 'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
+          url: 'https://openhrapp.com/blog',
+          isPartOf: {
+            '@type': 'WebSite',
+            name: 'OpenHRApp',
+            url: 'https://openhrapp.com',
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://openhrapp.com/blog' },
+          ],
+        },
+      ],
+    });
+    return () => { setJsonLd(null); };
   }, []);
 
   useEffect(() => {
