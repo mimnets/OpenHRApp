@@ -18,11 +18,38 @@ import {
   Hash,
   Building2,
   Users,
-  Key
+  Key,
+  FileSpreadsheet,
+  FileDown
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
+import { apiClient } from '../services/api.client';
 import { Employee, Team, User, Shift } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
+
+const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+};
+
+const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxSize / img.naturalWidth, maxSize / img.naturalHeight);
+      resolve({ w: img.naturalWidth * ratio, h: img.naturalHeight * ratio });
+    };
+    img.onerror = () => resolve({ w: maxSize, h: maxSize });
+    img.src = dataUrl;
+  });
 
 const DirectorySkeleton = () => (
   <div className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100 animate-pulse space-y-6">
@@ -68,6 +95,9 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   const [depts, setDepts] = useState<string[]>([]);
   const [desigs, setDesigs] = useState<string[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [orgInfo, setOrgInfo] = useState<{ name: string; address: string; logoDataUrl: string | null }>({ name: '', address: '', logoDataUrl: null });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -121,6 +151,19 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
         setDepts(departmentsList);
         setDesigs(designationsList);
         setShifts(shiftsList);
+
+        try {
+          const orgId = apiClient.getOrganizationId();
+          if (orgId && apiClient.pb) {
+            const org = await apiClient.pb.collection('organizations').getOne(orgId);
+            let logoDataUrl: string | null = null;
+            if (org.logo) {
+              const logoUrl = apiClient.pb!.files.getURL(org, org.logo);
+              logoDataUrl = await fetchImageAsDataUrl(logoUrl);
+            }
+            setOrgInfo({ name: org.name || '', address: org.address || '', logoDataUrl });
+          }
+        } catch (e) { console.warn("Failed to fetch org info for PDF header"); }
       }
     };
     loadInitialData();
@@ -283,6 +326,157 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     return `${shift.name} (${shift.startTime}-${shift.endTime})`;
   };
 
+  const downloadCSV = () => {
+    if (filtered.length === 0) return;
+    setIsGeneratingCSV(true);
+    try {
+      const headers = ['Employee ID', 'Name', 'Email', 'Department', 'Designation', 'Role', 'Team', 'Status', 'Employment Type', 'Joining Date', 'Mobile', 'Location', 'Work Type'];
+      const rows = filtered.map(emp => [
+        emp.employeeId || '',
+        emp.name || '',
+        emp.email || '',
+        emp.department || '',
+        emp.designation || '',
+        emp.role || '',
+        getTeamName(emp.teamId),
+        emp.status || '',
+        emp.employmentType || '',
+        emp.joiningDate || '',
+        emp.mobile || '',
+        emp.location || '',
+        emp.workType || ''
+      ]);
+
+      const escapeCSV = (val: string) => {
+        if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+          return `"${val.replace(/"/g, '""')}"`;
+        }
+        return val;
+      };
+
+      const csvContent = '\uFEFF' + [headers.map(escapeCSV).join(','), ...rows.map(row => row.map(escapeCSV).join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'OpenHR_Employee_Directory.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV generation failed:', err);
+    } finally {
+      setIsGeneratingCSV(false);
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (filtered.length === 0) return;
+    setIsGeneratingPDF(true);
+    try {
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      if (autoTableModule.applyPlugin) autoTableModule.applyPlugin(jsPDF);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // --- Header ---
+      let cursorY = 15;
+      const logoSize = 20;
+      let textStartX = 14;
+
+      if (orgInfo.logoDataUrl) {
+        try {
+          const logoDims = await getScaledLogoDims(orgInfo.logoDataUrl, logoSize);
+          doc.addImage(orgInfo.logoDataUrl, 'PNG', 14, cursorY - 5, logoDims.w, logoDims.h);
+          textStartX = 14 + logoDims.w + 6;
+        } catch { /* skip logo on error */ }
+      }
+
+      if (orgInfo.name) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(orgInfo.name, textStartX, cursorY + 2);
+      }
+      if (orgInfo.address) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(orgInfo.address, textStartX, cursorY + 9);
+      }
+
+      cursorY += Math.max(logoSize, 14) + 6;
+
+      // --- Title ---
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text(`Employee Directory (${filtered.length} employees)`, 14, cursorY);
+      cursorY += 8;
+
+      // --- Summary Stats ---
+      const activeCount = filtered.filter(e => e.status === 'ACTIVE').length;
+      const inactiveCount = filtered.filter(e => e.status !== 'ACTIVE').length;
+      const deptCounts: Record<string, number> = {};
+      filtered.forEach(e => { const d = e.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+      const deptSummary = Object.entries(deptCounts).map(([k, v]) => `${k}: ${v}`).join('    ');
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('Summary', 14, cursorY);
+      cursorY += 5;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Total: ${filtered.length}    Active: ${activeCount}    Inactive: ${inactiveCount}`, 14, cursorY);
+      cursorY += 4;
+      doc.text(deptSummary, 14, cursorY);
+      cursorY += 8;
+
+      // --- Table ---
+      const tableHeaders = ['ID', 'Name', 'Email', 'Department', 'Designation', 'Role', 'Team', 'Status', 'Type', 'Joining Date', 'Mobile', 'Location', 'Work Type'];
+      const tableRows = filtered.map(emp => [
+        emp.employeeId || '', emp.name || '', emp.email || '', emp.department || '',
+        emp.designation || '', emp.role || '', getTeamName(emp.teamId), emp.status || '',
+        emp.employmentType || '', emp.joiningDate || '', emp.mobile || '', emp.location || '', emp.workType || ''
+      ]);
+
+      (doc as any).autoTable({
+        startY: cursorY,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+        bodyStyles: { fontSize: 7, textColor: [30, 41, 59] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        styles: { cellPadding: 2, overflow: 'linebreak' },
+      });
+
+      // --- Footer ---
+      const totalPages = (doc as any).internal.getNumberOfPages();
+      const now = new Date().toLocaleString();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Generated by OpenHR on ${now}`, 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+      }
+
+      doc.save('OpenHR_Employee_Directory.pdf');
+    } catch (err: any) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF: ' + (err?.message || err));
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -296,6 +490,20 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
         </div>
         {isAdmin && (
           <div className="flex gap-2">
+            <button
+              onClick={downloadCSV}
+              disabled={filtered.length === 0 || isGeneratingCSV}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-sm transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingCSV ? <RefreshCw size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} CSV
+            </button>
+            <button
+              onClick={downloadPDF}
+              disabled={filtered.length === 0 || isGeneratingPDF}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-sm transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingPDF ? <RefreshCw size={14} className="animate-spin" /> : <FileDown size={14} />} PDF
+            </button>
             <button
               onClick={handleOpenAdd}
               disabled={!canWrite}
