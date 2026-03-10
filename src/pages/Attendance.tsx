@@ -140,6 +140,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
           <LocationDisplay
             location={location}
             isLocating={isLocating}
+            error={locationError}
             onRetry={() => detectLocation(true)}
           />
         </CameraFeed>
