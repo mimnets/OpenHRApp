@@ -1,15 +1,15 @@
-# OpenHR — Open Source HRMS for Growing Teams
+# [OpenHR — Open Source HRMS for Growing Teams](https://www.openhrapp.com/)
 
-**OpenHR** is a free, open-source Human Resource Management System (HRMS) built for mid-size organizations (100–500 employees). It delivers biometric attendance tracking, intelligent leave management, performance reviews, and organizational tools — all in a lightweight, privacy-first package.
+**[OpenHRApp](https://www.openhrapp.com/)** is [a free, open-source Human Resource Management System (HRMS)](https://www.openhrapp.com/) built for mid-size organizations (100–500 employees). It delivers biometric attendance tracking, intelligent leave management, performance reviews, and organizational tools — all in a lightweight, privacy-first package.
 
-> Looking for **free HR software** that's easy to self-host? OpenHR is a modern **open source HR management system** with zero infrastructure overhead.
+> Looking for **[free HR software](https://www.openhrapp.com/)** that's easy to self-host? [OpenHRApp](https://www.openhrapp.com/) is a modern **[open source HR management system](https://www.openhrapp.com/)** with zero infrastructure overhead.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/openhr/openhr/pulls)
 
 ---
 
-## Why OpenHR?
+## Why [OpenHRApp](https://www.openhrapp.com/)?
 
 Most open source HRMS tools are bloated, hard to deploy, or stuck in the past. OpenHR is different:
 
@@ -23,34 +23,34 @@ Most open source HRMS tools are bloated, hard to deploy, or stuck in the past. O
 
 ## Key Features
 
-### Attendance Tracking (Biometric + GPS)
+### [Attendance Tracking (Biometric + GPS)](https://www.openhrapp.com/features/attendance-tracking)
 - Selfie-verified clock in/out to prevent buddy punching
 - GPS geofencing to validate employee location
 - Office and factory/field duty types
 - Auto-close forgotten sessions at end of workday
 
-### Leave Management
+### [Leave Management](https://www.openhrapp.com/features/leave-management)
 - Multi-tier approval workflows (Employee → Manager → HR)
 - Real-time leave balance tracking (Annual, Sick, Casual, and custom types)
 - Configurable department-level approval routing
 - Automated email and in-app notifications at every step
 
-### Performance Reviews
+### [Performance Reviews](https://www.openhrapp.com/features/performance-reviews)
 - Configurable review cycles with competency-based ratings
 - Self-assessment → Manager review → HR finalization pipeline
 - Auto-calculated attendance and leave summaries per review period
 
-### Employee Directory & Organization Setup
+### [Employee Directory & Organization Setup](https://www.openhrapp.com/features/employee-directory)
 - Dynamic departments, designations, and team structures
 - Role-based access control (Admin, HR, Manager, Team Lead, Employee)
 - Centralized holiday calendar
 - Shift management with grace periods and auto-close rules
 
-### Announcements & Notifications
+### [Announcements & Notifications](https://www.openhrapp.com/features/gps-geofencing)
 - Organization-wide announcements with role targeting and expiry
 - Real-time notification bell + email alerts for leave, attendance, and review events
 
-### Reports & Analytics
+### [Reports & Analytics](https://www.openhrapp.com/features/reports-analytics)
 - Attendance summaries and leave reports
 - Exportable data for payroll integration
 
