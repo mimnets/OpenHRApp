@@ -21,6 +21,12 @@ export default defineConfig(({ mode }) => {
             cleanupOutdatedCaches: true,
             skipWaiting: true,
             clientsClaim: true,
+            navigateFallbackDenylist: [
+              /^\/sitemap\.xml$/,
+              /^\/robots\.txt$/,
+              /^\/manifest\.json$/,
+              /^\/downloads\//,
+            ],
           },
         }),
       ],

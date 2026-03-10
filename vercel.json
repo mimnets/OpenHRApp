@@ -9,6 +9,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!downloads/).*)", "destination": "/index.html" }
+    { "source": "/((?!downloads/|sitemap\\.xml|robots\\.txt|manifest\\.json).*)", "destination": "/index.html" }
   ]
 }
