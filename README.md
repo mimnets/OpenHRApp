@@ -1,139 +1,178 @@
-# OpenHR App - Comprehensive HR Management System
+# OpenHR — Open Source HRMS for Growing Teams
 
-OpenHR is a lightweight, open-source Human Resource Management System (HRMS) designed specifically for mid-size organizations (100–500 employees). It provides a high-security, privacy-first approach to attendance tracking, leave management, and organizational structure.
+**OpenHR** is a free, open-source Human Resource Management System (HRMS) built for mid-size organizations (100–500 employees). It delivers biometric attendance tracking, intelligent leave management, performance reviews, and organizational tools — all in a lightweight, privacy-first package.
 
-## 🚀 Core Functionalities
+> Looking for **free HR software** that's easy to self-host? OpenHR is a modern **open source HR management system** with zero infrastructure overhead.
 
-### 1. Attendance Audit (Biometric & GPS)
-*   **Selfie-Verified Punches**: Every "Clock In/Out" requires a real-time selfie to prevent buddy-punching.
-*   **GPS Geofencing**: Validates that the employee is at a designated office or factory location.
-*   **Dual Duty Types**: Supports standard **Office** shifts and **Factory/Field** duties with mandatory location remarks.
-*   **Auto-Cleanup**: System automatically closes "forgotten" sessions at the end of the workday based on company policy.
-
-### 2. Intelligent Leave Workflows
-*   **Multi-Tier Approvals**: Requests flow from Employee → Line Manager → HR for final documentation.
-*   **Real-time Balances**: Automated tracking of Annual, Sick, and Casual leave quotas.
-*   **Email Notifications**: Automated status updates sent via PocketBase JS Hooks.
-
-### 3. Scoped Management
-*   **Manager Oversight**: Managers can only see and audit the attendance/leaves of their *assigned team members* or *direct reports*.
-*   **HR/Admin Control**: Full organizational visibility, payroll reporting, and system configuration.
-
-### 4. Organization Setup
-*   **Dynamic Structure**: Manage Departments, Designations, and Management Teams.
-*   **Holiday Calendar**: Centralized calendar for national and festival holidays.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/openhr/openhr/pulls)
 
 ---
 
-## 🛠 Technology Stack
+## Why OpenHR?
 
-*   **Frontend**: React 19 (Modern Hooks & Functional Components)
-*   **Styling**: Tailwind CSS (Mobile-first, Responsive Design)
-*   **Icons**: Lucide React
-*   **Backend**: PocketBase (Go-based, Single-file Database & Auth)
-*   **PWA**: Service Worker support for "Install to Home Screen" capability on iOS and Android.
+Most open source HRMS tools are bloated, hard to deploy, or stuck in the past. OpenHR is different:
 
----
-
-## 📦 PocketBase Configuration (Backend Setup)
-
-To run OpenHR, you must configure your PocketBase instance with the following collections and rules.
-
-### 1. `users` (System Collection)
-Add these custom fields to the default system collection:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `role` | Select | `ADMIN`, `HR`, `MANAGER`, `EMPLOYEE` |
-| `department` | Text | Employee's department |
-| `designation` | Text | Professional title |
-| `employee_id` | Text | Unique company ID (e.g. EMP-001) |
-| `line_manager_id` | Relation | Target: `users` (Single) |
-| `team_id` | Text | ID of the assigned team |
-| `avatar` | File | Profile picture |
-
-**API Rules:**
-*   **List/View:** `@request.auth.id != ""` (Logged in users)
-*   **Update:** `id = @request.auth.id || @request.auth.role = "ADMIN" || @request.auth.role = "HR"`
-
-### 2. `attendance`
-| Field | Type | Description |
-|-------|------|-------------|
-| `employee_id` | Relation | Target: `users` |
-| `employee_name` | Text | Display name |
-| `date` | Text | YYYY-MM-DD |
-| `check_in` | Text | HH:mm |
-| `check_out` | Text | HH:mm |
-| `status` | Text | PRESENT, LATE, ABSENT, etc. |
-| `location` | Text | Address string |
-| `latitude` | Number | GPS Latitude |
-| `longitude` | Number | GPS Longitude |
-| `selfie` | File | Verified Image |
-| `duty_type` | Text | OFFICE, FACTORY |
-
-**API Rules:**
-*   **List/View:** `@request.auth.id = employee_id || @request.auth.role != "EMPLOYEE"`
-*   **Create:** `@request.auth.id != ""`
-
-### 3. `leaves`
-| Field | Type | Description |
-|-------|------|-------------|
-| `employee_id` | Relation | Target: `users` |
-| `line_manager_id` | Relation | Target: `users` |
-| `type` | Text | ANNUAL, SICK, CASUAL |
-| `status` | Text | PENDING_MANAGER, PENDING_HR, APPROVED |
-| `total_days` | Number | Duration |
-
-**API Rules:**
-*   **List/View:** `@request.auth.id = employee_id || @request.auth.role != "EMPLOYEE"`
-*   **Update:** `@request.auth.id != ""`
-
-### 4. `teams`
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | Text | Team Name |
-| `leader_id` | Relation | Target: `users` |
-| `department` | Text | Associated Dept |
-
-**API Rules:**
-*   **List/View:** `@request.auth.id != ""`
-*   **Create/Update:** `@request.auth.role = "ADMIN" || @request.auth.role = "HR"`
-
-### 5. `settings`
-| Field | Type | Description |
-|-------|------|-------------|
-| `key` | Text | Config key (unique) |
-| `value` | JSON | Config values |
-
-**API Rules:**
-*   **List/View:** `@request.auth.id != ""`
-*   **Write:** `@request.auth.role = "ADMIN"`
-
-### 6. `reports_queue` (Email Automation)
-*   **Status Field**: Set default to `PENDING`.
-*   **Rules**: Locked (No Public/User access).
+- **Single-file backend** — PocketBase means no database clusters, no Docker compose files, no DevOps headaches
+- **Modern stack** — React 19 + Tailwind CSS + TypeScript, not a legacy PHP monolith
+- **Mobile-ready** — PWA with install-to-homescreen support + native Android APK via Capacitor
+- **Privacy-first** — Self-hosted, your employee data never leaves your server
+- **Multi-tenant** — One instance can serve multiple organizations with full data isolation
 
 ---
 
-## ⚙️ Setup & Connection
+## Key Features
 
-1.  **Download PocketBase**: Get the latest binary from [pocketbase.io](https://pocketbase.io).
-2.  **Start Server**: Run `./pocketbase serve`.
-3.  **Deploy Hooks**: Place `main.pb.js` into the `pb_hooks/` folder to enable email notifications.
-4.  **Configure App**:
-    *   Open the OpenHR App.
-    *   Navigate to the **Setup** screen (usually auto-redirects on first boot).
-    *   Enter your PocketBase URL (e.g., `https://your-pb-instance.com`).
-5.  **Provision Admin**:
-    *   Manually create the first user in the PocketBase Admin UI.
-    *   Set their `role` to `ADMIN`.
-    *   Log in to the app to start building your organization.
+### Attendance Tracking (Biometric + GPS)
+- Selfie-verified clock in/out to prevent buddy punching
+- GPS geofencing to validate employee location
+- Office and factory/field duty types
+- Auto-close forgotten sessions at end of workday
 
-## 🌟 Benefits for Small Organizations
-*   **Zero Infrastructure**: PocketBase is a single file; no complex SQL clusters needed.
-*   **Compliance Ready**: Pre-configured for local labor laws regarding late grace periods and holiday tracking.
-*   **Mobile Workforce**: Native-feeling PWA allows factory workers to punch in from their own devices securely.
-*   **Audit-Ready**: Maintains a permanent trail of GPS and selfie data for every attendance record.
+### Leave Management
+- Multi-tier approval workflows (Employee → Manager → HR)
+- Real-time leave balance tracking (Annual, Sick, Casual, and custom types)
+- Configurable department-level approval routing
+- Automated email and in-app notifications at every step
+
+### Performance Reviews
+- Configurable review cycles with competency-based ratings
+- Self-assessment → Manager review → HR finalization pipeline
+- Auto-calculated attendance and leave summaries per review period
+
+### Employee Directory & Organization Setup
+- Dynamic departments, designations, and team structures
+- Role-based access control (Admin, HR, Manager, Team Lead, Employee)
+- Centralized holiday calendar
+- Shift management with grace periods and auto-close rules
+
+### Announcements & Notifications
+- Organization-wide announcements with role targeting and expiry
+- Real-time notification bell + email alerts for leave, attendance, and review events
+
+### Reports & Analytics
+- Attendance summaries and leave reports
+- Exportable data for payroll integration
 
 ---
-*Developed for OpenHR Solutions.*
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Tailwind CSS |
+| Backend | [PocketBase](https://pocketbase.io) (Go-based, single-file DB + auth) |
+| Mobile | PWA + Capacitor v8 (Android APK) |
+| Icons | Lucide React |
+| Deployment | Vercel (frontend), any VPS (PocketBase) |
+
+---
+
+## Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/openhr/openhr.git
+cd openhr
+npm install
+```
+
+### 2. Set Up PocketBase
+
+1. Download PocketBase from [pocketbase.io](https://pocketbase.io)
+2. Start the server: `./pocketbase serve`
+3. Copy all `.pb.js` files from `Others/pb_hooks/` into PocketBase's `pb_hooks/` folder
+
+### 3. Run the App
+
+```bash
+npm run dev
+```
+
+Open the app and enter your PocketBase URL on the setup screen. Create your first Admin user in the PocketBase admin UI, then log in.
+
+### Android Build (Optional)
+
+```bash
+npm run build
+npx cap sync android
+npx cap run android
+```
+
+---
+
+## Architecture
+
+```
+React 19 (PWA + Capacitor)
+    ↓
+Custom Hooks → hrService (facade) → Domain Services → PocketBase SDK
+    ↓
+PocketBase (Go binary — single file, SQLite-based)
+    ↓
+pb_hooks/ (server-side JS — email, cron, workflows)
+```
+
+- **No React Router** — state-based routing for simplicity
+- **Context + Event Bus** for state management (no Redux)
+- **Multi-tenant** — every query scoped by `organization_id`
+- **WebP auto-conversion** for all uploaded images
+
+---
+
+## PocketBase Collections
+
+OpenHR uses these PocketBase collections:
+
+| Collection | Purpose |
+|-----------|---------|
+| `users` | Employee accounts with role, department, designation |
+| `organizations` | Multi-tenant org records with subscription status |
+| `attendance` | Daily attendance with GPS, selfie, and duty type |
+| `leaves` | Leave requests with multi-tier approval status |
+| `shifts` | Shift definitions with grace periods |
+| `teams` | Team records with leader assignments |
+| `settings` | Key-value org configuration |
+| `announcements` | Org announcements with role targeting |
+| `notifications` | User notification records |
+| `review_cycles` | Performance review cycle definitions |
+| `performance_reviews` | Individual review records |
+| `reports_queue` | Email automation queue |
+
+See `Others/CLAUDE.md` for full collection schemas and API rules.
+
+---
+
+## Role-Based Access
+
+| Role | Access Level |
+|------|-------------|
+| Admin | Full organization visibility and configuration |
+| HR | Full employee data, leave approvals, review finalization |
+| Manager | Team members' attendance, leave, and reviews |
+| Team Lead | Direct reports only |
+| Employee | Own data only |
+
+---
+
+## Contributing
+
+We welcome contributions! Whether it's bug fixes, new features, or documentation improvements:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
+
+## License
+
+OpenHR is open source software licensed under the [MIT License](LICENSE).
+
+---
+
+## Keywords
+
+`open source HRMS` · `free HR software` · `human resource management system` · `open source attendance tracking` · `leave management system` · `employee management software` · `self-hosted HR tool` · `PocketBase HRMS` · `React HR application` · `open source people management` · `free attendance system` · `performance review software` · `open source employee directory`
