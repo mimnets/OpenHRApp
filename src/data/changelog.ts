@@ -25,6 +25,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'feature', description: 'Added "How to Enable Location" help guide accessible from the attendance screen when location fails' },
       { type: 'improvement', description: 'Added prominent Retry and Help buttons when location detection fails instead of relying on a tiny tappable label' },
       { type: 'fix', description: 'Fixed location help guide close button not working due to pointer-events inheritance from camera overlay' },
+      { type: 'fix', description: 'Fixed sitemap.xml intermittently returning 404 — PWA service worker was intercepting navigation requests and serving index.html instead of the actual XML file' },
     ],
   },
   {
