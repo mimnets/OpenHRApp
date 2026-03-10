@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MapPin, RefreshCw, AlertTriangle, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
@@ -141,7 +142,10 @@ export const LocationDisplay: React.FC<Props> = ({ location, isLocating, error, 
         </div>
       </div>
 
-      {showHelp && <LocationHelpGuide onClose={() => setShowHelp(false)} />}
+      {showHelp && createPortal(
+        <LocationHelpGuide onClose={() => setShowHelp(false)} />,
+        document.body
+      )}
     </>
   );
 };

@@ -24,6 +24,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'Added PWA-specific guidance for enabling location on Android Chrome, iOS Safari, and desktop browsers' },
       { type: 'feature', description: 'Added "How to Enable Location" help guide accessible from the attendance screen when location fails' },
       { type: 'improvement', description: 'Added prominent Retry and Help buttons when location detection fails instead of relying on a tiny tappable label' },
+      { type: 'fix', description: 'Fixed location help guide close button not working due to pointer-events inheritance from camera overlay' },
     ],
   },
   {
