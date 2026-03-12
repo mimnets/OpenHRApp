@@ -173,6 +173,139 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
 });
 
 /* ============================================================
+   AUTO-CLOSE OPEN SESSIONS
+   Job ID: "auto_close_sessions"
+   Schedule: "* * * * *" (Every minute)
+   Purpose: Close attendance sessions that remain open past
+            the configured autoSessionCloseTime.
+   ============================================================ */
+cronAdd("auto_close_sessions", "* * * * *", () => {
+    try {
+        // 1. Get current time
+        const now = new Date();
+        const h = ("0" + now.getHours()).slice(-2);
+        const m = ("0" + now.getMinutes()).slice(-2);
+        const currentTimeStr = h + ":" + m;
+
+        const year = now.getFullYear();
+        const month = ("0" + (now.getMonth() + 1)).slice(-2);
+        const day = ("0" + now.getDate()).slice(-2);
+        const todayStr = year + "-" + month + "-" + day;
+
+        // 2. Find all open sessions (check_out is empty) for today and past dates
+        let openSessions = [];
+        try {
+            openSessions = $app.findRecordsByFilter(
+                "attendance",
+                "check_out = '' && status != 'ABSENT'",
+                {},
+                "-date",
+                500,
+                0
+            );
+        } catch (findErr) {
+            // No open sessions found
+            return;
+        }
+
+        if (openSessions.length === 0) return;
+
+        let closedCount = 0;
+
+        for (let i = 0; i < openSessions.length; i++) {
+            const session = openSessions[i];
+            const sessionDate = session.getString("date");
+            const empId = session.getString("employee_id");
+            const empName = session.getString("employee_name");
+            const orgId = session.getString("organization_id");
+
+            // 3. Resolve auto-close time for this session's organization
+            let autoCloseTime = "23:59"; // fallback
+
+            // Check employee's shift first
+            try {
+                const emp = $app.findRecordById("users", empId);
+                const shiftId = emp.getString("shift_id");
+                if (shiftId) {
+                    try {
+                        const shift = $app.findRecordById("shifts", shiftId);
+                        const shiftClose = shift.getString("auto_session_close_time");
+                        if (shiftClose) autoCloseTime = shiftClose;
+                    } catch (e) { /* shift not found */ }
+                }
+            } catch (e) { /* employee not found */ }
+
+            // If no shift-level close time, check org config
+            if (autoCloseTime === "23:59") {
+                try {
+                    const configRecord = $app.findFirstRecordByFilter(
+                        "settings",
+                        "key = 'app_config' && organization_id = {:orgId}",
+                        { orgId: orgId }
+                    );
+                    const config = configRecord.get("value");
+                    if (config && config.autoSessionCloseTime) {
+                        autoCloseTime = config.autoSessionCloseTime;
+                    }
+                } catch (e) { /* no config found, use fallback */ }
+            }
+
+            // 4. Determine if session should be closed
+            let shouldClose = false;
+            let closeRemark = "";
+
+            if (sessionDate < todayStr) {
+                // Past-date session: close immediately
+                shouldClose = true;
+                closeRemark = " [System: Auto-Closed Past Date]";
+            } else if (sessionDate === todayStr && currentTimeStr >= autoCloseTime) {
+                // Today's session past auto-close time
+                shouldClose = true;
+                closeRemark = " [System: Max Time Reached]";
+            }
+
+            if (shouldClose) {
+                try {
+                    const existingRemarks = session.getString("remarks") || "";
+                    session.set("check_out", autoCloseTime);
+                    session.set("remarks", existingRemarks + closeRemark);
+                    $app.save(session);
+                    closedCount++;
+                    console.log("[CRON] Auto-closed session for " + empName + " (date: " + sessionDate + ", close time: " + autoCloseTime + ")");
+
+                    // Send notification to employee
+                    try {
+                        const notifCollection = $app.findCollectionByNameOrId("notifications");
+                        const notifRecord = new Record(notifCollection);
+                        notifRecord.set("user_id", empId);
+                        notifRecord.set("organization_id", orgId);
+                        notifRecord.set("type", "ATTENDANCE");
+                        notifRecord.set("title", "Your session was auto-closed");
+                        notifRecord.set("message", sessionDate < todayStr
+                            ? "Check-out was missing for " + sessionDate + ". Session closed at " + autoCloseTime + "."
+                            : "Max time reached. Session closed at " + autoCloseTime + ".");
+                        notifRecord.set("is_read", false);
+                        notifRecord.set("priority", "NORMAL");
+                        notifRecord.set("action_url", "attendance-logs");
+                        $app.save(notifRecord);
+                    } catch (notifErr) {
+                        console.log("[CRON] Failed to create auto-close notification: " + notifErr.toString());
+                    }
+                } catch (saveErr) {
+                    console.log("[CRON] Failed to auto-close session for " + empName + ": " + saveErr.toString());
+                }
+            }
+        }
+
+        if (closedCount > 0) {
+            console.log("[CRON] Auto-closed " + closedCount + " session(s)");
+        }
+    } catch (e) {
+        console.error("[CRON] Error in auto-close sessions: " + e.toString());
+    }
+});
+
+/* ============================================================
    AUTO-ABSENT AUTOMATION (Minute Watcher)
    Job ID: "auto_absent_check"
    Schedule: "* * * * *" (Every minute)
