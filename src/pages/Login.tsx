@@ -4,6 +4,7 @@ declare global {
     PasswordCredential: typeof PasswordCredential;
     AndroidAutofill?: {
       commitAutofill: () => void;
+      requestAutofill: () => void;
     };
   }
   interface PasswordCredentialData {
@@ -94,6 +95,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     const handlePwaReady = () => setCanPrompt(true);
     window.addEventListener('pwa-install-available', handlePwaReady);
 
+    // Android APK: explicitly request autofill suggestions when login page loads.
+    // This prompts Google Password Manager / Samsung Pass to show the fill UI
+    // for any previously saved credentials.
+    if (window.AndroidAutofill?.requestAutofill) {
+      try { window.AndroidAutofill.requestAutofill(); } catch (_) {}
+    }
+
     return () => window.removeEventListener('pwa-install-available', handlePwaReady);
   }, []);
 
@@ -149,17 +157,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
   // Trigger iOS Safari "Save Password" by submitting form to a hidden iframe.
   // Safari only prompts password save on actual form navigation, not JS-only logins.
+  // For iOS PWA standalone mode, we must ensure the form is painted (visible in DOM
+  // for at least one animation frame) before submission, otherwise WKWebView skips
+  // the credential save detection.
   const triggerSafariPasswordSave = () => {
     try {
       const iframe = document.createElement('iframe');
       iframe.name = 'safari-password-save';
-      iframe.style.display = 'none';
+      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
       document.body.appendChild(iframe);
 
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = '/save-password'; // does not need to exist — iframe absorbs the 404
       form.target = 'safari-password-save';
+      form.autocomplete = 'on';
 
       const emailInput = document.createElement('input');
       emailInput.type = 'email';
@@ -176,13 +188,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
       form.appendChild(pwInput);
 
       document.body.appendChild(form);
-      form.submit();
 
-      // Clean up after Safari has processed the submission
-      setTimeout(() => {
-        form.remove();
-        iframe.remove();
-      }, 1000);
+      // iOS PWA standalone: WKWebView needs the form to be present in the
+      // rendered DOM for at least one frame before it detects the credentials.
+      // Using requestAnimationFrame ensures the browser has painted the form.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          form.submit();
+          // Clean up after Safari has processed the submission
+          setTimeout(() => {
+            form.remove();
+            iframe.remove();
+          }, 2000);
+        });
+      });
     } catch (_) { /* Silently ignore */ }
   };
 
@@ -259,7 +278,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
             <form onSubmit={handleLogin} className="space-y-6" autoComplete="on" method="post" action="#">
               <div className="space-y-5">
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
+                  <label htmlFor="login-email" className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
                   <div className="relative group">
                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
                     <input
@@ -277,7 +296,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Security Credentials</label>
+                  <label htmlFor="login-password" className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Security Credentials</label>
                   <div className="relative group">
                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
                     <input

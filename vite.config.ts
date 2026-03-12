@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => {
               /^\/robots\.txt$/,
               /^\/manifest\.json$/,
               /^\/downloads\//,
+              /^\/\.well-known\//,
+              /^\/save-password/,
             ],
           },
         }),
