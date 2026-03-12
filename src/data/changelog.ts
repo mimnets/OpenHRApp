@@ -14,6 +14,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-03-12',
+    title: 'Server-Side Auto-Close for Attendance Sessions',
+    entries: [
+      { type: 'fix', description: 'Fixed attendance sessions not auto-closing at the configured time — previously auto-close only triggered when the employee opened the app, not on a schedule' },
+      { type: 'feature', description: 'Added server-side cron job that runs every minute to auto-close open attendance sessions past the configured autoSessionCloseTime' },
+      { type: 'improvement', description: 'Auto-close now sends bell notifications to employees when their session is force-closed by the system' },
+    ],
+  },
+  {
     date: '2026-03-10',
     title: 'Location Detection Fixes for PWA & Chrome',
     entries: [
