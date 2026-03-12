@@ -2,7 +2,7 @@
 
 > Use this as a reference to create tutorials in the Guides section of OpenHR.
 > Each section below is a suggested tutorial. Copy, modify, and paste the content into the admin panel (SuperAdmin > Tutorials tab).
-> Recommended categories: **Getting Started**, **Attendance**, **Leave**, **Employees**, **Organization**, **Reports**, **Settings**
+> Recommended categories: **Getting Started**, **Attendance**, **Leave**, **Employees**, **Organization**, **Reports**, **Settings**, **Performance Reviews**, **Announcements**
 
 ---
 
@@ -636,6 +636,13 @@ Use the search bar at the top to find employees by:
 
 Results update in real-time with a 300ms delay for smooth searching.
 
+#### Exporting Employee Data
+
+Admins can export the employee directory in two formats:
+
+- **CSV** — Download a spreadsheet with employee IDs, names, departments, roles, and contact details. Ideal for data analysis.
+- **PDF** — Generate a branded document with your organization's logo, employee summary statistics, and a complete employee listing. Ideal for sharing with stakeholders.
+
 #### Deleting an Employee
 
 Click **"Delete"** on an employee card. A confirmation dialog will appear — **this action is permanent** and removes:
@@ -673,7 +680,7 @@ Click **"Delete"** on an employee card. A confirmation dialog will appear — **
 
 Organization Settings is where Admins configure the structure and policies of their company. Access it from the sidebar by clicking **"Organization."**
 
-The settings page has 8 tabs:
+The settings page has 9 tabs:
 
 #### 1. Structure — Departments and Designations
 
@@ -780,9 +787,18 @@ Holidays are:
 - Excluded from absence reports (employees aren't marked absent on holidays)
 - Displayed on the holiday calendar
 
-#### 8. System
+#### 8. Notifications
 
-Configure application-level settings like your company name and other global preferences.
+Configure how notifications are handled in your organization:
+
+- **Enabled Notification Types** — Choose which events trigger bell and email notifications (Leave, Attendance, Review, Announcement, System).
+- **Digest Frequency** — Set how often notification digests are sent (Immediate or batched).
+- **Quiet Hours** — Optionally disable notifications during off-hours.
+- **Retention** — Notifications are automatically cleaned up after 30 days.
+
+#### 9. System
+
+Configure application-level settings like your company name, office/factory labels, and other global preferences.
 
 ---
 
@@ -933,7 +949,13 @@ Click **"Save"** after making changes.
 
 #### Theme Selection
 
-Customize the app's appearance using the Theme Selector. Choose from available color themes to personalize your experience.
+Customize the app's appearance using the Theme Selector:
+
+- Choose from **14 color themes** to change the app's accent color across all pages.
+- Switch between **Light Mode**, **Dark Mode**, or **System** (follows your device preference).
+- Your theme preference is saved to your profile and persists across devices.
+
+See the [Theme Customization](#) tutorial for more details.
 
 #### Contact Support
 
@@ -1090,25 +1112,707 @@ Once installed, OpenHR behaves like any other app on your device:
 
 ---
 
+## Category: Performance Reviews
+
+---
+
+### Tutorial 15: Performance Reviews — Employee Self-Assessment
+
+**Slug:** `performance-review-self-assessment`
+**Category:** Performance Reviews
+**Display Order:** 1
+**Parent:** None (Top-level)
+**Excerpt:** How to complete your self-assessment during a performance review cycle, rate your competencies, and submit for manager review.
+
+---
+
+**Content:**
+
+OpenHR includes a built-in performance review system that guides employees, managers, and HR through a structured review process each cycle.
+
+#### How Performance Reviews Work
+
+The review process has three stages:
+
+1. **Self-Assessment** — You rate yourself on each competency and add comments.
+2. **Manager Review** — Your manager reviews your self-assessment, adds their own ratings, and provides feedback.
+3. **HR Calibration** — HR reviews the final assessment, adds overall remarks, and completes the review.
+
+#### Checking for Active Review Cycles
+
+Navigate to **Performance** from the sidebar menu. You'll see one of the following:
+
+- **Active Cycle** — A review cycle is currently open. You'll see the cycle name, date range, and your review status.
+- **Upcoming Cycle** — A cycle is scheduled but hasn't started yet. You'll see when it opens.
+- **No Active Cycle** — No reviews are currently in progress. Check back later.
+
+#### Completing Your Self-Assessment
+
+When a review cycle is active:
+
+1. You'll see a list of **competencies** configured by your organization (e.g., Agility, Collaboration, Customer Focus, Innovation Mindset).
+2. For each competency, select a **rating** on the configured scale (typically 1–5):
+   - 1 — Needs Improvement
+   - 2 — Below Expectations
+   - 3 — Meets Expectations
+   - 4 — Exceeds Expectations
+   - 5 — Outstanding
+3. Add a **comment** for each competency explaining why you chose that rating. Be specific — mention projects, achievements, or areas for growth.
+4. Review the auto-generated **Attendance Summary** and **Leave Summary** cards. These are calculated from your records during the review period and are included for reference.
+
+#### Submitting Your Self-Assessment
+
+Once you've rated all competencies and added your comments:
+
+1. Click **"Submit Self-Assessment"**.
+2. Your review status changes from **DRAFT** to **SELF_REVIEW_SUBMITTED**.
+3. Your manager is notified (via email and bell notification) that your review is ready for their input.
+
+**Important:** Once submitted, you cannot edit your self-assessment. Make sure everything is accurate before submitting.
+
+#### Viewing Manager Feedback
+
+After your manager completes their review:
+
+- Your status changes to **MANAGER_REVIEWED**.
+- You can see your manager's ratings and comments alongside your own self-assessment.
+- The review is then forwarded to HR for final calibration.
+
+#### Review Completion
+
+When HR completes the review:
+
+- Your status changes to **COMPLETED**.
+- You can see the final overall rating and HR remarks.
+- The completed review is archived in your **Past Reviews** section.
+
+#### Downloading Your Review as PDF
+
+Once a review is completed, you can download it as a PDF:
+
+1. Go to your **Past Reviews** section.
+2. Click the **Download** icon next to any completed review.
+3. The PDF includes your organization's branding, all competency ratings (self and manager), attendance/leave summaries, and final HR remarks.
+
+#### Past Reviews
+
+Click **"View Past Reviews"** to expand your review history. Each past review shows:
+
+- Cycle name and date range
+- Your final overall rating
+- Status badge (COMPLETED, MANAGER_REVIEWED, etc.)
+- Option to expand and view full details
+- Download as PDF
+
+---
+
+### Tutorial 16: Performance Reviews — For Managers
+
+**Slug:** `performance-review-for-managers`
+**Category:** Performance Reviews
+**Display Order:** 2
+**Parent:** Performance Reviews — Employee Self-Assessment
+**Excerpt:** How to review your direct reports' self-assessments, provide ratings and feedback, and forward to HR.
+
+---
+
+**Content:**
+
+As a Manager, you play a critical role in the performance review process. After your direct reports submit their self-assessments, it's your turn to evaluate them.
+
+#### Accessing Pending Reviews
+
+Navigate to **Performance** from the sidebar. In the **Manager Review** section, you'll see:
+
+- A list of your direct reports who have submitted their self-assessments (status: **SELF_REVIEW_SUBMITTED**).
+- Each card shows the employee's name, department, and current review status.
+
+#### Reviewing an Employee
+
+Click on an employee's review card to open the review form:
+
+1. **View Self-Assessment** — See the employee's self-ratings and comments for each competency.
+2. **Attendance & Leave Summary** — Review the employee's attendance record and leave usage during the review period.
+3. **Add Your Ratings** — For each competency, provide your own rating (1–5) and comments. Consider:
+   - How the employee's work aligns with each competency
+   - Specific examples of strengths or improvement areas
+   - Whether the employee's self-assessment is accurate
+4. **Overall Comments** — Add any general feedback about the employee's performance.
+
+#### Submitting Your Review
+
+Once you've completed all ratings:
+
+1. Click **"Submit Manager Review"**.
+2. The review status changes to **MANAGER_REVIEWED**.
+3. HR is notified that the review is ready for final calibration.
+4. The employee can now see your feedback alongside their self-assessment.
+
+#### Tips for Effective Reviews
+
+- Be **specific** — reference actual projects, deliverables, or incidents.
+- Be **balanced** — acknowledge strengths while constructively addressing areas for improvement.
+- Be **fair** — base ratings on observable performance, not personal preferences.
+- Complete reviews **promptly** — you'll receive deadline reminders at 3 days and 1 day before the cycle closes.
+
+---
+
+### Tutorial 17: Performance Reviews — HR Calibration
+
+**Slug:** `performance-review-hr-calibration`
+**Category:** Performance Reviews
+**Display Order:** 3
+**Parent:** Performance Reviews — Employee Self-Assessment
+**Excerpt:** How HR calibrates performance reviews, assigns final ratings, and completes the review cycle.
+
+---
+
+**Content:**
+
+HR has the final say in the performance review process. After managers submit their reviews, HR calibrates the results and completes the cycle.
+
+#### Accessing Reviews for Calibration
+
+Navigate to **Performance** from the sidebar. In the **HR Calibration** section, you'll see reviews with status **MANAGER_REVIEWED** that are waiting for your input.
+
+#### Calibrating a Review
+
+Open a review to see:
+
+1. **Employee's Self-Assessment** — Their self-ratings and comments.
+2. **Manager's Review** — The manager's ratings and feedback.
+3. **Attendance & Leave Summary** — Objective data about the employee's presence and leave usage.
+
+#### Completing the Review
+
+1. Review both self-assessment and manager ratings side by side.
+2. Add **HR Final Remarks** — Your overall assessment and any calibration notes.
+3. Assign an **Overall Rating** — The final performance rating for this employee.
+4. Click **"Complete Review"** to finalize.
+
+The review status changes to **COMPLETED**, and both the employee and manager are notified.
+
+#### Managing Review Cycles (Admin)
+
+Admins can manage review cycles from the Performance page:
+
+- **Create Cycle** — Set up a new review cycle with name, type (Quarterly, Mid-Year, Annual), start/end dates, and review window dates.
+- **Configure Competencies** — Choose which competencies to include in the cycle.
+- **Activate/Deactivate** — Control when the cycle is open for submissions.
+- **View Progress** — Track how many employees have completed each stage.
+
+---
+
+---
+
+## Category: Announcements
+
+---
+
+### Tutorial 18: Announcements — Viewing and Creating
+
+**Slug:** `announcements-guide`
+**Category:** Announcements
+**Display Order:** 1
+**Parent:** None (Top-level)
+**Excerpt:** How to view organization announcements and how Admins can create, edit, and manage them.
+
+---
+
+**Content:**
+
+Announcements in OpenHR let admins and HR communicate important information to the entire organization or specific groups.
+
+#### Viewing Announcements
+
+Navigate to **Announcements** from the sidebar menu. You'll see a list of active announcements with:
+
+- **Title** — The announcement headline
+- **Content** — Full message text
+- **Priority Badge** — NORMAL (default) or URGENT (highlighted for attention)
+- **Author** — Who posted the announcement
+- **Date** — When it was posted
+- **Expiry** — When the announcement will be automatically hidden (if set)
+
+**Urgent announcements** always appear at the top of the list and are visually highlighted so they stand out.
+
+Announcements also appear as a widget on your **Dashboard** so you stay informed without having to navigate to the announcements page.
+
+#### Creating Announcements (Admin/HR)
+
+If you're an Admin or HR user:
+
+1. Click the **"Create Announcement"** button.
+2. Fill in the form:
+   - **Title** — A clear, concise headline (required).
+   - **Content** — The full announcement message (required).
+   - **Priority** — Choose NORMAL or URGENT. Urgent announcements are highlighted and appear first.
+   - **Target Roles** — Select which roles should see this announcement (Admin, HR, Manager, Team Lead, Employee). Leave empty to show to everyone.
+   - **Expiry Date** — Optional. The announcement will automatically hide after this date.
+3. Click **"Save"** to publish.
+
+All targeted employees receive a **bell notification** when a new announcement is posted.
+
+#### Editing and Deleting Announcements
+
+- Click the **edit** icon on any announcement to update its title, content, priority, target audience, or expiry.
+- Click the **delete** icon to permanently remove an announcement. A confirmation dialog is shown before deletion.
+
+#### Tips
+
+- Use **URGENT** priority sparingly — reserve it for critical updates like policy changes, emergency notices, or system downtime.
+- Set **expiry dates** for time-sensitive announcements (e.g., event reminders, holiday notices) so old content doesn't clutter the page.
+- Use **role targeting** to avoid sending irrelevant announcements to the entire organization.
+
+---
+
+---
+
+## Category: Settings
+
+---
+
+### Tutorial 19: Notifications — Bell Notifications and Admin Management
+
+**Slug:** `notifications-guide`
+**Category:** Settings
+**Display Order:** 2
+**Parent:** Managing Your Profile and Settings
+**Excerpt:** How bell notifications work, what triggers them, and how admins can send and manage notifications.
+
+---
+
+**Content:**
+
+OpenHR has a built-in notification system that keeps you informed about important events via bell notifications and email.
+
+#### The Notification Bell
+
+You'll see a **bell icon** in the top header bar. A red badge shows your **unread notification count**.
+
+Click the bell to see your recent notifications. Each notification shows:
+
+- **Type icon** — Color-coded by category (Leave, Attendance, Announcement, Review, System)
+- **Title** — A brief description of the event
+- **Message** — Details about what happened
+- **Timestamp** — When the notification was created
+- **Read/Unread status** — Unread notifications are highlighted
+
+Notifications are automatically **marked as read** when you view them.
+
+#### What Triggers Notifications?
+
+| Event | Who Gets Notified |
+|-------|-------------------|
+| **Leave submitted** | Employee (confirmation), Manager (action required), Admin/HR (new request) |
+| **Leave approved by manager** | Employee (manager approved), Admin/HR (HR review required) |
+| **Leave fully approved** | Employee (approved), Manager (FYI) |
+| **Leave rejected** | Employee (rejected), Manager (FYI) |
+| **Late check-in** | Manager (late alert), Admin/HR (late alert) |
+| **Auto-marked absent** | Employee (marked absent), Manager (FYI) |
+| **Checkout reminder** | Employee (reminder to clock out) |
+| **Daily attendance report** | Admin/HR (end-of-day summary) |
+| **Review cycle opened** | All employees (cycle open), Managers (action required) |
+| **Self-assessment submitted** | Manager (review ready) |
+| **Manager review completed** | Employee (feedback available), HR (calibration needed) |
+| **Review finalized by HR** | Employee (review complete), Manager (FYI) |
+| **New announcement** | Targeted roles (based on announcement settings) |
+
+#### Admin Notification Management
+
+Admins and HR can access the **Notifications** page from the sidebar to:
+
+##### Sending Notifications
+
+1. Click **"Send Notification"** to open the form.
+2. Select the **notification type** (Announcement, Leave, Attendance, Review, System).
+3. Choose **recipients** — select specific employees from the dropdown.
+4. Enter a **title** and **message**.
+5. Set **priority** — Normal or Urgent.
+6. Click **"Send"** to deliver the notification instantly.
+
+##### Viewing Notification History
+
+- See all notifications sent across the organization (up to 100 most recent).
+- **Search** notifications by title or message content.
+- **Filter** by notification type (Announcement, Leave, Attendance, Review, System).
+- Each notification shows the recipient, type badge, title, message, and timestamp.
+
+##### Managing Notifications
+
+- **Delete individual** notifications by clicking the delete button on each card.
+- **Delete all** notifications at once using the "Delete All" button (confirmation required).
+
+---
+
+---
+
+## Category: Settings
+
+---
+
+### Tutorial 20: Theme Customization
+
+**Slug:** `theme-customization`
+**Category:** Settings
+**Display Order:** 3
+**Parent:** Managing Your Profile and Settings
+**Excerpt:** Personalize OpenHR's appearance with 14 color themes and light/dark mode.
+
+---
+
+**Content:**
+
+OpenHR offers extensive visual customization so you can make the app look and feel just right.
+
+#### Choosing a Theme
+
+Navigate to **Settings** from the sidebar. In the **Theme** section, you'll see a grid of available color themes:
+
+Each theme changes the primary accent color used across the entire application — buttons, links, badges, sidebar highlights, and more.
+
+Simply click on a theme to apply it instantly. Your selection is saved to your profile and persists across devices and sessions.
+
+#### Light and Dark Mode
+
+Use the **mode toggle** to switch between:
+
+- **Light Mode** — Bright background with dark text. Best for well-lit environments.
+- **Dark Mode** — Dark background with light text. Reduces eye strain in low-light conditions and saves battery on OLED screens.
+- **System** — Automatically follows your device's system preference.
+
+#### Organization Default Theme
+
+Super Admins can set a **default theme** for the entire organization. When a new user logs in for the first time, they'll see the organization's default theme. Users can then customize their own preference.
+
+---
+
+---
+
+## Category: Leave
+
+---
+
+### Tutorial 21: Custom Leave Types and Special Leave
+
+**Slug:** `custom-leave-types`
+**Category:** Leave
+**Display Order:** 5
+**Parent:** How to Apply for Leave
+**Excerpt:** Understanding all leave types including Maternity, Paternity, Earned, Unpaid, and custom-configured leave types.
+
+---
+
+**Content:**
+
+Beyond the standard Annual, Casual, and Sick leave, OpenHR supports several additional leave types and allows admins to configure custom ones.
+
+#### Standard Leave Types
+
+These are the leave types employees can apply for directly through the self-service form:
+
+| Type | Description | Has Balance |
+|------|-------------|-------------|
+| **Annual** | Vacation / annual leave | Yes — deducted from allocation |
+| **Casual** | Short-notice personal leave | Yes — deducted from allocation |
+| **Sick** | Medical / health-related leave | Yes — deducted from allocation |
+
+#### Special Leave Types
+
+These types are typically created by Admin/HR on behalf of employees:
+
+| Type | Description | Has Balance |
+|------|-------------|-------------|
+| **Maternity** | Leave for expectant or new mothers | No — duration set per case |
+| **Paternity** | Leave for new fathers | No — duration set per case |
+| **Earned** | Accrued leave earned through extra work | No — managed manually |
+| **Unpaid** | Leave without pay | No — no balance deduction |
+
+#### Half-Day Leave
+
+OpenHR supports half-day leave. When an Admin or HR creates a leave record manually, the **total days** field can be set to decimal values like **0.5** for a half day. This allows precise tracking of partial leave days.
+
+#### Custom Leave Types (Admin Configuration)
+
+Admins can create entirely new leave types from **Organization > Leaves**:
+
+1. Navigate to **Organization** from the sidebar.
+2. Go to the **Leaves** tab.
+3. In the leave types section, click **"Add Leave Type"**.
+4. Configure:
+   - **Name** — The display name (e.g., "Compensatory Off," "Study Leave")
+   - **Has Balance** — Whether this type tracks a quota
+   - **Description** — A brief explanation of when this leave type applies
+5. Save.
+
+Custom leave types will appear in the Admin leave creation form and can be assigned to any employee.
+
+---
+
+---
+
+## Category: Organization
+
+---
+
+### Tutorial 22: Configuring Notification Settings
+
+**Slug:** `notification-settings`
+**Category:** Organization
+**Display Order:** 2
+**Parent:** Setting Up Your Organization
+**Excerpt:** How to configure email notification settings, enabled notification types, and notification retention policies.
+
+---
+
+**Content:**
+
+OpenHR sends automatic email and bell notifications for important events. Admins can control what gets sent and how.
+
+#### Accessing Notification Settings
+
+Navigate to **Organization** from the sidebar, then click the **Notifications** tab (or the **System** tab, depending on your version).
+
+#### Configuring Email Notifications
+
+The notification system automatically sends emails for:
+
+- **Leave events** — Submission confirmations, approval/rejection notices, workflow forwards
+- **Attendance events** — Late check-in alerts, absent notifications, checkout reminders, daily summaries
+- **Review events** — Cycle open/close, submission confirmations, deadline reminders
+
+Each email includes the relevant details (employee name, dates, status) and is sent to the appropriate parties based on the event type.
+
+#### Notification Retention
+
+The system automatically cleans up old notifications:
+
+- **Bell notifications** are retained for **30 days** and then automatically deleted by the nightly cleanup job.
+- **Selfie photos** from attendance records are retained for **30 days** and then cleared to save storage.
+
+#### Email Delivery
+
+Emails are sent through PocketBase's configured SMTP settings. The admin should ensure:
+
+1. **SMTP is configured** in PocketBase admin panel (Settings > Mail settings).
+2. **Sender address** is set (defaults to noreply@openhr.app).
+3. **Test email** can be sent from the Settings page to verify the configuration.
+
+---
+
+---
+
+## Category: Getting Started
+
+---
+
+### Tutorial 23: Understanding the Dashboard
+
+**Slug:** `understanding-dashboard`
+**Category:** Getting Started
+**Display Order:** 4
+**Parent:** Welcome to OpenHR — Your First Steps
+**Excerpt:** A detailed tour of your role-based dashboard — what each widget shows and how to use it effectively.
+
+---
+
+**Content:**
+
+Your Dashboard is the first thing you see after logging in. It's personalized based on your role and shows the most relevant information at a glance.
+
+#### Employee Dashboard
+
+As an Employee, your dashboard shows:
+
+- **Quick Actions** — Buttons for Office Check-In, Factory Check-In, Finish Session, and Apply for Leave. These are shortcuts to the most common tasks.
+- **Today's Status** — Whether you've clocked in today, your check-in time, and current session status.
+- **Leave Balance Summary** — Your remaining Annual, Casual, and Sick leave days.
+- **Recent Announcements** — The latest announcements from your organization.
+- **Team Information** — Your team name, team lead, and reporting manager.
+- **Upcoming Holiday** — The next public/company holiday.
+
+#### Manager Dashboard
+
+As a Manager, you see everything an Employee sees, plus:
+
+- **Team Attendance Summary** — How many of your direct reports are present, late, or absent today.
+- **Pending Leave Approvals** — Leave requests from your team that need your action. A count badge highlights how many are waiting.
+- **Team Member Cards** — Quick view of your direct reports with their current attendance status.
+
+#### Admin/HR Dashboard
+
+As an Admin or HR user, you see the full organizational picture:
+
+- **Organization-Wide Stats** — Total employees, today's attendance rate, pending leave requests, active review cycles.
+- **Department Breakdown** — Attendance and leave statistics by department.
+- **System Health** — Active sessions, pending items, and recent activity.
+- **Quick Links** — Navigate to all management modules (Employees, Organization, Reports, etc.).
+- **Recent Activity Feed** — Latest attendance check-ins, leave requests, and review submissions across the organization.
+
+#### Tips
+
+- Use the **quick action buttons** to save time — they take you directly to the clock-in screen or leave form.
+- Check your dashboard **at the start of each workday** to see any pending approvals or important announcements.
+- Managers: Keep an eye on the **pending approvals** count — responding quickly helps your team.
+
+---
+
+---
+
+## Category: Getting Started
+
+---
+
+### Tutorial 24: Subscription and Upgrade Options
+
+**Slug:** `subscription-upgrade-options`
+**Category:** Getting Started
+**Display Order:** 5
+**Parent:** Welcome to OpenHR — Your First Steps
+**Excerpt:** Understanding OpenHR's subscription model — Trial, Donation, Ad-Supported, and what happens when your trial expires.
+
+---
+
+**Content:**
+
+OpenHR is an open-source project that offers several ways to keep using the platform after your trial period.
+
+#### Subscription States
+
+| Status | Description | Access Level |
+|--------|-------------|--------------|
+| **Trial** | Your initial evaluation period | Full access with countdown banner |
+| **Active** | Activated via donation | Full access, no restrictions |
+| **Ad-Supported** | Free tier with ads | Full access, non-intrusive ads shown |
+| **Expired** | Trial ended, no action taken | Read-only — cannot create/edit records |
+| **Suspended** | Account suspended | Complete lockout — contact support |
+
+#### What Happens When Your Trial Expires?
+
+When your trial expires, your account switches to **read-only mode**:
+
+- You can still **view** all your data — attendance logs, leave history, employee records.
+- You **cannot** create new records, clock in/out, apply for leave, or make any changes.
+- A banner prompts you to choose an upgrade option.
+
+You'll receive email reminders at **7 days**, **3 days**, and **1 day** before your trial expires.
+
+#### Upgrade Options
+
+Navigate to the **Upgrade** page (available to Admins and HR) to choose from three options:
+
+##### Option 1: Donate (Support Open Source)
+
+Support the project with a one-time donation and get full access:
+
+| Tier | Amount | Duration |
+|------|--------|----------|
+| Starter | $5 | 3 months |
+| Supporter | $10 | 6 months |
+| Champion | $20 | 1 year |
+| Lifetime | $50 | Lifetime access |
+
+**How it works:**
+1. Choose a donation tier.
+2. Make your payment via Ko-fi, Buy Me a Coffee, or PayPal.
+3. Enter your **transaction reference** and upload a **screenshot** of the payment.
+4. Submit your activation request.
+5. The OpenHR team verifies and activates your subscription.
+
+##### Option 2: Extend Trial
+
+Need more time to evaluate? Request a trial extension:
+
+1. Select an **extension reason** (evaluating features, budget approval, setup in progress, training team, non-profit organization, educational institution, or other).
+2. Choose the **extension period** — 7, 14, or 30 days.
+3. Add any **additional details**.
+4. Submit the request for review.
+
+##### Option 3: Ad-Supported (Free Forever)
+
+Get **full feature access for free** with non-intrusive ads:
+
+- **Ads are shown** in the sidebar and dashboard areas only.
+- **No ads** in critical workflows — attendance clock-in/out remains completely ad-free.
+- You can **upgrade anytime** to remove ads by making a donation.
+
+Click **"Accept Ad-Supported Mode"** to activate immediately — no approval needed.
+
+---
+
+---
+
+## Category: Reports
+
+---
+
+### Tutorial 25: Exporting Employee Data
+
+**Slug:** `exporting-employee-data`
+**Category:** Reports
+**Display Order:** 2
+**Parent:** Generating Reports
+**Excerpt:** How to export employee directory data as CSV or PDF with organization branding.
+
+---
+
+**Content:**
+
+In addition to attendance and leave reports, OpenHR allows you to export your employee directory.
+
+#### Exporting from Employee Directory
+
+Navigate to **Employees** from the sidebar. You'll find export options at the top of the page.
+
+##### CSV Export
+
+Click **"Export CSV"** to download a spreadsheet containing:
+
+- Employee ID
+- Full Name
+- Email
+- Department
+- Designation
+- Role
+- Team
+- Status (Active/Inactive)
+- Joining Date
+- Contact Information
+
+The CSV file can be opened in Excel, Google Sheets, or any spreadsheet application.
+
+##### PDF Export
+
+Click **"Export PDF"** to generate a formatted document that includes:
+
+- Your organization's **logo and name** at the top
+- A **summary table** with total employee count, department breakdown
+- **Employee listing** with all key fields
+- **Generation date** for record-keeping
+
+The PDF is ideal for printing or sharing with stakeholders who need an official employee roster.
+
+#### Tips
+
+- Use **search filters** before exporting to narrow down to specific departments or roles.
+- PDF exports include organization branding automatically — no manual formatting needed.
+- CSV exports are best for data analysis; PDF exports are best for sharing and archiving.
+
+---
+
+---
+
 ## Additional Tutorial Ideas
 
 Below are additional tutorials you can create later:
 
 ### Quick Reference Guides (Category: Getting Started)
-- **Navigating the Dashboard** — A visual tour of dashboard elements
-- **Mobile vs Desktop Experience** — Tips for using OpenHR on your phone
+- **Mobile vs Desktop Experience** — Tips for using OpenHR on your phone vs desktop
 
 ### Advanced Attendance (Category: Attendance)
-- **Setting Up Geofencing for Your Offices** — Detailed GPS configuration guide
-- **Configuring Shifts and Schedules** — Deep dive into shift management
-- **Understanding Attendance Statuses** — PRESENT, LATE, ABSENT, EARLY_OUT, LEAVE explained
+- **Setting Up Geofencing for Your Offices** — Detailed GPS configuration guide with coordinate finding tips
+- **Troubleshooting Camera and Location Issues** — Common problems and solutions for PWA camera/GPS access
 
-### Advanced Leave (Category: Leave)
-- **Configuring Leave Workflows by Department** — Detailed workflow setup
-- **Half-Day and Special Leave Types** — Maternity, Paternity, Earned, Unpaid
-- **Year-End Leave Balance Reset** — How to handle annual resets
-
-### Admin Guides (Category: Organization)
-- **Multi-Location Setup** — Managing offices across different cities
-- **Holiday Calendar Management** — Setting up holidays for the year
-- **Subscription Management** — Understanding Trial, Active, Expired, Suspended states
+### Advanced Organization (Category: Organization)
+- **Multi-Location Setup** — Managing offices across different cities with different geofence radii
+- **Year-End Leave Balance Reset** — How to handle annual resets and carry-forward policies
