@@ -3,6 +3,8 @@ package com.openhrapp;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.autofill.AutofillManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
@@ -36,6 +38,36 @@ public class MainActivity extends BridgeActivity {
             }
             // Fallback for older devices
             settings.setSaveFormData(true);
+
+            // Add JavaScript bridge for autofill commit
+            webView.addJavascriptInterface(new AutofillBridge(), "AndroidAutofill");
+        }
+    }
+
+    /**
+     * JavaScript bridge to trigger Android Autofill "Save Password" prompt.
+     *
+     * Android's Autofill Framework only auto-prompts on real form navigation.
+     * Since we use AJAX login (e.preventDefault), we must manually call
+     * AutofillManager.commit() after successful login to trigger the prompt.
+     *
+     * Frontend calls: window.AndroidAutofill.commitAutofill()
+     */
+    private class AutofillBridge {
+        @JavascriptInterface
+        public void commitAutofill() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                runOnUiThread(() -> {
+                    try {
+                        AutofillManager afm = getSystemService(AutofillManager.class);
+                        if (afm != null && afm.isEnabled()) {
+                            afm.commit();
+                        }
+                    } catch (Exception e) {
+                        // Silently ignore — autofill is best-effort
+                    }
+                });
+            }
         }
     }
 
