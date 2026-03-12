@@ -196,22 +196,28 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     try {
       const result = await hrService.login(email, password);
       if (result.user) {
-        // Trigger browser "Save Password" prompt
-        if (window.PasswordCredential) {
-          // Chrome, Edge, Android — Credential Management API
-          try {
-            const cred = new window.PasswordCredential({
-              id: email,
-              password: password,
-              name: result.user.name || email,
-            });
-            await navigator.credentials.store(cred);
-          } catch (_) { /* Silently ignore if browser blocks it */ }
-        } else {
-          // iOS Safari — hidden form submission to trigger native password save
-          triggerSafariPasswordSave();
-        }
+        // CRITICAL: Complete login FIRST, then trigger password save asynchronously.
+        // On iOS PWA, the hidden form submission can disrupt the React render cycle
+        // if called synchronously before onLoginSuccess, causing a blank white screen.
         onLoginSuccess(result.user);
+
+        // Trigger browser "Save Password" prompt AFTER login state is set
+        setTimeout(() => {
+          try {
+            if (window.PasswordCredential) {
+              // Chrome, Edge, Android — Credential Management API
+              const cred = new window.PasswordCredential({
+                id: email,
+                password: password,
+                name: result.user!.name || email,
+              });
+              navigator.credentials.store(cred).catch(() => {});
+            } else {
+              // iOS Safari — hidden form submission to trigger native password save
+              triggerSafariPasswordSave();
+            }
+          } catch (_) { /* Silently ignore */ }
+        }, 500);
       } else {
         const msg = result.error || 'Verification Failed. Check credentials.';
         setError(msg);
