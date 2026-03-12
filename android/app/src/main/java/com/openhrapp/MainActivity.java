@@ -69,6 +69,30 @@ public class MainActivity extends BridgeActivity {
                 });
             }
         }
+
+        /**
+         * Explicitly request the autofill fill UI (password suggestions dropdown).
+         * Call this when the login page loads to prompt autofill on the WebView.
+         *
+         * Frontend calls: window.AndroidAutofill.requestAutofill()
+         */
+        @JavascriptInterface
+        public void requestAutofill() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                runOnUiThread(() -> {
+                    try {
+                        if (bridge != null && bridge.getWebView() != null) {
+                            AutofillManager afm = getSystemService(AutofillManager.class);
+                            if (afm != null && afm.isEnabled()) {
+                                afm.requestAutofill(bridge.getWebView());
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Silently ignore — autofill is best-effort
+                    }
+                });
+            }
+        }
     }
 
     @Override
