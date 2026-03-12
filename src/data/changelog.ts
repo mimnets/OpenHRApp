@@ -21,6 +21,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'feature', description: 'Added server-side cron job that runs every minute to auto-close open attendance sessions past the configured autoSessionCloseTime' },
       { type: 'improvement', description: 'Auto-close now sends bell notifications to employees when their session is force-closed by the system' },
       { type: 'fix', description: 'Fixed iOS PWA blank white screen after login — Safari password save form submission was blocking the login state update' },
+      { type: 'fix', description: 'Fixed password save prompt not appearing on Android APK — added native AutofillManager bridge to trigger save after AJAX login' },
     ],
   },
   {

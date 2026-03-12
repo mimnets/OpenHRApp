@@ -2,6 +2,9 @@
 declare global {
   interface Window {
     PasswordCredential: typeof PasswordCredential;
+    AndroidAutofill?: {
+      commitAutofill: () => void;
+    };
   }
   interface PasswordCredentialData {
     id: string;
@@ -201,11 +204,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
         // if called synchronously before onLoginSuccess, causing a blank white screen.
         onLoginSuccess(result.user);
 
-        // Trigger browser "Save Password" prompt AFTER login state is set
+        // Trigger "Save Password" prompt AFTER login state is set.
+        // Three strategies by platform:
+        //   1. Android APK (Capacitor WebView): call native AutofillManager.commit()
+        //   2. Chrome/Edge/Android PWA: Credential Management API
+        //   3. iOS Safari: hidden form submission trick
         setTimeout(() => {
           try {
-            if (window.PasswordCredential) {
-              // Chrome, Edge, Android — Credential Management API
+            if (window.AndroidAutofill) {
+              // Android APK — tell native AutofillManager to save credentials
+              window.AndroidAutofill.commitAutofill();
+            } else if (window.PasswordCredential) {
+              // Chrome, Edge, Android PWA — Credential Management API
               const cred = new window.PasswordCredential({
                 id: email,
                 password: password,
