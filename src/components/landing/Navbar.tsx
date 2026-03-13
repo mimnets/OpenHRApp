@@ -32,12 +32,11 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
 
   const navLinks = [
     { label: 'Features', id: 'features-link' },
-    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'Roadmap', id: 'how-it-works' },
     { label: 'FAQ', id: 'faq' },
     { label: 'Contact', id: 'contact' },
     { label: 'Blog', id: 'blog-link' },
     { label: 'Guides', id: 'tutorials-link' },
-    { label: 'Changelog', id: 'changelog-link' },
   ];
 
   return (
@@ -57,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
           </div>
 
           {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-5 lg:gap-7">
             {navLinks.map(link => (
               <button
                 key={link.id}
@@ -68,8 +67,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                     navigateTo('/how-to-use');
                   } else if (link.id === 'features-link') {
                     navigateTo('/features');
-                  } else if (link.id === 'changelog-link') {
-                    navigateTo('/changelog');
                   } else {
                     scrollTo(link.id);
                   }
@@ -81,11 +78,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
             ))}
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors border border-slate-200"
             >
-              <Search size={14} />
-              <span>Search...</span>
-              <kbd className="text-[10px] font-medium text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">Ctrl+K</kbd>
+              <Search size={12} />
+              <kbd className="text-[10px] font-medium text-slate-400 bg-white px-1 py-0.5 rounded border border-slate-200 leading-none">Ctrl+K</kbd>
             </button>
           </div>
 
@@ -152,9 +148,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                   } else if (link.id === 'tutorials-link') {
                     setMobileOpen(false);
                     navigateTo('/how-to-use');
-                  } else if (link.id === 'changelog-link') {
-                    setMobileOpen(false);
-                    navigateTo('/changelog');
                   } else {
                     scrollTo(link.id);
                   }
