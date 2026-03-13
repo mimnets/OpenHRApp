@@ -78,10 +78,11 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
             ))}
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors border border-slate-200"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200"
             >
-              <Search size={12} />
-              <kbd className="text-[10px] font-medium text-slate-400 bg-white px-1 py-0.5 rounded border border-slate-200 leading-none">Ctrl+K</kbd>
+              <Search size={14} />
+              <span>Search...</span>
+              <kbd className="text-[10px] font-medium text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">Ctrl+K</kbd>
             </button>
           </div>
 
