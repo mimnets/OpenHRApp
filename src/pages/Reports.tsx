@@ -9,6 +9,7 @@ import { emailService } from '../services/emailService';
 import { apiClient } from '../services/api.client';
 import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday, Shift } from '../types';
 import { consolidateAttendance } from '../utils/attendanceUtils';
+import HelpButton from '../components/onboarding/HelpButton';
 
 const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   try {
@@ -464,7 +465,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Audit & Reports</h1>
+          <div className="flex items-center gap-2"><h1 className="text-3xl font-bold text-slate-900 tracking-tight">Audit & Reports</h1><HelpButton helpPointId="reports.generator" /></div>
           <p className="text-slate-500 font-medium text-sm">Consolidated data extraction (First-In / Last-Out)</p>
         </div>
         <div className="flex p-1 bg-white border border-slate-100 rounded-3xl shadow-sm">

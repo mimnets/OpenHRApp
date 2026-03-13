@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, Eye, EyeOff, Save, Loader2, Image, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, EyeOff, Save, Loader2, Image, ArrowLeft, ArrowUpDown } from 'lucide-react';
 import { tutorialService } from '../../services/tutorial.service';
 import { Tutorial } from '../../types';
 import RichTextEditor from '../blog/RichTextEditor';
@@ -11,7 +11,13 @@ interface TutorialManagementProps {
 
 type ViewMode = 'list' | 'create' | 'edit';
 
-const CATEGORY_SUGGESTIONS = ['Attendance', 'Leave', 'Employees', 'Dashboard', 'Settings', 'Reports', 'Organization', 'General'];
+const CATEGORY_SUGGESTIONS = ['Getting Started', 'Dashboard', 'Attendance', 'Leave', 'Employees', 'Organization', 'Performance', 'Reports', 'Settings', 'Subscription', 'General'];
+
+// Preferred category order for auto-assign
+const CATEGORY_ORDER = [
+  'Getting Started', 'Dashboard', 'Attendance', 'Leave', 'Employees',
+  'Organization', 'Performance', 'Reports', 'Settings', 'Subscription', 'General',
+];
 
 const generateSlug = (title: string): string => {
   return title
@@ -202,6 +208,52 @@ const TutorialManagement: React.FC<TutorialManagementProps> = ({ onMessage }) =>
     }
   };
 
+  const handleAutoAssignOrder = async () => {
+    if (!window.confirm('This will auto-assign display_order values to all tutorials based on category order. Continue?')) return;
+    setIsLoading(true);
+    try {
+      // Sort tutorials by category order, then alphabetically within each category
+      const sorted = [...tutorials].sort((a, b) => {
+        const catA = a.category || 'General';
+        const catB = b.category || 'General';
+        const idxA = CATEGORY_ORDER.indexOf(catA);
+        const idxB = CATEGORY_ORDER.indexOf(catB);
+        const orderA = idxA === -1 ? 999 : idxA;
+        const orderB = idxB === -1 ? 999 : idxB;
+        if (orderA !== orderB) return orderA - orderB;
+        // Within same category: parents first, then children
+        if (!a.parentId && b.parentId) return -1;
+        if (a.parentId && !b.parentId) return 1;
+        // Same level: by current displayOrder, then alphabetically
+        if (a.displayOrder !== b.displayOrder) return a.displayOrder - b.displayOrder;
+        return a.title.localeCompare(b.title);
+      });
+
+      // Assign order values with gaps of 10 between categories
+      let currentCat = '';
+      let catBase = 0;
+      let withinCat = 0;
+      for (const tutorial of sorted) {
+        const cat = tutorial.category || 'General';
+        if (cat !== currentCat) {
+          currentCat = cat;
+          catBase += 10;
+          withinCat = 0;
+        }
+        withinCat++;
+        const newOrder = catBase + withinCat;
+        if (tutorial.displayOrder !== newOrder) {
+          await tutorialService.updateTutorial(tutorial.id, { displayOrder: newOrder });
+        }
+      }
+      onMessage({ type: 'success', text: 'Display order auto-assigned successfully!' });
+      await loadTutorials();
+    } catch (e: any) {
+      onMessage({ type: 'error', text: e?.message || 'Failed to auto-assign order' });
+    }
+    setIsLoading(false);
+  };
+
   // Get top-level tutorials for parent dropdown (exclude self when editing)
   const topLevelTutorials = tutorials.filter(t => !t.parentId && t.id !== editingTutorial?.id);
 
@@ -217,12 +269,21 @@ const TutorialManagement: React.FC<TutorialManagementProps> = ({ onMessage }) =>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-bold text-slate-900">Tutorials</h3>
-          <button
-            onClick={openCreateMode}
-            className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-primary-hover transition-all shadow-lg"
-          >
-            <Plus size={18} /> New Tutorial
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAutoAssignOrder}
+              className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-slate-200 transition-all"
+              title="Auto-assign display order based on category"
+            >
+              <ArrowUpDown size={16} /> Auto-Order
+            </button>
+            <button
+              onClick={openCreateMode}
+              className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-primary-hover transition-all shadow-lg"
+            >
+              <Plus size={18} /> New Tutorial
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -376,7 +437,7 @@ const TutorialManagement: React.FC<TutorialManagementProps> = ({ onMessage }) =>
             <p className="text-lg text-slate-600 italic mb-6 border-l-4 border-primary pl-4">{formData.excerpt}</p>
           )}
           <div
-            className="prose prose-slate max-w-none"
+            className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-primary prose-a:underline prose-img:rounded-xl"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(formData.content) }}
           />
         </div>

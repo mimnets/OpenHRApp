@@ -6,6 +6,7 @@ import { PerformanceReview, CompetencyRating, OrgReviewConfig } from '../../type
 import CompetencyRatingCard from './CompetencyRatingCard';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
 import ReviewStatusBadge from './ReviewStatusBadge';
+import HelpButton from '../onboarding/HelpButton';
 
 interface Props {
   user: any;
@@ -94,7 +95,7 @@ const ManagerReviewModule: React.FC<Props> = ({ user: _user, directReportReviews
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Users size={20} className="text-primary" />
-          <h2 className="text-xl font-bold text-slate-900">Team Reviews</h2>
+          <div className="flex items-center gap-2"><h2 className="text-xl font-bold text-slate-900">Team Reviews</h2><HelpButton helpPointId="review.manager" size={16} /></div>
         </div>
         <p className="text-sm text-slate-500">Review and rate your direct reports' performance assessments.</p>
       </div>

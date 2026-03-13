@@ -26,6 +26,7 @@ import { hrService } from '../services/hrService';
 import { apiClient } from '../services/api.client';
 import { Employee, Team, User, Shift } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
+import HelpButton from '../components/onboarding/HelpButton';
 
 const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   try {
@@ -481,9 +482,12 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
-            {isAdmin ? 'Organization Directory' : (isManager ? 'My Team & Reports' : 'My Teammates')}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
+              {isAdmin ? 'Organization Directory' : (isManager ? 'My Team & Reports' : 'My Teammates')}
+            </h1>
+            <HelpButton helpPointId="employees.directory" />
+          </div>
           <p className="text-sm text-slate-500 font-medium tracking-tight">
             {isAdmin ? `Managing ${employees.length} personnel accounts.` : `Viewing ${employees.length} members within your scope.`}
           </p>

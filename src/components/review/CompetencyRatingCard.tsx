@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { RATING_SCALE } from '../../constants';
+import { DEFAULT_RATING_SCALE } from '../../constants';
 
 interface Props {
   competencyName: string;
@@ -12,6 +12,7 @@ interface Props {
   onCommentChange?: (comment: string) => void;
   readOnly?: boolean;
   label?: string;
+  ratingScale?: { value: number; label: string; color: string }[];
 }
 
 const CompetencyRatingCard: React.FC<Props> = ({
@@ -24,7 +25,10 @@ const CompetencyRatingCard: React.FC<Props> = ({
   onCommentChange,
   readOnly = false,
   label,
+  ratingScale,
 }) => {
+  const scale = ratingScale || DEFAULT_RATING_SCALE;
+
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-5 space-y-4">
       <div>
@@ -50,28 +54,28 @@ const CompetencyRatingCard: React.FC<Props> = ({
       <div>
         <p className="text-xs font-medium text-slate-600 mb-2">Rating</p>
         <div className="flex gap-2">
-          {RATING_SCALE.map(scale => (
+          {scale.map(s => (
             <button
-              key={scale.value}
+              key={s.value}
               type="button"
               disabled={readOnly}
-              onClick={() => onRatingChange?.(scale.value)}
+              onClick={() => onRatingChange?.(s.value)}
               className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
-                rating === scale.value
-                  ? `${scale.color} text-white shadow-sm`
+                rating === s.value
+                  ? `${s.color} text-white shadow-sm`
                   : readOnly
                   ? 'bg-slate-50 text-slate-400'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
               } ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}
-              title={scale.label}
+              title={s.label}
             >
-              {scale.value}
+              {s.value}
             </button>
           ))}
         </div>
         {rating > 0 && (
           <p className="text-[10px] text-slate-400 mt-1">
-            {RATING_SCALE.find(s => s.value === rating)?.label}
+            {scale.find(s => s.value === rating)?.label}
           </p>
         )}
       </div>

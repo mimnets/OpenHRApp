@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import HelpButton from '../onboarding/HelpButton';
 
 interface Props {
   currentTime: Date;
@@ -10,12 +11,15 @@ interface Props {
 export const AttendanceHeader: React.FC<Props> = ({ currentTime, onBack }) => {
   return (
     <div className="px-6 pt-10 pb-2 flex flex-col items-center relative">
-      <button 
-        onClick={onBack} 
+      <button
+        onClick={onBack}
         className="absolute left-6 top-8 w-10 h-10 flex items-center justify-center bg-white shadow-lg text-slate-400 rounded-xl active:scale-90 border border-slate-100"
       >
         <ArrowLeft size={20} />
       </button>
+      <div className="absolute right-6 top-8">
+        <HelpButton helpPointId="attendance.clockin" size={20} />
+      </div>
       <div className="text-center">
          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">
            {currentTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase()}

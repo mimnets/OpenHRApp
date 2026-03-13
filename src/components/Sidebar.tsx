@@ -18,6 +18,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { AdBanner } from './ads';
+import HelpButton from './onboarding/HelpButton';
 
 interface SidebarProps {
   currentPath: string;
@@ -59,10 +60,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
       {/* Profile Header */}
       <div className="p-10 pb-8 flex flex-col items-center text-center">
         <div className="relative mb-4">
-          <img 
-            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random`} 
-            className="w-24 h-24 rounded-full border-4 border-white shadow-xl bg-slate-50 object-cover" 
-            alt="Profile" 
+          <img
+            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=random`}
+            className="w-24 h-24 rounded-full border-4 border-white shadow-xl bg-slate-50 object-cover"
+            alt="Profile"
           />
           <div className="absolute bottom-1 right-1 w-5 h-5 bg-primary border-4 border-white rounded-full"></div>
         </div>
@@ -90,7 +91,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
                 <item.icon size={22} className={currentPath === item.id ? 'text-primary' : 'text-slate-400'} />
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
               </div>
-              <ChevronRight size={16} className={`transition-all duration-300 ${currentPath === item.id ? 'text-primary opacity-100 translate-x-0' : 'text-slate-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+              <div className="flex items-center gap-1">
+                {!isSuperAdmin && (
+                  <HelpButton helpPointId={`sidebar.${item.id}`} size={14} variant="sidebar" />
+                )}
+                <ChevronRight size={16} className={`transition-all duration-300 ${currentPath === item.id ? 'text-primary opacity-100 translate-x-0' : 'text-slate-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+              </div>
             </button>
           </div>
         ))}

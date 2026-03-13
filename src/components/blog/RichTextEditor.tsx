@@ -7,7 +7,9 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Minus, Type,
   Lock, Unlock, Link2, Unlink,
+  Upload, Loader2,
 } from 'lucide-react';
+import { superAdminService } from '../../services/superadmin.service';
 
 interface RichTextEditorProps {
   value: string;
@@ -24,6 +26,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
   const [imgAlign, setImgAlign] = useState<'left' | 'center' | 'right'>('left');
   const [imgLink, setImgLink] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedLink, setSelectedLink] = useState<HTMLAnchorElement | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkEditing, setLinkEditing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const linkToolbarRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number; aspect: number; handle: string } | null>(null);
 
   // Sync external value to editor on mount or when value changes externally
@@ -67,19 +75,72 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
     }
   }, []);
 
+  const deselectLink = useCallback(() => {
+    setSelectedLink(null);
+    setLinkUrl('');
+    setLinkEditing(false);
+  }, []);
+
   const handleEditorClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.tagName === 'IMG') {
       e.preventDefault();
       selectImage(target as HTMLImageElement);
+      deselectLink();
+    } else if (target.tagName === 'A' || target.closest?.('a')) {
+      e.preventDefault();
+      const anchor = (target.tagName === 'A' ? target : target.closest('a')) as HTMLAnchorElement;
+      // Don't select image-wrapper links (those are handled by the image toolbar)
+      if (anchor.querySelector('img')) {
+        selectImage(anchor.querySelector('img') as HTMLImageElement);
+        deselectLink();
+      } else {
+        setSelectedLink(anchor);
+        setLinkUrl(anchor.href);
+        setLinkEditing(false);
+        deselectImage();
+      }
     } else {
       deselectImage();
+      deselectLink();
     }
-  }, [selectImage, deselectImage]);
+  }, [selectImage, deselectImage, deselectLink]);
 
   const handleEditorKeyDown = useCallback(() => {
     if (selectedImage) deselectImage();
-  }, [selectedImage, deselectImage]);
+    if (selectedLink) deselectLink();
+  }, [selectedImage, deselectImage, selectedLink, deselectLink]);
+
+  const updateLinkUrl = useCallback((newUrl: string) => {
+    if (!selectedLink || !newUrl.trim()) return;
+    selectedLink.href = newUrl.trim();
+    setLinkUrl(newUrl.trim());
+    setLinkEditing(false);
+    handleInput();
+  }, [selectedLink, handleInput]);
+
+  const removeLink = useCallback(() => {
+    if (!selectedLink) return;
+    // Replace the <a> with its text content
+    const text = document.createTextNode(selectedLink.textContent || '');
+    selectedLink.replaceWith(text);
+    deselectLink();
+    handleInput();
+  }, [selectedLink, deselectLink, handleInput]);
+
+  // Compute link toolbar position
+  const getLinkOverlayStyle = useCallback((): React.CSSProperties | null => {
+    if (!selectedLink || !containerRef.current) return null;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const linkRect = selectedLink.getBoundingClientRect();
+    return {
+      position: 'absolute',
+      top: linkRect.bottom - containerRect.top + 6,
+      left: Math.max(0, linkRect.left - containerRect.left),
+      zIndex: 20,
+      pointerEvents: 'auto',
+    };
+  }, [selectedLink]);
 
   // Drag-to-resize logic
   const handleCornerMouseDown = useCallback((e: React.MouseEvent, handle: string) => {
@@ -244,6 +305,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   };
 
   const insertLink = () => {
+    // If a link is already selected, switch to edit mode
+    if (selectedLink) {
+      setLinkEditing(true);
+      return;
+    }
     const url = prompt('Enter URL:');
     if (url) {
       exec('createLink', url);
@@ -251,11 +317,28 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   };
 
   const insertImage = () => {
-    const url = prompt('Enter image URL:');
-    if (url) {
-      exec('insertImage', url);
-    }
+    fileInputRef.current?.click();
   };
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+
+    setIsUploading(true);
+    try {
+      const url = await superAdminService.uploadContentImage(file);
+      editorRef.current?.focus();
+      document.execCommand('insertImage', false, url);
+      handleInput();
+    } catch (err) {
+      console.error('[RichTextEditor] Image upload failed:', err);
+      alert('Image upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [handleInput]);
 
   const ToolbarButton: React.FC<{
     onClick: () => void;
@@ -279,6 +362,19 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+      {/* Link visibility styles for contentEditable */}
+      <style>{`
+        [contenteditable] a { color: #3b82f6 !important; text-decoration: underline !important; cursor: pointer; }
+        [contenteditable] a:hover { color: #2563eb !important; background-color: rgba(59, 130, 246, 0.08); border-radius: 2px; }
+      `}</style>
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
       {/* Toolbar */}
       <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex flex-wrap items-center gap-0.5">
         {/* Undo / Redo */}
@@ -353,8 +449,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         <ToolbarButton onClick={insertLink} title="Insert Link">
           <Link size={15} />
         </ToolbarButton>
-        <ToolbarButton onClick={insertImage} title="Insert Image">
-          <ImageIcon size={15} />
+        <ToolbarButton onClick={insertImage} title="Upload Image">
+          {isUploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
         </ToolbarButton>
         <ToolbarButton onClick={() => exec('insertHorizontalRule')} title="Horizontal Rule">
           <Minus size={15} />
@@ -381,9 +477,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
           onInput={handleInput}
           onBlur={(e) => {
             handleInput();
-            // Deselect if focus moves outside the container
-            if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+            // Deselect if focus moves outside the container (but not into the link toolbar)
+            if (!containerRef.current?.contains(e.relatedTarget as Node) && !linkToolbarRef.current?.contains(e.relatedTarget as Node)) {
               deselectImage();
+              deselectLink();
             }
           }}
           onClick={handleEditorClick}
@@ -522,6 +619,85 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
                 </div>
               </div>
             </>
+          );
+        })()}
+
+        {/* Link editing toolbar */}
+        {selectedLink && (() => {
+          const pos = getLinkOverlayStyle();
+          if (!pos) return null;
+          return (
+            <div ref={linkToolbarRef} style={pos} onMouseDown={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg shadow-lg px-2.5 py-1.5 text-xs max-w-md">
+                {linkEditing ? (
+                  <>
+                    <input
+                      type="url"
+                      autoFocus
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); updateLinkUrl(linkUrl); }
+                        if (e.key === 'Escape') { e.preventDefault(); setLinkEditing(false); }
+                      }}
+                      placeholder="https://..."
+                      className="flex-1 min-w-[200px] border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => updateLinkUrl(linkUrl)}
+                      className="px-2 py-1 bg-primary text-white rounded text-xs hover:bg-primary/90 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLinkEditing(false)}
+                      className="px-2 py-1 text-slate-500 hover:text-slate-700 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link size={12} className="text-blue-500 flex-shrink-0" />
+                    <span
+                      className="text-blue-600 underline truncate max-w-[200px] cursor-pointer"
+                      title={linkUrl}
+                      onClick={() => setLinkEditing(true)}
+                    >
+                      {linkUrl}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLinkEditing(true)}
+                      title="Edit link"
+                      className="p-1 rounded text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <Code size={12} />
+                    </button>
+                    <a
+                      href={linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open link"
+                      className="p-1 rounded text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Link2 size={12} />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={removeLink}
+                      title="Remove link"
+                      className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Unlink size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           );
         })()}
       </div>

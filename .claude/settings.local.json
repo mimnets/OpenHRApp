@@ -40,7 +40,21 @@
       "Bash(git commit:*)",
       "Bash(node scripts/generate-icons.js:*)",
       "Bash(node scripts/generate-icons.cjs:*)",
-      "Bash(du:*)"
+      "Bash(du:*)",
+      "Bash(git log:*)",
+      "Bash(npm audit:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(git status:*)",
+      "WebFetch(domain:pocketbase.io)",
+      "Bash(file:*)",
+      "Bash(npx tailwindcss --help:*)",
+      "Bash(git revert:*)",
+      "Bash(timeout 5 npx vite:*)",
+      "Bash(node scripts/generate-sitemap.mjs:*)",
+      "WebFetch(domain:www.openhrapp.com)",
+      "Bash(adb install:*)",
+      "Bash(\"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe\" install -r \"C:/Users/DEF/Downloads/openhr/android/app/build/outputs/apk/debug/app-debug.apk\")",
+      "Bash(node:*)"
     ]
   }
 }

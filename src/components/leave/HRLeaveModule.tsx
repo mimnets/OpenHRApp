@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, RefreshCw, X, ArrowRight, FileCheck, Ban, Plus, List, Clock } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import HelpButton from '../onboarding/HelpButton';
 import AdminLeaveFormModal from './AdminLeaveFormModal';
 import AdminAllLeaves from './AdminAllLeaves';
 
@@ -62,7 +63,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-xl font-semibold text-slate-900">HR Administration</h3>
+          <div className="flex items-center gap-2"><h3 className="text-xl font-semibold text-slate-900">HR Administration</h3><HelpButton helpPointId="leave.hr" size={16} /></div>
           <p className="text-xs font-bold text-slate-400 mt-1">Manage, verify, and administrate all leave records</p>
         </div>
         <div className="flex items-center gap-3">

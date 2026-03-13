@@ -430,7 +430,7 @@ const AppContent: React.FC = () => {
       case 'performance-review': return <PerformanceReview user={user} />;
       case 'settings': return <Settings user={user} />;
       case 'reports': return <Reports user={user} />;
-      case 'organization': return <Organization />;
+      case 'organization': return <Organization initialTab={navParams?.tab} />;
       default: return <Dashboard user={user} onNavigate={handleNavigate} />;
     }
   };

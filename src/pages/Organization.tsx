@@ -18,10 +18,15 @@ import { OrgHolidays } from '../components/organization/OrgHolidays';
 import { OrgSystem } from '../components/organization/OrgSystem';
 import { OrgShifts } from '../components/organization/OrgShifts';
 import { OrgNotifications } from '../components/organization/OrgNotifications';
+import HelpButton from '../components/onboarding/HelpButton';
 
 type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'SHIFTS' | 'WORKFLOW' | 'LEAVES' | 'HOLIDAYS' | 'NOTIFICATIONS' | 'SYSTEM';
 
-const Organization: React.FC = () => {
+interface OrganizationProps {
+  initialTab?: string;
+}
+
+const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
   const {
       departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shiftOverrides, notificationConfig,
       isLoading, isSaving,
@@ -45,7 +50,11 @@ const Organization: React.FC = () => {
   const { canPerformAction, subscription } = useSubscription();
   const canWrite = canPerformAction('write');
 
-  const [activeTab, setActiveTab] = useState<OrgTab>('STRUCTURE');
+  const [activeTab, setActiveTab] = useState<OrgTab>((initialTab as OrgTab) || 'STRUCTURE');
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab as OrgTab);
+  }, [initialTab]);
 
   // Modals Local State
   const [showModal, setShowModal] = useState(false);
@@ -209,9 +218,12 @@ const Organization: React.FC = () => {
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 overflow-x-hidden">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Organization & Setup</h1>
-          <p className="text-sm text-slate-500 font-medium">Core structural and policy configurations</p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Organization & Setup</h1>
+            <p className="text-sm text-slate-500 font-medium">Core structural and policy configurations</p>
+          </div>
+          <HelpButton helpPointId={`org.${activeTab.toLowerCase()}`} />
         </div>
       </header>
 
@@ -221,7 +233,10 @@ const Organization: React.FC = () => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Structure</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'SHIFTS'] as OrgTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-1 ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {tab.replace('_', ' ')}
+                {activeTab === tab && <HelpButton helpPointId={`org.${tab.toLowerCase()}`} size={12} variant="inline" />}
+              </button>
             ))}
           </div>
         </div>
@@ -230,7 +245,10 @@ const Organization: React.FC = () => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Policies</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             {(['WORKFLOW', 'LEAVES', 'HOLIDAYS', 'NOTIFICATIONS', 'SYSTEM'] as OrgTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-1 ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {tab.replace('_', ' ')}
+                {activeTab === tab && <HelpButton helpPointId={`org.${tab.toLowerCase()}`} size={12} variant="inline" />}
+              </button>
             ))}
           </div>
         </div>

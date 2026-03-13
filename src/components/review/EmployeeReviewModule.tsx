@@ -7,6 +7,7 @@ import { PerformanceReview, ReviewCycle, CompetencyRating, OrgReviewConfig, Cust
 import CompetencyRatingCard from './CompetencyRatingCard';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
 import ReviewStatusBadge from './ReviewStatusBadge';
+import HelpButton from '../onboarding/HelpButton';
 
 const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   try {
@@ -369,7 +370,7 @@ const EmployeeReviewModule: React.FC<Props> = ({ user, activeCycle, upcomingCycl
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">My Performance Review</h2>
+          <div className="flex items-center gap-2"><h2 className="text-xl font-bold text-slate-900">My Performance Review</h2><HelpButton helpPointId="review.employee" size={16} /></div>
           <p className="text-sm text-slate-500 mt-0.5">
             {activeCycle
               ? `${activeCycle.name} — ${new Date(activeCycle.startDate).toLocaleDateString()} to ${new Date(activeCycle.endDate).toLocaleDateString()}`

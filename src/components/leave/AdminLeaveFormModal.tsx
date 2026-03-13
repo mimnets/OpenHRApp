@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, RefreshCw, AlertCircle, UserPlus, Edit3 } from 'lucide-react';
 import { hrService } from '../../services/hrService';
-import { LeaveRequest } from '../../types';
+import { LeaveRequest, CustomLeaveType } from '../../types';
+import { DEFAULT_LEAVE_TYPES } from '../../constants';
 
 interface Employee {
   id: string;
@@ -18,12 +19,12 @@ interface Props {
   onSaved: () => void;
 }
 
-const LEAVE_TYPES = ['ANNUAL', 'CASUAL', 'SICK', 'MATERNITY', 'PATERNITY', 'EARNED', 'UNPAID'];
 const STATUS_OPTIONS = ['APPROVED', 'PENDING_MANAGER', 'PENDING_HR', 'REJECTED'];
 
 const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose, onSaved }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaveTypes, setLeaveTypes] = useState<CustomLeaveType[]>(DEFAULT_LEAVE_TYPES);
 
   const [employeeId, setEmployeeId] = useState(leave?.employeeId || '');
   const [type, setType] = useState<string>(leave?.type || 'ANNUAL');
@@ -33,6 +34,10 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
   const [status, setStatus] = useState<string>(leave?.status || 'APPROVED');
   const [remarks, setRemarks] = useState(leave?.approverRemarks || '');
   const [totalDays, setTotalDays] = useState(leave?.totalDays || 0);
+
+  useEffect(() => {
+    hrService.getLeaveTypes().then(setLeaveTypes).catch(() => {});
+  }, []);
 
   // Auto-calc total days (simple calendar diff — admin can override)
   useEffect(() => {
@@ -155,8 +160,8 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
               value={type}
               onChange={e => setType(e.target.value)}
             >
-              {LEAVE_TYPES.map(t => (
-                <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()} Leave</option>
+              {leaveTypes.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
