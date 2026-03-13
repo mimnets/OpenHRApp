@@ -219,7 +219,7 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
                   )}
 
                   <div
-                    className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-img:rounded-xl"
+                    className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:underline prose-img:rounded-xl"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(tutorial.content) }}
                   />
 
