@@ -7,7 +7,9 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Minus, Type,
   Lock, Unlock, Link2, Unlink,
+  Upload, Loader2,
 } from 'lucide-react';
+import { superAdminService } from '../../services/superadmin.service';
 
 interface RichTextEditorProps {
   value: string;
@@ -24,6 +26,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   const [imgDims, setImgDims] = useState({ w: 0, h: 0 });
   const [imgAlign, setImgAlign] = useState<'left' | 'center' | 'right'>('left');
   const [imgLink, setImgLink] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number; aspect: number; handle: string } | null>(null);
 
   // Sync external value to editor on mount or when value changes externally
@@ -251,11 +255,28 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   };
 
   const insertImage = () => {
-    const url = prompt('Enter image URL:');
-    if (url) {
-      exec('insertImage', url);
-    }
+    fileInputRef.current?.click();
   };
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+
+    setIsUploading(true);
+    try {
+      const url = await superAdminService.uploadContentImage(file);
+      editorRef.current?.focus();
+      document.execCommand('insertImage', false, url);
+      handleInput();
+    } catch (err) {
+      console.error('[RichTextEditor] Image upload failed:', err);
+      alert('Image upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [handleInput]);
 
   const ToolbarButton: React.FC<{
     onClick: () => void;
@@ -279,6 +300,19 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+      {/* Link visibility styles for contentEditable */}
+      <style>{`
+        [contenteditable] a { color: #3b82f6; text-decoration: underline; }
+        [contenteditable] a:hover { color: #2563eb; }
+      `}</style>
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
       {/* Toolbar */}
       <div className="bg-slate-50 border-b border-slate-200 px-3 py-2 flex flex-wrap items-center gap-0.5">
         {/* Undo / Redo */}
@@ -353,8 +387,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         <ToolbarButton onClick={insertLink} title="Insert Link">
           <Link size={15} />
         </ToolbarButton>
-        <ToolbarButton onClick={insertImage} title="Insert Image">
-          <ImageIcon size={15} />
+        <ToolbarButton onClick={insertImage} title="Upload Image">
+          {isUploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
         </ToolbarButton>
         <ToolbarButton onClick={() => exec('insertHorizontalRule')} title="Horizontal Rule">
           <Minus size={15} />

@@ -2306,7 +2306,8 @@ onRecordAfterUpdateSuccess((e) => {
         "blog_posts": ["cover_image"],
         "tutorials": ["cover_image"],
         "showcase_organizations": ["logo"],
-        "upgrade_requests": ["donation_screenshot"]
+        "upgrade_requests": ["donation_screenshot"],
+        "content_images": ["image"]
     };
 
     var collections = Object.keys(imageFieldMap);
