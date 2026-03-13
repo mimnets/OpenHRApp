@@ -14,6 +14,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-03-13',
+    title: 'Guides Content Expansion',
+    entries: [
+      { type: 'improvement', description: 'Added 11 new tutorials to the guides content covering Performance Reviews, Announcements, Notifications, Theme Customization, Custom Leave Types, Notification Settings, Dashboard Guide, Subscription & Upgrade Options, and Employee Data Exports' },
+      { type: 'improvement', description: 'Updated Organization Setup guide to include the Notifications configuration tab and corrected the tab count from 8 to 9' },
+      { type: 'improvement', description: 'Enhanced existing tutorials with CSV/PDF export details in Employee Directory and expanded Theme Selection section in Settings guide' },
+    ],
+  },
+  {
     date: '2026-03-12',
     title: 'Auto-Close Cron & iOS Login Fix',
     entries: [
