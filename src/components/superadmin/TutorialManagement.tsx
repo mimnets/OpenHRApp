@@ -437,7 +437,7 @@ const TutorialManagement: React.FC<TutorialManagementProps> = ({ onMessage }) =>
             <p className="text-lg text-slate-600 italic mb-6 border-l-4 border-primary pl-4">{formData.excerpt}</p>
           )}
           <div
-            className="prose prose-slate max-w-none"
+            className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-primary prose-a:underline prose-img:rounded-xl"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(formData.content) }}
           />
         </div>
