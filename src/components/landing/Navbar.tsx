@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon } from 'lucide-react';
+import { Menu, X, Sun, Moon, Search } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useSearch } from '../../context/SearchContext';
 import { navigateTo } from '../../utils/seo';
 
 interface NavbarProps {
@@ -11,6 +12,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
   const { darkMode, setDarkModePreference } = useTheme();
+  const { setSearchOpen } = useSearch();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleDarkMode = () => {
@@ -30,12 +32,11 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
 
   const navLinks = [
     { label: 'Features', id: 'features-link' },
-    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'Roadmap', id: 'how-it-works' },
     { label: 'FAQ', id: 'faq' },
     { label: 'Contact', id: 'contact' },
     { label: 'Blog', id: 'blog-link' },
     { label: 'Guides', id: 'tutorials-link' },
-    { label: 'Changelog', id: 'changelog-link' },
   ];
 
   return (
@@ -55,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
           </div>
 
           {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-5 lg:gap-7">
             {navLinks.map(link => (
               <button
                 key={link.id}
@@ -66,8 +67,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                     navigateTo('/how-to-use');
                   } else if (link.id === 'features-link') {
                     navigateTo('/features');
-                  } else if (link.id === 'changelog-link') {
-                    navigateTo('/changelog');
                   } else {
                     scrollTo(link.id);
                   }
@@ -77,6 +76,14 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                 {link.label}
               </button>
             ))}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-400 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-200"
+            >
+              <Search size={14} />
+              <span>Search...</span>
+              <kbd className="text-[10px] font-medium text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">Ctrl+K</kbd>
+            </button>
           </div>
 
           {/* Desktop Actions */}
@@ -104,6 +111,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
 
           {/* Mobile Actions */}
           <div className="md:hidden flex items-center gap-1">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="p-2 text-slate-500 hover:text-primary transition-colors"
+              title="Search"
+            >
+              <Search size={20} />
+            </button>
             <button
               onClick={toggleDarkMode}
               className="p-2 text-slate-500 hover:text-primary transition-colors"
@@ -135,9 +149,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLoginClick, onRegisterClick }) => {
                   } else if (link.id === 'tutorials-link') {
                     setMobileOpen(false);
                     navigateTo('/how-to-use');
-                  } else if (link.id === 'changelog-link') {
-                    setMobileOpen(false);
-                    navigateTo('/changelog');
                   } else {
                     scrollTo(link.id);
                   }

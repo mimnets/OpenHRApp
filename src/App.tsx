@@ -4,9 +4,11 @@ import { Analytics } from '@vercel/analytics/react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SearchProvider } from './context/SearchContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import MainLayout from './layouts/MainLayout';
 import CookieConsent from './components/CookieConsent';
+import SearchDialog from './components/search/SearchDialog';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Eager: public pages needed for first paint / SEO
@@ -457,9 +459,12 @@ const App: React.FC = () => {
     <AuthProvider>
       <SubscriptionProvider>
         <ThemeProvider>
-          <AppContent />
-          <Analytics />
-          <CookieConsent />
+          <SearchProvider>
+            <AppContent />
+            <SearchDialog />
+            <Analytics />
+            <CookieConsent />
+          </SearchProvider>
         </ThemeProvider>
       </SubscriptionProvider>
     </AuthProvider>
