@@ -118,4 +118,9 @@ export const hrService = {
   // Notification Config (Org-level)
   getNotificationConfig: organizationService.getNotificationConfig,
   setNotificationConfig: organizationService.setNotificationConfig,
+
+  // Onboarding & Guide Links
+  getOnboardingStatus: organizationService.getOnboardingStatus,
+  setOnboardingStatus: organizationService.setOnboardingStatus,
+  getGuideHelpLinks: organizationService.getGuideHelpLinks,
 };

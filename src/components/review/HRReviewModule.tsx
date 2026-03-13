@@ -10,6 +10,7 @@ import {
   ReviewCycleType, ReviewCycleStatus,
 } from '../../types';
 import ReviewStatusBadge from './ReviewStatusBadge';
+import HelpButton from '../onboarding/HelpButton';
 import AttendanceLeaveCard from './AttendanceLeaveCard';
 import AdminReviewFormModal from './AdminReviewFormModal';
 
@@ -326,7 +327,7 @@ const HRReviewModule: React.FC<Props> = ({ user, cycles, allReviews, employees =
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Settings size={20} className="text-primary" />
-          <h2 className="text-xl font-bold text-slate-900">HR Review Management</h2>
+          <div className="flex items-center gap-2"><h2 className="text-xl font-bold text-slate-900">HR Review Management</h2><HelpButton helpPointId="review.hr" size={16} /></div>
         </div>
         {!readOnly && (
           <button

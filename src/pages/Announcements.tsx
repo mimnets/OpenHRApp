@@ -7,6 +7,7 @@ import { useAnnouncements } from '../hooks/announcements/useAnnouncements';
 import { useSubscription } from '../context/SubscriptionContext';
 import { AnnouncementCard } from '../components/announcements/AnnouncementCard';
 import { AnnouncementFormModal } from '../components/announcements/AnnouncementFormModal';
+import HelpButton from '../components/onboarding/HelpButton';
 
 interface Props {
   user: any;
@@ -95,7 +96,7 @@ const Announcements: React.FC<Props> = ({ user }) => {
             <Megaphone size={22} className="text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">Announcements</h1>
+            <div className="flex items-center gap-2"><h1 className="text-xl font-semibold text-slate-900">Announcements</h1><HelpButton helpPointId="announcements" size={16} /></div>
             <p className="text-xs text-slate-400 font-medium">{sortedAnnouncements.length} announcement{sortedAnnouncements.length !== 1 ? 's' : ''}</p>
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor, HardDrive, FileText, Star, Share2, BookOpen, Palette, Bell
+  CreditCard, Monitor, HardDrive, FileText, Star, Share2, BookOpen, Palette, Bell, HelpCircle
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
@@ -15,6 +15,7 @@ import ShowcaseManagement from '../components/superadmin/ShowcaseManagement';
 import SocialLinksManagement from '../components/superadmin/SocialLinksManagement';
 import AppearanceManagement from '../components/superadmin/AppearanceManagement';
 import NotificationRetention from '../components/superadmin/NotificationRetention';
+import GuideLinksManagement from '../components/superadmin/GuideLinksManagement';
 
 interface SuperAdminProps {
   user: User;
@@ -22,7 +23,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'notifications' | 'appearance' | 'blog' | 'tutorials' | 'showcase' | 'social';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'notifications' | 'appearance' | 'blog' | 'tutorials' | 'guides' | 'showcase' | 'social';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -350,7 +351,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         {/* Row 2 — Content Management */}
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Content</p>
-          <div className="grid grid-cols-4 gap-1 sm:gap-2 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-5 gap-1 sm:gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               onClick={() => setActiveTab('blog')}
               className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
@@ -366,6 +367,14 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
               }`}
             >
               <BookOpen size={16} className="shrink-0" /> <span className="hidden sm:inline">Tutorials</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('guides')}
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
+                activeTab === 'guides' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <HelpCircle size={16} className="shrink-0" /> <span className="hidden sm:inline">Guides</span>
             </button>
             <button
               onClick={() => setActiveTab('showcase')}
@@ -494,6 +503,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Tutorial Management Tab */}
       {activeTab === 'tutorials' && (
         <TutorialManagement onMessage={setMessage} />
+      )}
+
+      {/* Guide Links Management Tab */}
+      {activeTab === 'guides' && (
+        <GuideLinksManagement onMessage={setMessage} />
       )}
 
       {/* Showcase Management Tab */}

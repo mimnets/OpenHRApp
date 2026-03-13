@@ -6,6 +6,7 @@ import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AdBanner } from '../ads';
 import { AnnouncementWidget } from './AnnouncementWidget';
+import SetupChecklist from '../onboarding/SetupChecklist';
 
 interface Props {
   data: DashboardData;
@@ -27,11 +28,14 @@ export const AdminDashboard: React.FC<Props> = ({ data, isLoading, onNavigate })
         onNavigate={onNavigate} 
       />
 
-      <DashboardStats 
-        leaveUsed={data.leaveUsed} 
-        upcomingHoliday={data.upcomingHoliday} 
-        isLoading={isLoading} 
+      <DashboardStats
+        leaveUsed={data.leaveUsed}
+        upcomingHoliday={data.upcomingHoliday}
+        isLoading={isLoading}
       />
+
+      {/* Setup Checklist for Admins */}
+      <SetupChecklist user={data.freshUser} onNavigate={onNavigate} />
 
       {/* Quick Access Tabs */}
       <div className="space-y-2">

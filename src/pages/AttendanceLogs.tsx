@@ -8,6 +8,7 @@ import {
 import { hrService } from '../services/hrService';
 import { Attendance, Employee, AppConfig } from '../types';
 import { consolidateAttendance, calculatePunctuality, calculateDuration } from '../utils/attendanceUtils';
+import HelpButton from '../components/onboarding/HelpButton';
 
 interface AttendanceLogsProps {
   user: any;
@@ -241,9 +242,12 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
-            {isAuditMode ? (isAdmin ? 'Attendance Audit' : 'Team Attendance') : 'My Attendance History'}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
+              {isAuditMode ? (isAdmin ? 'Attendance Audit' : 'Team Attendance') : 'My Attendance History'}
+            </h1>
+            <HelpButton helpPointId={isAuditMode ? 'attendance.audit' : 'attendance.logs'} />
+          </div>
           <p className="text-sm text-slate-500 font-medium">
             {isAuditMode ? 'Consolidated organization tracking (First-In / Last-Out)' : 'Your consolidated workday records'}
           </p>

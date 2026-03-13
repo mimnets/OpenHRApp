@@ -314,6 +314,26 @@ export const organizationService = {
     }
   },
 
+  // Onboarding status (per-org)
+  async getOnboardingStatus(): Promise<{ dismissed: boolean } | null> {
+    return getSetting('onboarding_status', null);
+  },
+
+  async setOnboardingStatus(status: { dismissed: boolean }): Promise<void> {
+    await setSetting('onboarding_status', status);
+  },
+
+  // Guide help links (reads platform-level setting, no org filter)
+  async getGuideHelpLinks(): Promise<Record<string, string>> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return {};
+    try {
+      const record = await apiClient.pb.collection('settings').getFirstListItem('key = "guide_help_links"');
+      return record.value || {};
+    } catch {
+      return {};
+    }
+  },
+
   async testPocketBaseConnection(url: string): Promise<{ success: boolean; message: string }> {
     try {
       const cleanUrl = url.trim().replace(/\/+$/, '');

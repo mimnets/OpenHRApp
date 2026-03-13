@@ -18,10 +18,15 @@ import { OrgHolidays } from '../components/organization/OrgHolidays';
 import { OrgSystem } from '../components/organization/OrgSystem';
 import { OrgShifts } from '../components/organization/OrgShifts';
 import { OrgNotifications } from '../components/organization/OrgNotifications';
+import HelpButton from '../components/onboarding/HelpButton';
 
 type OrgTab = 'STRUCTURE' | 'TEAMS' | 'PLACEMENT' | 'SHIFTS' | 'WORKFLOW' | 'LEAVES' | 'HOLIDAYS' | 'NOTIFICATIONS' | 'SYSTEM';
 
-const Organization: React.FC = () => {
+interface OrganizationProps {
+  initialTab?: string;
+}
+
+const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
   const {
       departments, designations, holidays, teams, employees, leavePolicy, config, workflows, shiftOverrides, notificationConfig,
       isLoading, isSaving,
@@ -45,7 +50,11 @@ const Organization: React.FC = () => {
   const { canPerformAction, subscription } = useSubscription();
   const canWrite = canPerformAction('write');
 
-  const [activeTab, setActiveTab] = useState<OrgTab>('STRUCTURE');
+  const [activeTab, setActiveTab] = useState<OrgTab>((initialTab as OrgTab) || 'STRUCTURE');
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab as OrgTab);
+  }, [initialTab]);
 
   // Modals Local State
   const [showModal, setShowModal] = useState(false);
@@ -209,9 +218,12 @@ const Organization: React.FC = () => {
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 overflow-x-hidden">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Organization & Setup</h1>
-          <p className="text-sm text-slate-500 font-medium">Core structural and policy configurations</p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Organization & Setup</h1>
+            <p className="text-sm text-slate-500 font-medium">Core structural and policy configurations</p>
+          </div>
+          <HelpButton helpPointId={`org.${activeTab.toLowerCase()}`} />
         </div>
       </header>
 

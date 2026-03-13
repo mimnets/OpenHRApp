@@ -8,6 +8,8 @@ import { hrService } from '../services/hrService';
 import { User as UserType, Employee, Shift } from '../types';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { AdminVerificationPanel } from '../components/admin/AdminVerificationPanel';
+import HelpButton from '../components/onboarding/HelpButton';
+import { ReEnableSetupGuide } from '../components/onboarding/SetupChecklist';
 import { contactService } from '../services/contact.service';
 
 interface SettingsProps {
@@ -178,7 +180,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         <div className="flex items-center gap-4">
           {onBack && <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>}
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System & Profile</h1>
+            <div className="flex items-center gap-2"><h1 className="text-3xl font-bold text-slate-900 tracking-tight">System & Profile</h1><HelpButton helpPointId="settings.profile" /></div>
             <p className="text-slate-500 font-medium">Manage preferences, appearance, and personal data</p>
           </div>
         </div>
@@ -304,6 +306,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
           <AdminVerificationPanel />
         </div>
       )}
+
+      {/* Re-enable Setup Guide (only shown if dismissed) */}
+      <ReEnableSetupGuide userRole={user.role} />
 
       {/* Contact Support */}
       <div className="max-w-3xl animate-in slide-in-from-bottom-8">

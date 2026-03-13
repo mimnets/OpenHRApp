@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, Clock, AlertTriangle, Send, RefreshCw, X, AlertCircle, Info } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, Send, RefreshCw, X, AlertCircle, Info } from 'lucide-react';
 import { employeeService } from '../../services/employeeService';
 import { hrService } from '../../services/hrService';
-import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift } from '../../types';
+import HelpButton from '../onboarding/HelpButton';
+import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift, CustomLeaveType } from '../../types';
+import { DEFAULT_LEAVE_TYPES } from '../../constants';
 
 interface Props {
   user: any;
@@ -30,20 +32,21 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
   const [employeeShift, setEmployeeShift] = useState<Shift | null>(null);
   const [calculatedDays, setCalculatedDays] = useState(0);
   const [calculationDetails, setCalculationDetails] = useState<string>('');
+  const [leaveTypes, setLeaveTypes] = useState<CustomLeaveType[]>(DEFAULT_LEAVE_TYPES);
 
   useEffect(() => {
     if (initialOpen) {
       setShowForm(true);
     }
-    // Fetch Metadata for calculation
     const loadMeta = async () => {
-      const [hols, cfg] = await Promise.all([
+      const [hols, cfg, lt] = await Promise.all([
         hrService.getHolidays(),
-        hrService.getConfig()
+        hrService.getConfig(),
+        hrService.getLeaveTypes(),
       ]);
       setHolidays(hols);
       setConfig(cfg);
-      // Resolve employee's shift
+      setLeaveTypes(lt);
       const shift = await hrService.resolveShiftForEmployee(user.id, user.shiftId);
       setEmployeeShift(shift);
     };
@@ -109,9 +112,10 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
 
   const getAvailableBalance = (type: string) => {
     if (!balance) return 0;
-    const key = type as keyof Pick<LeaveBalance, 'ANNUAL' | 'CASUAL' | 'SICK'>;
-    return balance[key] || 0;
+    return (balance[type] as number) || 0;
   };
+
+  const balanceTypes = leaveTypes.filter(t => t.hasBalance);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +145,7 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
         reason: formData.reason
       }, user);
       setShowForm(false);
-      setFormData({ type: 'ANNUAL', start: '', end: '', reason: '' });
+      setFormData({ type: leaveTypes[0]?.id || 'ANNUAL', start: '', end: '', reason: '' });
       onRefresh();
     } catch (err: any) {
       setError(err.message || "Submission failed");
@@ -153,25 +157,25 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-slate-900">My Leave Portal</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-semibold text-slate-900">My Leave Portal</h3>
+          <HelpButton helpPointId="leave.balance" size={16} />
+        </div>
         <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl font-semibold uppercase tracking-widest text-[10px] shadow-xl hover:bg-primary-hover">
           <Plus size={18} /> New Request
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="p-3 bg-primary-light text-primary rounded-2xl w-fit mb-4"><Calendar size={24} /></div>
-          <p className="text-4xl font-semibold text-slate-900 tabular-nums">{balance?.ANNUAL || 0} <span className="text-xs text-slate-400">Annual</span></p>
-        </div>
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl w-fit mb-4"><Clock size={24} /></div>
-          <p className="text-4xl font-semibold text-slate-900 tabular-nums">{balance?.CASUAL || 0} <span className="text-xs text-slate-400">Casual</span></p>
-        </div>
-        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl w-fit mb-4"><AlertTriangle size={24} /></div>
-          <p className="text-4xl font-semibold text-slate-900 tabular-nums">{balance?.SICK || 0} <span className="text-xs text-slate-400">Sick</span></p>
-        </div>
+      <div className={`grid grid-cols-1 md:grid-cols-${Math.min(balanceTypes.length, 4)} gap-6`}>
+        {balanceTypes.map(lt => (
+          <div key={lt.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+            <div className="relative p-3 rounded-2xl w-fit mb-4 overflow-hidden">
+              <div className={`absolute inset-0 ${lt.color} opacity-10`} />
+              <Calendar size={24} className="relative" />
+            </div>
+            <p className="text-4xl font-semibold text-slate-900 tabular-nums">{getAvailableBalance(lt.id)} <span className="text-xs text-slate-400">{lt.name.replace(' Leave', '')}</span></p>
+          </div>
+        ))}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-100 p-8">
@@ -217,7 +221,9 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
                     </span>
                  </div>
                  <select className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl font-semibold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-                    <option value="ANNUAL">Annual Leave</option><option value="CASUAL">Casual Leave</option><option value="SICK">Sick Leave</option>
+                    {leaveTypes.filter(t => t.hasBalance).map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
                  </select>
               </div>
 

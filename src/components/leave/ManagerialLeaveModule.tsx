@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserCheck, RefreshCw, X, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import HelpButton from '../onboarding/HelpButton';
 
 interface Props {
   user: any;
@@ -39,7 +40,7 @@ const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, rol
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-           <h3 className="text-xl font-semibold text-slate-900">{roleLabel} Approval Hub</h3>
+           <div className="flex items-center gap-2"><h3 className="text-xl font-semibold text-slate-900">{roleLabel} Approval Hub</h3><HelpButton helpPointId="leave.manager" size={16} /></div>
            <p className="text-xs font-bold text-slate-400 mt-1">Pending approvals from your direct reports</p>
         </div>
         <button onClick={onRefresh} className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-primary transition-colors"><RefreshCw size={20} /></button>
