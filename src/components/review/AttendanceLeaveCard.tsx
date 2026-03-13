@@ -16,6 +16,25 @@ const StatItem: React.FC<{ label: string; value: number | string; color?: string
 );
 
 const AttendanceLeaveCard: React.FC<Props> = ({ attendance, leave }) => {
+  // Build leave entries from typeBreakdown (new format) or legacy fields
+  const leaveEntries: { label: string; value: number; color?: string }[] = [];
+
+  if (leave.typeBreakdown && Object.keys(leave.typeBreakdown).length > 0) {
+    for (const [type, days] of Object.entries(leave.typeBreakdown)) {
+      leaveEntries.push({
+        label: type.charAt(0) + type.slice(1).toLowerCase(),
+        value: days,
+        color: type === 'UNPAID' ? 'text-red-600' : undefined,
+      });
+    }
+  } else {
+    // Legacy format fallback
+    if (leave.annualLeaveTaken !== undefined) leaveEntries.push({ label: 'Annual', value: leave.annualLeaveTaken || 0 });
+    if (leave.casualLeaveTaken !== undefined) leaveEntries.push({ label: 'Casual', value: leave.casualLeaveTaken || 0 });
+    if (leave.sickLeaveTaken !== undefined) leaveEntries.push({ label: 'Sick', value: leave.sickLeaveTaken || 0 });
+    if (leave.unpaidLeaveTaken !== undefined) leaveEntries.push({ label: 'Unpaid', value: leave.unpaidLeaveTaken || 0, color: 'text-red-600' });
+  }
+
   return (
     <div className="space-y-4">
       {/* Attendance Summary */}
@@ -45,11 +64,13 @@ const AttendanceLeaveCard: React.FC<Props> = ({ attendance, leave }) => {
             {leave.totalLeaveDays} days
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          <StatItem label="Annual" value={leave.annualLeaveTaken} />
-          <StatItem label="Casual" value={leave.casualLeaveTaken} />
-          <StatItem label="Sick" value={leave.sickLeaveTaken} />
-          <StatItem label="Unpaid" value={leave.unpaidLeaveTaken} color="text-red-600" />
+        <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.min(leaveEntries.length || 1, 5)}, 1fr)` }}>
+          {leaveEntries.map(entry => (
+            <StatItem key={entry.label} label={entry.label} value={entry.value} color={entry.color} />
+          ))}
+          {leaveEntries.length === 0 && (
+            <p className="text-xs text-slate-400 col-span-full text-center">No leave data</p>
+          )}
         </div>
       </div>
     </div>

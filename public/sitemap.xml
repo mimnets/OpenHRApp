@@ -82,26 +82,152 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://openhrapp.com/how-to-use/welcome-to-openhr-your-first-steps</loc>
-    <lastmod>2026-03-01</lastmod>
+    <loc>https://openhrapp.com/blog/the-complete-guide-to-openhrapp-free-open-source-hr-software-that-actually-works</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/announcements-guide</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/performance-review-self-assessment</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/managing-profile-settings</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/generating-reports</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/setting-up-organization</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/managing-employees</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/how-to-apply-for-leave</loc>
+    <lastmod>2026-03-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://openhrapp.com/how-to-use/how-to-clock-in-and-out</loc>
-    <lastmod>2026-03-05</lastmod>
+    <lastmod>2026-03-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://openhrapp.com/how-to-use/understanding-your-attendance-logs</loc>
-    <lastmod>2026-02-17</lastmod>
+    <loc>https://openhrapp.com/how-to-use/welcome-to-openhr</loc>
+    <lastmod>2026-03-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://openhrapp.com/how-to-use/install-openhr-as-an-app-pwa-on-android-and-ios</loc>
-    <lastmod>2026-02-17</lastmod>
+    <loc>https://openhrapp.com/how-to-use/notification-settings</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/notifications-guide</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/performance-review-for-managers</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/roles-and-permissions</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/leave-approval-for-managers</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/understanding-attendance-logs</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/theme-customization</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/performance-reviews-hr-calibration</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/leave-approval-for-hr</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/attendance-admin-audit</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/install-openhr-pwa</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/understanding-dashboard</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/understanding-leave-policies</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/subscription-upgrade-options</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://openhrapp.com/how-to-use/custom-leave-types</loc>
+    <lastmod>2026-03-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

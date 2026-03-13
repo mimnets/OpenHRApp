@@ -133,18 +133,19 @@ Stores individual employee reviews with self-ratings, manager ratings, attendanc
 2. Click **New collection**
 3. Set **Name** to `performance_reviews`
 4. Set **Type** to `Base`
-5. Add **all 42 fields** below in order, then configure API rules
+5. Add **all 51 fields** below in order, then configure API rules
 
 ### Fields Overview
 
-This collection has 42 fields organized in 6 groups:
+This collection has 51 fields organized in 7 groups:
 
 - **Core fields** (7 fields)
 - **Workflow timestamps** (3 fields)
-- **Self-assessment ratings** (12 fields — 6 competencies x 2)
-- **Manager assessment ratings** (12 fields — 6 competencies x 2)
+- **Self-assessment ratings** (12 fields — 6 legacy competencies x 2)
+- **Manager assessment ratings** (12 fields — 6 legacy competencies x 2)
 - **Attendance summary** (6 fields)
-- **Leave summary + HR finalization** (7 fields)
+- **Dynamic JSON fields** (3 fields — `self_ratings`, `manager_ratings`, `leave_summary_json`)
+- **Leave summary (legacy) + HR finalization** (8 fields)
 
 ---
 
@@ -297,42 +298,57 @@ All: Type **Number**, Required OFF, Min: `0`.
 
 ---
 
-### Group 6: Leave Summary + HR Finalization (7 fields)
+### Group 6: Dynamic JSON Fields (3 fields) — REQUIRED
+
+These JSON fields store ratings and leave data in the new dynamic format. **You must add these fields to the collection.**
 
 | # | Field Name | Type | Required | Notes |
 |---|-----------|------|----------|-------|
-| 41 | `annual_leave_taken` | **Number** | No | Approved annual leave days in period |
-| 42 | `casual_leave_taken` | **Number** | No | Approved casual leave days in period |
-| 43 | `sick_leave_taken` | **Number** | No | Approved sick leave days in period |
-| 44 | `unpaid_leave_taken` | **Number** | No | Approved unpaid leave days in period |
-| 45 | `total_leave_days` | **Number** | No | Sum of all leave types |
-| 46 | `hr_final_remarks` | **Text** | No | HR's written final assessment |
-| 47 | `hr_overall_rating` | **Select** | No | Values: `EXCELLENT`, `VERY_GOOD`, `GOOD`, `NEEDS_IMPROVEMENT`, `UNSATISFACTORY` — Max select: 1 |
-| 48 | `finalized_by` | **Relation** | No | Related collection: `users` — Max select: 1 |
+| 41 | `self_ratings` | **JSON** | No | Array of `{competencyId, rating, comment}` — stores employee self-assessment |
+| 42 | `manager_ratings` | **JSON** | No | Array of `{competencyId, rating, comment}` — stores manager assessment |
+| 43 | `leave_summary_json` | **JSON** | No | `{typeBreakdown: {ANNUAL: n, ...}, totalLeaveDays: n}` — dynamic leave breakdown |
 
-**Field 41–45 — Leave numbers:**
+**Field 41 — `self_ratings`:**
+- Type: **JSON**
+- Required: OFF
+
+**Field 42 — `manager_ratings`:**
+- Type: **JSON**
+- Required: OFF
+
+**Field 43 — `leave_summary_json`:**
+- Type: **JSON**
+- Required: OFF
+
+---
+
+### Group 7: Leave Summary (Legacy) + HR Finalization (8 fields)
+
+| # | Field Name | Type | Required | Notes |
+|---|-----------|------|----------|-------|
+| 44 | `annual_leave_taken` | **Number** | No | Legacy: Approved annual leave days in period |
+| 45 | `casual_leave_taken` | **Number** | No | Legacy: Approved casual leave days in period |
+| 46 | `sick_leave_taken` | **Number** | No | Legacy: Approved sick leave days in period |
+| 47 | `unpaid_leave_taken` | **Number** | No | Legacy: Approved unpaid leave days in period |
+| 48 | `total_leave_days` | **Number** | No | Sum of all leave types |
+| 49 | `hr_final_remarks` | **Text** | No | HR's written final assessment |
+| 50 | `hr_overall_rating` | **Text** | No | Dynamic overall rating value (was Select, now Text for custom ratings) |
+| 51 | `finalized_by` | **Relation** | No | Related collection: `users` — Max select: 1 |
+
+**Field 44–48 — Leave numbers:**
 - Type: **Number**
 - Required: OFF
 - Min: `0`
 
-**Field 46 — `hr_final_remarks`:**
+**Field 49 — `hr_final_remarks`:**
 - Type: **Text**
 - Required: OFF
 
-**Field 47 — `hr_overall_rating`:**
-- Type: **Select**
+**Field 50 — `hr_overall_rating`:**
+- Type: **Text** (changed from Select to support dynamic custom ratings)
 - Required: OFF
-- Values:
-  ```
-  EXCELLENT
-  VERY_GOOD
-  GOOD
-  NEEDS_IMPROVEMENT
-  UNSATISFACTORY
-  ```
-- Max select: `1`
 
-**Field 48 — `finalized_by`:**
+**Field 51 — `finalized_by`:**
 - Type: **Relation**
 - Required: OFF
 - Related collection: **users**
@@ -359,7 +375,7 @@ Set these in the **API Rules** tab of the collection:
 After creating both collections, verify:
 
 - [ ] `review_cycles` collection exists with 10 fields
-- [ ] `performance_reviews` collection exists with 48 fields
+- [ ] `performance_reviews` collection exists with 51 fields
 - [ ] All **Relation** fields point to the correct collections (`users`, `organizations`, `review_cycles`)
 - [ ] All **Select** fields have the correct values listed
 - [ ] All **Number** fields for ratings have Min: `0`, Max: `5`
@@ -413,3 +429,49 @@ hrFinalRemarks            →  hr_final_remarks
 hrOverallRating           →  hr_overall_rating
 finalizedBy               →  finalized_by
 ```
+
+Last pormpt:
+Based on the exploration, here's what I'd suggest for the Performance Review PDF download:                                                                                                                                                        
+  Suggestion: PDF Download for Employee Performance Review                                                                                                                                                                                          
+  Where to add the download button                                                                                                                                                                                                                  
+  EmployeeReviewModule.tsx — on completed/finalized reviews (status COMPLETED or MANAGER_REVIEWED), add a download button   similar to the leave PDF.                                                                                                                                                                                                                           What the PDF would contain                                                                                                                                                                                                                          ┌─────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐     │             Section             │                                     Content                                     │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ Header                          │ Org logo (aspect-ratio preserved) + org name + address                          │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Title                           │ "Performance Review Report" + cycle name (e.g. "Year End 2025")                 │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Employee Info                   │ Name, Employee ID, Department, Designation, Manager Name                        │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Attendance Summary              │ Present days, late days, absent days, early outs, attendance %, total working   │   
+  │                                 │ days                                                                            │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Leave Summary                   │ Type-wise breakdown table (Annual, Casual, Sick, etc.) + total leave days       │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Competency Ratings Table        │ Each competency as a row with: Self Rating, Manager Rating, Self Comment,       │   
+  │                                 │ Manager Comment                                                                 │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Overall Summary                 │ Self average score, Manager average score                                       │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ HR Final Assessment (if         │ Overall Rating (e.g. "Excellent"), HR Remarks                                   │   
+  │ COMPLETED)                      │                                                                                 │   
+  ├─────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ Signatures                      │ Employee + Manager/Approver signature lines                                     │   
+  └─────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘   
+
+  Where the button would appear
+
+  Two spots make sense:
+  1. Current active review — a "Download PDF" button in the review summary section (visible once at least
+  manager-reviewed)
+  2. Past reviews — each history card gets a download icon, same pattern as leave cards
+
+  Key considerations
+
+  - Reuses the same fetchImageAsDataUrl and getScaledLogoDims helpers
+  - Same jsPDF dynamic import pattern
+  - Competency names come from reviewConfig.competencies (not hardcoded)
+  - Rating scale labels (1="Needs Improvement", 5="Excellent") come from reviewConfig.ratingScale.labels
+  - All data already available on the PerformanceReview object — no extra API calls needed except org info + manager name 
+  resolution
+
+  Would you like me to go ahead and implement this?
