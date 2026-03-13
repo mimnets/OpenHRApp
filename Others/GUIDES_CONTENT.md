@@ -5,7 +5,7 @@
 > Recommended categories: **Getting Started**, **Attendance**, **Leave**, **Employees**, **Organization**, **Reports**, **Settings**, **Performance Reviews**, **Announcements**
 >
 > **Internal links** use the format `/how-to-use/{slug}` and are clickable within the app.
-> **Feature links** use `https://openhrapp.com/features/{feature}` and open externally.
+> **Feature links** use `/features/{feature}` and navigate internally within the app.
 
 ---
 
@@ -31,8 +31,8 @@ Whether you're an Admin setting up your organization, a Manager overseeing your 
 
 #### What You Can Do with OpenHR
 
-- **[Track Attendance with Selfie Verification](/how-to-use/how-to-clock-in-and-out)** — Clock in and out using your device camera and GPS location. Supports both Office and Factory/Field modes with [biometric selfie verification](https://openhrapp.com/features/biometric-selfie-verification).
-- **[Manage Leave Requests](/how-to-use/how-to-apply-for-leave)** — Apply for leave, check your balance, and get approvals through a configurable multi-step workflow with [smart leave management](https://openhrapp.com/features/leave-management).
+- **[Track Attendance with Selfie Verification](/how-to-use/how-to-clock-in-and-out)** — Clock in and out using your device camera and GPS location. Supports both Office and Factory/Field modes with [biometric selfie verification](/features/biometric-selfie-verification).
+- **[Manage Leave Requests](/how-to-use/how-to-apply-for-leave)** — Apply for leave, check your balance, and get approvals through a configurable multi-step workflow with [smart leave management](/features/leave-management).
 - **[Organize Your Team](/how-to-use/setting-up-organization)** — Set up departments, teams, shifts, office locations, and leave policies all from one place.
 - **[Generate HR Reports](/how-to-use/generating-reports)** — Export attendance and leave reports as CSV or PDF, or send them via email to stakeholders.
 - **[Role-Based Access Control](/how-to-use/roles-and-permissions)** — Five distinct roles (Admin, HR, Manager, Team Lead, Employee) each see different dashboards and have different permissions.
@@ -89,13 +89,13 @@ Your dashboard includes shortcut buttons for common daily tasks:
 
 **Content:**
 
-OpenHR uses a smart [attendance tracking system](https://openhrapp.com/features/attendance-tracking) that combines a **live selfie**, **[GPS location verification](https://openhrapp.com/features/gps-geofencing)**, and **time tracking** to create a tamper-proof attendance record — eliminating buddy punching and manual errors.
+OpenHR uses a smart [attendance tracking system](/features/attendance-tracking) that combines a **live selfie**, **[GPS location verification](/features/gps-geofencing)**, and **time tracking** to create a tamper-proof attendance record — eliminating buddy punching and manual errors.
 
 #### Before You Start Clocking In
 
 Make sure you have:
 
-1. **Camera access** — Your browser will ask for camera permission. Allow it for [selfie-based verification](https://openhrapp.com/features/biometric-selfie-verification).
+1. **Camera access** — Your browser will ask for camera permission. Allow it for [selfie-based verification](/features/biometric-selfie-verification).
 2. **Location access** — GPS must be enabled on your device. Allow location permission when prompted.
 3. **HTTPS connection** — The app must be accessed over a secure connection for camera and GPS to work.
 
@@ -201,7 +201,7 @@ After you start [clocking in daily](/how-to-use/how-to-clock-in-and-out), you ca
 
 #### How to Access Your Attendance History
 
-Navigate to **"My Attendance History"** from the sidebar menu. This shows your personal [attendance records](https://openhrapp.com/features/attendance-tracking) sorted by date.
+Navigate to **"My Attendance History"** from the sidebar menu. This shows your personal [attendance records](/features/attendance-tracking) sorted by date.
 
 #### Understanding Each Attendance Record Field
 
@@ -214,7 +214,7 @@ Each record displays the following information:
 | **Status** | Color-coded badge: PRESENT (green), LATE (amber), ABSENT (red) |
 | **Check-In Time** | When you clocked in (24-hour format) |
 | **Check-Out Time** | When you clocked out, or "Active" if session is ongoing |
-| **Location** | Office name (matched via [GPS geofencing](https://openhrapp.com/features/gps-geofencing)) or "Remote Area" |
+| **Location** | Office name (matched via [GPS geofencing](/features/gps-geofencing)) or "Remote Area" |
 | **Remarks** | Any notes — yours or system-generated (e.g., auto-close messages) |
 
 #### How Multiple Punches in a Day Are Consolidated
@@ -251,7 +251,7 @@ You can sort records by date — newest first or oldest first — using the sort
 
 **Content:**
 
-As an Admin or HR user, you have full visibility into the organization's [attendance data](https://openhrapp.com/features/attendance-tracking). This guide covers auditing, editing, and manually creating attendance records for any employee.
+As an Admin or HR user, you have full visibility into the organization's [attendance data](/features/attendance-tracking). This guide covers auditing, editing, and manually creating attendance records for any employee.
 
 #### Viewing All Employee Attendance Records
 
@@ -297,7 +297,7 @@ Admins can permanently delete attendance records. A confirmation dialog is shown
 
 #### GPS Location Verification for Attendance
 
-Each attendance record shows the exact GPS coordinates captured during [clock-in](/how-to-use/how-to-clock-in-and-out). Click the coordinates to open the location in Google Maps for verification — useful for confirming [field/factory attendance](https://openhrapp.com/features/gps-geofencing).
+Each attendance record shows the exact GPS coordinates captured during [clock-in](/how-to-use/how-to-clock-in-and-out). Click the coordinates to open the location in Google Maps for verification — useful for confirming [field/factory attendance](/features/gps-geofencing).
 
 #### Related Guides
 
@@ -305,6 +305,7 @@ Each attendance record shows the exact GPS coordinates captured during [clock-in
 - [Understanding Attendance Logs](/how-to-use/understanding-attendance-logs) — What each field means.
 - [Managing Employees](/how-to-use/managing-employees) — Employee directory and profile management.
 - [Generating HR Reports](/how-to-use/generating-reports) — Export attendance data for analysis.
+- [Roles and Permissions](/how-to-use/roles-and-permissions) — What each role can access in attendance audit.
 
 ---
 
@@ -326,7 +327,7 @@ Each attendance record shows the exact GPS coordinates captured during [clock-in
 
 **Content:**
 
-OpenHR's [leave management system](https://openhrapp.com/features/leave-management) makes it easy to apply for leave, check your remaining balance, and follow your request through the approval process — all from your browser or phone.
+OpenHR's [leave management system](/features/leave-management) makes it easy to apply for leave, check your remaining balance, and follow your request through the approval process — all from your browser or phone.
 
 #### Step 1: Check Your Leave Balance
 
@@ -417,7 +418,7 @@ If your department is configured to skip the manager step, your request goes dir
 
 **Content:**
 
-As a Manager, you are the first step in OpenHR's [leave approval workflow](https://openhrapp.com/features/leave-management). Leave requests from your direct reports land in your approval queue and require your action before moving to HR.
+As a Manager, you are the first step in OpenHR's [leave approval workflow](/features/leave-management). Leave requests from your direct reports land in your approval queue and require your action before moving to HR.
 
 This guide is part of the [leave management system](/how-to-use/how-to-apply-for-leave) — make sure you also understand the [leave policy configuration](/how-to-use/understanding-leave-policies) for your organization.
 
@@ -473,7 +474,7 @@ You have two options:
 
 **Content:**
 
-HR and Admin users have the final say in OpenHR's [leave approval process](https://openhrapp.com/features/leave-management). You also have tools to create, edit, and delete leave records directly — making you the central point of leave administration.
+HR and Admin users have the final say in OpenHR's [leave approval process](/features/leave-management). You also have tools to create, edit, and delete leave records directly — making you the central point of leave administration.
 
 #### HR Leave Administration Panel
 
@@ -552,7 +553,7 @@ If a leave request is stuck at **PENDING_MANAGER** (manager hasn't responded), y
 
 **Content:**
 
-Your leave allocation and approval process in OpenHR are determined by your organization's [leave management](https://openhrapp.com/features/leave-management) policies. This guide explains how everything works together.
+Your leave allocation and approval process in OpenHR are determined by your organization's [leave management](/features/leave-management) policies. This guide explains how everything works together.
 
 #### Leave Types Available in OpenHR
 
@@ -630,7 +631,7 @@ When calculating leave days:
 
 **Content:**
 
-The [Employee Directory](https://openhrapp.com/features/employee-directory) is where you manage your organization's people. Admins and HR have full access to add, edit, and remove employees, while managers and team leads have scoped visibility.
+The [Employee Directory](/features/employee-directory) is where you manage your organization's people. Admins and HR have full access to add, edit, and remove employees, while managers and team leads have scoped visibility.
 
 #### Accessing the Employee Directory
 
@@ -779,7 +780,7 @@ Team assignment is important because:
 
 #### 3. Placement — Office Locations with GPS Geofencing
 
-Define your physical office locations for [GPS-based attendance verification](https://openhrapp.com/features/gps-geofencing):
+Define your physical office locations for [GPS-based attendance verification](/features/gps-geofencing):
 
 1. Click **"Add Location"**
 2. Enter the **location name** (e.g., "Head Office")
@@ -895,7 +896,7 @@ Configure application-level settings like your company name, office/factory labe
 
 **Content:**
 
-OpenHR's [Reports module](https://openhrapp.com/features/reports-analytics) lets you generate detailed attendance and leave reports for your organization, export them as CSV or branded PDF, and email them directly to stakeholders.
+OpenHR's [Reports module](/features/reports-analytics) lets you generate detailed attendance and leave reports for your organization, export them as CSV or branded PDF, and email them directly to stakeholders.
 
 #### Accessing the Reports Page
 
@@ -1220,7 +1221,7 @@ You can immediately [clock in for attendance](/how-to-use/how-to-clock-in-and-ou
 
 **Content:**
 
-OpenHR includes a built-in [performance review system](https://openhrapp.com/features/performance-reviews) that guides employees, managers, and HR through a structured review process each cycle. This guide covers the employee self-assessment step.
+OpenHR includes a built-in [performance review system](/features/performance-reviews) that guides employees, managers, and HR through a structured review process each cycle. This guide covers the employee self-assessment step.
 
 #### How the Performance Review Process Works
 
@@ -1316,7 +1317,7 @@ Click **"View Past Reviews"** to expand your review history. Each past review sh
 
 **Content:**
 
-As a Manager, you play a critical role in OpenHR's [performance review process](https://openhrapp.com/features/performance-reviews). After your direct reports [submit their self-assessments](/how-to-use/performance-review-self-assessment), it's your turn to evaluate them.
+As a Manager, you play a critical role in OpenHR's [performance review process](/features/performance-reviews). After your direct reports [submit their self-assessments](/how-to-use/performance-review-self-assessment), it's your turn to evaluate them.
 
 #### Accessing Pending Employee Reviews
 
@@ -1375,7 +1376,7 @@ Once you've completed all ratings:
 
 **Content:**
 
-HR has the final say in OpenHR's [performance review process](https://openhrapp.com/features/performance-reviews). After [managers submit their reviews](/how-to-use/performance-review-for-managers), HR calibrates the results and completes the cycle.
+HR has the final say in OpenHR's [performance review process](/features/performance-reviews). After [managers submit their reviews](/how-to-use/performance-review-for-managers), HR calibrates the results and completes the cycle.
 
 #### Accessing Reviews for HR Calibration
 
@@ -1616,6 +1617,7 @@ Super Admins can set a **default theme** for the entire organization. When a new
 
 - [Managing Your Profile and Settings](/how-to-use/managing-profile-settings) — Profile, password, and app settings.
 - [Welcome to OpenHR](/how-to-use/welcome-to-openhr) — Overview of all OpenHR features.
+- [Subscription and Upgrade Options](/how-to-use/subscription-upgrade-options) — How Super Admin settings and subscription tiers work.
 
 ---
 
@@ -1637,7 +1639,7 @@ Super Admins can set a **default theme** for the entire organization. When a new
 
 **Content:**
 
-Beyond the standard Annual, Casual, and Sick leave that employees can [apply for directly](/how-to-use/how-to-apply-for-leave), OpenHR's [leave management system](https://openhrapp.com/features/leave-management) supports several additional leave types and allows admins to configure custom ones.
+Beyond the standard Annual, Casual, and Sick leave that employees can [apply for directly](/how-to-use/how-to-apply-for-leave), OpenHR's [leave management system](/features/leave-management) supports several additional leave types and allows admins to configure custom ones.
 
 #### Standard Employee Leave Types
 
@@ -1743,6 +1745,7 @@ Emails are sent through PocketBase's configured SMTP settings. The admin should 
 
 - [Setting Up Your Organization](/how-to-use/setting-up-organization) — Complete organization configuration.
 - [Notifications Guide](/how-to-use/notifications-guide) — How bell notifications and admin tools work.
+- [Announcements Guide](/how-to-use/announcements-guide) — How announcements trigger notifications.
 
 ---
 
@@ -1896,6 +1899,7 @@ Click **"Accept Ad-Supported Mode"** to activate immediately — no approval nee
 
 - [Welcome to OpenHR](/how-to-use/welcome-to-openhr) — Overview of all features.
 - [Install OpenHR as a Mobile App](/how-to-use/install-openhr-pwa) — Use OpenHR from your phone.
+- [Understanding the Dashboard](/how-to-use/understanding-dashboard) — What you see when logged in, including subscription banners.
 
 ---
 
@@ -1917,7 +1921,7 @@ Click **"Accept Ad-Supported Mode"** to activate immediately — no approval nee
 
 **Content:**
 
-In addition to [attendance and leave reports](/how-to-use/generating-reports), OpenHR allows you to export your [employee directory](https://openhrapp.com/features/employee-directory) data in two formats.
+In addition to [attendance and leave reports](/how-to-use/generating-reports), OpenHR allows you to export your [employee directory](/features/employee-directory) data in two formats.
 
 #### How to Export from the Employee Directory
 
@@ -1961,6 +1965,7 @@ The PDF is ideal for printing or sharing with stakeholders who need an official 
 
 - [Managing Employees](/how-to-use/managing-employees) — The full employee directory guide.
 - [Generating HR Reports](/how-to-use/generating-reports) — Attendance and leave report exports.
+- [Roles and Permissions](/how-to-use/roles-and-permissions) — Who can access export features.
 
 ---
 
