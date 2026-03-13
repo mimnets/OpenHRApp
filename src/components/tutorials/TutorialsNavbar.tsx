@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Menu, X, Home, BookOpen, FileText, Sun, Moon } from 'lucide-react';
+import { Menu, X, Home, BookOpen, FileText, Sun, Moon, Search } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useSearch } from '../../context/SearchContext';
 import { navigateTo } from '../../utils/seo';
 
 interface TutorialsNavbarProps {
@@ -9,6 +10,7 @@ interface TutorialsNavbarProps {
 
 const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
   const { darkMode, setDarkModePreference } = useTheme();
+  const { setSearchOpen } = useSearch();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleDarkMode = () => {
@@ -72,6 +74,13 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
               <button
+                onClick={() => setSearchOpen(true)}
+                className="p-2.5 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 transition-all"
+                title="Search (Ctrl+K)"
+              >
+                <Search size={20} />
+              </button>
+              <button
                 onClick={toggleDarkMode}
                 className="p-2.5 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 transition-all"
                 title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -94,6 +103,13 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
 
             {/* Mobile Actions */}
             <div className="md:hidden flex items-center gap-1">
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="p-2 text-slate-500 hover:text-primary transition-colors"
+                title="Search"
+              >
+                <Search size={20} />
+              </button>
               <button
                 onClick={toggleDarkMode}
                 className="p-2 text-slate-500 hover:text-primary transition-colors"
