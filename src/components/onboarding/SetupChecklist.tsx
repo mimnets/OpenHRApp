@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, ArrowRight, HelpCircle, PartyPopper, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, ArrowRight, HelpCircle, PartyPopper, RotateCcw, BookOpen } from 'lucide-react';
 import { useSetupChecklist, SetupStep } from '../../hooks/onboarding/useSetupChecklist';
 
 interface Props {
@@ -44,7 +44,7 @@ const StepItem: React.FC<{
       </div>
 
       {/* Content column */}
-      <div className={`flex-1 pb-3 ${isLast ? '' : ''}`}>
+      <div className={`flex-1 pb-3`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-semibold leading-tight ${status === 'completed' ? 'text-emerald-700 line-through' : status === 'current' ? 'text-slate-900' : 'text-slate-400'}`}>
@@ -69,7 +69,7 @@ const StepItem: React.FC<{
             <button
               onClick={handleHelp}
               title="View Guide"
-              className="p-1 rounded-full text-slate-300 hover:text-primary hover:bg-primary-light transition-all"
+              className="p-1 rounded-full text-primary/40 hover:text-primary hover:bg-primary-light transition-all"
             >
               <HelpCircle size={14} />
             </button>
@@ -82,13 +82,32 @@ const StepItem: React.FC<{
 
 const SetupChecklist: React.FC<Props> = ({ user, onNavigate }) => {
   const {
-    steps, isLoading, isDismissed, completedCount, totalCount, allComplete, dismiss, isAdminOrHR
+    steps, isLoading, isDismissed, completedCount, totalCount, allComplete, dismiss, reEnable, isAdminOrHR
   } = useSetupChecklist(user.role);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  if (!isAdminOrHR || isDismissed) return null;
+  if (!isAdminOrHR) return null;
   if (isLoading) return null;
+
+  // When dismissed, show a compact "bring back" button on the dashboard
+  if (isDismissed) {
+    return (
+      <button
+        onClick={reEnable}
+        className="w-full flex items-center gap-3 px-5 py-3 bg-white rounded-2xl border border-dashed border-slate-200 hover:border-primary/30 hover:bg-primary-light/30 transition-all group"
+      >
+        <div className="w-8 h-8 rounded-xl bg-primary-light flex items-center justify-center flex-shrink-0">
+          <BookOpen size={16} className="text-primary" />
+        </div>
+        <div className="text-left flex-1">
+          <p className="text-sm font-semibold text-slate-600 group-hover:text-primary transition-colors">Show Setup Guide</p>
+          <p className="text-[10px] text-slate-400">Reopen the step-by-step organization setup checklist</p>
+        </div>
+        <RotateCcw size={14} className="text-slate-300 group-hover:text-primary transition-colors" />
+      </button>
+    );
+  }
 
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 

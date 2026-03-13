@@ -14,9 +14,24 @@ interface Tutorial {
 
 // Human-readable labels for each help point
 const HELP_POINT_LABELS: Record<string, { label: string; section: string }> = {
+  // Sidebar menu items
+  'sidebar.dashboard': { label: 'Sidebar — Dashboard', section: 'Sidebar Menu' },
+  'sidebar.profile': { label: 'Sidebar — My Profile', section: 'Sidebar Menu' },
+  'sidebar.attendance-logs': { label: 'Sidebar — My Attendance', section: 'Sidebar Menu' },
+  'sidebar.attendance-audit': { label: 'Sidebar — Attendance Audit', section: 'Sidebar Menu' },
+  'sidebar.leave': { label: 'Sidebar — Leave', section: 'Sidebar Menu' },
+  'sidebar.announcements': { label: 'Sidebar — Announcements', section: 'Sidebar Menu' },
+  'sidebar.admin-notifications': { label: 'Sidebar — Notifications', section: 'Sidebar Menu' },
+  'sidebar.employees': { label: 'Sidebar — Team Directory', section: 'Sidebar Menu' },
+  'sidebar.performance-review': { label: 'Sidebar — Performance', section: 'Sidebar Menu' },
+  'sidebar.organization': { label: 'Sidebar — Organization', section: 'Sidebar Menu' },
+  'sidebar.reports': { label: 'Sidebar — Reports', section: 'Sidebar Menu' },
+  'sidebar.settings': { label: 'Sidebar — Settings', section: 'Sidebar Menu' },
+  // Dashboard
   'dashboard.admin': { label: 'Dashboard (Admin)', section: 'Dashboard' },
   'dashboard.manager': { label: 'Dashboard (Manager)', section: 'Dashboard' },
   'dashboard.employee': { label: 'Dashboard (Employee)', section: 'Dashboard' },
+  // Page headers
   'attendance.clockin': { label: 'Attendance — Clock In', section: 'Attendance' },
   'attendance.logs': { label: 'My Attendance History', section: 'Attendance' },
   'attendance.audit': { label: 'Attendance Audit', section: 'Attendance' },
@@ -26,6 +41,7 @@ const HELP_POINT_LABELS: Record<string, { label: string; section: string }> = {
   'leave.hr': { label: 'HR Administration', section: 'Leave' },
   'employees.directory': { label: 'Employee Directory', section: 'Employees' },
   'employees.create': { label: 'Add Employee Form', section: 'Employees' },
+  // Organization tabs
   'org.structure': { label: 'Organization — Structure', section: 'Organization' },
   'org.teams': { label: 'Organization — Teams', section: 'Organization' },
   'org.placement': { label: 'Organization — Placement', section: 'Organization' },
@@ -35,6 +51,7 @@ const HELP_POINT_LABELS: Record<string, { label: string; section: string }> = {
   'org.holidays': { label: 'Organization — Holidays', section: 'Organization' },
   'org.notifications': { label: 'Organization — Notifications', section: 'Organization' },
   'org.system': { label: 'Organization — System', section: 'Organization' },
+  // Other pages
   'reports.generator': { label: 'Reports Generator', section: 'Reports' },
   'review.employee': { label: 'Performance Review (Employee)', section: 'Reviews' },
   'review.manager': { label: 'Performance Review (Manager)', section: 'Reviews' },

@@ -423,10 +423,156 @@ Behavior:
 
 ---
 
-## Key Decisions to Make
+## Decisions Made
 
-1. **Help button style:** Inline icon next to header text? Or floating button in top-right corner of each section?
-2. **Tutorial opens in:** New browser tab? Or an in-app slide-over panel?
-3. **Setup checklist position:** Top of dashboard (above everything)? Or in a sidebar panel?
-4. **Completion tracking:** Purely auto-detected? Or allow manual "mark as done"?
-5. **First-time detection:** Show checklist to ALL admins? Or only when org is "new" (empty departments/teams)?
+1. **Help button style:** Three variants — `default` (visible with border/shadow for page headers), `sidebar` (appears on hover for sidebar items), `inline` (subtle for tab buttons).
+2. **Tutorial opens in:** New browser tab (`window.open('/how-to-use/{slug}', '_blank')`).
+3. **Setup checklist position:** Top of Admin Dashboard (above quick access cards).
+4. **Completion tracking:** Purely auto-detected by querying real org data on each dashboard load.
+5. **First-time detection:** Shown to ALL admins and HR roles, always — with dismiss/re-enable capability.
+
+---
+
+## Implementation Status (Completed)
+
+### Phase 1: Foundation
+- [x] Service methods for guide links (`getGuideHelpLinks`, `setGuideHelpLinks`, `getOnboardingStatus`, `setOnboardingStatus`)
+- [x] `HelpButton.tsx` component with 3 variants (`default`, `sidebar`, `inline`)
+- [x] Module-level caching for guide links (fetched once, cleared on logout)
+
+### Phase 2: Setup Checklist
+- [x] `useSetupChecklist.ts` hook with 8 auto-detection checks
+- [x] `SetupChecklist.tsx` widget with numbered timeline, progress bar, collapse/expand
+- [x] Integrated into `AdminDashboard.tsx`
+- [x] Organization page supports `initialTab` prop for direct tab navigation from checklist
+
+### Phase 3: App-Wide Help Buttons
+- [x] Added to all 14+ page locations (Attendance, Leave, Employees, Reports, Reviews, Announcements, Notifications, Settings)
+- [x] Added to ALL sidebar menu items (visible on hover via `sidebar` variant)
+- [x] Added to ALL Organization tab buttons (visible when tab is active via `inline` variant)
+- [x] Help buttons use visible colors: `text-primary/60` with border, shadow, and hover effects
+
+### Phase 4: Super Admin Configuration
+- [x] `GuideLinksManagement.tsx` with grouped sections (Sidebar, Dashboard, Attendance, Leave, Employees, Organization, Reports, Reviews, Other)
+- [x] Added as "Guides" tab in Super Admin panel
+- [x] Dropdown shows all published tutorials, with preview link
+
+### Phase 5: Polish
+- [x] Pulse animation on current setup step
+- [x] Progress bar with smooth transition animation
+- [x] "Don't show this again" dismiss with visible "Show Setup Guide" button on dashboard when dismissed
+- [x] "Re-enable Setup Guide" button in Settings page
+- [x] `ReEnableSetupGuide` exported component for Settings page integration
+
+---
+
+## HelpButton Variant System
+
+```typescript
+type HelpButtonVariant = 'default' | 'sidebar' | 'inline';
+
+// default: Visible on page headers — primary color with border and shadow
+// sidebar: Appears on hover for sidebar menu items — subtle until hovered
+// inline: Subtle for tab buttons — shown only when tab is active
+
+const variantStyles = {
+  default: 'text-primary/60 hover:text-primary hover:bg-primary-light shadow-sm border border-primary/10 hover:border-primary/30',
+  sidebar: 'text-slate-300 hover:text-primary hover:bg-primary-light/50 opacity-0 group-hover:opacity-100',
+  inline: 'text-primary/50 hover:text-primary hover:bg-primary-light',
+};
+```
+
+---
+
+## Sidebar Help Icons (All Roles)
+
+Every sidebar menu item has a `HelpButton` with `variant="sidebar"` that appears on hover:
+
+| Menu Item | Help Point ID | Visible To |
+|-----------|---------------|------------|
+| Dashboard | `sidebar.dashboard` | ADMIN, HR, MANAGER, EMPLOYEE |
+| My Profile | `sidebar.profile` | ALL |
+| My Attendance | `sidebar.attendance-logs` | ALL |
+| Attendance Audit | `sidebar.attendance-audit` | ADMIN, HR, MANAGER |
+| Leave | `sidebar.leave` | ALL |
+| Announcements | `sidebar.announcements` | ALL |
+| Notifications | `sidebar.admin-notifications` | ADMIN, HR |
+| Team Directory | `sidebar.employees` | ADMIN, HR, MANAGER |
+| Performance | `sidebar.performance-review` | ALL |
+| Organization | `sidebar.organization` | ADMIN, HR |
+| Reports | `sidebar.reports` | ADMIN, HR |
+| Settings | `sidebar.settings` | ADMIN, HR |
+
+Super Admin sidebar items do NOT show help buttons (Super Admin has a different flow).
+
+---
+
+## Setup Checklist Dismiss/Re-enable Flow
+
+```
+Dashboard Load (Admin/HR)
+    │
+    ├── Not dismissed → Show full SetupChecklist widget
+    │     └── User clicks "Don't show this again"
+    │           └── Saves dismissed=true to settings
+    │
+    └── Dismissed → Show compact "Show Setup Guide" button
+          ├── Dashed border, BookOpen icon, "Reopen the step-by-step..."
+          └── User clicks → reEnable() → removes dismissed flag
+                └── Full checklist reappears
+
+Settings Page (Admin/HR)
+    └── Shows "Re-enable Setup Guide" button (if dismissed)
+          └── Same reEnable() function
+```
+
+---
+
+## PocketBase Collections — No Changes Needed
+
+This feature does **NOT** require any new PocketBase collections or schema modifications. Everything uses the existing `settings` collection:
+
+### Settings Keys Used
+
+| Key | Scope | Purpose |
+|-----|-------|---------|
+| `onboarding_status` | Per org (`organization_id` set) | Stores `{ dismissed: boolean }` for setup checklist state |
+| `guide_help_links` | Platform-level (no `organization_id`) | Stores `{ helpPointId: tutorialSlug }` mapping configured by Super Admin |
+
+### How It Works
+
+1. **Setup Checklist state**: Uses `organizationService.getOnboardingStatus()` / `setOnboardingStatus()` which read/write a `settings` record with `key='onboarding_status'` and the current org's `organization_id`.
+
+2. **Guide Help Links**: Uses `superAdminService.getGuideHelpLinks()` / `setGuideHelpLinks()` which read/write a `settings` record with `key='guide_help_links'` and NO `organization_id` (platform-wide).
+
+3. **Step completion auto-detection**: Does NOT store completion data. Instead, queries real org data (departments, teams, shifts, etc.) on each dashboard load to determine which steps are done.
+
+### Existing Collections Referenced (Read-Only)
+
+| Collection | Used By | Purpose |
+|------------|---------|---------|
+| `settings` | Setup Checklist, HelpButton | Store/read onboarding status and guide link mappings |
+| `teams` | Step 5 check | Count teams to determine if "Create Teams" step is complete |
+| `shifts` | Step 3 check | Count shifts to determine if "Configure Shifts" step is complete |
+| `users` | Step 8 check | Count employees to determine if "Add Employees" step is complete |
+| `tutorials` | GuideLinksManagement | Fetch all published tutorials for dropdown selection |
+
+---
+
+## Suggestions & Future Improvements
+
+1. **Role-specific tutorial slugs**: Currently all roles see the same tutorial for a given help point. Could extend the mapping to support role-specific tutorials (e.g., `leave.balance` shows a different guide for employees vs managers).
+
+2. **Tutorial completion tracking**: Track which tutorials a user has viewed, show a checkmark or "Read" badge on help buttons for tutorials they've already opened.
+
+3. **In-app tutorial preview**: Instead of always opening in a new tab, could add an in-app slide-over panel that shows tutorial content without leaving the current page.
+
+4. **Setup checklist for Managers**: Currently only shows for Admin/HR. Could add a lighter "Manager Onboarding" checklist (e.g., "Review your team members", "Set up shift assignments", "Learn about leave approvals").
+
+5. **Animated tooltips on first visit**: For first-time users, show animated pulse/tooltip on help buttons to draw attention to them. After the user clicks one, stop the animation.
+
+6. **Search within guides**: Add a search bar to the tutorials page that lets users search across all tutorial content, not just browse by category.
+
+7. **Video tutorials**: Extend the tutorial system to support embedded video content alongside text guides.
+
+8. **Contextual tips**: Small inline tips that appear below form fields (e.g., "Tip: You can set different leave quotas per employee in Organization > Leaves") that link to the relevant guide.

@@ -233,7 +233,10 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Structure</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             {(['STRUCTURE', 'TEAMS', 'PLACEMENT', 'SHIFTS'] as OrgTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-1 ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {tab.replace('_', ' ')}
+                {activeTab === tab && <HelpButton helpPointId={`org.${tab.toLowerCase()}`} size={12} variant="inline" />}
+              </button>
             ))}
           </div>
         </div>
@@ -242,7 +245,10 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Policies</p>
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             {(['WORKFLOW', 'LEAVES', 'HOLIDAYS', 'NOTIFICATIONS', 'SYSTEM'] as OrgTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab.replace('_', ' ')}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-3 px-2 rounded-lg text-[10px] md:text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-1 ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                {tab.replace('_', ' ')}
+                {activeTab === tab && <HelpButton helpPointId={`org.${tab.toLowerCase()}`} size={12} variant="inline" />}
+              </button>
             ))}
           </div>
         </div>
