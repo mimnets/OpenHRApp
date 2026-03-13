@@ -6,6 +6,21 @@ import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
 import { navigateTo, updatePageMeta } from '../utils/seo';
 
+// Preferred category display order — categories not listed here appear at the end
+const CATEGORY_ORDER = [
+  'Getting Started',
+  'Dashboard',
+  'Attendance',
+  'Leave',
+  'Employees',
+  'Organization',
+  'Performance',
+  'Reports',
+  'Settings',
+  'Subscription',
+  'General',
+];
+
 interface TutorialsPageProps {
   onBack: () => void;
 }
@@ -41,8 +56,17 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack }) => {
   const topLevel = tutorials.filter(t => !t.parentId);
   const children = tutorials.filter(t => t.parentId);
 
-  // Get unique categories in order
-  const categories = Array.from(new Set(topLevel.map(t => t.category || 'General')));
+  // Get unique categories sorted by preferred order
+  const categories = Array.from(new Set(topLevel.map(t => t.category || 'General')))
+    .sort((a, b) => {
+      const idxA = CATEGORY_ORDER.indexOf(a);
+      const idxB = CATEGORY_ORDER.indexOf(b);
+      // Categories not in CATEGORY_ORDER go to the end, maintaining original order
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
 
   // Group top-level by category
   const grouped = categories.map(cat => ({
