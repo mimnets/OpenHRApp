@@ -1,5 +1,6 @@
 import { apiClient } from './api.client';
 import { Organization, Employee, PlatformStats } from '../types';
+import { convertFileToWebP } from '../utils/imageConvert';
 
 export const superAdminService = {
   // Check if current user is super admin
@@ -441,5 +442,22 @@ export const superAdminService = {
       // Create new record (no org_id — platform-level)
       await apiClient.pb!.collection('settings').create({ key: 'guide_help_links', value: links });
     }
+  },
+
+  // ==================== CONTENT IMAGES ====================
+
+  async uploadContentImage(file: File): Promise<string> {
+    if (!apiClient.pb || !apiClient.isConfigured()) {
+      throw new Error("PocketBase not configured");
+    }
+
+    const webpFile = await convertFileToWebP(file);
+    const formData = new FormData();
+    formData.append('image', webpFile);
+
+    const record = await apiClient.pb.collection('content_images').create(formData);
+    const fileName = record.image;
+    const baseUrl = apiClient.pb.baseURL || '';
+    return `${baseUrl}/api/files/content_images/${record.id}/${fileName}`;
   }
 };

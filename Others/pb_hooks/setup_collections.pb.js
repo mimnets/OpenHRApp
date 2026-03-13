@@ -221,4 +221,62 @@ try {
     console.error("[SETUP] Failed to update organizations collection:", err.toString());
 }
 
+// Create content_images collection if it doesn't exist
+if (!collectionExists("content_images")) {
+    console.log("[SETUP] Creating 'content_images' collection...");
+
+    const contentImagesCollection = new Collection({
+        name: "content_images",
+        type: "base",
+        schema: [
+            {
+                name: "image",
+                type: "file",
+                required: true,
+                options: {
+                    mimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+                    thumbs: [],
+                    maxSelect: 1,
+                    maxSize: 5242880 // 5MB
+                }
+            },
+            {
+                name: "alt_text",
+                type: "text",
+                required: false,
+                options: {
+                    min: null,
+                    max: 500,
+                    pattern: ""
+                }
+            },
+            {
+                name: "uploaded_by",
+                type: "text",
+                required: false,
+                options: {
+                    min: null,
+                    max: 200,
+                    pattern: ""
+                }
+            }
+        ],
+        indexes: [],
+        listRule: "",
+        viewRule: "",
+        createRule: '@request.auth.id != ""',
+        updateRule: '@request.auth.id != ""',
+        deleteRule: '@request.auth.id != ""'
+    });
+
+    try {
+        $app.save(contentImagesCollection);
+        console.log("[SETUP] 'content_images' collection created successfully!");
+    } catch (err) {
+        console.error("[SETUP] Failed to create 'content_images' collection:", err.toString());
+    }
+} else {
+    console.log("[SETUP] 'content_images' collection already exists");
+}
+
 console.log("[SETUP] Collection setup complete!");
