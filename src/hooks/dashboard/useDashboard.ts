@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { hrService } from '../../services/hrService';
-import { Employee, Attendance, LeaveBalance, Holiday, Team, AppConfig, LeaveWorkflow } from '../../types';
+import { Employee, Attendance, LeaveBalance, Holiday, Team, AppConfig, LeaveWorkflow, CustomLeaveType } from '../../types';
+import { DEFAULT_LEAVE_TYPES } from '../../constants';
 
 export interface DashboardData {
   freshUser: Employee;
@@ -16,6 +17,7 @@ export interface DashboardData {
   myManager?: Employee;
   myTeamName: string;
   approverLabel: string;
+  leaveTypes: CustomLeaveType[];
 }
 
 export const useDashboard = (user: any) => {
@@ -30,7 +32,7 @@ export const useDashboard = (user: any) => {
         const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
         const isManager = user.role === 'MANAGER' || user.role === 'TEAM_LEAD' || user.role === 'MANAGEMENT';
 
-        const [active, balance, emps, leaves, hols, atts, teams, config, wfs] = await Promise.all([
+        const [active, balance, emps, leaves, hols, atts, teams, config, wfs, leaveTypes] = await Promise.all([
           hrService.getActiveAttendance(user.id),
           hrService.getLeaveBalance(user.id),
           hrService.getEmployees(),
@@ -39,7 +41,8 @@ export const useDashboard = (user: any) => {
           hrService.getAttendance(),
           hrService.getTeams(),
           hrService.getConfig(),
-          hrService.getWorkflows()
+          hrService.getWorkflows(),
+          hrService.getLeaveTypes()
         ]);
 
         // CRITICAL: Find fresh user record
@@ -102,7 +105,8 @@ export const useDashboard = (user: any) => {
           appConfig: config,
           myManager,
           myTeamName,
-          approverLabel
+          approverLabel,
+          leaveTypes: leaveTypes || DEFAULT_LEAVE_TYPES
         });
 
       } catch (err) {
