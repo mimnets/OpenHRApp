@@ -10,6 +10,7 @@ import {
   Upload, Loader2,
 } from 'lucide-react';
 import { superAdminService } from '../../services/superadmin.service';
+import { sanitizeHtml } from '../../utils/sanitize';
 
 interface RichTextEditorProps {
   value: string;
@@ -50,6 +51,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
       onChange(editorRef.current.innerHTML);
     }
   }, [onChange]);
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    const plain = e.clipboardData.getData('text/plain');
+    const content = html || plain;
+    if (content) {
+      const clean = html
+        ? sanitizeHtml(html)
+        : plain.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+      document.execCommand('insertHTML', false, clean);
+      handleInput();
+    }
+  }, [handleInput]);
 
   const deselectImage = useCallback(() => setSelectedImage(null), []);
 
@@ -475,6 +490,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onPaste={handlePaste}
           onBlur={(e) => {
             handleInput();
             // Deselect if focus moves outside the container (but not into the link toolbar)
