@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-03-16',
+    title: 'Default Theme Update',
+    entries: [
+      { type: 'improvement', description: 'Changed default app theme from Arctic Frost to Charcoal Slate for a more refined, professional look' },
+    ],
+  },
+  {
+    date: '2026-03-16',
     title: 'Camera Reliability Fix',
     entries: [
       { type: 'fix', description: 'Fixed camera sometimes not loading on Attendance page — stale closure in stopCamera/cleanup caused MediaStream tracks to leak or not attach to the video element' },
