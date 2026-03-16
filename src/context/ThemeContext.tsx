@@ -34,7 +34,7 @@ function getCachedTheme(): AppTheme {
       if (found) return found;
     }
   } catch { /* localStorage unavailable */ }
-  return THEMES[0]; // Arctic Frost
+  return THEMES.find(t => t.id === 'charcoal-slate') ?? THEMES[0]; // Charcoal Slate
 }
 
 export function cacheThemeId(themeId: string) {

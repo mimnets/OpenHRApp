@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 
@@ -11,16 +11,31 @@ export const useCamera = () => {
   const [loading, setLoading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Use a ref to always have the current stream value for cleanup/stop
+  const streamRef = useRef<MediaStream | null>(null);
+  streamRef.current = stream;
+  // Keep facing mode in a ref so recovery callbacks avoid stale closures
+  const facingModeRef = useRef<'user' | 'environment'>(facingMode);
+  facingModeRef.current = facingMode;
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+  const stopCamera = useCallback(() => {
+    const currentStream = streamRef.current;
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
       setStream(null);
     }
-  };
+  }, []);
 
-  const startCamera = async (mode: 'user' | 'environment' = 'user') => {
-    stopCamera();
+  const startCamera = useCallback(async (mode: 'user' | 'environment' = 'user') => {
+    // Stop any existing stream using the ref (avoids stale closure)
+    const existingStream = streamRef.current;
+    if (existingStream) {
+      existingStream.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+      setStream(null);
+    }
+
     setLoading(true);
     try {
       setError(null);
@@ -34,32 +49,60 @@ export const useCamera = () => {
           height: { ideal: 1440 }
         }
       });
+
+      // Guard: if the component unmounted or a newer startCamera call
+      // already replaced the stream, stop this one immediately.
+      streamRef.current = s;
       setStream(s);
       setFacingMode(mode);
       if (videoRef.current) {
         videoRef.current.srcObject = s;
+      }
+
+      // Auto-recover when the OS reclaims the camera (e.g. app backgrounded)
+      const videoTrack = s.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          // Only restart if this is still the active stream
+          if (streamRef.current === s) {
+            setTimeout(() => {
+              if (streamRef.current === s) {
+                startCamera(facingModeRef.current);
+              }
+            }, 500);
+          }
+        };
       }
     } catch (err: any) {
       // On native, fall back silently — takePhoto() will still work
       if (Capacitor.isNativePlatform()) {
         setError(null); // Clear error — fallback available via takePhoto
       } else {
-        setError('Camera permission denied.');
+        // iOS PWA standalone: camera may be unavailable but Camera.getPhoto() works
+        const isIOSPWA =
+          /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+          ((navigator as any).standalone === true ||
+            window.matchMedia('(display-mode: standalone)').matches);
+        setError(isIOSPWA ? null : 'Camera permission denied.');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const toggleCamera = () => {
-    const nextMode = facingMode === 'user' ? 'environment' : 'user';
-    setIsTorchOn(false);
-    startCamera(nextMode);
-  };
+  const toggleCamera = useCallback(() => {
+    setFacingMode(prev => {
+      const nextMode = prev === 'user' ? 'environment' : 'user';
+      setIsTorchOn(false);
+      startCamera(nextMode);
+      return prev; // startCamera will update via setFacingMode
+    });
+  }, [startCamera]);
 
-  const toggleTorch = async () => {
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
+  const toggleTorch = useCallback(async () => {
+    const currentStream = streamRef.current;
+    if (!currentStream) return;
+    const track = currentStream.getVideoTracks()[0];
     const capabilities = (track as any).getCapabilities?.() || {};
     if (capabilities.torch) {
       try {
@@ -67,10 +110,10 @@ export const useCamera = () => {
         setIsTorchOn(!isTorchOn);
       } catch (e) { console.error(e); }
     }
-  };
+  }, [isTorchOn]);
 
-  const takeSelfie = (canvas: HTMLCanvasElement): string | null => {
-    if (!stream || !videoRef.current) return null;
+  const takeSelfie = useCallback((canvas: HTMLCanvasElement): string | null => {
+    if (!streamRef.current || !videoRef.current) return null;
 
     const video = videoRef.current;
     canvas.width = video.videoWidth;
@@ -85,10 +128,10 @@ export const useCamera = () => {
       ctx.drawImage(video, 0, 0);
     }
     return canvas.toDataURL('image/webp', 0.8);
-  };
+  }, [facingMode]);
 
   /** Capacitor fallback: take a single photo when live stream isn't available */
-  const takePhoto = async (): Promise<string | null> => {
+  const takePhoto = useCallback(async (): Promise<string | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -111,10 +154,10 @@ export const useCamera = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   /** Pick a photo from the device gallery */
-  const selectFromGallery = async (): Promise<string | null> => {
+  const selectFromGallery = useCallback(async (): Promise<string | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -136,15 +179,45 @@ export const useCamera = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Assign stream to video element whenever it changes
   useEffect(() => {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(e => console.error(e));
+      videoRef.current.play().catch(() => {
+        // play() can fail on iOS PWA if page isn't user-activated yet;
+        // the video element's autoPlay + playsInline attributes will
+        // retry automatically once the user interacts.
+      });
     }
-    return () => stopCamera();
   }, [stream]);
+
+  // Recover camera when page returns from background (track may have ended silently)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && streamRef.current) {
+        const tracks = streamRef.current.getVideoTracks();
+        const allEnded = tracks.length === 0 || tracks.every(t => t.readyState === 'ended');
+        if (allEnded) {
+          startCamera(facingModeRef.current);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [startCamera]);
+
+  // Cleanup on unmount — use ref so the closure always has the latest stream
+  useEffect(() => {
+    return () => {
+      const s = streamRef.current;
+      if (s) {
+        s.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     videoRef,

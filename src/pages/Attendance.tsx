@@ -46,23 +46,26 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   const [isMobile, setIsMobile] = useState(false);
   const [fallbackPhoto, setFallbackPhoto] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cameraInitialized = useRef(false);
 
-  // 3. Initialization
+  // 3. Initialize hardware once when data is ready
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
-    const initHardware = async () => {
-      detectLocation(true);
-      startCamera('user');
+  useEffect(() => {
+    if (isLoading || cameraInitialized.current) return;
+    cameraInitialized.current = true;
 
-      if (autoStart === 'FACTORY') setDutyType('FACTORY');
-      else if (activeRecord?.dutyType) setDutyType(activeRecord.dutyType);
-    };
+    detectLocation(true);
+    startCamera('user');
+  }, [isLoading]);
 
-    if (!isLoading) initHardware();
-
-    return () => stopCamera();
-  }, [autoStart, isLoading, activeRecord?.dutyType]);
+  // Update duty type when autoStart or activeRecord changes (no camera restart)
+  useEffect(() => {
+    if (autoStart === 'FACTORY') setDutyType('FACTORY');
+    else if (activeRecord?.dutyType) setDutyType(activeRecord.dutyType);
+  }, [autoStart, activeRecord?.dutyType]);
 
   // 4. Handlers
   const handleTakePhoto = async () => {
