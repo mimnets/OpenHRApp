@@ -14,6 +14,14 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-03-16',
+    title: 'Camera Reliability Fix',
+    entries: [
+      { type: 'fix', description: 'Fixed camera sometimes not loading on Attendance page — stale closure in stopCamera/cleanup caused MediaStream tracks to leak or not attach to the video element' },
+      { type: 'fix', description: 'Fixed camera restarting unnecessarily when attendance record updates — separated hardware init from duty-type updates to prevent camera flicker after punching' },
+    ],
+  },
+  {
     date: '2026-03-13',
     title: 'Setup Guides & Contextual Help System',
     entries: [
