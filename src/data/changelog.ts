@@ -19,6 +19,9 @@ export const changelog: ChangelogRelease[] = [
     entries: [
       { type: 'fix', description: 'Fixed camera sometimes not loading on Attendance page — stale closure in stopCamera/cleanup caused MediaStream tracks to leak or not attach to the video element' },
       { type: 'fix', description: 'Fixed camera restarting unnecessarily when attendance record updates — separated hardware init from duty-type updates to prevent camera flicker after punching' },
+      { type: 'fix', description: 'Fixed camera showing black/frozen feed after returning from background — added auto-recovery via track.onended and visibilitychange listeners to detect and restart silently ended MediaStream tracks' },
+      { type: 'fix', description: 'Fixed iOS PWA showing "Camera permission denied" error instead of usable fallback — now silently falls back to "Tap to Take Photo" button in standalone mode' },
+      { type: 'fix', description: 'Fixed PWA manifest theme_color mismatch with index.html meta tag causing inconsistent status bar color' },
     ],
   },
   {

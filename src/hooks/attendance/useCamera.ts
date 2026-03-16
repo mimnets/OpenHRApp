@@ -14,6 +14,9 @@ export const useCamera = () => {
   // Use a ref to always have the current stream value for cleanup/stop
   const streamRef = useRef<MediaStream | null>(null);
   streamRef.current = stream;
+  // Keep facing mode in a ref so recovery callbacks avoid stale closures
+  const facingModeRef = useRef<'user' | 'environment'>(facingMode);
+  facingModeRef.current = facingMode;
 
   const stopCamera = useCallback(() => {
     const currentStream = streamRef.current;
@@ -55,12 +58,32 @@ export const useCamera = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = s;
       }
+
+      // Auto-recover when the OS reclaims the camera (e.g. app backgrounded)
+      const videoTrack = s.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          // Only restart if this is still the active stream
+          if (streamRef.current === s) {
+            setTimeout(() => {
+              if (streamRef.current === s) {
+                startCamera(facingModeRef.current);
+              }
+            }, 500);
+          }
+        };
+      }
     } catch (err: any) {
       // On native, fall back silently — takePhoto() will still work
       if (Capacitor.isNativePlatform()) {
         setError(null); // Clear error — fallback available via takePhoto
       } else {
-        setError('Camera permission denied.');
+        // iOS PWA standalone: camera may be unavailable but Camera.getPhoto() works
+        const isIOSPWA =
+          /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+          ((navigator as any).standalone === true ||
+            window.matchMedia('(display-mode: standalone)').matches);
+        setError(isIOSPWA ? null : 'Camera permission denied.');
       }
     } finally {
       setLoading(false);
@@ -169,6 +192,21 @@ export const useCamera = () => {
       });
     }
   }, [stream]);
+
+  // Recover camera when page returns from background (track may have ended silently)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && streamRef.current) {
+        const tracks = streamRef.current.getVideoTracks();
+        const allEnded = tracks.length === 0 || tracks.every(t => t.readyState === 'ended');
+        if (allEnded) {
+          startCamera(facingModeRef.current);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [startCamera]);
 
   // Cleanup on unmount — use ref so the closure always has the latest stream
   useEffect(() => {
