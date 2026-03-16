@@ -22,6 +22,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'Fixed PasswordCredential API being incorrectly used on iOS (Chrome on iOS is WKWebView and does not support it) — now falls through to Safari hidden form strategy' },
       { type: 'fix', description: 'Changed login form action from "#" to "." so Safari recognizes it as a navigable form for credential association' },
       { type: 'fix', description: 'Set hidden iframe src to about:blank and form action to current URL for better WKWebView standalone credential detection' },
+      { type: 'fix', description: 'Fixed all "Get Started Free" buttons across Features, Feature Detail, Blog, and Tutorials pages redirecting to landing page instead of registration page' },
     ],
   },
   {

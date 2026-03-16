@@ -6,9 +6,10 @@ import { navigateTo } from '../../utils/seo';
 
 interface TutorialsNavbarProps {
   onBack: () => void;
+  onRegisterClick?: () => void;
 }
 
-const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
+const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack, onRegisterClick }) => {
   const { darkMode, setDarkModePreference } = useTheme();
   const { setSearchOpen } = useSearch();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -30,6 +31,15 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
   const goHome = () => {
     setMobileOpen(false);
     navigateTo('/');
+  };
+
+  const handleGetStarted = () => {
+    setMobileOpen(false);
+    if (onRegisterClick) {
+      onRegisterClick();
+    } else {
+      navigateTo('/');
+    }
   };
 
   return (
@@ -94,7 +104,7 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
                 Login
               </button>
               <button
-                onClick={goHome}
+                onClick={handleGetStarted}
                 className="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
               >
                 Get Started Free
@@ -157,7 +167,7 @@ const TutorialsNavbar: React.FC<TutorialsNavbarProps> = ({ onBack }) => {
                   Login
                 </button>
                 <button
-                  onClick={goHome}
+                  onClick={handleGetStarted}
                   className="block w-full px-4 py-3 bg-primary text-white text-sm font-bold rounded-xl text-center hover:bg-primary-hover transition-colors"
                 >
                   Get Started Free

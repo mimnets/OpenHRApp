@@ -327,9 +327,9 @@ const AppContent: React.FC = () => {
   // Priority 0b: Public Features pages (accessible regardless of auth)
   if (featuresRoute) {
     if (featuresRoute.type === 'detail' && featuresRoute.slug) {
-      return <FeatureDetailPage slug={featuresRoute.slug} onBack={() => { navigateTo('/features'); }} />;
+      return <FeatureDetailPage slug={featuresRoute.slug} onBack={() => { navigateTo('/features'); }} onRegisterClick={() => { navigateTo('/'); setShowLanding(false); setShowRegister(true); }} />;
     }
-    return <FeaturesPage onBack={() => { navigateTo('/'); }} />;
+    return <FeaturesPage onBack={() => { navigateTo('/'); }} onRegisterClick={() => { navigateTo('/'); setShowLanding(false); setShowRegister(true); }} />;
   }
 
   // Priority 0c: Public Changelog (accessible regardless of auth)
@@ -342,7 +342,7 @@ const AppContent: React.FC = () => {
     if (tutorialRoute.type === 'single' && tutorialRoute.slug) {
       return <TutorialPage slug={tutorialRoute.slug} onBack={() => { navigateTo('/how-to-use'); }} />;
     }
-    return <TutorialsPage onBack={() => { navigateTo('/'); }} />;
+    return <TutorialsPage onBack={() => { navigateTo('/'); }} onRegisterClick={() => { navigateTo('/'); setShowLanding(false); setShowRegister(true); }} />;
   }
 
   // Priority 0: Public Blog (accessible regardless of auth)
@@ -350,7 +350,7 @@ const AppContent: React.FC = () => {
     if (blogRoute.type === 'post' && blogRoute.slug) {
       return <BlogPostPage slug={blogRoute.slug} onBack={() => { navigateTo('/blog'); }} />;
     }
-    return <BlogPage onBack={() => { navigateTo('/'); }} />;
+    return <BlogPage onBack={() => { navigateTo('/'); }} onRegisterClick={() => { navigateTo('/'); setShowLanding(false); setShowRegister(true); }} />;
   }
 
   // Priority 1: Verification Flow (must come BEFORE 404 check)
