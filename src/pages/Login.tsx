@@ -155,27 +155,42 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     }
   };
 
-  // Trigger iOS Safari "Save Password" by submitting form to a hidden iframe.
-  // Safari only prompts password save on actual form navigation, not JS-only logins.
-  // For iOS PWA standalone mode, we must ensure the form is painted (visible in DOM
-  // for at least one animation frame) before submission, otherwise WKWebView skips
-  // the credential save detection.
-  const triggerSafariPasswordSave = () => {
+  // Trigger iOS Safari / WKWebView "Save Password" via hidden form submission.
+  //
+  // Why this works:
+  //   Safari only triggers the password save dialog on a real form navigation,
+  //   not on XHR/fetch-only logins. We create a hidden form targeting a hidden
+  //   iframe and submit it. The iframe absorbs the resulting 404.
+  //
+  // iOS PWA (standalone) specifics:
+  //   WKWebView requires the form to be rendered (painted) for at least one
+  //   animation frame before submission, otherwise credential detection is skipped.
+  //   We also set the iframe src to about:blank first so WKWebView treats it as
+  //   a valid navigation target (empty iframes can be ignored in standalone mode).
+  //
+  // IMPORTANT: This must be called BEFORE onLoginSuccess triggers a route change,
+  //   otherwise the login form's DOM context is lost and Safari won't associate
+  //   the credentials with this page. We wrap onLoginSuccess in the rAF callback
+  //   so the form is submitted first, then login completes.
+  const triggerSafariPasswordSave = (onComplete: () => void) => {
     try {
       const iframe = document.createElement('iframe');
       iframe.name = 'safari-password-save';
+      iframe.src = 'about:blank';
       iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
       document.body.appendChild(iframe);
 
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = '/save-password'; // does not need to exist — iframe absorbs the 404
+      // Use the current page URL so Safari associates saved credentials with this origin.
+      // The iframe absorbs the navigation; the 405/404 response doesn't matter.
+      form.action = window.location.href;
       form.target = 'safari-password-save';
       form.autocomplete = 'on';
 
       const emailInput = document.createElement('input');
       emailInput.type = 'email';
-      emailInput.name = 'email';
+      emailInput.name = 'username';
       emailInput.autocomplete = 'username';
       emailInput.value = email;
       form.appendChild(emailInput);
@@ -189,20 +204,23 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
       document.body.appendChild(form);
 
-      // iOS PWA standalone: WKWebView needs the form to be present in the
-      // rendered DOM for at least one frame before it detects the credentials.
-      // Using requestAnimationFrame ensures the browser has painted the form.
+      // Double-rAF: ensures WKWebView has painted the form before we submit.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           form.submit();
+          // Complete login after form submission is dispatched
+          onComplete();
           // Clean up after Safari has processed the submission
           setTimeout(() => {
             form.remove();
             iframe.remove();
-          }, 2000);
+          }, 3000);
         });
       });
-    } catch (_) { /* Silently ignore */ }
+    } catch (_) {
+      // If anything fails, still complete login
+      onComplete();
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -218,35 +236,46 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     try {
       const result = await hrService.login(email, password);
       if (result.user) {
-        // CRITICAL: Complete login FIRST, then trigger password save asynchronously.
-        // On iOS PWA, the hidden form submission can disrupt the React render cycle
-        // if called synchronously before onLoginSuccess, causing a blank white screen.
-        onLoginSuccess(result.user);
+        // Detect iOS: all iOS browsers use WebKit, so PasswordCredential is never
+        // truly supported even if the global exists (e.g. Chrome on iOS is WKWebView).
+        const ua = navigator.userAgent;
+        const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
 
-        // Trigger "Save Password" prompt AFTER login state is set.
-        // Three strategies by platform:
-        //   1. Android APK (Capacitor WebView): call native AutofillManager.commit()
-        //   2. Chrome/Edge/Android PWA: Credential Management API
-        //   3. iOS Safari: hidden form submission trick
-        setTimeout(() => {
-          try {
-            if (window.AndroidAutofill) {
-              // Android APK — tell native AutofillManager to save credentials
-              window.AndroidAutofill.commitAutofill();
-            } else if (window.PasswordCredential) {
-              // Chrome, Edge, Android PWA — Credential Management API
-              const cred = new window.PasswordCredential({
-                id: email,
-                password: password,
-                name: result.user!.name || email,
-              });
-              navigator.credentials.store(cred).catch(() => {});
-            } else {
-              // iOS Safari — hidden form submission to trigger native password save
-              triggerSafariPasswordSave();
-            }
-          } catch (_) { /* Silently ignore */ }
-        }, 500);
+        // "Save Password" — three strategies by platform:
+        //   1. Android APK (Capacitor WebView): native AutofillManager.commit()
+        //   2. Chrome/Edge/Android browser & PWA: Credential Management API
+        //   3. iOS Safari & iOS PWA (standalone): hidden form submission trick
+        //
+        // For iOS: the hidden form MUST be submitted while the login page DOM is
+        // still mounted. If we call onLoginSuccess first, React unmounts the page
+        // and Safari loses the credential context. So on iOS we submit the form
+        // first (via rAF) and call onLoginSuccess in the completion callback.
+        // For non-iOS: we complete login first, then save credentials async.
+
+        if (isIOSDevice) {
+          // iOS path: submit hidden form BEFORE route change
+          triggerSafariPasswordSave(() => {
+            onLoginSuccess(result.user!);
+          });
+        } else {
+          // Non-iOS: complete login immediately, then save credentials
+          onLoginSuccess(result.user);
+
+          setTimeout(() => {
+            try {
+              if (window.AndroidAutofill) {
+                window.AndroidAutofill.commitAutofill();
+              } else if (window.PasswordCredential) {
+                const cred = new window.PasswordCredential({
+                  id: email,
+                  password: password,
+                  name: result.user!.name || email,
+                });
+                navigator.credentials.store(cred).catch(() => {});
+              }
+            } catch (_) { /* Silently ignore */ }
+          }, 300);
+        }
       } else {
         const msg = result.error || 'Verification Failed. Check credentials.';
         setError(msg);
@@ -275,7 +304,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
             <BrandLogo />
 
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-6" autoComplete="on" method="post" action="#">
+            <form onSubmit={handleLogin} className="space-y-6" autoComplete="on" method="post" action=".">
               <div className="space-y-5">
                 <div className="space-y-1.5">
                   <label htmlFor="login-email" className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
