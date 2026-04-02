@@ -77,8 +77,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
 
   const handleGetStarted = () => {
     if (onRegisterClick) {
-      navigateTo('/');
-      setTimeout(() => onRegisterClick(), 100);
+      onRegisterClick();
     } else {
       navigateTo('/');
     }

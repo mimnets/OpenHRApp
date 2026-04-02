@@ -23,9 +23,10 @@ const CATEGORY_ORDER = [
 
 interface TutorialsPageProps {
   onBack: () => void;
+  onRegisterClick?: () => void;
 }
 
-const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack }) => {
+const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }) => {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -84,7 +85,7 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <TutorialsNavbar onBack={onBack} />
+      <TutorialsNavbar onBack={onBack} onRegisterClick={onRegisterClick} />
 
       {/* Header */}
       <div className="bg-white border-b border-slate-100">

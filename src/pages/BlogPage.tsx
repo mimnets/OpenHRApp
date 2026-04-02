@@ -25,9 +25,10 @@ const BlogCardSkeleton = () => (
 
 interface BlogPageProps {
   onBack: () => void;
+  onRegisterClick?: () => void;
 }
 
-const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
+const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,7 +119,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Navbar */}
-      <BlogNavbar onBack={onBack} />
+      <BlogNavbar onBack={onBack} onRegisterClick={onRegisterClick} />
 
       {/* Header */}
       <div className="bg-white border-b border-slate-100">

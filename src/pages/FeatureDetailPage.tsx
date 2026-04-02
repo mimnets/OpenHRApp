@@ -10,9 +10,10 @@ const FEATURE_SLUGS = FEATURES.map(f => f.slug);
 interface FeatureDetailPageProps {
   slug: string;
   onBack: () => void;
+  onRegisterClick?: () => void;
 }
 
-const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack }) => {
+const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack, onRegisterClick }) => {
   const feature = FEATURES.find(f => f.slug === slug);
 
   const currentIndex = FEATURE_SLUGS.indexOf(slug);
@@ -110,7 +111,7 @@ const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack }) =
             </p>
             <div className="mt-8">
               <button
-                onClick={() => navigateTo('/')}
+                onClick={() => onRegisterClick ? onRegisterClick() : navigateTo('/')}
                 className="px-8 py-3.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm text-sm"
               >
                 Get Started Free
@@ -222,7 +223,7 @@ const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack }) =
               Get started for free. No credit card required.
             </p>
             <button
-              onClick={() => navigateTo('/')}
+              onClick={() => onRegisterClick ? onRegisterClick() : navigateTo('/')}
               className="px-8 py-3.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-hover transition-colors shadow-sm text-sm"
             >
               Get Started Free
