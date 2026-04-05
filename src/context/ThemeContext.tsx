@@ -139,10 +139,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [fetchPlatformDefault]);
 
   // Re-fetch theme when tab becomes visible (fallback for realtime)
+  // Throttled to once per 60s to avoid excessive API calls on iOS (notification center, app switcher, etc.)
+  const lastVisibilityFetch = useRef(0);
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        fetchPlatformDefault();
+        const now = Date.now();
+        if (now - lastVisibilityFetch.current > 60_000) {
+          lastVisibilityFetch.current = now;
+          fetchPlatformDefault();
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);

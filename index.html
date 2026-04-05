@@ -53,16 +53,16 @@
   <meta name="google-adsense-account" content="ca-pub-5895036262070222">
 
   <!--EZOIC-->
-  <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
+  <script defer src="//www.ezojs.com/ezoic/sa.min.js"></script>
   <script>
       window.ezstandalone = window.ezstandalone || {};
       ezstandalone.cmd = ezstandalone.cmd || [];
   </script>
-  <script src="//ezoicanalytics.com/analytics.js"></script>
+  <script defer src="//ezoicanalytics.com/analytics.js"></script>
 
   <!-- Privacy Consent Scripts -->
-  <script data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js"></script>
-  <script data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js"></script>
+  <script defer data-cfasync="false" src="https://cmp.gatekeeperconsent.com/min.js"></script>
+  <script defer data-cfasync="false" src="https://the.gatekeeperconsent.com/cmp.min.js"></script>
 
 
   <!-- High Quality Icons for iOS -->
@@ -102,7 +102,8 @@
   <link rel="preconnect" href="https://esm.sh" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <style>
     :root {
       /* Default Theme (Arctic Frost) */

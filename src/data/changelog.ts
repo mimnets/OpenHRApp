@@ -14,6 +14,18 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-05',
+    title: 'PWA Performance Improvements for iOS',
+    entries: [
+      { type: 'improvement', description: 'Added Workbox runtime caching for API calls (NetworkFirst), Google Fonts (StaleWhileRevalidate/CacheFirst), esm.sh modules (CacheFirst), and images (CacheFirst) to reduce network dependency' },
+      { type: 'improvement', description: 'Made Google Fonts non-render-blocking using preload/onload pattern for faster initial paint' },
+      { type: 'improvement', description: 'Deferred third-party analytics and consent scripts to stop them from blocking the main thread during load' },
+      { type: 'improvement', description: 'Throttled theme re-fetch on visibility change to once per 60 seconds — prevents excessive API calls when using iOS notification center, app switcher, or control center' },
+      { type: 'improvement', description: 'Narrowed service worker precache to exclude PNGs (now runtime-cached) and added 3MB file size limit to reduce SW install payload' },
+      { type: 'improvement', description: 'Enabled navigation preload for faster page loads on iOS 17.4+' },
+    ],
+  },
+  {
     date: '2026-03-16',
     title: 'Default Theme Update',
     entries: [
