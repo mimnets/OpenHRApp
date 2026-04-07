@@ -14,6 +14,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-07',
+    title: 'PWA Update Strategy Fix',
+    entries: [
+      { type: 'fix', description: 'Fixed PWA updates causing automatic logout — switched from aggressive skipWaiting to prompt-based update flow so new service workers wait until user approves the reload' },
+      { type: 'feature', description: 'Added "App Update Available" banner that notifies users when a new version is ready, with one-tap update button' },
+      { type: 'improvement', description: 'Added periodic service worker update checks every 60 seconds and on tab refocus, so updates are detected faster than the default 24-hour browser interval' },
+    ],
+  },
+  {
     date: '2026-04-05',
     title: 'PWA Performance Improvements for iOS',
     entries: [

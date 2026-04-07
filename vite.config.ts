@@ -13,14 +13,13 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         VitePWA({
-          registerType: 'autoUpdate',
-          injectRegister: 'auto',
+          registerType: 'prompt',
+          injectRegister: false,
           manifest: false,
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
             maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
             cleanupOutdatedCaches: true,
-            skipWaiting: true,
             clientsClaim: true,
             navigationPreload: true,
             navigateFallbackDenylist: [
