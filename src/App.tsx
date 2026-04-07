@@ -9,6 +9,7 @@ import { SubscriptionProvider, useSubscription } from './context/SubscriptionCon
 import MainLayout from './layouts/MainLayout';
 import CookieConsent from './components/CookieConsent';
 import SearchDialog from './components/search/SearchDialog';
+import { PWAUpdateBanner } from './components/PWAUpdateBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Eager: public pages needed for first paint / SEO
@@ -464,6 +465,7 @@ const App: React.FC = () => {
             <SearchDialog />
             <Analytics />
             <CookieConsent />
+            <PWAUpdateBanner />
           </SearchProvider>
         </ThemeProvider>
       </SubscriptionProvider>
