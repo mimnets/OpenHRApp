@@ -14,6 +14,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-12',
+    title: 'Image Optimization',
+    entries: [
+      { type: 'improvement', description: 'Optimized PWA icon PNGs with maximum compression to reduce file size while maintaining iOS compatibility' },
+      { type: 'improvement', description: 'Switched PWA manifest screenshots from PNG to WebP format, reducing screenshot payload by 72-87%' },
+      { type: 'improvement', description: 'Updated Open Graph and Twitter Card meta images to use WebP format for faster social media previews' },
+    ],
+  },
+  {
     date: '2026-04-07',
     title: 'PWA Update Strategy Fix',
     entries: [
