@@ -314,7 +314,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                       id="login-email"
                       type="email"
                       name="email"
-                      autoComplete="username email"
+                      autoComplete="username"
                       required
                       className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300"
                       value={email}

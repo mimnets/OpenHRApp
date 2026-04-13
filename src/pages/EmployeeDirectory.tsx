@@ -20,7 +20,11 @@ import {
   Users,
   Key,
   FileSpreadsheet,
-  FileDown
+  FileDown,
+  Filter,
+  CheckSquare,
+  Square,
+  ChevronDown
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { apiClient } from '../services/api.client';
@@ -98,6 +102,8 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isGeneratingCSV, setIsGeneratingCSV] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [selectedExportDepts, setSelectedExportDepts] = useState<string[]>([]);
+  const [showDeptFilter, setShowDeptFilter] = useState(false);
   const [orgInfo, setOrgInfo] = useState<{ name: string; address: string; logoDataUrl: string | null }>({ name: '', address: '', logoDataUrl: null });
 
   useEffect(() => {
@@ -209,6 +215,21 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       (emp.email || '').toLowerCase().includes(debouncedSearch.toLowerCase())
     );
   }, [employees, debouncedSearch]);
+
+  const toggleExportDept = (dept: string) => {
+    setSelectedExportDepts(prev => prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]);
+  };
+
+  const exportData = useMemo(() => {
+    if (selectedExportDepts.length === 0) return filtered;
+    return filtered.filter(emp => selectedExportDepts.includes(emp.department || 'Unassigned'));
+  }, [filtered, selectedExportDepts]);
+
+  const getExportFilename = (ext: string) => {
+    if (selectedExportDepts.length === 0 || selectedExportDepts.length === depts.length) return `OpenHR_Employee_Directory.${ext}`;
+    if (selectedExportDepts.length === 1) return `OpenHR_${selectedExportDepts[0].replace(/\s+/g, '_')}_Directory.${ext}`;
+    return `OpenHR_${selectedExportDepts.length}_Departments_Directory.${ext}`;
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -328,11 +349,11 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   };
 
   const downloadCSV = () => {
-    if (filtered.length === 0) return;
+    if (exportData.length === 0) return;
     setIsGeneratingCSV(true);
     try {
       const headers = ['Employee ID', 'Name', 'Email', 'Department', 'Designation', 'Role', 'Team', 'Status', 'Employment Type', 'Joining Date', 'Mobile', 'Location', 'Work Type'];
-      const rows = filtered.map(emp => [
+      const rows = exportData.map(emp => [
         emp.employeeId || '',
         emp.name || '',
         emp.email || '',
@@ -360,7 +381,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'OpenHR_Employee_Directory.csv';
+      link.download = getExportFilename('csv');
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -371,7 +392,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
   };
 
   const downloadPDF = async () => {
-    if (filtered.length === 0) return;
+    if (exportData.length === 0) return;
     setIsGeneratingPDF(true);
     try {
       const jsPDFModule = await import('jspdf');
@@ -413,14 +434,19 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(30, 41, 59);
-      doc.text(`Employee Directory (${filtered.length} employees)`, 14, cursorY);
+      const deptLabel = selectedExportDepts.length === 0 || selectedExportDepts.length === depts.length
+        ? 'Employee Directory'
+        : selectedExportDepts.length === 1
+          ? `${selectedExportDepts[0]} Department`
+          : `${selectedExportDepts.length} Departments`;
+      doc.text(`${deptLabel} (${exportData.length} employees)`, 14, cursorY);
       cursorY += 8;
 
       // --- Summary Stats ---
-      const activeCount = filtered.filter(e => e.status === 'ACTIVE').length;
-      const inactiveCount = filtered.filter(e => e.status !== 'ACTIVE').length;
+      const activeCount = exportData.filter(e => e.status === 'ACTIVE').length;
+      const inactiveCount = exportData.filter(e => e.status !== 'ACTIVE').length;
       const deptCounts: Record<string, number> = {};
-      filtered.forEach(e => { const d = e.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+      exportData.forEach(e => { const d = e.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
       const deptSummary = Object.entries(deptCounts).map(([k, v]) => `${k}: ${v}`).join('    ');
 
       doc.setFontSize(10);
@@ -431,14 +457,14 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(71, 85, 105);
-      doc.text(`Total: ${filtered.length}    Active: ${activeCount}    Inactive: ${inactiveCount}`, 14, cursorY);
+      doc.text(`Total: ${exportData.length}    Active: ${activeCount}    Inactive: ${inactiveCount}`, 14, cursorY);
       cursorY += 4;
       doc.text(deptSummary, 14, cursorY);
       cursorY += 8;
 
       // --- Table ---
       const tableHeaders = ['ID', 'Name', 'Email', 'Department', 'Designation', 'Role', 'Team', 'Status', 'Type', 'Joining Date', 'Mobile', 'Location', 'Work Type'];
-      const tableRows = filtered.map(emp => [
+      const tableRows = exportData.map(emp => [
         emp.employeeId || '', emp.name || '', emp.email || '', emp.department || '',
         emp.designation || '', emp.role || '', getTeamName(emp.teamId), emp.status || '',
         emp.employmentType || '', emp.joiningDate || '', emp.mobile || '', emp.location || '', emp.workType || ''
@@ -469,7 +495,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
         doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
       }
 
-      doc.save('OpenHR_Employee_Directory.pdf');
+      doc.save(getExportFilename('pdf'));
     } catch (err: any) {
       console.error('PDF generation failed:', err);
       alert('Failed to generate PDF: ' + (err?.message || err));
@@ -495,15 +521,25 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
         {isAdmin && (
           <div className="flex gap-2">
             <button
+              onClick={() => setShowDeptFilter(!showDeptFilter)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-sm transition-all ${
+                selectedExportDepts.length > 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+            >
+              <Filter size={14} />
+              {selectedExportDepts.length > 0 ? `${selectedExportDepts.length} Dept${selectedExportDepts.length > 1 ? 's' : ''}` : 'Depts'}
+              <ChevronDown size={12} className={`transition-transform ${showDeptFilter ? 'rotate-180' : ''}`} />
+            </button>
+            <button
               onClick={downloadCSV}
-              disabled={filtered.length === 0 || isGeneratingCSV}
+              disabled={exportData.length === 0 || isGeneratingCSV}
               className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-sm transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGeneratingCSV ? <RefreshCw size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} CSV
             </button>
             <button
               onClick={downloadPDF}
-              disabled={filtered.length === 0 || isGeneratingPDF}
+              disabled={exportData.length === 0 || isGeneratingPDF}
               className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-sm transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGeneratingPDF ? <RefreshCw size={14} className="animate-spin" /> : <FileDown size={14} />} PDF
@@ -522,6 +558,40 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
           </div>
         )}
       </div>
+
+      {isAdmin && showDeptFilter && depts.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">
+              Export Departments ({selectedExportDepts.length}/{depts.length})
+            </p>
+            <div className="flex gap-4">
+              <button onClick={() => setSelectedExportDepts([...depts])} className="text-[9px] font-semibold uppercase text-indigo-600 hover:underline">Select All</button>
+              <button onClick={() => setSelectedExportDepts([])} className="text-[9px] font-semibold uppercase text-rose-500 hover:underline">Clear All</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-1">
+            {depts.map(dept => {
+              const isSelected = selectedExportDepts.includes(dept);
+              const count = filtered.filter(e => e.department === dept).length;
+              return (
+                <button key={dept} onClick={() => toggleExportDept(dept)} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-primary/30 shadow-sm' : 'bg-slate-50/50 border-transparent opacity-60'}`}>
+                  <div className={`p-1 rounded-md flex-shrink-0 ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>
+                    {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                  </div>
+                  <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>{dept}</span>
+                  <span className={`text-[9px] ml-auto flex-shrink-0 ${isSelected ? 'text-primary font-bold' : 'text-slate-400'}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          {selectedExportDepts.length > 0 && (
+            <p className="text-[10px] text-slate-400 mt-3 px-1">
+              {exportData.length} employee{exportData.length !== 1 ? 's' : ''} will be exported
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
