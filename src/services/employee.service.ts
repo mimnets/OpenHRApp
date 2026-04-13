@@ -39,6 +39,9 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   if (data.password && data.password.trim().length > 0) {
     pbData.password = data.password;
     pbData.passwordConfirm = data.password;
+    if (data.oldPassword) {
+      pbData.oldPassword = data.oldPassword;
+    }
   }
 
   if (!isUpdate) {

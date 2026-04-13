@@ -14,6 +14,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-13',
+    title: 'Password Change Fix',
+    entries: [
+      { type: 'fix', description: 'Fixed password change form not working on user profile — added required current password field for PocketBase authentication' },
+    ],
+  },
+  {
     date: '2026-04-12',
     title: 'Image Optimization',
     entries: [
