@@ -9,7 +9,8 @@
     "sitemap": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview",
     "cap:sync": "node -e \"require('fs').rmSync('dist/downloads',{recursive:true,force:true})\" && npx cap sync android",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "optimize-icons": "node scripts/optimize-icons.mjs"
   },
   "dependencies": {
     "@capacitor/camera": "8.0.1",

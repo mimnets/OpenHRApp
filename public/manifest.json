@@ -39,16 +39,16 @@
   ],
   "screenshots": [
     {
-      "src": "/img/screenshot-mobile.png",
+      "src": "/img/screenshot-mobile.webp",
       "sizes": "390x844",
-      "type": "image/png",
+      "type": "image/webp",
       "form_factor": "narrow",
       "label": "Mobile Dashboard"
     },
     {
-      "src": "/img/screenshot-wide.png",
+      "src": "/img/screenshot-wide.webp",
       "sizes": "1920x1080",
-      "type": "image/png",
+      "type": "image/webp",
       "form_factor": "wide",
       "label": "Desktop Overview"
     }

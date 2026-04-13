@@ -47,6 +47,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
   const [isSaving, setIsSaving] = useState(false);
   
   // Password Change State
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -150,6 +151,11 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         };
 
         if (newPassword) {
+          if (!currentPassword) {
+            alert("Please enter your current password to change your password.");
+            setIsSaving(false);
+            return;
+          }
           if (newPassword.length < 8) {
             alert("Password must be at least 8 characters long.");
             setIsSaving(false);
@@ -161,9 +167,13 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
             return;
           }
           updatePayload.password = newPassword;
+          updatePayload.oldPassword = currentPassword;
         }
 
         await hrService.updateProfile(user.id, updatePayload);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
         alert('Profile updated successfully.');
         window.location.reload();
       }
@@ -254,6 +264,19 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-tight flex items-center gap-2 mb-4">
                   <Lock size={16} className="text-primary"/> Security Settings
                </h4>
+               <div className="space-y-1.5 mb-6">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Current Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter current password"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
+                      />
+                    </div>
+               </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">New Password</label>
