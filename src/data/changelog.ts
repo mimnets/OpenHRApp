@@ -15,9 +15,11 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-13',
-    title: 'Password Change Fix',
+    title: 'Auth & Password Fixes',
     entries: [
       { type: 'fix', description: 'Fixed password change form not working on user profile — added required current password field for PocketBase authentication' },
+      { type: 'fix', description: 'Fixed auto-logout after 1-2 days — added token refresh on app startup, periodic refresh every 30 minutes, and background-to-foreground refresh' },
+      { type: 'fix', description: 'Fixed password manager not saving credentials on some Android and iOS devices — corrected autocomplete attribute on login email field' },
     ],
   },
   {
