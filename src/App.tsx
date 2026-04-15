@@ -26,7 +26,6 @@ import TutorialPage from './pages/TutorialPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import NotFoundPage from './pages/NotFoundPage';
-import DownloadPage from './pages/DownloadPage';
 import FeaturesPage from './pages/FeaturesPage';
 import FeatureDetailPage from './pages/FeatureDetailPage';
 import ChangelogPage from './pages/ChangelogPage';
@@ -108,11 +107,10 @@ const AppContent: React.FC = () => {
   const [tutorialRoute, setTutorialRoute] = useState<{ type: 'list' | 'single'; slug?: string } | null>(() => {
     return parseTutorialRoute(window.location.pathname);
   });
-  const [policyRoute, setPolicyRoute] = useState<'privacy' | 'terms' | 'download' | null>(() => {
+  const [policyRoute, setPolicyRoute] = useState<'privacy' | 'terms' | null>(() => {
     const path = window.location.pathname;
     if (path === '/privacy' || path === '/privacy/') return 'privacy';
     if (path === '/terms' || path === '/terms/') return 'terms';
-    if (path === '/download' || path === '/download/') return 'download';
     return null;
   });
   const [featuresRoute, setFeaturesRoute] = useState<{ type: 'list' | 'detail'; slug?: string } | null>(() => {
@@ -125,7 +123,7 @@ const AppContent: React.FC = () => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     const search = window.location.search;
-    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/changelog', '/changelog/', '/_/', '/_'];
+    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/features', '/features/', '/changelog', '/changelog/', '/_/', '/_'];
 
     // Don't show 404 if URL contains a verification token
     if (new URLSearchParams(search).has('token')) return false;
@@ -219,7 +217,7 @@ const AppContent: React.FC = () => {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const search = window.location.search;
-      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/download', '/download/', '/features', '/features/', '/changelog', '/changelog/', '/_/', '/_'];
+      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/features', '/features/', '/changelog', '/changelog/', '/_/', '/_'];
 
       // Never show 404 for verification tokens or hash-based routes
       const hasToken = new URLSearchParams(search).has('token') || hash.includes('token=') || hash.includes('/auth/confirm-verification/');
@@ -279,10 +277,6 @@ const AppContent: React.FC = () => {
         clearAll();
         setPolicyRoute('terms');
         setIs404(false);
-      } else if (path === '/download' || path === '/download/') {
-        clearAll();
-        setPolicyRoute('download');
-        setIs404(false);
       } else if (path === '/' || knownPaths.includes(path) || hasToken || hasHashRoute) {
         clearAll();
         setIs404(false);
@@ -321,9 +315,6 @@ const AppContent: React.FC = () => {
   }
   if (policyRoute === 'terms') {
     return <TermsOfServicePage onBack={() => { navigateTo('/'); }} />;
-  }
-  if (policyRoute === 'download') {
-    return <DownloadPage onBack={() => { navigateTo('/'); }} />;
   }
   // Priority 0b: Public Features pages (accessible regardless of auth)
   if (featuresRoute) {

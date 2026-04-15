@@ -21,6 +21,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'Added request deduplication to prevent duplicate API calls when multiple components load the same data simultaneously' },
       { type: 'fix', description: 'Fixed metadata being fetched 3 times on login — reduced to a single prefetch call' },
       { type: 'improvement', description: 'Added caching for teams data in organization service to reduce redundant API calls' },
+      { type: 'improvement', description: 'Removed Android APK download option — app is now PWA-only for cleaner distribution and better trust on all devices' },
     ],
   },
   {
