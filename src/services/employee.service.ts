@@ -1,6 +1,10 @@
 
-import { apiClient } from './api.client';
+import { apiClient, dedupe } from './api.client';
 import { Employee } from '../types';
+
+let cachedEmployees: Employee[] | null = null;
+let empCacheTimestamp = 0;
+const EMP_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
   const pbData: any = {};
@@ -59,41 +63,51 @@ const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
 };
 
 export const employeeService = {
+  clearCache() {
+    cachedEmployees = null;
+    empCacheTimestamp = 0;
+  },
+
   async getEmployees(): Promise<Employee[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      console.warn("[EmployeeService] PocketBase not configured");
-      return [];
-    }
-    try {
-      // PocketBase API rules filter by organization_id automatically
-      const records = await apiClient.pb.collection('users').getFullList({ sort: '-created', expand: 'line_manager_id,team_id' });
-      console.log(`[EmployeeService] Fetched ${records.length} employees`);
-      return records.map(r => ({
-        id: r.id.toString().trim(),
-        employeeId: r.employee_id || '',
-        lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
-        teamId: (r.team_id && r.team_id.length > 5) ? r.team_id : undefined,
-        shiftId: r.shift_id || undefined,
-        organizationId: r.organization_id,
-        name: r.name || 'No Name',
-        email: r.email,
-        role: (r.role || 'EMPLOYEE').toString().toUpperCase(),
-        department: r.department || 'Unassigned',
-        designation: r.designation || 'Staff',
-        avatar: r.avatar ? apiClient.pb!.files.getURL(r, r.avatar) : undefined,
-        joiningDate: r.joining_date || "",
-        mobile: r.mobile || "",
-        emergencyContact: r.emergency_contact || "",
-        salary: r.salary || 0,
-        status: r.status || "ACTIVE",
-        employmentType: r.employment_type || "PERMANENT",
-        location: r.location || "",
-        workType: r.work_type || "OFFICE"
-      })) as any;
-    } catch (e: any) {
-      console.error("[EmployeeService] Failed to fetch employees:", e?.message || e);
-      return [];
-    }
+    if (cachedEmployees && Date.now() - empCacheTimestamp < EMP_CACHE_TTL) return cachedEmployees;
+    return dedupe('employees', async () => {
+      if (!apiClient.pb || !apiClient.isConfigured()) {
+        console.warn("[EmployeeService] PocketBase not configured");
+        return [];
+      }
+      try {
+        const records = await apiClient.pb.collection('users').getFullList({ sort: '-created', expand: 'line_manager_id,team_id' });
+        console.log(`[EmployeeService] Fetched ${records.length} employees`);
+        const result = records.map(r => ({
+          id: r.id.toString().trim(),
+          employeeId: r.employee_id || '',
+          lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
+          teamId: (r.team_id && r.team_id.length > 5) ? r.team_id : undefined,
+          shiftId: r.shift_id || undefined,
+          organizationId: r.organization_id,
+          name: r.name || 'No Name',
+          email: r.email,
+          role: (r.role || 'EMPLOYEE').toString().toUpperCase(),
+          department: r.department || 'Unassigned',
+          designation: r.designation || 'Staff',
+          avatar: r.avatar ? apiClient.pb!.files.getURL(r, r.avatar) : undefined,
+          joiningDate: r.joining_date || "",
+          mobile: r.mobile || "",
+          emergencyContact: r.emergency_contact || "",
+          salary: r.salary || 0,
+          status: r.status || "ACTIVE",
+          employmentType: r.employment_type || "PERMANENT",
+          location: r.location || "",
+          workType: r.work_type || "OFFICE"
+        })) as any;
+        cachedEmployees = result;
+        empCacheTimestamp = Date.now();
+        return result;
+      } catch (e: any) {
+        console.error("[EmployeeService] Failed to fetch employees:", e?.message || e);
+        return [];
+      }
+    });
   },
 
   async addEmployee(emp: Partial<Employee>) {
@@ -108,6 +122,7 @@ export const employeeService = {
     } else {
       await apiClient.pb.collection('users').create(pbData);
     }
+    employeeService.clearCache();
     apiClient.notify();
   },
 
@@ -127,13 +142,15 @@ export const employeeService = {
       const result = await apiClient.pb.collection('users').update(id.trim(), pbData);
       console.log('[EmployeeService] Update result:', result);
     }
+    employeeService.clearCache();
     apiClient.notify();
   },
 
-  async deleteEmployee(id: string) { 
-    if (apiClient.pb && apiClient.isConfigured()) { 
-      await apiClient.pb.collection('users').delete(id.trim()); 
-      apiClient.notify(); 
-    } 
+  async deleteEmployee(id: string) {
+    if (apiClient.pb && apiClient.isConfigured()) {
+      await apiClient.pb.collection('users').delete(id.trim());
+      employeeService.clearCache();
+      apiClient.notify();
+    }
   }
 };

@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = (userData: User) => {
     setUser(userData);
-    hrService.prefetchMetadata();
+    // prefetchMetadata() is called once from initAuth — no duplicate call needed here
   };
 
   const logout = async () => {

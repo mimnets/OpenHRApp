@@ -14,7 +14,7 @@ export const authService = {
         return { user: null, error: "Account not verified. Please check your email." };
       }
 
-      organizationService.prefetchMetadata();
+      // prefetchMetadata() is called once from AuthContext.initAuth — no need to call here
       return { user: {
         id: m.id.toString().trim(),
         employeeId: m.employee_id || '', 
