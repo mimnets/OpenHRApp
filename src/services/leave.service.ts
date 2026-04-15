@@ -1,38 +1,52 @@
 
-import { apiClient } from './api.client';
+import { apiClient, dedupe } from './api.client';
 import { LeaveRequest, LeaveBalance } from '../types';
 import { organizationService } from './organization.service';
 
+let cachedLeaves: LeaveRequest[] | null = null;
+let leaveCacheTimestamp = 0;
+const LEAVE_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
 export const leaveService = {
+  clearCache() {
+    cachedLeaves = null;
+    leaveCacheTimestamp = 0;
+  },
+
   async getLeaves(): Promise<LeaveRequest[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      console.warn("[LeaveService] PocketBase not configured");
-      return [];
-    }
-    try {
-      // PocketBase API rules filter by organization_id automatically
-      const records = await apiClient.pb.collection('leaves').getFullList({ sort: '-applied_date' });
-      console.log(`[LeaveService] Fetched ${records.length} leave records`);
-      return records.map(r => ({
-        id: r.id.toString().trim(),
-        employeeId: r.employee_id ? r.employee_id.toString().trim() : "",
-        employeeName: r.employee_name,
-        lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
-        appliedDate: r.applied_date,
-        startDate: r.start_date,
-        endDate: r.end_date,
-        totalDays: r.total_days || 0,
-        type: r.type,
-        reason: r.reason || "",
-        status: (r.status || 'PENDING_MANAGER').toString().trim().toUpperCase() as any,
-        managerRemarks: r.manager_remarks || "",
-        approverRemarks: r.approver_remarks || "",
-        organizationId: r.organization_id
-      }));
-    } catch (e: any) {
-      console.error("[LeaveService] Failed to fetch leaves:", e?.message || e);
-      return [];
-    }
+    if (cachedLeaves && Date.now() - leaveCacheTimestamp < LEAVE_CACHE_TTL) return cachedLeaves;
+    return dedupe('leaves', async () => {
+      if (!apiClient.pb || !apiClient.isConfigured()) {
+        console.warn("[LeaveService] PocketBase not configured");
+        return [];
+      }
+      try {
+        const records = await apiClient.pb.collection('leaves').getFullList({ sort: '-applied_date' });
+        console.log(`[LeaveService] Fetched ${records.length} leave records`);
+        const result = records.map(r => ({
+          id: r.id.toString().trim(),
+          employeeId: r.employee_id ? r.employee_id.toString().trim() : "",
+          employeeName: r.employee_name,
+          lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
+          appliedDate: r.applied_date,
+          startDate: r.start_date,
+          endDate: r.end_date,
+          totalDays: r.total_days || 0,
+          type: r.type,
+          reason: r.reason || "",
+          status: (r.status || 'PENDING_MANAGER').toString().trim().toUpperCase() as any,
+          managerRemarks: r.manager_remarks || "",
+          approverRemarks: r.approver_remarks || "",
+          organizationId: r.organization_id
+        }));
+        cachedLeaves = result;
+        leaveCacheTimestamp = Date.now();
+        return result;
+      } catch (e: any) {
+        console.error("[LeaveService] Failed to fetch leaves:", e?.message || e);
+        return [];
+      }
+    });
   },
 
   async saveLeaveRequest(data: Partial<LeaveRequest>) {
@@ -94,9 +108,10 @@ export const leaveService = {
     
     try {
       await apiClient.pb.collection('leaves').create(payload);
+      leaveService.clearCache();
       apiClient.notify();
     } catch (err: any) {
-      if (err.response?.id) { apiClient.notify(); return; }
+      if (err.response?.id) { leaveService.clearCache(); apiClient.notify(); return; }
       throw new Error(`Failed to create record`);
     }
   },
@@ -115,6 +130,7 @@ export const leaveService = {
     }
     try {
       await apiClient.pb.collection('leaves').update(id.trim(), update);
+      leaveService.clearCache();
       apiClient.notify();
     } catch (err: any) { throw new Error("Access Denied"); }
   },
@@ -167,9 +183,10 @@ export const leaveService = {
 
     try {
       await apiClient.pb.collection('leaves').create(payload);
+      leaveService.clearCache();
       apiClient.notify();
     } catch (err: any) {
-      if (err.response?.id) { apiClient.notify(); return; }
+      if (err.response?.id) { leaveService.clearCache(); apiClient.notify(); return; }
       throw new Error('Failed to create leave record');
     }
   },
@@ -203,6 +220,7 @@ export const leaveService = {
 
     try {
       await apiClient.pb.collection('leaves').update(id.trim(), update);
+      leaveService.clearCache();
       apiClient.notify();
     } catch (err: any) {
       throw new Error('Failed to update leave record');
@@ -213,6 +231,7 @@ export const leaveService = {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
     try {
       await apiClient.pb.collection('leaves').delete(id.trim());
+      leaveService.clearCache();
       apiClient.notify();
     } catch (err: any) {
       throw new Error('Failed to delete leave record');

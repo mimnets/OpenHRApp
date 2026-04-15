@@ -14,6 +14,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-15',
+    title: 'Performance Optimization',
+    entries: [
+      { type: 'improvement', description: 'Added 2-minute TTL caching for employees, attendance, and leave data — page navigation no longer re-fetches from server' },
+      { type: 'improvement', description: 'Added request deduplication to prevent duplicate API calls when multiple components load the same data simultaneously' },
+      { type: 'fix', description: 'Fixed metadata being fetched 3 times on login — reduced to a single prefetch call' },
+      { type: 'improvement', description: 'Added caching for teams data in organization service to reduce redundant API calls' },
+    ],
+  },
+  {
     date: '2026-04-13',
     title: 'Auth & Password Fixes',
     entries: [

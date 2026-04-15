@@ -11,6 +11,7 @@ let cachedHolidays: Holiday[] | null = null;
 let cachedLeavePolicy: LeavePolicy | null = null;
 let cachedReviewConfig: OrgReviewConfig | null = null;
 let cachedLeaveTypes: CustomLeaveType[] | null = null;
+let cachedTeams: Team[] | null = null;
 let cachedNotificationConfig: OrgNotificationConfig | null = null;
 
 // Helper functions extracted to avoid 'this' binding issues
@@ -60,6 +61,7 @@ export const organizationService = {
     cachedHolidays = null;
     cachedLeavePolicy = null;
     cachedReviewConfig = null;
+    cachedTeams = null;
     cachedLeaveTypes = null;
     cachedNotificationConfig = null;
     shiftService.clearCache();
@@ -139,6 +141,7 @@ export const organizationService = {
   },
 
   async getTeams(): Promise<Team[]> {
+    if (cachedTeams) return cachedTeams;
     if (!apiClient.pb || !apiClient.isConfigured()) {
       console.warn("[OrgService] PocketBase not configured for teams");
       return [];
@@ -147,7 +150,8 @@ export const organizationService = {
       // PocketBase API rules filter by organization_id automatically
       const records = await apiClient.pb.collection('teams').getFullList({ sort: 'name' });
       console.log(`[OrgService] Fetched ${records.length} teams`);
-      return records.map(r => ({ id: r.id, name: r.name, leaderId: r.leader_id, department: r.department, organizationId: r.organization_id }));
+      cachedTeams = records.map(r => ({ id: r.id, name: r.name, leaderId: r.leader_id, department: r.department, organizationId: r.organization_id }));
+      return cachedTeams;
     } catch (e: any) {
       console.error("[OrgService] Failed to fetch teams:", e?.message || e);
       return [];
@@ -163,6 +167,7 @@ export const organizationService = {
       department: data.department,
       organization_id: orgId
     });
+    cachedTeams = null;
     apiClient.notify();
     return record;
   },
@@ -170,12 +175,14 @@ export const organizationService = {
   async updateTeam(id: string, data: Partial<Team>) {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
     await apiClient.pb.collection('teams').update(id, { name: data.name, leader_id: data.leaderId, department: data.department });
+    cachedTeams = null;
     apiClient.notify();
   },
 
   async deleteTeam(id: string) {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
     await apiClient.pb.collection('teams').delete(id);
+    cachedTeams = null;
     apiClient.notify();
   },
 

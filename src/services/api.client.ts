@@ -4,6 +4,16 @@ import { convertToWebP } from '../utils/imageConvert';
 
 const subscribers: Set<() => void> = new Set();
 
+// Request deduplication: prevents duplicate in-flight requests for the same key
+const inflightRequests = new Map<string, Promise<any>>();
+
+export function dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  if (inflightRequests.has(key)) return inflightRequests.get(key)! as Promise<T>;
+  const promise = fn().finally(() => inflightRequests.delete(key));
+  inflightRequests.set(key, promise);
+  return promise;
+}
+
 export const apiClient = {
   pb,
   isConfigured: isPocketBaseConfigured,
