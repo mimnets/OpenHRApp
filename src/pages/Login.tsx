@@ -481,21 +481,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                       </div>
                    </div>
 
-                   {/* APK Download Fallback (Android only) */}
-                   {/android/i.test(navigator.userAgent) && (
-                     <div className="pt-5 mt-5 border-t border-slate-100 space-y-3">
-                       <p className="text-xs font-bold text-slate-500">Having trouble installing? Download the Android APK directly</p>
-                       <a
-                         href="https://cdn.openhrapp.com/openhrapp.apk"
-                         download
-                         className="w-full py-3.5 bg-primary text-white rounded-2xl font-semibold uppercase text-[10px] tracking-widest shadow-lg shadow-primary-light hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
-                       >
-                         <Download size={14} /> Download APK
-                       </a>
-                       <p className="text-[10px] text-slate-400 leading-relaxed">After downloading, open the file and enable "Install from unknown sources" in your phone settings if prompted.</p>
-                       <p className="text-[10px] text-slate-400 leading-relaxed">The APK always stays up to date — no reinstall needed for app updates.</p>
-                     </div>
-                   )}
                 </div>
               ) : (
                 <div className="space-y-5">

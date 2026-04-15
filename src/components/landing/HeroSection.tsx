@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Clock, CreditCard, Zap, LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, RefreshCw, Building2, Download, RotateCcw, Smartphone, Share, MoreVertical, X, Send } from 'lucide-react';
+import { ArrowRight, Clock, CreditCard, Zap, LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, RefreshCw, Building2, Download, RotateCcw, Share, MoreVertical, X, Send } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 
 interface HeroSectionProps {
@@ -18,13 +18,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [canPrompt, setCanPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
     setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
-    setIsAndroid(/Android|HarmonyOS/i.test(ua));
     setIsInstalled(
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true
@@ -193,18 +191,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
                       <Download size={12} /> {canPrompt ? 'Install' : 'Install Guide'}
                     </button>
                   )}
-                  {!isInstalled && isAndroid && (
-                    <>
-                      <div className="w-px h-3 bg-slate-200"></div>
-                      <a
-                        href="https://cdn.openhrapp.com/openhrapp.apk"
-                        download
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-slate-400 text-[10px] font-semibold uppercase tracking-wider hover:text-primary transition-colors"
-                      >
-                        <Smartphone size={12} /> APK
-                      </a>
-                    </>
-                  )}
                   <div className="w-px h-3 bg-slate-200"></div>
                   <button
                     type="button"
@@ -326,20 +312,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
                   <p className="text-xs font-bold text-slate-700">2. Select <span className="text-slate-900">Install App</span> or <span className="text-slate-900">Add to Home Screen</span></p>
                 </div>
 
-                {isAndroid && (
-                  <div className="pt-3 mt-3 border-t border-slate-100">
-                    <p className="text-xs text-slate-500 font-medium mb-3">Or download the Android app directly:</p>
-                    <a
-                      href="https://cdn.openhrapp.com/openhrapp.apk"
-                      download
-                      onClick={() => setShowInstallGuide(false)}
-                      className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
-                    >
-                      <Download size={14} /> Download APK
-                    </a>
-                    <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">Enable "Install from unknown sources" if prompted. The APK auto-updates.</p>
-                  </div>
-                )}
               </div>
             )}
 

@@ -43,7 +43,6 @@ const Footer: React.FC = () => {
       links: [
         { label: 'Guides', action: () => { navigateTo('/how-to-use'); } },
         { label: 'GitHub', action: () => window.open('https://github.com/mimnets/openhrapp', '_blank') },
-        { label: 'Download App', action: () => { navigateTo('/download'); } },
       ],
     },
     {

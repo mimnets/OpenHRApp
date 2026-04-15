@@ -50,7 +50,6 @@ const BlogFooter: React.FC = () => {
       links: [
         { label: 'Guides', action: goToTutorials },
         { label: 'GitHub', action: () => window.open('https://github.com/mimnets/openhrapp', '_blank') },
-        { label: 'Download App', action: () => { navigateTo('/download'); } },
       ],
     },
     {
