@@ -2,8 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { hrService } from '../../services/hrService';
 import { Attendance, AppConfig, Shift } from '../../types';
+import { useToast } from '../../context/ToastContext';
 
 export const useAttendance = (user: any, onFinish?: () => void) => {
+  const { showToast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeRecord, setActiveRecord] = useState<Attendance | undefined>(undefined);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
@@ -109,7 +111,7 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
     } catch (err) {
       console.error(err);
       setStatus('idle');
-      alert("Failed to submit attendance. Please try again.");
+      showToast("Failed to submit attendance. Please try again.", "error");
     }
   };
 

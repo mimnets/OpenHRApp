@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { superAdminService } from '../../services/superadmin.service';
 import { sanitizeHtml } from '../../utils/sanitize';
+import { useToast } from '../../context/ToastContext';
 
 interface RichTextEditorProps {
   value: string;
@@ -19,6 +20,7 @@ interface RichTextEditorProps {
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeholder = 'Start writing...' }) => {
+  const { showToast } = useToast();
   const editorRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
@@ -349,7 +351,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
       handleInput();
     } catch (err) {
       console.error('[RichTextEditor] Image upload failed:', err);
-      alert('Image upload failed. Please try again.');
+      showToast('Image upload failed. Please try again.', 'error');
     } finally {
       setIsUploading(false);
     }
