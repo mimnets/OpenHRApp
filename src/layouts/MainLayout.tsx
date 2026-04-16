@@ -64,7 +64,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
               
               <div className="flex items-center gap-3">
                  <div className="p-1.5 bg-white rounded-xl border border-primary/20 shadow-sm overflow-hidden md:hidden">
-                    <img src="./img/mobile-logo.webp" className="w-10 h-10 object-contain" alt="Logo" />
+                    <img src="./img/logo.webp" className="w-10 h-10 object-contain" alt="Logo" />
                  </div>
                  <h2 className="font-semibold text-xl tracking-tighter text-primary md:hidden truncate max-w-[150px]">OpenHRApp</h2>
                  <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50 text-slate-400 border-slate-100">
