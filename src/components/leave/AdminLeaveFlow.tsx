@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ShieldCheck, X, RefreshCw, ArrowRight } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import { useToast } from '../../context/ToastContext';
 
 interface Props {
   user: any;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 const AdminLeaveFlow: React.FC<Props> = ({ requests, onRefresh }) => {
+  const { showToast } = useToast();
   const [showVerify, setShowVerify] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -23,7 +25,7 @@ const AdminLeaveFlow: React.FC<Props> = ({ requests, onRefresh }) => {
       onRefresh();
       setShowVerify(null);
       setRemarks('');
-    } catch (e) { alert("Verification failed"); }
+    } catch (e) { showToast('Verification failed', 'error'); }
     finally { setIsProcessing(false); }
   };
 

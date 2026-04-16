@@ -5,6 +5,7 @@ import { AppConfig } from '../../types';
 import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 import { apiClient } from '../../services/api.client';
 import { convertFileToWebP } from '../../utils/imageConvert';
+import { useToast } from '../../context/ToastContext';
 
 interface Props {
   config: AppConfig;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
+  const { showToast } = useToast();
   const [orgData, setOrgData] = useState({ name: '', country: 'BD', address: '', logo: '' });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -59,11 +61,11 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Logo file size must be less than 2MB.");
+        showToast("Logo file size must be less than 2MB.", 'error');
         return;
       }
       if (!file.type.startsWith('image/')) {
-        alert("Logo must be an image file.");
+        showToast("Logo must be an image file.", 'error');
         return;
       }
       setLogoFile(file);
@@ -92,10 +94,10 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
       }
 
       await apiClient.pb.collection('organizations').update(orgId, formData);
-      alert('Organization details updated successfully!');
+      showToast('Organization details updated successfully!', 'success');
     } catch (err) {
       console.error('Failed to update organization:', err);
-      alert('Failed to update organization details.');
+      showToast('Failed to update organization details.', 'error');
     } finally {
       setIsSaving(false);
     }

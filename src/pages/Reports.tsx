@@ -10,6 +10,7 @@ import { apiClient } from '../services/api.client';
 import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday, Shift } from '../types';
 import { consolidateAttendance } from '../utils/attendanceUtils';
 import HelpButton from '../components/onboarding/HelpButton';
+import { useToast } from '../context/ToastContext';
 
 const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   try {
@@ -40,6 +41,7 @@ interface ReportsProps {
 }
 
 const Reports: React.FC<ReportsProps> = ({ user }) => {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'GENERATOR' | 'CONFIG'>('GENERATOR');
   const [reportType, setReportType] = useState('ATTENDANCE');
   
@@ -154,8 +156,20 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       }
     };
     loadData();
-    const interval = setInterval(fetchLogs, 5000);
-    return () => clearInterval(interval);
+    let interval = setInterval(fetchLogs, 15000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchLogs();
+        interval = setInterval(fetchLogs, 15000);
+      } else {
+        clearInterval(interval);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [user.id]);
 
   const toggleDept = (dept: string) => {
@@ -301,7 +315,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   };
 
   const downloadCSV = () => {
-    if (reportData.length === 0) { alert("No data to export."); return; }
+    if (reportData.length === 0) { showToast("No data to export.", "warning"); return; }
     setIsGenerating(true);
     setTimeout(() => {
       const cleanData = getCleanReportData();
@@ -319,7 +333,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   };
 
   const downloadPDF = async () => {
-    if (reportData.length === 0) { alert("No data to export."); return; }
+    if (reportData.length === 0) { showToast("No data to export.", "warning"); return; }
     setIsGeneratingPDF(true);
     try {
       const jsPDFModule = await import('jspdf');
@@ -425,14 +439,14 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       doc.save(`OpenHR_${reportType}_Export.pdf`);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF: " + (err?.message || err));
+      showToast("Failed to generate PDF: " + (err?.message || err), "error");
     } finally {
       setIsGeneratingPDF(false);
     }
   };
 
   const handleEmailSummary = async () => {
-    if (reportData.length === 0) { alert("There is no data in the current report to email."); return; }
+    if (reportData.length === 0) { showToast("There is no data in the current report to email.", "warning"); return; }
     setIsEmailing(true);
     try {
       const rawTarget = customRecipients;
@@ -453,9 +467,9 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
            totalEmails++;
         }
       }
-      alert(`Report summary queued for ${targets.length} recipient(s).`);
+      showToast(`Report summary queued for ${targets.length} recipient(s).`, "success");
       setTimeout(fetchLogs, 1000);
-    } catch (err: any) { alert(err.message || "Email relay failed."); } 
+    } catch (err: any) { showToast(err.message || "Email relay failed.", "error"); } 
     finally { setIsEmailing(false); }
   };
 

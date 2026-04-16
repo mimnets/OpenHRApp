@@ -7,6 +7,7 @@ import { useOrganization } from '../hooks/organization/useOrganization';
 import { hrService } from '../services/hrService';
 import { Holiday, Team, OfficeLocation, LeaveWorkflow, Shift, ShiftOverride, CustomLeaveType } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
+import { useToast } from '../context/ToastContext';
 
 // Import sub-components
 import { OrgStructure } from '../components/organization/OrgStructure';
@@ -43,12 +44,15 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
       setShifts(shiftsData);
     };
     loadShifts();
-    hrService.getLeaveTypes().then(setLeaveTypes).catch(() => {});
+    hrService.getLeaveTypes().then(setLeaveTypes).catch((err) => {
+      console.error('Failed to load leave types:', err);
+    });
   }, []);
 
   // Subscription check
   const { canPerformAction, subscription } = useSubscription();
   const canWrite = canPerformAction('write');
+  const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<OrgTab>((initialTab as OrgTab) || 'STRUCTURE');
 
@@ -112,7 +116,7 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canWrite) {
-      alert('Your subscription does not allow modifications. Please upgrade to continue.');
+      showToast('Your subscription does not allow modifications. Please upgrade to continue.', 'warning');
       return;
     }
     try {
@@ -163,7 +167,7 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
         await updateShiftOverrides(next);
       }
       setShowModal(false);
-    } catch (err) { alert('Operation failed.'); }
+    } catch (err) { showToast('Operation failed.', 'error'); }
   };
 
   const handleDelete = async (type: typeof modalType, index: number) => {
@@ -192,7 +196,7 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
         const next = shiftOverrides.filter((_, idx) => idx !== index);
         await updateShiftOverrides(next);
       }
-    } catch (err) { alert('Delete failed.'); }
+    } catch (err) { showToast('Delete failed.', 'error'); }
   };
 
   const deleteOverride = async (empId: string) => {
@@ -384,7 +388,7 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
                           {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
                        </select>
                     </div>
-                    <div className={`grid grid-cols-${Math.min(leaveTypes.filter(t => t.hasBalance).length, 4)} gap-3`}>
+                    <div className={`grid gap-3 ${[,'grid-cols-1','grid-cols-2','grid-cols-3','grid-cols-4'][Math.min(leaveTypes.filter(t => t.hasBalance).length, 4)] || 'grid-cols-4'}`}>
                        {leaveTypes.filter(t => t.hasBalance).map(lt => (
                          <div key={lt.id} className="space-y-1">
                            <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">{lt.name.replace(' Leave', '')}</label>

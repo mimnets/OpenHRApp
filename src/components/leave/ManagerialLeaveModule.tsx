@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserCheck, RefreshCw, X, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import { useToast } from '../../context/ToastContext';
 import HelpButton from '../onboarding/HelpButton';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, roleLabel, readOnly = false }) => {
+  const { showToast } = useToast();
   const [showReview, setShowReview] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -32,7 +34,7 @@ const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, rol
       onRefresh();
       setShowReview(null);
       setRemarks('');
-    } catch (e) { alert("Action failed. Please try again."); }
+    } catch (e) { showToast('Action failed. Please try again.', 'error'); }
     finally { setIsProcessing(false); }
   };
 

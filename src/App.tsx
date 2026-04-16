@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SearchProvider } from './context/SearchContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
+import { ToastProvider } from './context/ToastContext';
 import MainLayout from './layouts/MainLayout';
 import CookieConsent from './components/CookieConsent';
 import SearchDialog from './components/search/SearchDialog';
@@ -451,13 +452,15 @@ const App: React.FC = () => {
     <AuthProvider>
       <SubscriptionProvider>
         <ThemeProvider>
-          <SearchProvider>
-            <AppContent />
-            <SearchDialog />
-            <Analytics />
-            <CookieConsent />
-            <PWAUpdateBanner />
-          </SearchProvider>
+          <ToastProvider>
+            <SearchProvider>
+              <AppContent />
+              <SearchDialog />
+              <Analytics />
+              <CookieConsent />
+              <PWAUpdateBanner />
+            </SearchProvider>
+          </ToastProvider>
         </ThemeProvider>
       </SubscriptionProvider>
     </AuthProvider>
