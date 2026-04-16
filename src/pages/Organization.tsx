@@ -44,7 +44,9 @@ const Organization: React.FC<OrganizationProps> = ({ initialTab }) => {
       setShifts(shiftsData);
     };
     loadShifts();
-    hrService.getLeaveTypes().then(setLeaveTypes).catch(() => {});
+    hrService.getLeaveTypes().then(setLeaveTypes).catch((err) => {
+      console.error('Failed to load leave types:', err);
+    });
   }, []);
 
   // Subscription check

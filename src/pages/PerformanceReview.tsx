@@ -27,7 +27,9 @@ const PerformanceReview: React.FC<Props> = ({ user }) => {
     if (isAdmin) {
       hrService.getEmployees().then(emps =>
         setEmployees(emps.map((e: any) => ({ id: e.id, name: e.name, department: e.department || '' })))
-      ).catch(() => {});
+      ).catch((err) => {
+        console.error('Failed to load employees for performance review:', err);
+      });
     }
   }, [isAdmin]);
 

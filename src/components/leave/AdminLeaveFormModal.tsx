@@ -36,7 +36,9 @@ const AdminLeaveFormModal: React.FC<Props> = ({ mode, leave, employees, onClose,
   const [totalDays, setTotalDays] = useState(leave?.totalDays || 0);
 
   useEffect(() => {
-    hrService.getLeaveTypes().then(setLeaveTypes).catch(() => {});
+    hrService.getLeaveTypes().then(setLeaveTypes).catch((err) => {
+      console.error('Failed to load leave types:', err);
+    });
   }, []);
 
   // Auto-calc total days (simple calendar diff — admin can override)

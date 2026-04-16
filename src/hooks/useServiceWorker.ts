@@ -41,7 +41,9 @@ export function useServiceWorker() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        navigator.serviceWorker?.getRegistration().then(r => r?.update()).catch(() => {});
+        navigator.serviceWorker?.getRegistration().then(r => r?.update()).catch((err) => {
+          console.error('Service worker update check failed:', err);
+        });
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);

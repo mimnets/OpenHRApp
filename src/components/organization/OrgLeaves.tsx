@@ -17,7 +17,9 @@ export const OrgLeaves: React.FC<Props> = ({ policy, employees, onUpdatePolicy, 
   const [leaveTypes, setLeaveTypes] = useState<CustomLeaveType[]>(DEFAULT_LEAVE_TYPES);
 
   useEffect(() => {
-    hrService.getLeaveTypes().then(setLeaveTypes).catch(() => {});
+    hrService.getLeaveTypes().then(setLeaveTypes).catch((err) => {
+      console.error('Failed to load leave types:', err);
+    });
   }, []);
 
   const balanceTypes = leaveTypes.filter(t => t.hasBalance);
@@ -32,7 +34,7 @@ export const OrgLeaves: React.FC<Props> = ({ policy, employees, onUpdatePolicy, 
        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
            <div className="p-8 bg-primary text-white flex items-center justify-between"><div className="flex items-center gap-4"><div className="p-3 bg-white/10 rounded-2xl"><ShieldCheck size={24}/></div><div><h3 className="text-xl font-semibold uppercase tracking-tight">Global Defaults</h3></div></div></div>
            <div className="p-8 space-y-6 flex-1">
-              <div className={`grid grid-cols-${Math.min(balanceTypes.length, 4)} gap-4`}>
+              <div className={`grid gap-4 ${[,'grid-cols-1','grid-cols-2','grid-cols-3','grid-cols-4'][Math.min(balanceTypes.length, 4)] || 'grid-cols-4'}`}>
                  {balanceTypes.map(lt => (
                    <div key={lt.id} className="space-y-2">
                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">{lt.name.replace(' Leave', '')}</label>
