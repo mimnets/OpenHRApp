@@ -14,6 +14,18 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-16',
+    title: 'UX & Error Handling Improvements',
+    entries: [
+      { type: 'improvement', description: 'Replaced all browser alert() dialogs with toast notifications for better mobile UX' },
+      { type: 'improvement', description: 'Added visibility-based polling to Reports and AdminVerificationPanel — stops fetching when tab is hidden to save bandwidth and battery' },
+      { type: 'improvement', description: 'Increased Reports page polling interval from 5s to 15s to reduce server load' },
+      { type: 'fix', description: 'Fixed subscription context defaulting to full write access on network errors — now restricts access when unable to verify subscription status' },
+      { type: 'improvement', description: 'Added TTL-based cache expiration (5 minutes) to organization settings to prevent stale data' },
+      { type: 'improvement', description: 'Added pagination limits to notification and review services to prevent loading unbounded data sets' },
+    ],
+  },
+  {
     date: '2026-04-15',
     title: 'Performance Optimization',
     entries: [

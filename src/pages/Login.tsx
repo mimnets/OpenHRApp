@@ -23,6 +23,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send, Home } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { isPocketBaseConfigured } from '../services/pocketbase';
+import { useToast } from '../context/ToastContext';
 
 interface LoginProps {
   onLoginSuccess: (user: any) => void;
@@ -55,6 +56,7 @@ const BrandLogo = () => (
 );
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackToLanding, initError }) => {
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -147,11 +149,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     if (!email) return;
     try {
       await hrService.requestVerificationEmail(email);
-      alert("A new verification link has been sent to your email.");
+      showToast("A new verification link has been sent to your email.", "success");
       setShowResend(false);
       setError("");
     } catch (e) {
-      alert("Failed to send verification email.");
+      showToast("Failed to send verification email.", "error");
     }
   };
 

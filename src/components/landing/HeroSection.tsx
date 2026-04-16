@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Clock, CreditCard, Zap, LogIn, Mail, Lock, Eye, EyeOff, AlertCircle, RefreshCw, Building2, Download, RotateCcw, Share, MoreVertical, X, Send } from 'lucide-react';
 import { hrService } from '../../services/hrService';
+import { useToast } from '../../context/ToastContext';
 
 interface HeroSectionProps {
   onLoginClick: () => void;
@@ -9,6 +10,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick, onLoginSuccess }) => {
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,11 +64,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
     if (!email) return;
     try {
       await hrService.requestVerificationEmail(email);
-      alert("A new verification link has been sent to your email.");
+      showToast("A new verification link has been sent to your email.", "success");
       setShowResend(false);
       setError('');
     } catch (e) {
-      alert("Failed to send verification email.");
+      showToast("Failed to send verification email.", "error");
     }
   };
 
