@@ -7,6 +7,7 @@ import { useCamera } from '../hooks/attendance/useCamera';
 import { useGeoLocation } from '../hooks/attendance/useGeoLocation';
 import { useAttendance } from '../hooks/attendance/useAttendance';
 import { useSubscription } from '../context/SubscriptionContext';
+import { useToast } from '../context/ToastContext';
 
 // UI Components
 import { AttendanceHeader } from '../components/attendance/AttendanceHeader';
@@ -21,6 +22,8 @@ interface AttendanceProps {
 }
 
 const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) => {
+  const { showToast } = useToast();
+
   // 1. Logic Hooks
   const {
     currentTime, activeRecord, appConfig, isLoading, status, submitPunch
@@ -76,15 +79,15 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   const handlePunchSubmit = async () => {
     if (!canPunch) {
       if (subscription?.status === 'EXPIRED') {
-        alert('Your trial has expired. Please upgrade to continue punching attendance.');
+        showToast('Your trial has expired. Please upgrade to continue punching attendance.', 'warning');
       } else if (subscription?.status === 'SUSPENDED') {
-        alert('Your account is suspended. Please contact support.');
+        showToast('Your account is suspended. Please contact support.', 'error');
       }
       return;
     }
 
     if (dutyType === 'FACTORY' && !remarks.trim()) {
-      alert("Mandatory: Please mention the Factory Name and details in remarks.");
+      showToast("Mandatory: Please mention the Factory Name and details in remarks.", 'warning');
       return;
     }
 

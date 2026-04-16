@@ -75,163 +75,11 @@
   <!-- Vital: Link to manifest at the root level -->
   <link rel="manifest" href="/manifest.json">
   
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: 'var(--primary)',
-            'primary-hover': 'var(--primary-hover)',
-            'primary-light': 'var(--primary-light)',
-          },
-          animation: {
-            'slide-up': 'slideUp 0.3s ease-out',
-          },
-          keyframes: {
-            slideUp: {
-              '0%': { transform: 'translateY(10px)', opacity: 0 },
-              '100%': { transform: 'translateY(0)', opacity: 1 },
-            }
-          }
-        }
-      }
-    }
-  </script>
   <link rel="preconnect" href="https://esm.sh" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
-  <style>
-    :root {
-      /* Default Theme (Arctic Frost) */
-      --primary: #4a6fa5;
-      --primary-hover: #3b5d8c;
-      --primary-light: #d4e4f7;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      background-color: #fcfdfe;
-      -webkit-tap-highlight-color: transparent;
-      padding-bottom: env(safe-area-inset-bottom);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    /* Ensure the app feels like a real app on iOS notch devices */
-    @media all and (display-mode: standalone) {
-      body {
-        padding-top: env(safe-area-inset-top);
-      }
-    }
-
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    .brand-gradient {
-      background: linear-gradient(135deg, var(--primary) 0%, #f59e0b 50%, #10b981 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    /* ===== DARK MODE OVERRIDES ===== */
-    html.dark body { background-color: #0f172a; color: #e2e8f0; }
-
-    /* Backgrounds */
-    .dark .bg-white { background-color: #1e293b !important; }
-    .dark .bg-\[\#fcfdfe\] { background-color: #0f172a !important; }
-    .dark .bg-\[\#f8fafc\] { background-color: #0f172a !important; }
-    .dark .bg-slate-50 { background-color: #1e293b !important; }
-    .dark .bg-slate-100 { background-color: #334155 !important; }
-    .dark .bg-slate-200 { background-color: #475569 !important; }
-    .dark .bg-gray-50 { background-color: #1e293b !important; }
-    .dark .bg-gray-100 { background-color: #334155 !important; }
-
-    /* Hover backgrounds */
-    .dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
-    .dark .hover\:bg-slate-100:hover { background-color: #475569 !important; }
-    .dark .hover\:bg-slate-200:hover { background-color: #475569 !important; }
-    .dark .hover\:bg-white:hover { background-color: #334155 !important; }
-    .dark .hover\:bg-gray-50:hover { background-color: #334155 !important; }
-    .dark .hover\:bg-gray-100:hover { background-color: #475569 !important; }
-    .dark .hover\:bg-rose-50:hover { background-color: #4c1d2e !important; }
-
-    /* Text */
-    .dark .text-slate-900 { color: #f1f5f9 !important; }
-    .dark .text-slate-800 { color: #e2e8f0 !important; }
-    .dark .text-slate-700 { color: #cbd5e1 !important; }
-    .dark .text-slate-600 { color: #94a3b8 !important; }
-    .dark .text-slate-500 { color: #94a3b8 !important; }
-    .dark .text-slate-400 { color: #64748b !important; }
-    .dark .text-slate-300 { color: #475569 !important; }
-    .dark .text-gray-900 { color: #f1f5f9 !important; }
-    .dark .text-gray-800 { color: #e2e8f0 !important; }
-    .dark .text-gray-700 { color: #cbd5e1 !important; }
-    .dark .text-gray-600 { color: #94a3b8 !important; }
-    .dark .text-gray-500 { color: #94a3b8 !important; }
-
-    /* Borders */
-    .dark .border-slate-100 { border-color: #334155 !important; }
-    .dark .border-slate-200 { border-color: #475569 !important; }
-    .dark .border-slate-300 { border-color: #475569 !important; }
-    .dark .border-gray-100 { border-color: #334155 !important; }
-    .dark .border-gray-200 { border-color: #475569 !important; }
-
-    /* Dividers */
-    .dark .divide-slate-100 > * + * { border-color: #334155 !important; }
-    .dark .divide-slate-200 > * + * { border-color: #475569 !important; }
-
-    /* Rings */
-    .dark .ring-slate-100 { --tw-ring-color: #334155 !important; }
-    .dark .ring-slate-200 { --tw-ring-color: #475569 !important; }
-
-    /* Shadows */
-    .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important; }
-    .dark .shadow-md { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4) !important; }
-    .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4) !important; }
-    .dark .shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4) !important; }
-
-    /* Backdrop / translucent whites */
-    .dark .bg-white\/95 { background-color: rgba(30, 41, 59, 0.95) !important; }
-    .dark .bg-white\/90 { background-color: rgba(30, 41, 59, 0.9) !important; }
-    .dark .bg-white\/80 { background-color: rgba(30, 41, 59, 0.8) !important; }
-    .dark .bg-white\/20 { background-color: rgba(30, 41, 59, 0.2) !important; }
-
-    /* Primary light (pastel tint) — use dark variant */
-    .dark .bg-primary-light { background-color: var(--primary-light-dark) !important; }
-    .dark .bg-primary-light\/50 { background-color: var(--primary-light-dark) !important; }
-
-    /* Form inputs */
-    .dark input, .dark textarea, .dark select {
-      background-color: #1e293b !important;
-      color: #e2e8f0 !important;
-      border-color: #475569 !important;
-    }
-    .dark input::placeholder, .dark textarea::placeholder {
-      color: #64748b !important;
-    }
-    .dark input:focus, .dark textarea:focus, .dark select:focus {
-      border-color: var(--primary) !important;
-    }
-
-    /* Scrollbar */
-    .dark ::-webkit-scrollbar { width: 8px; height: 8px; }
-    .dark ::-webkit-scrollbar-track { background: #1e293b; }
-    .dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-
-    /* Gradient from arbitrary light colors */
-    .dark .from-\[\#f8fafc\] { --tw-gradient-from: #0f172a !important; }
-    .dark .from-\[\#fcfdfe\] { --tw-gradient-from: #0f172a !important; }
-
-    /* Footer dark bg stays dark */
-    .dark .bg-slate-900 { background-color: #020617 !important; }
-    .dark .border-slate-800 { border-color: #1e293b !important; }
-    .dark .text-slate-500 { color: #64748b !important; }
-  </style>
 <script>
   // Theme preload: apply cached theme BEFORE React loads to prevent flash
   (function() {
@@ -280,7 +128,6 @@
 </script>
 <link rel="modulepreload" href="https://esm.sh/react@19.2.3">
 <link rel="modulepreload" href="https://esm.sh/react-dom@19.2.3/client">
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-[#fcfdfe] text-slate-900">
   <div id="root">

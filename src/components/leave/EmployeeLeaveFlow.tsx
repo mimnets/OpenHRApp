@@ -166,7 +166,7 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
         </button>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-${Math.min(balanceTypes.length, 4)} gap-6`}>
+      <div className={`grid grid-cols-1 gap-6 ${['','md:grid-cols-1','md:grid-cols-2','md:grid-cols-3','md:grid-cols-4'][Math.min(balanceTypes.length, 4)] || 'md:grid-cols-4'}`}>
         {balanceTypes.map(lt => (
           <div key={lt.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
             <div className="relative p-3 rounded-2xl w-fit mb-4 overflow-hidden">

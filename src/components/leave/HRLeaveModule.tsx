@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, RefreshCw, X, ArrowRight, FileCheck, Ban, Plus, List, Clock } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import { useToast } from '../../context/ToastContext';
 import HelpButton from '../onboarding/HelpButton';
 import AdminLeaveFormModal from './AdminLeaveFormModal';
 import AdminAllLeaves from './AdminAllLeaves';
@@ -17,6 +18,7 @@ interface Props {
 type Tab = 'pending' | 'all';
 
 export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly = false }) => {
+  const { showToast } = useToast();
   const [showVerify, setShowVerify] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,7 +50,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
       onRefresh();
       setShowVerify(null);
       setRemarks('');
-    } catch (e) { alert("Verification failed"); }
+    } catch (e) { showToast('Verification failed', 'error'); }
     finally { setIsProcessing(false); }
   };
 

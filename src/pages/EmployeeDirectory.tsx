@@ -31,6 +31,7 @@ import { apiClient } from '../services/api.client';
 import { Employee, Team, User, Shift } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 import HelpButton from '../components/onboarding/HelpButton';
+import { useToast } from '../context/ToastContext';
 
 const fetchImageAsDataUrl = async (url: string): Promise<string | null> => {
   try {
@@ -77,6 +78,7 @@ interface EmployeeDirectoryProps {
 }
 
 const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
+  const { showToast } = useToast();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
   const isManager = user?.role === 'MANAGER' || user?.role === 'TEAM_LEAD';
 
@@ -301,7 +303,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       try {
         await hrService.deleteEmployee(id);
       } catch (err: any) {
-        alert(err.message);
+        showToast(err.message, 'error');
       }
     }
   };
@@ -498,7 +500,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       doc.save(getExportFilename('pdf'));
     } catch (err: any) {
       console.error('PDF generation failed:', err);
-      alert('Failed to generate PDF: ' + (err?.message || err));
+      showToast('Failed to generate PDF: ' + (err?.message || err), 'error');
     } finally {
       setIsGeneratingPDF(false);
     }

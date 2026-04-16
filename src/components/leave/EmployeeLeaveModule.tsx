@@ -323,7 +323,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
         </button>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-${Math.min(balanceTypes.length, 4)} gap-6`}>
+      <div className={`grid grid-cols-1 gap-6 ${['','md:grid-cols-1','md:grid-cols-2','md:grid-cols-3','md:grid-cols-4'][Math.min(balanceTypes.length, 4)] || 'md:grid-cols-4'}`}>
         {balanceTypes.map(lt => (
           <div key={lt.id} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{lt.name.replace(' Leave', '')}</p>

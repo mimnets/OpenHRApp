@@ -20,6 +20,7 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKnownSubscription = useRef<SubscriptionInfo | null>(null);
 
   const refreshSubscription = useCallback(async () => {
     if (!user || !pb?.authStore.isValid) {
@@ -46,16 +47,21 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
       };
       console.log('[Subscription] Setting subscription:', subscriptionData);
       setSubscription(subscriptionData);
+      lastKnownSubscription.current = subscriptionData;
     } catch (error) {
       console.error('[Subscription] Failed to fetch subscription status:', error);
-      // If we can't verify, assume active to not block users
-      setSubscription({
-        status: 'ACTIVE',
-        isSuperAdmin: false,
-        isReadOnly: false,
-        isBlocked: false,
-        showAds: false
-      });
+      // On error, use last known state or default to restricted mode
+      if (lastKnownSubscription.current) {
+        setSubscription(lastKnownSubscription.current);
+      } else {
+        setSubscription({
+          status: 'ACTIVE',
+          isSuperAdmin: false,
+          isReadOnly: true,
+          isBlocked: false,
+          showAds: true
+        });
+      }
     } finally {
       setIsLoading(false);
     }

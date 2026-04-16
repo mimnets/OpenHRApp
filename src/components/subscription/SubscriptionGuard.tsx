@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { useToast } from '../../context/ToastContext';
 import { AlertTriangle } from 'lucide-react';
 
 interface SubscriptionGuardProps {
@@ -50,6 +51,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({
 // Hook for checking permissions in event handlers
 export const useSubscriptionCheck = () => {
   const { subscription, canPerformAction } = useSubscription();
+  const { showToast } = useToast();
 
   const checkAndAlert = (action: 'write' | 'read' = 'write'): boolean => {
     if (canPerformAction(action)) {
@@ -57,9 +59,9 @@ export const useSubscriptionCheck = () => {
     }
 
     if (subscription?.status === 'EXPIRED') {
-      alert('Your trial has expired. Please upgrade to continue using this feature.');
+      showToast('Your trial has expired. Please upgrade to continue using this feature.', 'error');
     } else if (subscription?.status === 'SUSPENDED') {
-      alert('Your account is suspended. Please contact support.');
+      showToast('Your account is suspended. Please contact support.', 'error');
     }
 
     return false;
