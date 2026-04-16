@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserCheck, RefreshCw, X, ArrowRight } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import { useToast } from '../../context/ToastContext';
 
 interface Props {
   user: any;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 const ManagerLeaveFlow: React.FC<Props> = ({ requests, onRefresh }) => {
+  const { showToast } = useToast();
   const [showReview, setShowReview] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -23,7 +25,7 @@ const ManagerLeaveFlow: React.FC<Props> = ({ requests, onRefresh }) => {
       onRefresh();
       setShowReview(null);
       setRemarks('');
-    } catch (e) { alert("Action failed"); }
+    } catch (e) { showToast('Action failed', 'error'); }
     finally { setIsProcessing(false); }
   };
 

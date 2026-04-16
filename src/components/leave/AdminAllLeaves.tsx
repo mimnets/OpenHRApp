@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Edit3, Trash2, CheckCircle, XCircle, RefreshCw, AlertTriangle, FileCheck, Search } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import { useToast } from '../../context/ToastContext';
 
 interface Props {
   requests: LeaveRequest[];
@@ -30,6 +31,7 @@ const statusBar = (status: string) => {
 };
 
 const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly = false }) => {
+  const { showToast } = useToast();
   const [deleteTarget, setDeleteTarget] = useState<LeaveRequest | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [approveTarget, setApproveTarget] = useState<LeaveRequest | null>(null);
@@ -49,7 +51,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
     try {
       await hrService.adminDeleteLeave(deleteTarget.id);
       onRefresh();
-    } catch { alert('Delete failed'); }
+    } catch { showToast('Delete failed', 'error'); }
     finally {
       setIsDeleting(false);
       setDeleteTarget(null);
@@ -64,7 +66,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
       onRefresh();
       setApproveTarget(null);
       setApproveRemarks('');
-    } catch { alert('Action failed'); }
+    } catch { showToast('Action failed', 'error'); }
     finally { setIsApproving(false); }
   };
 

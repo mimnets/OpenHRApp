@@ -9,6 +9,7 @@ import { hrService } from '../services/hrService';
 import { Attendance, Employee, AppConfig } from '../types';
 import { consolidateAttendance, calculatePunctuality, calculateDuration } from '../utils/attendanceUtils';
 import HelpButton from '../components/onboarding/HelpButton';
+import { useToast } from '../context/ToastContext';
 
 interface AttendanceLogsProps {
   user: any;
@@ -29,6 +30,7 @@ const LogSkeleton = () => (
 );
 
 const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }) => {
+  const { showToast } = useToast();
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER';
   const isAuditMode = viewMode === 'AUDIT' && (isAdmin || isManager);
@@ -153,7 +155,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       });
       setShowAbsentModal(false);
       await fetchInitialData();
-    } catch (e) { alert("Failed to save."); }
+    } catch (e) { showToast("Failed to save.", 'error'); }
     finally { setIsProcessing(false); }
   };
 
@@ -166,7 +168,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       setSelectedLog(null);
       await fetchInitialData();
     } catch (err) {
-      alert("Failed to delete record.");
+      showToast("Failed to delete record.", 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -187,7 +189,7 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
       setSelectedLog(null);
       await fetchInitialData();
     } catch (err) {
-      alert("Failed to update record.");
+      showToast("Failed to update record.", 'error');
     } finally {
       setIsProcessing(false);
     }

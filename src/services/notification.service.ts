@@ -14,11 +14,11 @@ export const notificationService = {
       const userId = apiClient.pb.authStore.model?.id;
       if (!userId) return [];
 
-      const records = await apiClient.pb.collection('notifications').getFullList({
+      const result = await apiClient.pb.collection('notifications').getList(1, 100, {
         sort: '-created',
         filter: `user_id = "${userId}"`,
       });
-      console.log(`[NotificationService] Fetched ${records.length} notifications`);
+      const records = result.items;
       return records.map(r => ({
         id: r.id.toString().trim(),
         userId: r.user_id || '',
@@ -161,9 +161,10 @@ export const notificationService = {
   async getAllNotifications(): Promise<AppNotification[]> {
     if (!apiClient.pb || !apiClient.isConfigured()) return [];
     try {
-      const records = await apiClient.pb.collection('notifications').getFullList({
+      const result = await apiClient.pb.collection('notifications').getList(1, 200, {
         sort: '-created',
       });
+      const records = result.items;
       return records.map(r => ({
         id: r.id.toString().trim(),
         userId: r.user_id || '',

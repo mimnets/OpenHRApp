@@ -3,7 +3,10 @@ import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, 
 import { DEFAULT_CONFIG, BD_HOLIDAYS, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
 import { shiftService } from './shift.service';
 
-// Internal Cache
+// Internal Cache with TTL
+const ORG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let orgCacheTimestamp = 0;
+
 let cachedConfig: AppConfig | null = null;
 let cachedDepartments: string[] | null = null;
 let cachedDesignations: string[] | null = null;
@@ -13,6 +16,14 @@ let cachedReviewConfig: OrgReviewConfig | null = null;
 let cachedLeaveTypes: CustomLeaveType[] | null = null;
 let cachedTeams: Team[] | null = null;
 let cachedNotificationConfig: OrgNotificationConfig | null = null;
+
+function isCacheValid() {
+  return orgCacheTimestamp > 0 && Date.now() - orgCacheTimestamp < ORG_CACHE_TTL;
+}
+
+function touchCache() {
+  orgCacheTimestamp = Date.now();
+}
 
 // Helper functions extracted to avoid 'this' binding issues
 async function getSetting(key: string, defaultValue: any) {
@@ -64,6 +75,7 @@ export const organizationService = {
     cachedTeams = null;
     cachedLeaveTypes = null;
     cachedNotificationConfig = null;
+    orgCacheTimestamp = 0;
     shiftService.clearCache();
   },
 
@@ -89,9 +101,10 @@ export const organizationService = {
   setSetting,
 
   async getConfig(): Promise<AppConfig> {
-    if (cachedConfig) return cachedConfig;
+    if (cachedConfig && isCacheValid()) return cachedConfig;
     const val = await getSetting('app_config', DEFAULT_CONFIG);
     cachedConfig = val;
+    touchCache();
     return val;
   },
 
@@ -102,9 +115,10 @@ export const organizationService = {
   },
 
   async getDepartments(): Promise<string[]> {
-    if (cachedDepartments) return cachedDepartments;
+    if (cachedDepartments && isCacheValid()) return cachedDepartments;
     const val = await getSetting('departments', []);
     cachedDepartments = val;
+    touchCache();
     return val;
   },
 
@@ -115,9 +129,10 @@ export const organizationService = {
   },
 
   async getDesignations(): Promise<string[]> {
-    if (cachedDesignations) return cachedDesignations;
+    if (cachedDesignations && isCacheValid()) return cachedDesignations;
     const val = await getSetting('designations', []);
     cachedDesignations = val;
+    touchCache();
     return val;
   },
 
@@ -128,9 +143,10 @@ export const organizationService = {
   },
 
   async getHolidays(): Promise<Holiday[]> {
-    if (cachedHolidays) return cachedHolidays;
+    if (cachedHolidays && isCacheValid()) return cachedHolidays;
     const val = await getSetting('holidays', BD_HOLIDAYS);
     cachedHolidays = val;
+    touchCache();
     return val;
   },
 
@@ -141,7 +157,7 @@ export const organizationService = {
   },
 
   async getTeams(): Promise<Team[]> {
-    if (cachedTeams) return cachedTeams;
+    if (cachedTeams && isCacheValid()) return cachedTeams;
     if (!apiClient.pb || !apiClient.isConfigured()) {
       console.warn("[OrgService] PocketBase not configured for teams");
       return [];
@@ -196,7 +212,7 @@ export const organizationService = {
   },
 
   async getLeavePolicy(): Promise<LeavePolicy> {
-    if (cachedLeavePolicy) return cachedLeavePolicy;
+    if (cachedLeavePolicy && isCacheValid()) return cachedLeavePolicy;
     const defaultPolicy: LeavePolicy = {
       defaults: { ANNUAL: 15, CASUAL: 10, SICK: 14 },
       overrides: {}
@@ -214,7 +230,7 @@ export const organizationService = {
 
   // Review Config
   async getReviewConfig(): Promise<OrgReviewConfig> {
-    if (cachedReviewConfig) return cachedReviewConfig;
+    if (cachedReviewConfig && isCacheValid()) return cachedReviewConfig;
     const val = await getSetting('review_config', DEFAULT_REVIEW_CONFIG);
     cachedReviewConfig = val;
     return val;
@@ -228,7 +244,7 @@ export const organizationService = {
 
   // Leave Types
   async getLeaveTypes(): Promise<CustomLeaveType[]> {
-    if (cachedLeaveTypes) return cachedLeaveTypes;
+    if (cachedLeaveTypes && isCacheValid()) return cachedLeaveTypes;
     const val = await getSetting('leave_types', DEFAULT_LEAVE_TYPES);
     cachedLeaveTypes = val;
     return val;
@@ -242,7 +258,7 @@ export const organizationService = {
 
   // Notification Config
   async getNotificationConfig(): Promise<OrgNotificationConfig> {
-    if (cachedNotificationConfig) return cachedNotificationConfig;
+    if (cachedNotificationConfig && isCacheValid()) return cachedNotificationConfig;
     const val = await getSetting('notification_config', DEFAULT_NOTIFICATION_CONFIG);
     cachedNotificationConfig = val;
     return val;

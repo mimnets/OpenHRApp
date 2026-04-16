@@ -5,6 +5,7 @@ import { hrService } from '../services/hrService';
 import { AppNotification, NotificationType } from '../types';
 import AdminNotificationFormModal from '../components/notifications/AdminNotificationFormModal';
 import HelpButton from '../components/onboarding/HelpButton';
+import { useToast } from '../context/ToastContext';
 
 interface Employee {
   id: string;
@@ -34,6 +35,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const AdminNotifications: React.FC<Props> = (_props) => {
+  const { showToast } = useToast();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +85,7 @@ const AdminNotifications: React.FC<Props> = (_props) => {
       await hrService.deleteNotification(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch {
-      alert('Failed to delete notification.');
+      showToast('Failed to delete notification.', 'error');
     }
   };
 
@@ -93,9 +95,9 @@ const AdminNotifications: React.FC<Props> = (_props) => {
     try {
       const deleted = await hrService.deleteAllNotifications();
       setNotifications([]);
-      alert(`Successfully deleted ${deleted} notifications.`);
+      showToast(`Successfully deleted ${deleted} notifications.`, 'success');
     } catch {
-      alert('Failed to delete all notifications.');
+      showToast('Failed to delete all notifications.', 'error');
     } finally {
       setIsDeletingAll(false);
     }

@@ -11,6 +11,7 @@ import { AdminVerificationPanel } from '../components/admin/AdminVerificationPan
 import HelpButton from '../components/onboarding/HelpButton';
 import { ReEnableSetupGuide } from '../components/onboarding/SetupChecklist';
 import { contactService } from '../services/contact.service';
+import { useToast } from '../context/ToastContext';
 
 interface SettingsProps {
   user: UserType;
@@ -43,6 +44,7 @@ const ProfileSkeleton = () => (
 );
 
 const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
+  const { showToast } = useToast();
   const [profile, setProfile] = useState<Partial<Employee> & { managerName?: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -152,17 +154,17 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
 
         if (newPassword) {
           if (!currentPassword) {
-            alert("Please enter your current password to change your password.");
+            showToast("Please enter your current password to change your password.", 'warning');
             setIsSaving(false);
             return;
           }
           if (newPassword.length < 8) {
-            alert("Password must be at least 8 characters long.");
+            showToast("Password must be at least 8 characters long.", 'warning');
             setIsSaving(false);
             return;
           }
           if (newPassword !== confirmPassword) {
-            alert("Passwords do not match.");
+            showToast("Passwords do not match.", 'warning');
             setIsSaving(false);
             return;
           }
@@ -174,11 +176,11 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        alert('Profile updated successfully.');
+        showToast('Profile updated successfully.', 'success');
         window.location.reload();
       }
     } catch (e: any) {
-      alert(`Operation failed: ${e.message}`);
+      showToast(`Operation failed: ${e.message}`, 'error');
     } finally {
       setIsSaving(false);
     }

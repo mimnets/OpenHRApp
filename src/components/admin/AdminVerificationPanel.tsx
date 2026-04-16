@@ -19,9 +19,20 @@ export const AdminVerificationPanel: React.FC = () => {
 
   useEffect(() => {
     loadUnverifiedUsers();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadUnverifiedUsers, 30000);
-    return () => clearInterval(interval);
+    let interval = setInterval(loadUnverifiedUsers, 30000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnverifiedUsers();
+        interval = setInterval(loadUnverifiedUsers, 30000);
+      } else {
+        clearInterval(interval);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   const loadUnverifiedUsers = async () => {

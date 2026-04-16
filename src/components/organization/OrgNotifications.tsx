@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Mail, Moon, Save, Loader2 } from 'lucide-react';
 import { OrgNotificationConfig, NotificationType, EmailDigestFrequency } from '../../types';
+import { useToast } from '../../context/ToastContext';
 
 interface Props {
   config: OrgNotificationConfig;
@@ -24,6 +25,7 @@ const DIGEST_OPTIONS: { value: EmailDigestFrequency; label: string }[] = [
 ];
 
 export const OrgNotifications: React.FC<Props> = ({ config, onSave }) => {
+  const { showToast } = useToast();
   const [localConfig, setLocalConfig] = useState<OrgNotificationConfig>(config);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -52,7 +54,7 @@ export const OrgNotifications: React.FC<Props> = ({ config, onSave }) => {
       await onSave(localConfig);
       setHasChanges(false);
     } catch {
-      alert('Failed to save notification config.');
+      showToast('Failed to save notification config.', 'error');
     } finally {
       setIsSaving(false);
     }

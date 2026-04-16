@@ -1,9 +1,13 @@
 
-import { apiClient } from './api.client';
+import { apiClient, dedupe } from './api.client';
 import { Attendance } from '../types';
 import { organizationService } from './organization.service';
 import { shiftService } from './shift.service';
 import { notificationService } from './notification.service';
+
+let cachedAttendance: Attendance[] | null = null;
+let attCacheTimestamp = 0;
+const ATT_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 const mapAttendance = (r: any): Attendance => ({
   id: r.id.toString().trim(),
@@ -25,20 +29,30 @@ const mapAttendance = (r: any): Attendance => ({
 });
 
 export const attendanceService = {
+  clearCache() {
+    cachedAttendance = null;
+    attCacheTimestamp = 0;
+  },
+
   async getAttendance(): Promise<Attendance[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      console.warn("[AttendanceService] PocketBase not configured");
-      return [];
-    }
-    try {
-      // PocketBase API rules filter by organization_id automatically
-      const records = await apiClient.pb.collection('attendance').getFullList({ sort: '-date' });
-      console.log(`[AttendanceService] Fetched ${records.length} attendance records`);
-      return records.map(mapAttendance);
-    } catch (e: any) {
-      console.error("[AttendanceService] Failed to fetch attendance:", e?.message || e);
-      return [];
-    }
+    if (cachedAttendance && Date.now() - attCacheTimestamp < ATT_CACHE_TTL) return cachedAttendance;
+    return dedupe('attendance', async () => {
+      if (!apiClient.pb || !apiClient.isConfigured()) {
+        console.warn("[AttendanceService] PocketBase not configured");
+        return [];
+      }
+      try {
+        // PocketBase API rules filter by organization_id automatically
+        const records = await apiClient.pb.collection('attendance').getFullList({ sort: '-date' });
+        const result = records.map(mapAttendance);
+        cachedAttendance = result;
+        attCacheTimestamp = Date.now();
+        return result;
+      } catch (e: any) {
+        console.error("[AttendanceService] Failed to fetch attendance:", e?.message || e);
+        return [];
+      }
+    });
   },
 
   async getActiveAttendance(employeeId: string): Promise<Attendance | undefined> {
@@ -93,6 +107,7 @@ export const attendanceService = {
     };
     if (data.selfie) payload.selfie = data.selfie;
     await apiClient.pb.collection('attendance').create(await apiClient.toFormData(payload, 'selfie.webp'));
+    attendanceService.clearCache();
     apiClient.notify();
 
     // Late Alert: notify line manager if status is LATE
@@ -127,12 +142,14 @@ export const attendanceService = {
     if (data.remarks) pbUpdates.remarks = data.remarks;
     if (data.status) pbUpdates.status = data.status;
     await apiClient.pb.collection('attendance').update(id.trim(), pbUpdates);
+    attendanceService.clearCache();
     apiClient.notify();
   },
 
-  async deleteAttendance(id: string) { 
-    if (!apiClient.pb || !apiClient.isConfigured()) return; 
-    await apiClient.pb.collection('attendance').delete(id.trim()); 
-    apiClient.notify(); 
+  async deleteAttendance(id: string) {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    await apiClient.pb.collection('attendance').delete(id.trim());
+    attendanceService.clearCache();
+    apiClient.notify();
   }
 };

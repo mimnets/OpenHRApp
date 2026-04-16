@@ -126,7 +126,8 @@ export const reviewService = {
     try {
       const orgId = apiClient.getOrganizationId();
       console.log('[ReviewService] Fetching cycles, orgId:', orgId, 'authValid:', apiClient.pb.authStore.isValid);
-      const records = await apiClient.pb.collection('review_cycles').getFullList({ sort: '-created' });
+      const result = await apiClient.pb.collection('review_cycles').getList(1, 50, { sort: '-created' });
+      const records = result.items;
       console.log('[ReviewService] Raw cycle records:', records.length, records.map(r => ({ id: r.id, name: r.name, org: r.organization_id })));
       return records.map(mapCycleRecord);
     } catch (e: any) {
@@ -198,7 +199,8 @@ export const reviewService = {
   async getReviews(): Promise<PerformanceReview[]> {
     if (!apiClient.pb || !apiClient.isConfigured()) return [];
     try {
-      const records = await apiClient.pb.collection('performance_reviews').getFullList({ sort: '-created' });
+      const result = await apiClient.pb.collection('performance_reviews').getList(1, 200, { sort: '-created' });
+      const records = result.items;
       const reviews: PerformanceReview[] = [];
       for (const r of records) {
         try {
