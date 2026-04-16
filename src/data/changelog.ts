@@ -1,3 +1,4 @@
+// 2026-04-16: Added dependency updates and logo fix entry
 export type ChangelogEntryType = 'feature' | 'fix' | 'improvement' | 'security' | 'breaking';
 
 export interface ChangelogEntry {
