@@ -54,7 +54,12 @@
       "WebFetch(domain:www.openhrapp.com)",
       "Bash(adb install:*)",
       "Bash(\"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe\" install -r \"C:/Users/DEF/Downloads/openhr/android/app/build/outputs/apk/debug/app-debug.apk\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(identify public/img/icon-192.png public/img/icon-512.png)",
+      "Bash(brew list:*)",
+      "Bash(npm ls:*)",
+      "Bash(git rm:*)",
+      "Bash(git checkout *)"
     ]
   }
 }
