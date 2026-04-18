@@ -2,8 +2,9 @@
 import { apiClient, dedupe } from './api.client';
 import { Attendance } from '../types';
 import { organizationService } from './organization.service';
-import { shiftService } from './shift.service';
 import { notificationService } from './notification.service';
+import { workdaySessionManager } from './workday/workdaySessionManager';
+import { ReconcileResult } from './workday/workdaySessionManager.types';
 
 let cachedAttendance: Attendance[] | null = null;
 let attCacheTimestamp = 0;
@@ -55,38 +56,26 @@ export const attendanceService = {
     });
   },
 
+  /**
+   * Returns today's active session for the employee.
+   *
+   * Past-date open sessions are reconciled (closed) by the workday session
+   * manager (FROZEN MODULE — see Others/CLAUDE.md). Callers that also need
+   * the list of past sessions that were just closed should call
+   * `getActiveAttendanceWithReconciliation` instead.
+   */
   async getActiveAttendance(employeeId: string): Promise<Attendance | undefined> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return undefined;
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const config = await organizationService.getConfig();
+    const { active } = await workdaySessionManager.reconcileOpenSessions(employeeId);
+    return active;
+  },
 
-      // Try to get the employee record to find their shiftId
-      let employeeShiftId: string | undefined;
-      try {
-        const empRecord = await apiClient.pb.collection('users').getOne(employeeId.trim());
-        employeeShiftId = empRecord.shift_id || undefined;
-      } catch { /* ignore - fallback to global config */ }
-
-      // Resolve employee's effective shift
-      const shift = await shiftService.resolveShiftForEmployee(employeeId, employeeShiftId, today);
-
-      const result = await apiClient.pb.collection('attendance').getList(1, 50, {
-        filter: `employee_id = "${employeeId.trim()}" && check_out = ""`
-      });
-
-      let activeToday: Attendance | undefined = undefined;
-
-      for (const item of result.items) {
-        if (item.date === today) {
-          // Only return today's active session, don't auto-close
-          activeToday = mapAttendance(item);
-        }
-        // Note: Past unclosed sessions are NOT auto-closed here
-      }
-
-      return activeToday;
-    } catch (e) { return undefined; }
+  /**
+   * Same as `getActiveAttendance` but also returns the list of past-date
+   * sessions that were just auto-closed — so the UI can show a one-time
+   * toast explaining what happened.
+   */
+  async getActiveAttendanceWithReconciliation(employeeId: string): Promise<ReconcileResult> {
+    return workdaySessionManager.reconcileOpenSessions(employeeId);
   },
 
   async saveAttendance(data: Attendance) {

@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/validate-pb-hooks.cjs",
     "build": "vite build && node scripts/generate-sitemap.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
     "preview": "vite preview",
+    "validate:hooks": "node scripts/validate-pb-hooks.cjs",
     "cap:sync": "node -e \"require('fs').rmSync('dist/downloads',{recursive:true,force:true})\" && npx cap sync android",
     "cap:open": "npx cap open android",
     "optimize-icons": "node scripts/optimize-icons.mjs"

@@ -22,10 +22,12 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
   const refreshData = useCallback(async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const [active, config] = await Promise.all([
-        hrService.getActiveAttendance(user.id),
+      const [reconciled, config] = await Promise.all([
+        hrService.getActiveAttendanceWithReconciliation(user.id),
         hrService.getConfig()
       ]);
+
+      const { active, closedPast } = reconciled;
 
       if (active && active.date !== today) {
         setActiveRecord(undefined);
@@ -34,13 +36,23 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
       }
       setAppConfig(config);
 
+      // If the workday session manager just closed any past-date sessions
+      // as a client-side fallback, surface a one-time, human-readable toast.
+      if (closedPast.length > 0) {
+        const dates = closedPast.map(s => s.date).join(', ');
+        showToast(
+          `We auto-closed your forgotten check-out from ${dates}. Please remember to check out at end of day.`,
+          'info'
+        );
+      }
+
       // Resolve employee's effective shift
       const shift = await hrService.resolveShiftForEmployee(user.id, user.shiftId);
       setEmployeeShift(shift);
     } catch (e) {
       console.error('Data sync failed', e);
     }
-  }, [user.id, user.shiftId]);
+  }, [user.id, user.shiftId, showToast]);
 
   useEffect(() => {
     const init = async () => {

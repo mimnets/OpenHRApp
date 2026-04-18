@@ -2,6 +2,20 @@
 
 All project instructions are maintained in `Others/CLAUDE.md`. Read that file for full context.
 
+## Frozen Modules — Read Before Editing
+
+A short list of files in this repo has regressed three times during refactors
+(auto-logout, forgotten check-out closure). They are now **frozen**. Before
+editing any of them you MUST follow the plan-approval gate described in
+`Others/CLAUDE.md` → "Frozen Modules — Change-Control".
+
+Frozen files:
+- `src/services/session/sessionManager.ts` and `sessionManager.types.ts`
+- `src/services/workday/workdaySessionManager.ts` and `workdaySessionManager.types.ts`
+- `src/context/AuthContext.tsx` (must remain a thin UI delegation layer)
+- `Others/pb_hooks/cron.pb.js` — especially the `auto_close_sessions` block
+- `scripts/validate-pb-hooks.cjs`
+
 ## Git Workflow — MUST FOLLOW
 
 After completing any code changes:

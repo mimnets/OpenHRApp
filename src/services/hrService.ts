@@ -32,6 +32,7 @@ export const hrService = {
   // Attendance
   getAttendance: attendanceService.getAttendance,
   getActiveAttendance: attendanceService.getActiveAttendance,
+  getActiveAttendanceWithReconciliation: attendanceService.getActiveAttendanceWithReconciliation,
   saveAttendance: attendanceService.saveAttendance,
   updateAttendance: attendanceService.updateAttendance,
   deleteAttendance: attendanceService.deleteAttendance,
