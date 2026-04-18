@@ -15,6 +15,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-18',
+    title: 'Session & Attendance Stability',
+    entries: [
+      { type: 'fix', description: 'Fixed auto-logout on flaky networks — auth refresh now retries 3x with backoff and only logs out on a real 401/403; transient network errors keep the session alive' },
+      { type: 'fix', description: 'Fixed forgotten check-outs staying active — added a client-side fallback that auto-closes past-date open sessions on next login, in addition to the server cron' },
+      { type: 'improvement', description: 'Extracted session lifecycle into a dedicated sessionManager module and attendance session lifecycle into a dedicated workdaySessionManager module so future refactors cannot accidentally break these flows' },
+      { type: 'improvement', description: 'Added prebuild validator (scripts/validate-pb-hooks.cjs) that fails the build if the auto_close_sessions cron or core API endpoints are missing from the PocketBase hooks' },
+    ],
+  },
+  {
     date: '2026-04-16',
     title: 'UX & Error Handling Improvements',
     entries: [
