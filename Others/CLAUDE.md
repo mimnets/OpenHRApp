@@ -630,3 +630,94 @@ npx cap run android --livereload
 # Look for: [HOOKS] Loading ... and [HOOKS] ... loaded successfully
 # in PocketBase server logs
 ```
+
+---
+
+## Frozen Modules — Change-Control MUST FOLLOW
+
+Two features — login-session stability and the attendance check-in/out
+lifecycle — have regressed **three times** during unrelated refactors.
+The logic that owns those features is now isolated into dedicated, single-
+responsibility modules. Every edit to any file in this list is a FROZEN
+change and requires ALL of the following, no exceptions:
+
+1. **Enter plan mode first** (`EnterPlanMode`). No direct edits.
+2. **Get explicit user approval** of the plan before executing.
+3. State in the plan which frozen file is being touched and why.
+4. Add or update a regression check — unit test when the test framework
+   lands, or a documented manual verification in the commit message
+   until then.
+5. Update `src/data/changelog.ts` with a `fix` or `change` entry.
+6. Never bypass hooks or skip validation on the commit
+   (`--no-verify` is forbidden).
+
+### Frozen files
+
+- `src/services/session/sessionManager.ts`
+- `src/services/session/sessionManager.types.ts`
+- `src/services/workday/workdaySessionManager.ts`
+- `src/services/workday/workdaySessionManager.types.ts`
+- `src/context/AuthContext.tsx` — delegation layer only, do not move
+  session logic back into it
+- `Others/pb_hooks/cron.pb.js` — in particular the
+  `cronAdd("auto_close_sessions", ...)` block (every minute)
+- `scripts/validate-pb-hooks.cjs`
+
+### Invariants (a violation is a bug)
+
+- **Only `sessionManager.ts` may call `pb.authStore.clear()`**. The one
+  tolerated exception is `auth.service.ts`: the post-login unverified-account
+  clear (which runs before the user is considered logged in). Every other
+  call site is a regression and must route through
+  `sessionManager.forceLogout(reason)`.
+- **A transient network error MUST NOT log users out**. The retry +
+  classification logic in `sessionManager.ts` is load-bearing; do not
+  replace it with a single-shot refresh.
+- **Only `workdaySessionManager.ts` may mutate `check_out` from the
+  client as a "system auto-close"**. User-initiated check-outs go through
+  `attendanceService.updateAttendance` (unchanged). The remark appended
+  for client fallback closures is
+  `" [System: Auto-closed — no check-out recorded]"` — keep it
+  distinguishable from the server cron remark
+  (`" [System: Auto-Closed Past Date]"` / `" [System: Max Time Reached]"`).
+- **`getActiveAttendance` MUST delegate to
+  `workdaySessionManager.reconcileOpenSessions`** — do not add a parallel
+  implementation that reads attendance and decides closure rules.
+- **The `auto_close_sessions` cron block in `cron.pb.js` MUST exist** and
+  its job id MUST remain `auto_close_sessions`. The `validate-pb-hooks.cjs`
+  script enforces this at build time (`npm run build` fails if it's
+  missing).
+- **`workdaySessionManager` MUST NOT close today's session**. Same-day
+  max-time closure is owned by the server cron; a client-side same-day
+  close would race the cron and double-close.
+
+### Deployment checklist for session/attendance changes
+
+Before shipping any change touching frozen files:
+
+- [ ] `npm run validate:hooks` passes (also runs automatically as `prebuild`).
+- [ ] Manually verified: login does NOT log out on flaky network — set
+      DevTools → Network → Offline for ~60 s, return to Online, session
+      must survive; a "Reconnecting…" UI banner is acceptable but a
+      redirect to login is a regression.
+- [ ] Manually verified: hard 401 DOES log the user out (invalidate the
+      token server-side or force a password change mid-session).
+- [ ] Manually verified: create an attendance record dated yesterday with
+      empty `check_out` for a test employee. Log in as that employee. The
+      record must be updated with `check_out` populated and remarks
+      appended; a one-time toast must appear. The UI must NOT show an
+      "active session" card for yesterday.
+- [ ] Confirmed `cron.pb.js` is deployed and the server log shows
+      `[CRON] Auto-closed N session(s)` entries on the expected cadence.
+- [ ] Commit message documents which frozen file was touched and the
+      manual verification performed.
+
+### Past incidents to learn from
+
+- **Incident 1 & 2** (see `src/data/changelog.ts` 2026-04-13): auto-logout
+  after 1–2 days; PWA service-worker update caused logouts. Both were
+  caused by refactors that did not preserve the token-refresh contract.
+- **Incident 3** (this change, 2026-04-18): forgotten check-outs stayed
+  "active" because client-side auto-close was removed and the server
+  cron couldn't be guaranteed deployed. Fixed by isolating the lifecycle
+  into `workdaySessionManager.ts` with a client-side fallback.

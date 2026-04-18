@@ -1,6 +1,7 @@
 import { apiClient } from './api.client';
 import { User } from '../types';
 import { organizationService } from './organization.service';
+import { sessionManager } from './session/sessionManager';
 
 export const authService = {
   async login(email: string, pass: string): Promise<{ user: User | null; error?: string }> {
@@ -36,10 +37,12 @@ export const authService = {
     }
   },
 
-  async logout() { 
-    if (apiClient.pb) apiClient.pb.authStore.clear(); 
+  async logout() {
+    // Session-manager is the single authority for clearing authStore.
+    // See Others/CLAUDE.md "Frozen Modules — Change-Control".
+    await sessionManager.forceLogout('USER_INITIATED');
     organizationService.clearCache();
-    apiClient.notify(); 
+    apiClient.notify();
   },
 
   async finalizePasswordReset(token: string, newPassword: string): Promise<boolean> {

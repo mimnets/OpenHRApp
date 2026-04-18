@@ -1,13 +1,16 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { hrService } from '../services/hrService';
-import { pb, isPocketBaseConfigured } from '../services/pocketbase';
+import { isPocketBaseConfigured } from '../services/pocketbase';
+import { sessionManager } from '../services/session/sessionManager';
+import { RefreshStatus } from '../services/session/sessionManager.types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isConfigured: boolean;
+  refreshStatus: RefreshStatus;
   login: (user: User) => void;
   logout: () => Promise<void>;
   setConfigured: (status: boolean) => void;
@@ -15,112 +18,88 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
-const VISIBILITY_REFRESH_COOLDOWN = 5 * 60 * 1000; // 5 minutes
-
-function buildUserFromModel(model: any): User {
-  return {
-    id: model.id,
-    employeeId: model.employee_id || '',
-    name: model.name || 'User',
-    email: model.email,
-    role: (model.role || 'EMPLOYEE').toString().toUpperCase() as any,
-    department: model.department || 'Unassigned',
-    designation: model.designation || 'Staff',
-    teamId: model.team_id || undefined,
-    avatar: model.avatar && pb ? pb.files.getURL(model, model.avatar) : undefined,
-  };
-}
-
+/**
+ * AuthContext is now a thin UI layer. All session/auth lifecycle decisions
+ * live in `src/services/session/sessionManager.ts` (FROZEN MODULE). Do not
+ * reintroduce pb.authStore.clear() here — route through sessionManager.
+ */
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>({ kind: 'idle' });
   const [isLoading, setIsLoading] = useState(true);
   const [isConfigured, setIsConfigured] = useState(isPocketBaseConfigured());
-  const lastRefresh = useRef<number>(0);
-
-  const refreshAuth = useCallback(async () => {
-    if (!pb || !pb.authStore.isValid) return false;
-    try {
-      await pb.collection('users').authRefresh();
-      lastRefresh.current = Date.now();
-      return true;
-    } catch {
-      pb.authStore.clear();
-      setUser(null);
-      return false;
-    }
-  }, []);
 
   useEffect(() => {
+    let mounted = true;
+
+    const unsubscribe = sessionManager.subscribe((snapshot) => {
+      if (!mounted) return;
+      setUser(snapshot.user);
+      setRefreshStatus(snapshot.status);
+    });
+
     const initAuth = async () => {
       setIsLoading(true);
-      if (isConfigured && pb?.authStore.isValid && pb?.authStore.model) {
-        try {
-          await pb.collection('users').authRefresh();
-          lastRefresh.current = Date.now();
-          const model = pb.authStore.model;
-          if (model) {
-            setUser(buildUserFromModel(model));
-            hrService.prefetchMetadata();
-          } else {
-            setUser(null);
-          }
-        } catch {
-          // Token expired on server — force logout
-          pb.authStore.clear();
-          setUser(null);
-        }
-      } else {
-        setUser(null);
+      if (isConfigured) {
+        const { user: initialUser } = await sessionManager.initialize();
+        if (initialUser) hrService.prefetchMetadata();
       }
-      setIsLoading(false);
+      if (mounted) setIsLoading(false);
     };
 
     initAuth();
 
-    // Subscribe to external auth changes (e.g. from hrService updates)
-    const unsubscribe = hrService.subscribe(() => {
-      if (pb?.authStore.model) {
-        setUser(buildUserFromModel(pb.authStore.model));
-      } else {
-        setUser(null);
+    // Subscribe to external auth changes (e.g. from hrService profile updates)
+    const unsubscribeHr = hrService.subscribe(() => {
+      // hrService.notify() fires after a profile save — re-read the auth model
+      // via sessionManager so we stay the single source of truth.
+      const snap = sessionManager.getSnapshot();
+      if (snap.user) {
+        // Force a refresh so the user object reflects updated fields.
+        sessionManager.setCurrentUser(snap.user);
       }
     });
 
-    return () => { unsubscribe(); };
-  }, [isConfigured, refreshAuth]);
+    return () => {
+      mounted = false;
+      unsubscribe();
+      unsubscribeHr();
+    };
+  }, [isConfigured]);
 
-  // Periodic token refresh (every 30 minutes)
+  // Periodic token refresh (every 30 minutes) — delegated to sessionManager.
   useEffect(() => {
-    if (!user || !pb) return;
-    const interval = setInterval(() => { refreshAuth(); }, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [user, refreshAuth]);
+    if (!user) return;
+    const stop = sessionManager.scheduleRefresh();
+    return stop;
+  }, [user]);
 
-  // Refresh token when app returns to foreground
+  // Refresh when the app returns to foreground — delegated to sessionManager.
   useEffect(() => {
-    if (!user || !pb) return;
+    if (!user) return;
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastRefresh.current > VISIBILITY_REFRESH_COOLDOWN) {
-        refreshAuth();
+      if (document.visibilityState === 'visible') {
+        void sessionManager.onVisible();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [user, refreshAuth]);
+  }, [user]);
 
   const login = (userData: User) => {
-    setUser(userData);
-    // prefetchMetadata() is called once from initAuth — no duplicate call needed here
+    sessionManager.setCurrentUser(userData);
+    // prefetchMetadata is called by initAuth on refresh paths; for a fresh
+    // login we prefetch here since initAuth already finished.
+    hrService.prefetchMetadata();
   };
 
   const logout = async () => {
     await hrService.logout();
-    setUser(null);
+    // hrService.logout → auth.service.logout → sessionManager.forceLogout
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isConfigured, login, logout, setConfigured: setIsConfigured }}>
+    <AuthContext.Provider value={{ user, isLoading, isConfigured, refreshStatus, login, logout, setConfigured: setIsConfigured }}>
       {children}
     </AuthContext.Provider>
   );
