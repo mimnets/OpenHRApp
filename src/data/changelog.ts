@@ -22,6 +22,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'Fixed forgotten check-outs staying active — added a client-side fallback that auto-closes past-date open sessions on next login, in addition to the server cron' },
       { type: 'improvement', description: 'Extracted session lifecycle into a dedicated sessionManager module and attendance session lifecycle into a dedicated workdaySessionManager module so future refactors cannot accidentally break these flows' },
       { type: 'improvement', description: 'Added prebuild validator (scripts/validate-pb-hooks.cjs) that fails the build if the auto_close_sessions cron or core API endpoints are missing from the PocketBase hooks' },
+      { type: 'improvement', description: 'Added Others/ATTENDANCE_STANDARDS.md — industry-standards reference and gap analysis for workday, auto clock-out, and missed-punch handling, with sources and a tiered roadmap' },
     ],
   },
   {
