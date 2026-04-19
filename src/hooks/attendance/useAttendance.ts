@@ -21,6 +21,11 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
 
   const refreshData = useCallback(async () => {
     try {
+      // Drain any selfie uploads that were queued after a previous failure
+      // (see RC#4 in Others/SCALING_IMPLEMENTATION_LOG.md). Fire-and-forget —
+      // this runs in the background and doesn't block the UI.
+      hrService.retryPendingSelfies?.().catch(() => { /* handled inside */ });
+
       const today = new Date().toISOString().split('T')[0];
       const [reconciled, config] = await Promise.all([
         hrService.getActiveAttendanceWithReconciliation(user.id),

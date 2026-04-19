@@ -21,7 +21,20 @@ export const leaveService = {
         return [];
       }
       try {
-        const records = await apiClient.pb.collection('leaves').getFullList({ sort: '-applied_date' });
+        // Scope to recent-ish leave requests to prevent unbounded growth.
+        // 180 days covers the usual planning horizon (current + prior half).
+        // Historical leaves remain accessible via explicit date-ranged queries.
+        const halfYearAgo = new Date();
+        halfYearAgo.setDate(halfYearAgo.getDate() - 180);
+        const since = halfYearAgo.toISOString().split('T')[0];
+        const orgId = apiClient.getOrganizationId();
+        const clauses: string[] = [`applied_date >= "${since}"`];
+        if (orgId) clauses.push(`organization_id = "${orgId}"`);
+
+        const records = await apiClient.pb.collection('leaves').getList(1, 2000, {
+          sort: '-applied_date',
+          filter: clauses.join(' && '),
+        }).then(r => r.items);
         console.log(`[LeaveService] Fetched ${records.length} leave records`);
         const result = records.map(r => ({
           id: r.id.toString().trim(),

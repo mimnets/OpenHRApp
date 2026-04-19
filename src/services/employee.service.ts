@@ -76,7 +76,16 @@ export const employeeService = {
         return [];
       }
       try {
-        const records = await apiClient.pb.collection('users').getFullList({ sort: '-created', expand: 'line_manager_id,team_id' });
+        // Explicit org filter — defence-in-depth beyond the API rule, and
+        // ensures SQLite uses the organization_id index instead of scanning
+        // rows belonging to other tenants (16+ orgs share this table).
+        // Cap at 5000 users per org (far above real-world tenant size).
+        const orgId = apiClient.getOrganizationId();
+        const records = await apiClient.pb.collection('users').getList(1, 5000, {
+          sort: '-created',
+          expand: 'line_manager_id,team_id',
+          filter: orgId ? `organization_id = "${orgId}"` : undefined,
+        }).then(r => r.items);
         console.log(`[EmployeeService] Fetched ${records.length} employees`);
         const result = records.map(r => ({
           id: r.id.toString().trim(),
