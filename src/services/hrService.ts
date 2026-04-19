@@ -36,6 +36,7 @@ export const hrService = {
   saveAttendance: attendanceService.saveAttendance,
   updateAttendance: attendanceService.updateAttendance,
   deleteAttendance: attendanceService.deleteAttendance,
+  retryPendingSelfies: attendanceService.retryPendingSelfies,
 
   // Leaves (Delegate to leaveService)
   getLeaves: leaveService.getLeaves,

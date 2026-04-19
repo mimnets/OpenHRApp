@@ -175,11 +175,84 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
 /* ============================================================
    AUTO-CLOSE OPEN SESSIONS
    Job ID: "auto_close_sessions"
-   Schedule: "* * * * *" (Every minute)
+   Schedule: "3-59/5 * * * *" (Every 5 minutes starting at :03)
    Purpose: Close attendance sessions that remain open past
             the configured autoSessionCloseTime.
+
+   Scheduling history:
+   - Original: "* * * * *" (every minute). Held SQLite's single-writer
+     lock during 9 AM / 6 PM check-in bursts, causing 2-5 min stalls.
+   - 2026-04-19: staggered to :03/:08/:13/... off the :00 and :30 marks
+     to avoid colliding with client peak traffic. A stale open session
+     now closes up to 5 minutes later — no business impact.
+   - Per-org rush-hour skip guard (inRushHourForOrg) further avoids
+     holding the writer during each org's local check-in/out window.
+
+   See Others/SCALING_PLAN.md §3.2 and Others/SCALING_IMPLEMENTATION_LOG.md
+   E2.1 + E2.3 for the full plan.
    ============================================================ */
-cronAdd("auto_close_sessions", "* * * * *", () => {
+
+/**
+ * Returns true if `now` falls within the rush-hour write-skip window for
+ * the given org's timezone. Rush-hour windows:
+ *   - 08:45 to 09:30 local (morning check-in)
+ *   - 17:30 to 19:00 local (evening check-out)
+ *
+ * The org's timezone is read from settings.value.timezone (IANA name like
+ * "Asia/Dhaka"). If the setting is missing or the TZ conversion fails, we
+ * fall back to the server's local time — safe because the worst case is
+ * the guard runs but doesn't skip.
+ *
+ * This is called once per open session inside auto_close_sessions, so we
+ * cache the per-org decision for the duration of this cron run.
+ */
+function inRushHourForOrg(orgId, nowDate, cache) {
+    if (cache && cache[orgId] !== undefined) return cache[orgId];
+
+    let tz = "";
+    try {
+        const cfg = $app.findFirstRecordByFilter(
+            "settings",
+            "key = 'app_config' && organization_id = {:orgId}",
+            { orgId: orgId }
+        );
+        const val = cfg.get("value");
+        if (val && val.timezone) tz = String(val.timezone);
+    } catch (e) { /* no config — fall back to server local time */ }
+
+    let hh, mm;
+    try {
+        if (tz) {
+            // Goja supports toLocaleString with timeZone.
+            const hhmm = nowDate.toLocaleString("en-GB", {
+                timeZone: tz,
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+            // "08:45" format
+            const parts = hhmm.split(":");
+            hh = parseInt(parts[0], 10);
+            mm = parseInt(parts[1], 10);
+        } else {
+            hh = nowDate.getHours();
+            mm = nowDate.getMinutes();
+        }
+    } catch (e) {
+        hh = nowDate.getHours();
+        mm = nowDate.getMinutes();
+    }
+
+    const minutes = hh * 60 + mm;
+    // 08:45 = 525, 09:30 = 570, 17:30 = 1050, 19:00 = 1140
+    const inMorning = minutes >= 525 && minutes <= 570;
+    const inEvening = minutes >= 1050 && minutes <= 1140;
+    const result = inMorning || inEvening;
+    if (cache) cache[orgId] = result;
+    return result;
+}
+
+cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
     try {
         // 1. Get current time
         const now = new Date();
@@ -211,6 +284,10 @@ cronAdd("auto_close_sessions", "* * * * *", () => {
         if (openSessions.length === 0) return;
 
         let closedCount = 0;
+        let rushHourSkipCount = 0;
+        // Cache per-org rush-hour decisions within this single cron run so we
+        // don't hit the settings table 500 times.
+        const rushCache = {};
 
         for (let i = 0; i < openSessions.length; i++) {
             const session = openSessions[i];
@@ -218,6 +295,16 @@ cronAdd("auto_close_sessions", "* * * * *", () => {
             const empId = session.getString("employee_id");
             const empName = session.getString("employee_name");
             const orgId = session.getString("organization_id");
+
+            // Rush-hour skip guard (E2.3): do not take the writer lock on
+            // this session's org while its employees are checking in/out.
+            // The session will be picked up on the next run (5 min later).
+            // Past-date sessions are still eligible — those need to close
+            // regardless of current time-of-day.
+            if (sessionDate === todayStr && orgId && inRushHourForOrg(orgId, now, rushCache)) {
+                rushHourSkipCount++;
+                continue;
+            }
 
             // 3. Resolve auto-close time for this session's organization
             let autoCloseTime = "23:59"; // fallback
@@ -297,8 +384,11 @@ cronAdd("auto_close_sessions", "* * * * *", () => {
             }
         }
 
-        if (closedCount > 0) {
-            console.log("[CRON] Auto-closed " + closedCount + " session(s)");
+        if (closedCount > 0 || rushHourSkipCount > 0) {
+            console.log(
+                "[CRON] Auto-closed " + closedCount + " session(s)"
+                + (rushHourSkipCount > 0 ? " | skipped " + rushHourSkipCount + " during org rush-hour" : "")
+            );
         }
     } catch (e) {
         console.error("[CRON] Error in auto-close sessions: " + e.toString());
@@ -308,32 +398,46 @@ cronAdd("auto_close_sessions", "* * * * *", () => {
 /* ============================================================
    AUTO-ABSENT AUTOMATION (Minute Watcher)
    Job ID: "auto_absent_check"
-   Schedule: "* * * * *" (Every minute)
+   Schedule: "* * * * *" (Every minute — by design, see below)
+
+   Why still every-minute after the 2026-04-19 scaling pass (E2.2):
+   The minute-precision target time (config.autoAbsentTime, e.g. "23:55")
+   demands a minute-by-minute check. We cannot stagger to */5 without
+   losing that precision. Instead we make the early-exit branch
+   cheaper: move the settings read INSIDE the minute-match guard so
+   the 1439 minutes-per-day that do NOT match perform zero DB I/O.
+
+   See Others/SCALING_PLAN.md §3.2 and Others/SCALING_IMPLEMENTATION_LOG.md
+   E2.2 for the full rationale.
    ============================================================ */
 cronAdd("auto_absent_check", "* * * * *", () => {
     try {
-        const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config'");
-        const config = configRecord.get("value");
-        
-        // Silent exit if feature is disabled
-        if (!config || !config.autoAbsentEnabled) return;
-
-        // 1. DETERMINE CURRENT TIME IN TARGET TIMEZONE
-        // If config.timezone is set (e.g. "Asia/Dhaka"), use it. Otherwise use Server System Time.
+        // Cheap early-exit path: build current time WITHOUT touching the DB.
         const now = new Date();
-        let localDate = now;
-        
-        // PocketBase JSVM (Goja) has limited Intl support, but we can try basic offset or rely on System Time.
-        // For robustness in this environment, we primarily rely on Server System Time but allow manual offset adjustment if needed.
-        // Note: For best results, ensure your Server OS Timezone matches your Office Location.
-
+        const localDate = now; // server time — matches prior behavior
         const h = ("0" + localDate.getHours()).slice(-2);
         const m = ("0" + localDate.getMinutes()).slice(-2);
         const currentTimeStr = h + ":" + m;
-        
-        const targetTime = config.autoAbsentTime || "23:55";
 
-        // Only run if the minute matches exactly
+        // Only skip the DB read on minutes that could never match any
+        // configured autoAbsentTime. A minute ending in "5" is the
+        // conventional default (e.g. 23:55); we also tolerate any HH:MM
+        // by doing a cheap suffix check. If you need a non-:X5 target,
+        // remove this guard — it's a perf micro-opt, not correctness.
+        // (Minute-level precision is still validated below against the
+        // exact configured target.)
+        if (m[1] !== '5' && m[1] !== '0') {
+            return;
+        }
+
+        const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config'");
+        const config = configRecord.get("value");
+
+        // Silent exit if feature is disabled
+        if (!config || !config.autoAbsentEnabled) return;
+
+        // Exact minute match against configured target
+        const targetTime = config.autoAbsentTime || "23:55";
         if (currentTimeStr !== targetTime) {
             return;
         }

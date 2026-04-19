@@ -3,8 +3,9 @@ import { Attendance, LeaveRequest } from '../types';
 
 export const employeeService = {
   async getMyAttendance(userId: string): Promise<Attendance[]> {
-    const all = await hrService.getAttendance();
-    return all.filter(a => a.employeeId === userId);
+    // Push the employee filter down to the server (indexed lookup) instead
+    // of fetching everything and filtering client-side.
+    return hrService.getAttendance({ employeeId: userId });
   },
 
   async applyForLeave(data: Partial<LeaveRequest>, user: any) {

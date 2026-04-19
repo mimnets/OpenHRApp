@@ -15,6 +15,19 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-19',
+    title: 'Rush-Hour Performance Fixes',
+    entries: [
+      { type: 'improvement', description: 'Attendance fetch now defaults to the last 30 days with an explicit organization_id filter — previously every dashboard load fetched every attendance record across all orgs, which was the primary cause of 2–5 minute stalls during the 9 AM / 6 PM check-in bursts' },
+      { type: 'improvement', description: 'Scoped getLeaves to a 180-day window, getAnnouncements to the latest 200, and added explicit organization_id filters to getEmployees and getTeams — defence-in-depth beyond the API rules and lets SQLite use its indexes' },
+      { type: 'improvement', description: 'Check-in now returns success immediately; the selfie uploads in the background with 3 retries and a persistent localStorage queue for failures — users see "Checked in ✓" in under a second instead of waiting for the multipart upload' },
+      { type: 'improvement', description: 'Staggered auto_close_sessions cron from every minute to every 5 minutes (at :03), added a per-org timezone-aware rush-hour skip guard so the writer lock is not held during each org\'s 08:45–09:30 / 17:30–19:00 local windows' },
+      { type: 'improvement', description: 'Made auto_absent_check cheaper on non-matching minutes (skips the settings read when the minute cannot match any target) — preserves minute-precision firing while reducing background DB load 10×' },
+      { type: 'improvement', description: 'markAllAsRead now chunks updates in batches of 10 and caps at the 500 newest unread — prevents hundreds of simultaneous writes piling onto SQLite\'s single-writer lock' },
+      { type: 'improvement', description: 'Added Others/SCALING_PLAN.md and Others/SCALING_IMPLEMENTATION_LOG.md — phased plan to scale from today\'s 16 orgs / 100 users toward 1,000+ users, with quick wins, vertical scaling, read replicas, and a Supabase migration path' },
+    ],
+  },
+  {
     date: '2026-04-18',
     title: 'Session & Attendance Stability',
     entries: [

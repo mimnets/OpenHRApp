@@ -72,14 +72,29 @@ export const notificationService = {
     try {
       const userId = apiClient.pb.authStore.model?.id;
       if (!userId) return;
+      const orgId = apiClient.getOrganizationId();
 
-      const unread = await apiClient.pb.collection('notifications').getFullList({
-        filter: `user_id = "${userId}" && is_read = false`,
-      });
+      // Cap at 500 newest unread to avoid flooding the write-lock with
+      // hundreds of updates during rush hour. Anything older will stay
+      // unread until the user explicitly opens it — acceptable trade-off.
+      const filter = orgId
+        ? `user_id = "${userId}" && organization_id = "${orgId}" && is_read = false`
+        : `user_id = "${userId}" && is_read = false`;
+      const unread = await apiClient.pb.collection('notifications').getList(1, 500, {
+        filter,
+        sort: '-created',
+        fields: 'id',
+      }).then(r => r.items);
 
-      await Promise.all(
-        unread.map(r => apiClient.pb!.collection('notifications').update(r.id, { is_read: true }))
-      );
+      // Serialize updates to avoid 500 concurrent writes all piling onto
+      // SQLite's single-writer lock. Chunks of 10 parallel is plenty.
+      const CHUNK = 10;
+      for (let i = 0; i < unread.length; i += CHUNK) {
+        const slice = unread.slice(i, i + CHUNK);
+        await Promise.all(
+          slice.map(r => apiClient.pb!.collection('notifications').update(r.id, { is_read: true }))
+        );
+      }
       apiClient.notify();
     } catch (err: any) {
       console.error("[NotificationService] Failed to mark all as read:", err?.message || err);

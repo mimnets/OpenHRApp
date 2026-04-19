@@ -113,9 +113,15 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     const loadData = async () => {
       setIsLoading(true);
       try {
+        // Reports page needs a wide window (quarterly/annual summaries).
+        // Default service window is 30d; override to ~1 year here.
+        const yearAgo = new Date();
+        yearAgo.setDate(yearAgo.getDate() - 365);
+        const sinceYearAgo = yearAgo.toISOString().split('T')[0];
+
         const [emps, atts, lvs, depts, config, hols, shiftsList, overridesList] = await Promise.all([
           hrService.getEmployees(),
-          hrService.getAttendance(),
+          hrService.getAttendance({ since: sinceYearAgo, maxRows: 10000 }),
           hrService.getLeaves(),
           hrService.getDepartments(),
           hrService.getConfig(),
