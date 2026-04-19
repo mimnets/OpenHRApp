@@ -12,7 +12,13 @@ export const announcementService = {
       return [];
     }
     try {
-      const records = await apiClient.pb.collection('announcements').getFullList({ sort: '-created' });
+      // Cap at 200 most-recent announcements per org. Older announcements
+      // are archival and don't need to ship in the initial dashboard load.
+      const orgId = apiClient.getOrganizationId();
+      const records = await apiClient.pb.collection('announcements').getList(1, 200, {
+        sort: '-created',
+        filter: orgId ? `organization_id = "${orgId}"` : undefined,
+      }).then(r => r.items);
       console.log(`[AnnouncementService] Fetched ${records.length} announcements`);
       return records.map(r => ({
         id: r.id.toString().trim(),

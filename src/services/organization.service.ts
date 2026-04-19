@@ -163,8 +163,13 @@ export const organizationService = {
       return [];
     }
     try {
-      // PocketBase API rules filter by organization_id automatically
-      const records = await apiClient.pb.collection('teams').getFullList({ sort: 'name' });
+      // Explicit organization_id filter (defence-in-depth beyond the API rule)
+      // plus a hard cap — teams rarely exceed a few dozen per org.
+      const orgId = apiClient.getOrganizationId();
+      const records = await apiClient.pb.collection('teams').getList(1, 500, {
+        sort: 'name',
+        filter: orgId ? `organization_id = "${orgId}"` : undefined,
+      }).then(r => r.items);
       console.log(`[OrgService] Fetched ${records.length} teams`);
       cachedTeams = records.map(r => ({ id: r.id, name: r.name, leaderId: r.leader_id, department: r.department, organizationId: r.organization_id }));
       return cachedTeams;

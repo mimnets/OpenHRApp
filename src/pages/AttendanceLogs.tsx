@@ -61,8 +61,18 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
+      // Attendance Logs may show historical data (my logs + audit mode).
+      // Default in service is 30d; explicitly widen to ~1 year here since
+      // this page is not a dashboard and users expect to scroll back.
+      const yearAgo = new Date();
+      yearAgo.setDate(yearAgo.getDate() - 365);
+      const sinceYearAgo = yearAgo.toISOString().split('T')[0];
+      const attendanceScope = isAuditMode
+        ? { since: sinceYearAgo, maxRows: 10000 }
+        : { since: sinceYearAgo, employeeId: user.id, maxRows: 2000 };
+
       const [allAttendance, fetchedEmployees, depts, appConfig] = await Promise.all([
-        hrService.getAttendance(),
+        hrService.getAttendance(attendanceScope),
         hrService.getEmployees(),
         hrService.getDepartments(),
         hrService.getConfig()
