@@ -2,8 +2,21 @@
 /**
  * Convert any image (data URL or Blob) to WebP format using Canvas API.
  * Falls back to the original if the browser doesn't support WebP canvas export.
+ *
+ * @param input - data URL string or Blob.
+ * @param quality - WebP quality 0..1. Default 0.8 preserves existing behaviour
+ *   for all current call sites (avatars, blog covers, logos, screenshots).
+ * @param maxDimension - Optional. When provided AND the source's longest edge
+ *   exceeds this value, the image is proportionally scaled down to fit. Used
+ *   by the attendance selfie pipeline (720) to right-size face photos for
+ *   the audit UI. Not applied by default — covers/logos keep their native
+ *   resolution.
  */
-export async function convertToWebP(input: string | Blob, quality = 0.8): Promise<Blob> {
+export async function convertToWebP(
+  input: string | Blob,
+  quality = 0.8,
+  maxDimension?: number
+): Promise<Blob> {
   const blob = typeof input === 'string' ? await dataURLToBlob(input) : input;
 
   // Only convert image types
@@ -12,10 +25,23 @@ export async function convertToWebP(input: string | Blob, quality = 0.8): Promis
   try {
     const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement('canvas');
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
+
+    // Optional proportional downscale. Only shrinks — never enlarges.
+    let targetW = bitmap.width;
+    let targetH = bitmap.height;
+    if (maxDimension && maxDimension > 0) {
+      const longest = Math.max(targetW, targetH);
+      if (longest > maxDimension) {
+        const scale = maxDimension / longest;
+        targetW = Math.round(targetW * scale);
+        targetH = Math.round(targetH * scale);
+      }
+    }
+
+    canvas.width = targetW;
+    canvas.height = targetH;
     const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(bitmap, 0, 0);
+    ctx.drawImage(bitmap, 0, 0, targetW, targetH);
     bitmap.close();
 
     const webpBlob = await new Promise<Blob | null>((resolve) =>

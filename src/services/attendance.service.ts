@@ -5,6 +5,16 @@ import { organizationService } from './organization.service';
 import { notificationService } from './notification.service';
 import { workdaySessionManager } from './workday/workdaySessionManager';
 import { ReconcileResult } from './workday/workdaySessionManager.types';
+import { convertToWebP } from '../utils/imageConvert';
+
+// Selfie-specific WebP settings. These apply ONLY to attendance selfies —
+// avatars, blog covers, logos, and other uploads continue to use the
+// `toFormData` default (0.8, unbounded). A 720px face photo at 0.65 quality
+// is visually indistinguishable for audit use and ~30–40% smaller than the
+// previous 0.8/full-resolution capture. Reducing the payload directly
+// shrinks the rush-hour upload bandwidth and the async-upload retry surface.
+const SELFIE_WEBP_QUALITY = 0.65;
+const SELFIE_MAX_DIMENSION = 720;
 
 // Cache is keyed by query window so different callers (dashboard=30d, reports=365d)
 // don't evict each other. Key format: "sinceDate|untilDate|employeeId|orgId".
@@ -65,7 +75,12 @@ const writeSelfieQueue = (queue: PendingSelfie[]) => {
 
 const uploadSelfieOnce = async (recordId: string, selfieDataUrl: string): Promise<void> => {
   if (!apiClient.pb) throw new Error('PocketBase not configured');
-  const formData = await apiClient.toFormData({ selfie: selfieDataUrl }, 'selfie.webp');
+  // Convert with selfie-specific quality + dimension cap instead of routing
+  // through `apiClient.toFormData` (which uses the generic 0.8/unbounded
+  // defaults appropriate for covers/logos). Build the FormData manually.
+  const webpBlob = await convertToWebP(selfieDataUrl, SELFIE_WEBP_QUALITY, SELFIE_MAX_DIMENSION);
+  const formData = new FormData();
+  formData.append('selfie', webpBlob, 'selfie.webp');
   await apiClient.pb.collection('attendance').update(recordId, formData);
 };
 
