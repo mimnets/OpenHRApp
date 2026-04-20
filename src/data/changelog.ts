@@ -18,6 +18,7 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-04-20',
     title: 'Rush-Hour Performance — Second Pass',
     entries: [
+      { type: 'fix', description: 'Fixed Attendance Audit showing "(N/A) / STAFF" for older employee records — the 2026-04-19 perf commit switched getEmployees / getLeaves / getAttendance / getTeams to `getList(1, N>500, ...)` which is silently capped to 500 rows by PocketBase\'s default per-request limit. Restored `getFullList` with the org filter preserved (keeps the SQLite-index benefit, and the SDK paginates in 500-row batches so every matching row is returned)' },
       { type: 'improvement', description: 'Narrowed the platform-theme realtime subscription from the whole `settings` collection to the single `default_theme` record — every authenticated client previously received a websocket frame for every unrelated settings write (notification prefs, leave policy, ad config, etc.) and discarded it client-side' },
       { type: 'improvement', description: 'Dashboard attendance query now fetches today only instead of the last 30 days — the dashboard only uses today\'s rows to count "present today", so pulling a month of org-wide history was pure waste' },
       { type: 'improvement', description: 'Right-sized attendance selfies: WebP quality dropped from 0.8 to 0.65 and longest edge capped at 720px for selfie uploads only (avatars, blog covers, logos unchanged); native-camera capture quality dropped from 80 to 70. Visually equivalent for face-audit use, ~30–40% smaller on the wire' },

@@ -186,11 +186,18 @@ export const attendanceService = {
         if (employeeId) clauses.push(`employee_id = "${employeeId}"`);
         const filter = clauses.join(' && ');
 
-        const records = await apiClient.pb.collection('attendance').getList(1, maxRows, {
+        // NOTE: getFullList paginates in 500-row batches and is capped by
+        // `maxRows` below — prevents the silent drop that `getList(1, 500+, ...)`
+        // causes against PocketBase's default per-request cap. The date
+        // window + org filter keep the server-side query small; `batch:500`
+        // is the fetch size, `maxRows` is the client-side safety limit.
+        const all = await apiClient.pb.collection('attendance').getFullList({
           sort: '-date',
           filter: filter || undefined,
+          batch: 500,
         });
-        const result = records.items.map(mapAttendance);
+        const bounded = all.slice(0, maxRows);
+        const result = bounded.map(mapAttendance);
         attCache.set(cacheKey, { data: result, ts: Date.now() });
         return result;
       } catch (e: any) {
