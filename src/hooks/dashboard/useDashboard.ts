@@ -32,13 +32,18 @@ export const useDashboard = (user: any) => {
         const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
         const isManager = user.role === 'MANAGER' || user.role === 'TEAM_LEAD' || user.role === 'MANAGEMENT';
 
+        // Dashboard only uses today's attendance (to count "present today").
+        // Previously this pulled 30 days × whole-org = thousands of rows just
+        // to filter down to ~today's <N>. Server-side filter is keyed by the
+        // `date` column and the 2-min cache key is query-scoped, so this
+        // coexists with wider queries from Reports / AttendanceLogs.
         const [active, balance, emps, leaves, hols, atts, teams, config, wfs, leaveTypes] = await Promise.all([
           hrService.getActiveAttendance(user.id),
           hrService.getLeaveBalance(user.id),
           hrService.getEmployees(),
           hrService.getLeaves(),
           hrService.getHolidays(),
-          hrService.getAttendance(),
+          hrService.getAttendance({ since: today, until: today, maxRows: 500 }),
           hrService.getTeams(),
           hrService.getConfig(),
           hrService.getWorkflows(),
