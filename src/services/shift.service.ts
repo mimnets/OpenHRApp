@@ -28,10 +28,14 @@ export const shiftService = {
         return [];
       }
 
-      const records = await apiClient.pb.collection('shifts').getFullList({
+      // Cap at 200 rows. No realistic org has >200 shifts; the explicit
+      // limit replaces the unbounded `getFullList` as a safety net on the
+      // check-in critical path (see Others/SCALING_PLAN.md).
+      const result = await apiClient.pb.collection('shifts').getList(1, 200, {
         sort: '-created',
         filter: `organization_id="${orgId}"`
       });
+      const records = result.items;
 
       const shifts = records.map(r => ({
         id: r.id,
@@ -169,9 +173,10 @@ export const shiftService = {
         ? `organization_id="${orgId}" && isDefault=true && id!="${exceptId}"`
         : `organization_id="${orgId}" && isDefault=true`;
 
-      const defaultShifts = await apiClient.pb.collection('shifts').getFullList({
+      const result = await apiClient.pb.collection('shifts').getList(1, 200, {
         filter
       });
+      const defaultShifts = result.items;
 
       await Promise.all(
         defaultShifts.map(shift =>
