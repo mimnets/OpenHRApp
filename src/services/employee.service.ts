@@ -70,7 +70,11 @@ export const employeeService = {
 
   async getEmployees(): Promise<Employee[]> {
     if (cachedEmployees && Date.now() - empCacheTimestamp < EMP_CACHE_TTL) return cachedEmployees;
-    return dedupe('employees', async () => {
+    // Dedupe key is scoped by orgId so superadmin impersonation across orgs
+    // can't alias onto the same in-flight promise. See
+    // Others/CONCURRENCY_FIX_RECORD.md §2.
+    const orgId = apiClient.getOrganizationId();
+    return dedupe(`employees:${orgId ?? 'none'}`, async () => {
       if (!apiClient.pb || !apiClient.isConfigured()) {
         console.warn("[EmployeeService] PocketBase not configured");
         return [];
@@ -87,7 +91,6 @@ export const employeeService = {
         // beyond the 500th newest from the lookup cache — surfacing as
         // "(N/A) / STAFF" fallbacks on the Attendance Audit page for any
         // older employee record (regression introduced in 1c88728).
-        const orgId = apiClient.getOrganizationId();
         const records = await apiClient.pb.collection('users').getFullList({
           sort: '-created',
           expand: 'line_manager_id,team_id',

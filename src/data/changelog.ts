@@ -16,6 +16,15 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-21',
+    title: 'PocketBase Concurrency Hardening',
+    entries: [
+      { type: 'improvement', description: 'Added an opt-in `withRetry` helper in `api.client.ts` that retries transient failures (network drops, 429, 502/503/504) with exponential backoff (250/750/2000 ms). Deliberately skips auth errors (401/403) so it never interacts with sessionManager\'s auth-refresh ladder. No existing call sites are modified — callers opt in explicitly' },
+      { type: 'fix', description: 'Scoped the request-dedupe keys in `employeeService.getEmployees` and `leaveService.getLeaves` to include `organizationId` (`employees:<orgId>`, `leaves:<orgId>`). Bare string keys could theoretically alias across orgs under superadmin impersonation; the attendance service already did this correctly' },
+      { type: 'improvement', description: 'Recorded the full change, risks, symptoms-of-regression, and rollback steps in `Others/CONCURRENCY_FIX_RECORD.md`. No frozen modules touched' },
+    ],
+  },
+  {
+    date: '2026-04-21',
     title: 'Mobile Responsive Polish',
     entries: [
       { type: 'fix', description: 'Fixed the Grace (Min) input overflowing outside the Calculation Parameters box in the Attendance Audit "Modify Audit Record" modal on narrow screens — shortened the label to "Grace", gave the column a fixed width, and added `min-w-0` to the sibling time-input columns so native time pickers no longer push the row wider than its container' },
