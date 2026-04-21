@@ -6,6 +6,8 @@ import { notificationService } from './notification.service';
 import { workdaySessionManager } from './workday/workdaySessionManager';
 import { ReconcileResult } from './workday/workdaySessionManager.types';
 import { convertToWebP } from '../utils/imageConvert';
+import { checkInSyncQueue, classifySyncError } from './attendance/syncQueue';
+import { CheckInSyncEntry } from './attendance/syncQueue.types';
 
 // Selfie-specific WebP settings. These apply ONLY to attendance selfies —
 // avatars, blog covers, logos, and other uploads continue to use the
@@ -121,6 +123,23 @@ const notifyLineManagerOfLate = async (data: Attendance): Promise<void> => {
     referenceType: 'attendance',
   });
 };
+
+/** Shape the PocketBase payload for an attendance create. Shared
+ *  between the inline `saveAttendance` path and the queue-drain path
+ *  so they can never drift. */
+const buildAttendancePayload = (data: Attendance, orgId: string | undefined): any => ({
+  employee_id: data.employeeId.trim(),
+  employee_name: data.employeeName,
+  date: data.date,
+  check_in: data.checkIn,
+  status: data.status,
+  remarks: data.remarks || '',
+  location: data.location?.address || '',
+  latitude: parseFloat(String(data.location?.lat || 0)),
+  longitude: parseFloat(String(data.location?.lng || 0)),
+  duty_type: data.dutyType,
+  organization_id: orgId,
+});
 
 const mapAttendance = (r: any): Attendance => ({
   id: r.id.toString().trim(),
@@ -243,20 +262,29 @@ export const attendanceService = {
     // This unblocks the user in <1 s instead of waiting for a mobile-network
     // multipart upload. Critical for rush-hour: during check-in bursts, 20
     // simultaneous multipart uploads were starving the server's connections.
-    const payload: any = {
-      employee_id: data.employeeId.trim(),
-      employee_name: data.employeeName,
-      date: data.date,
-      check_in: data.checkIn,
-      status: data.status,
-      remarks: data.remarks || "",
-      location: data.location?.address || "",
-      latitude: parseFloat(String(data.location?.lat || 0)),
-      longitude: parseFloat(String(data.location?.lng || 0)),
-      duty_type: data.dutyType,
-      organization_id: orgId
-    };
-    const created = await apiClient.pb.collection('attendance').create(payload);
+    const payload = buildAttendancePayload(data, orgId);
+    let created;
+    try {
+      created = await apiClient.pb.collection('attendance').create(payload);
+    } catch (err: any) {
+      // Enqueue to the local sync queue so the check-in isn't lost on
+      // offline / 5xx / network-blip failures. See
+      // Others/CHECKIN_SYNC_QUEUE_RECORD.md. Non-retryable errors are
+      // still enqueued so the UI can surface them via DEAD_LETTER — the
+      // user's intent to check in deserves visibility, not silent loss.
+      const syncErr = classifySyncError(err);
+      try {
+        checkInSyncQueue.enqueue({
+          kind: 'CHECK_IN',
+          payload: data,
+          occurredAt: Date.now(),
+        });
+        console.warn('[AttendanceService] Check-in enqueued for later sync:', syncErr.code);
+      } catch (enqueueErr) {
+        console.error('[AttendanceService] Could not enqueue check-in:', enqueueErr);
+      }
+      throw err; // preserve existing UI behavior (showToast error)
+    }
     attendanceService.clearCache();
     apiClient.notify();
 
@@ -279,6 +307,68 @@ export const attendanceService = {
       notifyLineManagerOfLate(data).catch((e: any) => {
         console.error("[AttendanceService] Failed to send late alert:", e?.message || e);
       });
+    }
+  },
+
+  /**
+   * Drain the local check-in sync queue. Called from the attendance
+   * screen's refreshData() alongside retryPendingSelfies(). Walks
+   * eligible entries one at a time (not parallel) so we don't thunder
+   * PocketBase on the same path that was already under stress.
+   * Safe to call repeatedly — a successful create removes the entry;
+   * a retryable failure reschedules it with backoff.
+   *
+   * Selfie uploads from queued entries still flow through the existing
+   * selfie retry ladder, so the two queues compose rather than fight.
+   */
+  async drainCheckInQueue(): Promise<void> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    const orgId = apiClient.getOrganizationId();
+
+    // Budget so the drain can't monopolize the network on boot. Remaining
+    // entries will be picked up on the next refreshData() tick.
+    const MAX_DRAIN_PER_TICK = 10;
+    let drained = 0;
+
+    // eslint-disable-next-line no-constant-condition
+    while (drained < MAX_DRAIN_PER_TICK) {
+      const entry: CheckInSyncEntry | null = checkInSyncQueue.pickNext();
+      if (!entry) break;
+
+      try {
+        // Rebuild the payload with the *current* orgId at drain time.
+        // If the user switched orgs between enqueue and drain, the
+        // original org on the payload is preserved via organization_id
+        // on the payload itself below — but we defer to the stored
+        // payload's organizationId so a mid-session org switch doesn't
+        // mis-attribute the record.
+        const effectiveOrgId = entry.payload.organizationId || orgId;
+        const pbPayload = buildAttendancePayload(entry.payload as Attendance, effectiveOrgId);
+        const created = await apiClient.pb.collection('attendance').create(pbPayload);
+        checkInSyncQueue.markSuccess(entry.id);
+        drained += 1;
+
+        // If the queued entry carried a selfie, hand it off to the
+        // existing selfie retry ladder. Fire-and-forget; selfie queue
+        // owns its own persistence.
+        if (entry.payload.selfie) {
+          uploadSelfieWithRetry(created.id, entry.payload.selfie).catch((e) => {
+            console.warn('[AttendanceService] Queued selfie upload failed:', e?.message || e);
+          });
+        }
+      } catch (err: any) {
+        const syncErr = classifySyncError(err);
+        checkInSyncQueue.markFailure(entry.id, syncErr);
+        // Stop draining on the first failure — if the network is down
+        // for one, it's down for all. Prevents burning the whole
+        // backoff budget in one tick.
+        break;
+      }
+    }
+
+    if (drained > 0) {
+      attendanceService.clearCache();
+      apiClient.notify();
     }
   },
 

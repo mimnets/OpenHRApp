@@ -16,6 +16,16 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-21',
+    title: 'Check-In Sync Queue',
+    entries: [
+      { type: 'feature', description: 'Added a local sync queue for check-in data (`src/services/attendance/syncQueue.ts`) that survives offline / 5xx rush-hour failures. Check-ins that fail to reach PocketBase are enqueued with a client-generated id, business timestamp, and per-entry retry budget; the attendance screen drains the queue alongside the existing pending-selfies retry on every refresh, replaying up to 10 entries per tick with exponential backoff (250/750/2000/10000/60000 ms). Retryable failures (network, 429, 502/503/504) reschedule; non-retryable failures land in DEAD_LETTER for manual review instead of being silently dropped' },
+      { type: 'feature', description: 'Introduced the `CheckInSyncEntry` / `CheckInSyncQueue` TypeScript interfaces and a localStorage-backed factory with schema-versioned envelope, 14-day dead-letter TTL, and 500-entry soft cap. Public surface is narrow (enqueue / pickNext / markSuccess / markFailure / list / size / remove / requeueDeadLetter / clear) so the storage backend can be swapped to IndexedDB later without touching callers' },
+      { type: 'improvement', description: 'Factored the PocketBase attendance payload into a shared `buildAttendancePayload` helper used by both the inline save path and the queue-drain path — they can no longer drift on field renames or type coercion' },
+      { type: 'improvement', description: 'Recorded the full design, lifecycle diagram, risk table, and rollback steps in `Others/CHECKIN_SYNC_QUEUE_RECORD.md`. No frozen modules touched; existing selfie retry ladder (RC#4) is unchanged and composes with the new queue' },
+    ],
+  },
+  {
+    date: '2026-04-21',
     title: 'PocketBase Concurrency Hardening',
     entries: [
       { type: 'improvement', description: 'Added an opt-in `withRetry` helper in `api.client.ts` that retries transient failures (network drops, 429, 502/503/504) with exponential backoff (250/750/2000 ms). Deliberately skips auth errors (401/403) so it never interacts with sessionManager\'s auth-refresh ladder. No existing call sites are modified — callers opt in explicitly' },
