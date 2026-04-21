@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { FileText, ArrowLeft } from 'lucide-react';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogFooter from '../components/blog/BlogFooter';
-import { updatePageMeta } from '../utils/seo';
+import { updatePageMeta, setJsonLd } from '../utils/seo';
 
 interface TermsOfServicePageProps {
   onBack: () => void;
@@ -17,6 +17,31 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
       'Read the Terms of Service for OpenHRApp. Understand your rights, responsibilities, and the rules governing use of our open-source HR management platform.',
       'https://openhrapp.com/terms'
     );
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebPage',
+          name: 'Terms of Service — OpenHRApp',
+          description: 'Read the Terms of Service for OpenHRApp. Understand your rights, responsibilities, and the rules governing use of our open-source HR management platform.',
+          url: 'https://openhrapp.com/terms',
+          lastReviewed: '2026-04-21',
+          isPartOf: {
+            '@type': 'WebSite',
+            name: 'OpenHRApp',
+            url: 'https://openhrapp.com',
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Terms of Service', item: 'https://openhrapp.com/terms' },
+          ],
+        },
+      ],
+    });
+    return () => { setJsonLd(null); };
   }, []);
 
   const handleBack = () => {
