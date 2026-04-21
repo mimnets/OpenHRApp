@@ -4,7 +4,7 @@ import { tutorialService } from '../services/tutorial.service';
 import { Tutorial } from '../types';
 import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
-import { navigateTo, updatePageMeta } from '../utils/seo';
+import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 
 // Preferred category display order — categories not listed here appear at the end
 const CATEGORY_ORDER = [
@@ -36,6 +36,30 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
       'Step-by-step guides to help you get the most out of OpenHR. Learn attendance tracking, leave management, employee directory, and more.',
       'https://openhrapp.com/how-to-use'
     );
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'CollectionPage',
+          name: 'OpenHR Guides',
+          description: 'Step-by-step guides to help you get the most out of OpenHR. Learn attendance tracking, leave management, employee directory, and more.',
+          url: 'https://openhrapp.com/how-to-use',
+          isPartOf: {
+            '@type': 'WebSite',
+            name: 'OpenHRApp',
+            url: 'https://openhrapp.com',
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Guides', item: 'https://openhrapp.com/how-to-use' },
+          ],
+        },
+      ],
+    });
+    return () => { setJsonLd(null); };
   }, []);
 
   useEffect(() => {

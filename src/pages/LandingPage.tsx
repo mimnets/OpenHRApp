@@ -27,7 +27,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
     updatePageMeta(
       'OpenHRApp - Open Source HR Management System | Free HRMS Software',
       'OpenHRApp is a free, open-source HR management system for organizations. Features include attendance tracking, leave management, employee directory, and local compliance tools.',
-      'https://openhrapp.com/'
+      'https://openhrapp.com/',
+      'https://openhrapp.com/img/screenshot-wide.webp'
     );
 
     // Set combined JSON-LD for landing page

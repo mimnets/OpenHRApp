@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { Shield, ArrowLeft } from 'lucide-react';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogFooter from '../components/blog/BlogFooter';
-import { updatePageMeta } from '../utils/seo';
+import { updatePageMeta, setJsonLd } from '../utils/seo';
 
 interface PrivacyPolicyPageProps {
   onBack: () => void;
@@ -17,6 +17,31 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
       'Learn how OpenHRApp collects, uses, and protects your personal data. Read our full privacy policy covering cookies, data retention, and your rights.',
       'https://openhrapp.com/privacy'
     );
+    setJsonLd({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebPage',
+          name: 'Privacy Policy — OpenHRApp',
+          description: 'Learn how OpenHRApp collects, uses, and protects your personal data. Read our full privacy policy covering cookies, data retention, and your rights.',
+          url: 'https://openhrapp.com/privacy',
+          lastReviewed: '2026-04-21',
+          isPartOf: {
+            '@type': 'WebSite',
+            name: 'OpenHRApp',
+            url: 'https://openhrapp.com',
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Privacy Policy', item: 'https://openhrapp.com/privacy' },
+          ],
+        },
+      ],
+    });
+    return () => { setJsonLd(null); };
   }, []);
 
   const handleBack = () => {

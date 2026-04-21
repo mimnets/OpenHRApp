@@ -15,6 +15,18 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-21',
+    title: 'SEO — Social Previews & Structured Data',
+    entries: [
+      { type: 'improvement', description: 'SEO — `updatePageMeta` now also rewrites `og:title`/`og:description`/`og:url`/`og:image` and `twitter:title`/`twitter:description`/`twitter:image` on every route change, so LinkedIn/Slack/Twitter/Facebook previews of `/blog/*`, `/features/*`, `/how-to-use/*` no longer show the homepage thumbnail; per-page blog-cover and tutorial-cover images are now used where available' },
+      { type: 'improvement', description: 'SEO — added `CollectionPage`/`WebPage` + `BreadcrumbList` JSON-LD to the Guides (`/how-to-use`), Privacy, and Terms pages; they were the only public pages missing structured data' },
+      { type: 'improvement', description: 'SEO — NotFoundPage now injects `<meta name="robots" content="noindex">` on mount (removed on unmount) so soft-404s do not get indexed while the SPA still returns HTTP 200 for unknown routes' },
+      { type: 'improvement', description: 'SEO — sitemap generator now stamps today\'s date as `<lastmod>` on all static entries (was missing for `/`, `/features`, `/blog`, `/changelog`, `/how-to-use`, `/privacy`, `/terms`), giving crawlers a real freshness signal' },
+      { type: 'improvement', description: 'SEO — removed `/download` from `scripts/generate-sitemap.mjs` and `public/robots.txt`; the Android APK is no longer shipped, and the URL was a soft-404 in the sitemap' },
+      { type: 'improvement', description: 'Added `Others/SEO_AUDIT_REPORT.md` — full SEO audit of the public marketing surface with prioritized fixes; this release implements every in-scope finding (HIGH: dynamic OG/Twitter tags; MEDIUM: sitemap lastmod, 3x missing JSON-LD, soft-404 noindex, `/download` cleanup). Prerendering/SSR and Core Web Vitals work are tracked separately' },
+    ],
+  },
+  {
     date: '2026-04-20',
     title: 'Rush-Hour Performance — Second Pass',
     entries: [
