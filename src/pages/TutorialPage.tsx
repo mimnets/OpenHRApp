@@ -43,7 +43,8 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
       updatePageMeta(
         `${tutorialData.title} | OpenHR Guides`,
         tutorialData.excerpt || `Learn how to ${tutorialData.title.toLowerCase()} with OpenHR.`,
-        `https://openhrapp.com/how-to-use/${slug}`
+        `https://openhrapp.com/how-to-use/${slug}`,
+        tutorialData.coverImage || undefined
       );
       // Build breadcrumb items
       const breadcrumbItems: any[] = [

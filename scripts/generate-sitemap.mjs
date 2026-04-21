@@ -26,7 +26,6 @@ const STATIC_PAGES = [
   { path: '/features/reports-analytics', changefreq: 'monthly', priority: '0.7' },
   { path: '/changelog', changefreq: 'weekly', priority: '0.7' },
   { path: '/how-to-use', changefreq: 'weekly', priority: '0.7' },
-  { path: '/download', changefreq: 'monthly', priority: '0.5' },
   { path: '/privacy', changefreq: 'monthly', priority: '0.3' },
   { path: '/terms', changefreq: 'monthly', priority: '0.3' },
 ];
@@ -63,9 +62,9 @@ function buildUrlEntry(loc, lastmod, changefreq, priority) {
 async function main() {
   console.log('Generating sitemap...');
 
-  // Build static entries
+  // Build static entries — stamp TODAY as lastmod so bots have a freshness signal.
   const entries = STATIC_PAGES.map((p) =>
-    buildUrlEntry(`${SITE_URL}${p.path}`, null, p.changefreq, p.priority)
+    buildUrlEntry(`${SITE_URL}${p.path}`, TODAY, p.changefreq, p.priority)
   );
 
   // Fetch blog posts

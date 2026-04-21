@@ -58,7 +58,8 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
     updatePageMeta(
       'Features | OpenHR - Open Source HRMS',
       'Explore all OpenHR features: selfie-based attendance with GPS, leave management, employee directory, performance reviews, reports, and more. Free and open-source.',
-      'https://openhrapp.com/features'
+      'https://openhrapp.com/features',
+      'https://openhrapp.com/img/screenshot-wide.webp'
     );
     setJsonLd({
       '@context': 'https://schema.org',
@@ -183,7 +184,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
               {platformFeatures.map(pf => (
                 <div
                   key={pf.title}
-                  className="p-6 bg-slate-50/50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-lg hover:shadow-slate-100 hover:border-slate-200 transition-all duration-300"
+                  className="p-6 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-100 dark:hover:shadow-black/30 hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-300"
                 >
                   <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-5">
                     <pf.icon size={22} className="text-primary" />

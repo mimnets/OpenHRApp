@@ -47,7 +47,7 @@ The single biggest SEO risk is that the app is **100% client-rendered with no pr
 #### 1.5 `/download` is in the sitemap but the route is unclear — **LOW**
 - **Evidence:** `scripts/generate-sitemap.mjs:29` and `public/robots.txt:7` both list `/download`. No `DownloadPage.tsx` exists in `src/pages/`. The `src/App.tsx` route table (lines 95-150) does not parse `/download` — it will hit the 404 branch.
 - **Impact:** Sitemap advertises a URL that renders as 404 in the SPA (and as a 200 soft-404 at the server). Reduces sitemap trust.
-- **Fix:** Either build the `/download` page (it is a natural fit for GitHub releases + APK links) or remove it from the sitemap and robots.txt.
+- **Fix:** Either build the `/download` page (it is a natural fit for GitHub releases + APK links) or remove it from the sitemap and robots.txt. Please remove the download page and links we are no more using the android app.
 
 ---
 

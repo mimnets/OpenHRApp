@@ -65,7 +65,8 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
       updatePageMeta(
         `${data.title} | OpenHR Blog`,
         data.excerpt || `Read ${data.title} on the OpenHR Blog.`,
-        `https://openhrapp.com/blog/${slug}`
+        `https://openhrapp.com/blog/${slug}`,
+        data.coverImage || undefined
       );
       setJsonLd({
         '@context': 'https://schema.org',

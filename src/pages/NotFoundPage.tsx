@@ -13,6 +13,18 @@ const NotFoundPage: React.FC<NotFoundPageProps> = ({ onGoHome }) => {
       '404 — Page Not Found | OpenHRApp',
       'The page you are looking for does not exist or has been moved. Return to the OpenHRApp homepage.'
     );
+
+    // Inject noindex so soft-404s don't get indexed (the SPA returns HTTP 200
+    // for unknown routes; this is the minimum hedge until an edge middleware
+    // issues a real 404 status).
+    const robots = document.createElement('meta');
+    robots.name = 'robots';
+    robots.content = 'noindex';
+    document.head.appendChild(robots);
+
+    return () => {
+      robots.remove();
+    };
   }, []);
 
   return (
