@@ -15,7 +15,11 @@ export const leaveService = {
 
   async getLeaves(): Promise<LeaveRequest[]> {
     if (cachedLeaves && Date.now() - leaveCacheTimestamp < LEAVE_CACHE_TTL) return cachedLeaves;
-    return dedupe('leaves', async () => {
+    // Dedupe key is scoped by orgId so superadmin impersonation across orgs
+    // can't alias onto the same in-flight promise. See
+    // Others/CONCURRENCY_FIX_RECORD.md §3.
+    const orgId = apiClient.getOrganizationId();
+    return dedupe(`leaves:${orgId ?? 'none'}`, async () => {
       if (!apiClient.pb || !apiClient.isConfigured()) {
         console.warn("[LeaveService] PocketBase not configured");
         return [];
@@ -27,7 +31,6 @@ export const leaveService = {
         const halfYearAgo = new Date();
         halfYearAgo.setDate(halfYearAgo.getDate() - 180);
         const since = halfYearAgo.toISOString().split('T')[0];
-        const orgId = apiClient.getOrganizationId();
         const clauses: string[] = [`applied_date >= "${since}"`];
         if (orgId) clauses.push(`organization_id = "${orgId}"`);
 

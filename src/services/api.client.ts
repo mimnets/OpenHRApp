@@ -14,6 +14,39 @@ export function dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
   return promise;
 }
 
+// Opt-in retry wrapper for transient failures during high concurrency.
+// See Others/CONCURRENCY_FIX_RECORD.md for the rationale, scope, and
+// rollback plan. Deliberately does NOT retry auth errors (401/403) —
+// that stays the sole responsibility of sessionManager (frozen module).
+const RETRY_DELAYS_MS = [250, 750, 2000];
+
+const shouldRetry = (err: any): boolean => {
+  // PocketBase auto-cancellation — honor the caller's intent, don't retry.
+  if (err?.isAbort) return false;
+  const status = err?.status ?? err?.response?.status;
+  // No status → fetch-level failure (network drop, DNS, CORS preflight). Retry.
+  if (status === undefined || status === 0) return true;
+  // Transient upstream / rate-limit. Retry.
+  if (status === 429 || status === 502 || status === 503 || status === 504) return true;
+  // Anything else (400/401/403/404/409/422/500) is either a user-correctable
+  // error or a deterministic server bug — retrying won't help and may mask it.
+  return false;
+};
+
+export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let lastErr: any;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      lastErr = e;
+      if (attempt === RETRY_DELAYS_MS.length || !shouldRetry(e)) break;
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+    }
+  }
+  throw lastErr;
+}
+
 export const apiClient = {
   pb,
   isConfigured: isPocketBaseConfigured,
