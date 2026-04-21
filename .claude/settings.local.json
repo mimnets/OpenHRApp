@@ -59,7 +59,9 @@
       "Bash(brew list:*)",
       "Bash(npm ls:*)",
       "Bash(git rm:*)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(git reset:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

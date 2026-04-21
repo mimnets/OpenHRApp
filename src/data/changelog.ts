@@ -16,6 +16,21 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-21',
+    title: 'Mobile Responsive Polish',
+    entries: [
+      { type: 'fix', description: 'Fixed the Grace (Min) input overflowing outside the Calculation Parameters box in the Attendance Audit "Modify Audit Record" modal on narrow screens — shortened the label to "Grace", gave the column a fixed width, and added `min-w-0` to the sibling time-input columns so native time pickers no longer push the row wider than its container' },
+      { type: 'fix', description: 'Fixed Organization Directory header action buttons (Depts / CSV / PDF / Provision New User) overflowing the viewport on mobile — the button row now wraps, and the last button shortens to "New User" below the sm breakpoint' },
+      { type: 'fix', description: 'Fixed Organization & Setup tab rows (STRUCTURE/TEAMS/PLACEMENT/SHIFTS and WORKFLOW/LEAVES/HOLIDAYS/NOTIFICATIONS/SYSTEM) cutting off the last tab on mobile — rows are now horizontally scrollable with a minimum tab width' },
+      { type: 'fix', description: 'Fixed the Super Admin Dashboard "New Organization" button rendering partially off-screen on mobile — the header now stacks vertically below the sm breakpoint so the button sits under the title instead of pushing past the viewport edge' },
+      { type: 'fix', description: 'Fixed the header profile avatar appearing stretched into an oval on narrow viewports — added `flex-shrink-0` and explicit width/height attributes so the avatar stays a 40×40 circle when the right-hand toolbar is competing for space' },
+      { type: 'fix', description: 'Added `min-w-0` + `grid-cols-1 sm:grid-cols-2` to the date/time input pairs in Reports, Employee Leave Flow, Employee Leave Module, and OrgNotifications quiet-hours — native date/time pickers have a large intrinsic min-width that was pushing these paired inputs off the edge on 360-400px viewports' },
+      { type: 'fix', description: 'Aligned the System & Profile page\'s Appearance card with the Profile card below it on desktop — the Appearance card was spanning the full content width while the Profile card was constrained to `max-w-3xl`, so the right edges did not line up' },
+      { type: 'fix', description: 'Fixed landing page Features section rendering with washed-out, low-contrast cards in dark mode — cards used `bg-slate-50/50` (half-transparent) which the global dark-mode CSS overrides did not match, so the cards floated translucently over the dark body until hover. Switched to opaque `bg-slate-50 dark:bg-slate-800/60` with explicit dark borders and hover states, and added `dark:bg-slate-900` to the section wrapper' },
+      { type: 'fix', description: 'Applied the same dark-mode fix to the "Built for Modern Teams" platform-features cards on the /features page — they had the identical `bg-slate-50/50` translucent bug and were unreadable in dark mode until hover' },
+    ],
+  },
+  {
+    date: '2026-04-21',
     title: 'SEO — Social Previews & Structured Data',
     entries: [
       { type: 'improvement', description: 'SEO — `updatePageMeta` now also rewrites `og:title`/`og:description`/`og:url`/`og:image` and `twitter:title`/`twitter:description`/`twitter:image` on every route change, so LinkedIn/Slack/Twitter/Facebook previews of `/blog/*`, `/features/*`, `/how-to-use/*` no longer show the homepage thumbnail; per-page blog-cover and tutorial-cover images are now used where available' },

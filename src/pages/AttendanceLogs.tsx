@@ -455,30 +455,30 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
                        </div>
                        
                        <div className="flex gap-2">
-                          <div className="flex-1 space-y-1">
+                          <div className="flex-1 min-w-0 space-y-1">
                              <label className="text-[8px] font-semibold text-primary uppercase tracking-widest">Shift Start</label>
-                             <input 
-                               type="time" 
-                               className="w-full px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900" 
-                               value={tempShift.start} 
+                             <input
+                               type="time"
+                               className="w-full min-w-0 px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900"
+                               value={tempShift.start}
                                onChange={e => setTempShift({...tempShift, start: e.target.value})}
                              />
                           </div>
-                          <div className="flex-1 space-y-1">
+                          <div className="flex-1 min-w-0 space-y-1">
                              <label className="text-[8px] font-semibold text-primary uppercase tracking-widest">Shift End</label>
-                             <input 
-                               type="time" 
-                               className="w-full px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900" 
-                               value={tempShift.end} 
+                             <input
+                               type="time"
+                               className="w-full min-w-0 px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900"
+                               value={tempShift.end}
                                onChange={e => setTempShift({...tempShift, end: e.target.value})}
                              />
                           </div>
-                          <div className="flex-1 space-y-1">
-                             <label className="text-[8px] font-semibold text-primary uppercase tracking-widest">Grace (Min)</label>
-                             <input 
-                               type="number" 
-                               className="w-full px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900" 
-                               value={tempShift.grace} 
+                          <div className="w-16 flex-shrink-0 space-y-1">
+                             <label className="text-[8px] font-semibold text-primary uppercase tracking-widest">Grace</label>
+                             <input
+                               type="number"
+                               className="w-full min-w-0 px-2 py-1.5 bg-white border border-primary-light rounded-lg text-xs font-bold text-slate-900"
+                               value={tempShift.grace}
                                onChange={e => setTempShift({...tempShift, grace: parseInt(e.target.value) || 0})}
                              />
                           </div>
