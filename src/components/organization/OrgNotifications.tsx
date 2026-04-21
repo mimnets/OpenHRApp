@@ -139,23 +139,23 @@ export const OrgNotifications: React.FC<Props> = ({ config, onSave }) => {
           </label>
 
           {localConfig.quietHoursEnabled && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1 min-w-0">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">Start Time</label>
                 <input
                   type="time"
                   value={localConfig.quietHoursStart}
                   onChange={e => updateConfig({ quietHoursStart: e.target.value })}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary/10 transition-all"
+                  className="w-full min-w-0 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary/10 transition-all"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <label className="text-[10px] font-semibold text-slate-400 uppercase px-1">End Time</label>
                 <input
                   type="time"
                   value={localConfig.quietHoursEnd}
                   onChange={e => updateConfig({ quietHoursEnd: e.target.value })}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary/10 transition-all"
+                  className="w-full min-w-0 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:ring-4 focus:ring-primary/10 transition-all"
                 />
               </div>
             </div>

@@ -227,14 +227,14 @@ const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh,
                  </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1 min-w-0">
                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Start Date</label>
-                   <input type="date" required className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formData.start} onChange={e => setFormData({...formData, start: e.target.value})} />
+                   <input type="date" required className="w-full min-w-0 px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formData.start} onChange={e => setFormData({...formData, start: e.target.value})} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">End Date</label>
-                   <input type="date" required className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formData.end} onChange={e => setFormData({...formData, end: e.target.value})} />
+                   <input type="date" required className="w-full min-w-0 px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={formData.end} onChange={e => setFormData({...formData, end: e.target.value})} />
                 </div>
               </div>
 
