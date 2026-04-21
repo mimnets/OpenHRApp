@@ -521,7 +521,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
           </p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowDeptFilter(!showDeptFilter)}
               className={`flex items-center gap-2 px-4 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-sm transition-all ${
@@ -549,13 +549,15 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
             <button
               onClick={handleOpenAdd}
               disabled={!canWrite}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-xl transition-all ${
+              className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-xl text-xs font-semibold uppercase tracking-widest shadow-xl transition-all ${
                 canWrite
                   ? 'bg-primary text-white hover:bg-primary-hover'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <UserPlus size={16} /> Provision New User
+              <UserPlus size={16} />
+              <span className="hidden sm:inline">Provision New User</span>
+              <span className="sm:hidden">New User</span>
             </button>
           </div>
         )}

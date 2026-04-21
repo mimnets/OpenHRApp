@@ -199,7 +199,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
       </header>
 
       {/* Theme Selector Module */}
-      <ThemeSelector />
+      <div className="max-w-3xl">
+        <ThemeSelector />
+      </div>
 
       {!profile ? (
         <ProfileSkeleton />

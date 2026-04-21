@@ -53,20 +53,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
       {/* Main Content Area */}
       <main className="flex-1 md:ml-80 flex flex-col min-h-screen max-w-full overflow-hidden">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-slate-50 flex items-center justify-between px-6 md:px-10 sticky top-0 z-40">
-           <div className="flex items-center gap-4">
-              <button 
+        <header className="h-20 bg-white border-b border-slate-50 flex items-center justify-between gap-2 px-4 sm:px-6 md:px-10 sticky top-0 z-40">
+           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 -ml-2 text-slate-500 md:hidden hover:bg-slate-50 rounded-xl transition-all"
+                className="p-2 -ml-2 text-slate-500 md:hidden hover:bg-slate-50 rounded-xl transition-all flex-shrink-0"
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-              
-              <div className="flex items-center gap-3">
-                 <div className="p-1.5 bg-white rounded-xl border border-primary/20 shadow-sm overflow-hidden md:hidden">
+
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                 <div className="p-1.5 bg-white rounded-xl border border-primary/20 shadow-sm overflow-hidden md:hidden flex-shrink-0">
                     <img src="./img/logo.webp" className="w-10 h-10 object-contain" alt="Logo" />
                  </div>
-                 <h2 className="font-semibold text-xl tracking-tighter text-primary md:hidden truncate max-w-[150px]">OpenHRApp</h2>
+                 <h2 className="font-semibold text-xl tracking-tighter text-primary md:hidden truncate min-w-0">OpenHRApp</h2>
                  <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full border bg-slate-50 text-slate-400 border-slate-100">
                    <Database size={12} />
                    <span className="text-[9px] font-semibold uppercase tracking-widest">Cloud Node Alpha</span>
@@ -74,23 +74,25 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
               </div>
            </div>
 
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <button
                 onClick={() => setDarkModePreference(darkMode ? 'light' : 'dark')}
-                className="p-2.5 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 transition-all"
+                className="p-2.5 rounded-xl text-slate-500 hover:text-primary hover:bg-slate-100 transition-all flex-shrink-0"
                 title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
               <NotificationBell onNavigate={handleNavigate} />
               <div
-                className="cursor-pointer"
+                className="cursor-pointer flex-shrink-0"
                 onClick={() => handleNavigate('profile')}
               >
-                <img 
-                  src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} 
-                  className="w-10 h-10 rounded-full bg-slate-50 object-cover ring-2 ring-transparent hover:ring-primary transition-all shadow-sm" 
+                <img
+                  src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`}
+                  className="w-10 h-10 rounded-full bg-slate-50 object-cover ring-2 ring-transparent hover:ring-primary transition-all shadow-sm flex-shrink-0"
                   alt="Profile"
+                  width={40}
+                  height={40}
                 />
               </div>
            </div>

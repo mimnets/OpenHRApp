@@ -47,7 +47,7 @@ const features = [
 
 const FeaturesSection: React.FC = () => {
   return (
-    <section id="features" className="py-20 md:py-28 bg-white">
+    <section id="features" className="py-20 md:py-28 bg-white dark:bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
@@ -66,7 +66,7 @@ const FeaturesSection: React.FC = () => {
             <button
               key={feature.title}
               onClick={() => navigateTo(`/features/${feature.slug}`)}
-              className="group p-6 bg-slate-50/50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-lg hover:shadow-slate-100 hover:border-slate-200 transition-all duration-300 text-left cursor-pointer"
+              className="group p-6 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-100 dark:hover:shadow-black/30 hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-300 text-left cursor-pointer"
             >
               <div className={`w-12 h-12 ${feature.bg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
                 <feature.icon size={22} className={feature.color} />

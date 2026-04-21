@@ -1,6 +1,16 @@
 {
   "version": 1,
   "skills": {
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
+    "seo-audit": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "computedHash": "1eef04180a5278a6869fab117c75fa2acf512bfda0a4b16569409b88b7bcb343"
+    },
     "theme-factory": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -10,6 +20,11 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "61f8c307aa8ce0c4c52da8886d42e344dab83f76f9b5360cf8923b25fb1d67bb"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
     }
   }
 }

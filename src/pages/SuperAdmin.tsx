@@ -253,18 +253,18 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-            <Shield className="text-primary" size={32} />
-            Super Admin Dashboard
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
+            <Shield className="text-primary shrink-0" size={28} />
+            <span className="truncate">Super Admin Dashboard</span>
           </h1>
-          <p className="text-slate-500 mt-1">Manage all organizations on the platform</p>
+          <p className="text-slate-500 mt-1 text-sm sm:text-base">Manage all organizations on the platform</p>
         </div>
         {activeTab === 'organizations' && viewMode === 'list' && (
           <button
             onClick={openCreateMode}
-            className="px-6 py-3 bg-primary text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-primary-hover transition-all shadow-lg"
+            className="self-start sm:self-auto px-5 sm:px-6 py-3 bg-primary text-white rounded-2xl font-bold flex items-center gap-2 hover:bg-primary-hover transition-all shadow-lg whitespace-nowrap"
           >
             <Plus size={20} /> New Organization
           </button>
@@ -272,7 +272,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         {activeTab === 'organizations' && viewMode !== 'list' && (
           <button
             onClick={() => { setViewMode('list'); setSelectedOrg(null); }}
-            className="px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-all"
+            className="self-start sm:self-auto px-5 sm:px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-all whitespace-nowrap"
           >
             <X size={20} /> Back to List
           </button>
