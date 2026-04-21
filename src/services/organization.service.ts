@@ -164,12 +164,15 @@ export const organizationService = {
     }
     try {
       // Explicit organization_id filter (defence-in-depth beyond the API rule)
-      // plus a hard cap — teams rarely exceed a few dozen per org.
+      // plus pagination via getFullList — teams rarely exceed a few dozen per
+      // org, but `getList(1, 500, ...)` would be silently truncated at
+      // PocketBase's default 500-row server cap for edge cases.
       const orgId = apiClient.getOrganizationId();
-      const records = await apiClient.pb.collection('teams').getList(1, 500, {
+      const records = await apiClient.pb.collection('teams').getFullList({
         sort: 'name',
         filter: orgId ? `organization_id = "${orgId}"` : undefined,
-      }).then(r => r.items);
+        batch: 500,
+      });
       console.log(`[OrgService] Fetched ${records.length} teams`);
       cachedTeams = records.map(r => ({ id: r.id, name: r.name, leaderId: r.leader_id, department: r.department, organizationId: r.organization_id }));
       return cachedTeams;

@@ -79,13 +79,21 @@ export const employeeService = {
         // Explicit org filter — defence-in-depth beyond the API rule, and
         // ensures SQLite uses the organization_id index instead of scanning
         // rows belonging to other tenants (16+ orgs share this table).
-        // Cap at 5000 users per org (far above real-world tenant size).
+        //
+        // NOTE: uses getFullList (not getList) so the SDK paginates in
+        // 500-row batches and returns every matching row. The previous
+        // getList(1, 5000, ...) call was silently capped by the PocketBase
+        // server's default per-request max (500), which dropped employees
+        // beyond the 500th newest from the lookup cache — surfacing as
+        // "(N/A) / STAFF" fallbacks on the Attendance Audit page for any
+        // older employee record (regression introduced in 1c88728).
         const orgId = apiClient.getOrganizationId();
-        const records = await apiClient.pb.collection('users').getList(1, 5000, {
+        const records = await apiClient.pb.collection('users').getFullList({
           sort: '-created',
           expand: 'line_manager_id,team_id',
           filter: orgId ? `organization_id = "${orgId}"` : undefined,
-        }).then(r => r.items);
+          batch: 500,
+        });
         console.log(`[EmployeeService] Fetched ${records.length} employees`);
         const result = records.map(r => ({
           id: r.id.toString().trim(),

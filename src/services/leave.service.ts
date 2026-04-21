@@ -31,10 +31,16 @@ export const leaveService = {
         const clauses: string[] = [`applied_date >= "${since}"`];
         if (orgId) clauses.push(`organization_id = "${orgId}"`);
 
-        const records = await apiClient.pb.collection('leaves').getList(1, 2000, {
+        // NOTE: use getFullList (paginates in 500-row batches) instead of
+        // getList(1, 2000, ...) — PocketBase's default server cap is 500
+        // rows per request, so getList would have silently dropped older
+        // leaves beyond the 500th most-recent. The date-range + org filters
+        // still scope the DB query; the SDK just walks pages client-side.
+        const records = await apiClient.pb.collection('leaves').getFullList({
           sort: '-applied_date',
           filter: clauses.join(' && '),
-        }).then(r => r.items);
+          batch: 500,
+        });
         console.log(`[LeaveService] Fetched ${records.length} leave records`);
         const result = records.map(r => ({
           id: r.id.toString().trim(),

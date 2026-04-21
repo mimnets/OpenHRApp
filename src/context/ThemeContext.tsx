@@ -62,6 +62,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [darkModePreference, setDarkModePrefState] = useState<DarkModePreference>('system');
   const [systemDark, setSystemDark] = useState(getSystemPrefersDark);
   const realtimeActive = useRef(false);
+  // Record id of the `default_theme` settings row. Captured on first fetch so
+  // the realtime subscription can target that single record instead of the
+  // whole `settings` collection (which would deliver every unrelated write).
+  const [themeRecordId, setThemeRecordId] = useState<string | null>(null);
 
   const darkMode = darkModePreference === 'system' ? systemDark : darkModePreference === 'dark';
 
@@ -80,6 +84,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         'key = "default_theme"',
         { requestKey: 'platform_default_theme_' + Date.now() }
       );
+      if (record?.id) {
+        setThemeRecordId((prev) => (prev === record.id ? prev : record.id));
+      }
       if (record?.value) {
         applyThemeById(record.value as string);
       }
@@ -99,8 +106,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [fetchPlatformDefault]);
 
-  // Subscribe to realtime updates for the settings collection
-  // When super admin changes the theme, all connected clients update live
+  // Subscribe to realtime updates for the default_theme settings record.
+  // Once we know its id, subscribe by id (scoped — receives only that row's
+  // events). Before the id is known (first boot, or no theme row exists yet),
+  // fall back to the collection-wide subscription so a theme set-for-the-
+  // first-time still propagates live. The effect re-runs when the id changes,
+  // tearing down the wildcard subscription and replacing it with the scoped
+  // one.
   useEffect(() => {
     if (!apiClient.pb || !apiClient.isConfigured()) return;
 
@@ -108,9 +120,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const subscribe = async () => {
       try {
-        unsubscribe = await apiClient.pb!.collection('settings').subscribe('*', (e) => {
+        const target = themeRecordId || '*';
+        unsubscribe = await apiClient.pb!.collection('settings').subscribe(target, (e) => {
           const record = e.record;
           if (record.key === 'default_theme' && record.value) {
+            // If we didn't know the id yet, capture it so the next effect run
+            // upgrades us to a scoped subscription.
+            if (!themeRecordId && record.id) {
+              setThemeRecordId(record.id);
+            }
             applyThemeById(record.value as string);
           }
         });
@@ -126,7 +144,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       realtimeActive.current = false;
       if (unsubscribe) unsubscribe();
     };
-  }, [applyThemeById]);
+  }, [applyThemeById, themeRecordId]);
 
   // Polling fallback: re-fetch every 60s if realtime subscription failed
   useEffect(() => {
