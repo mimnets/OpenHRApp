@@ -26,6 +26,11 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
       // this runs in the background and doesn't block the UI.
       hrService.retryPendingSelfies?.().catch(() => { /* handled inside */ });
 
+      // Drain the core check-in sync queue (offline/5xx check-ins that
+      // never created a record). See Others/CHECKIN_SYNC_QUEUE_RECORD.md.
+      // Fire-and-forget — failures are reclassified + rescheduled inside.
+      hrService.drainCheckInQueue?.().catch(() => { /* handled inside */ });
+
       const today = new Date().toISOString().split('T')[0];
       const [reconciled, config] = await Promise.all([
         hrService.getActiveAttendanceWithReconciliation(user.id),
