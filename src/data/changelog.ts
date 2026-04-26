@@ -16,6 +16,15 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-26',
+    title: 'Super Admin Bulk Email',
+    entries: [
+      { type: 'feature', description: 'Added a Bulk Email tab to the Super Admin dashboard so the platform owner can broadcast warnings, alerts, and announcements without leaving the app. Audiences supported: all org admins, all verified users, all users (or admins only) of a specific organization, or all users in orgs filtered by subscription status (TRIAL / ACTIVE / EXPIRED / SUSPENDED / AD_SUPPORTED). Compose uses the existing rich-text editor (bold, links, lists, images), and a two-step preview → confirm flow shows the exact recipient count before anything goes out' },
+      { type: 'feature', description: 'Added `superAdminService.resolveBulkRecipients`, `previewBulkRecipients`, `sendBulkEmail`, `getRecentBulkCampaigns`, and `getBulkCampaignDetail` methods. Sends are queued into the existing `reports_queue` collection in 50-row batches and tagged with `type = BULK_CAMPAIGN_<uuid>` so the History view can group per-recipient rows back into campaign-level rollups (sent / failed / pending) without needing a new collection. Recipients are de-duplicated by email and capped at 5,000 per send. The PocketBase mailer hook in `main.pb.js` does the actual sending — no changes to pb_hooks were required' },
+      { type: 'security', description: 'Always restricts targeting to `verified = true` users and excludes `SUPER_ADMIN`; bodies are passed through `sanitizeHtml` (DOMPurify) before being stored in `reports_queue`, defending against malformed paste from the rich editor' },
+    ],
+  },
+  {
+    date: '2026-04-26',
     title: 'SEO & Accessibility Quick Wins',
     entries: [
       { type: 'feature', description: 'Generated a build-time RSS feed at `/feed.xml` (`scripts/generate-feed.mjs`) covering all published blog posts, wired into `npm run build` and discoverable via `<link rel="alternate" type="application/rss+xml">` in `index.html`. Improves discoverability for feed readers and AI/LLM crawlers that don\'t render JS' },

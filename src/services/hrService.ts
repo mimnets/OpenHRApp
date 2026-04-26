@@ -9,6 +9,7 @@ import { shiftService } from './shift.service';
 import { reviewService } from './review.service';
 import { announcementService } from './announcement.service';
 import { notificationService } from './notification.service';
+import { superAdminService } from './superadmin.service';
 import { apiClient } from './api.client';
 
 export const hrService = {
@@ -126,4 +127,11 @@ export const hrService = {
   getOnboardingStatus: organizationService.getOnboardingStatus,
   setOnboardingStatus: organizationService.setOnboardingStatus,
   getGuideHelpLinks: organizationService.getGuideHelpLinks,
+
+  // Super Admin — Bulk Email
+  resolveBulkRecipients: superAdminService.resolveBulkRecipients.bind(superAdminService),
+  previewBulkRecipients: superAdminService.previewBulkRecipients.bind(superAdminService),
+  sendBulkEmail: superAdminService.sendBulkEmail.bind(superAdminService),
+  getRecentBulkCampaigns: superAdminService.getRecentBulkCampaigns.bind(superAdminService),
+  getBulkCampaignDetail: superAdminService.getBulkCampaignDetail.bind(superAdminService),
 };
