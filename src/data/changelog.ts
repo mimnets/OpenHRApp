@@ -15,6 +15,17 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-26',
+    title: 'PWA Service-Worker Caching — Phase A',
+    entries: [
+      { type: 'improvement', description: 'Tightened service-worker runtime caching in `vite.config.ts` to make rush-hour stalls feel ~10× shorter. Cut the API NetworkFirst fallback timeout from 30 s to 3 s — when PocketBase is contended, the app now serves last-known-good cached GETs within 3 seconds instead of spinning for half a minute' },
+      { type: 'improvement', description: 'Added explicit `NetworkOnly` rules for `/api/realtime` and `/api/collections/users/auth-*` so realtime SSE and login flows are never cached by accident' },
+      { type: 'improvement', description: 'Added `CacheFirst` for `/api/files/*` (selfies, avatars, blog covers, showcase logos) with a 30-day, 500-entry cache. Attendance audit pages and employee directories with many thumbnails now reload instantly from the device after the first visit' },
+      { type: 'improvement', description: 'Added `StaleWhileRevalidate` for the public marketing endpoints `/api/openhr/blog/*` and `/api/openhr/tutorials/*` (already public content, no tenant leak). Renders blog/tutorial pages instantly while refreshing in the background' },
+      { type: 'improvement', description: 'Guarded all read caching behind `request.method === "GET"` so writes (POST / PATCH / DELETE) bypass the SW entirely and always hit the network. No multi-tenant collection responses are cached in this phase — tenant-scoped caching for stable config (holidays, shifts, leave types) is deferred to Phase B after a week of monitoring' },
+    ],
+  },
+  {
     date: '2026-04-21',
     title: 'Check-In Sync Queue',
     entries: [
