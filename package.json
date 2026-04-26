@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "node scripts/validate-pb-hooks.cjs",
-    "build": "vite build && node scripts/generate-sitemap.mjs",
+    "build": "vite build && node scripts/generate-sitemap.mjs && node scripts/generate-feed.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
+    "feed": "node scripts/generate-feed.mjs",
     "preview": "vite preview",
     "validate:hooks": "node scripts/validate-pb-hooks.cjs",
     "cap:sync": "node -e \"require('fs').rmSync('dist/downloads',{recursive:true,force:true})\" && npx cap sync android",

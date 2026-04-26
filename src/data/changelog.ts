@@ -16,6 +16,14 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-26',
+    title: 'SEO & Accessibility Quick Wins',
+    entries: [
+      { type: 'feature', description: 'Generated a build-time RSS feed at `/feed.xml` (`scripts/generate-feed.mjs`) covering all published blog posts, wired into `npm run build` and discoverable via `<link rel="alternate" type="application/rss+xml">` in `index.html`. Improves discoverability for feed readers and AI/LLM crawlers that don\'t render JS' },
+      { type: 'improvement', description: 'Added a "Skip to content" link on `LandingPage` and `MainLayout` for keyboard users, wrapped landing-page sections in a `<main id="main-content">` landmark, and dropped `maximum-scale=1.0, user-scalable=no` from the viewport meta so users who need pinch-zoom are no longer blocked' },
+    ],
+  },
+  {
+    date: '2026-04-26',
     title: 'PWA Service-Worker Caching — Phase A',
     entries: [
       { type: 'improvement', description: 'Tightened service-worker runtime caching in `vite.config.ts` to make rush-hour stalls feel ~10× shorter. Cut the API NetworkFirst fallback timeout from 30 s to 3 s — when PocketBase is contended, the app now serves last-known-good cached GETs within 3 seconds instead of spinning for half a minute' },

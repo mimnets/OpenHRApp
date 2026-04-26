@@ -97,17 +97,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-white focus:font-semibold focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       <Navbar onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
-      <HeroSection onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
-      <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-hero" /></div>
-      <FeaturesSection />
-      <HowItWorksSection />
-      <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-mid" /></div>
-      <TestimonialsSection />
-      <ShowcaseSection />
-      <FAQSection />
-      <ContactSection />
-      <CTASection onRegisterClick={onRegisterClick} />
+      <main id="main-content">
+        <HeroSection onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
+        <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-hero" /></div>
+        <FeaturesSection />
+        <HowItWorksSection />
+        <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-mid" /></div>
+        <TestimonialsSection />
+        <ShowcaseSection />
+        <FAQSection />
+        <ContactSection />
+        <CTASection onRegisterClick={onRegisterClick} />
+      </main>
       <Footer />
     </div>
   );
