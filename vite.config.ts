@@ -40,12 +40,43 @@ export default defineConfig(({ mode }) => {
             ],
             runtimeCaching: [
               {
-                urlPattern: /\/api\//,
+                urlPattern: ({ url }) => /\/api\/realtime/.test(url.pathname),
+                handler: 'NetworkOnly',
+              },
+              {
+                urlPattern: ({ url }) => /\/api\/collections\/users\/auth-/.test(url.pathname),
+                handler: 'NetworkOnly',
+              },
+              {
+                urlPattern: ({ url, request }) =>
+                  request.method === 'GET' && /\/api\/files\//.test(url.pathname),
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'pb-files',
+                  expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                  cacheableResponse: { statuses: [200] },
+                },
+              },
+              {
+                urlPattern: ({ url, request }) =>
+                  request.method === 'GET' &&
+                  /\/api\/openhr\/(blog|tutorials)\//.test(url.pathname),
+                handler: 'StaleWhileRevalidate',
+                options: {
+                  cacheName: 'pb-public-content',
+                  expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+                  cacheableResponse: { statuses: [200] },
+                },
+              },
+              {
+                urlPattern: ({ url, request }) =>
+                  request.method === 'GET' && /\/api\//.test(url.pathname),
                 handler: 'NetworkFirst',
                 options: {
                   cacheName: 'api-cache',
-                  networkTimeoutSeconds: 30,
+                  networkTimeoutSeconds: 3,
                   expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
+                  cacheableResponse: { statuses: [200] },
                 },
               },
               {
