@@ -504,7 +504,10 @@ export const superAdminService = {
     if (!apiClient.pb || !apiClient.isConfigured()) return [];
 
     const pb = apiClient.pb;
-    const verifiedClause = '&& verified = true';
+    // Super-admin broadcasts target every active platform user (admins, HR, managers, employees).
+    // We do NOT require `verified = true` — verification gates login, not deliverability — and
+    // many orgs have admins/HR who registered but never clicked the verification email. We still
+    // always exclude SUPER_ADMIN from broadcasts.
     const excludeSuper = 'role != "SUPER_ADMIN"';
     const adminRolesClause = '(role = "ADMIN" || role = "HR")';
 
@@ -512,23 +515,25 @@ export const superAdminService = {
       let users: Array<{ id: string; email: string; organization_id: string }> = [];
 
       if (filter.kind === 'ALL_ADMINS') {
+        const f = adminRolesClause;
         const records = await pb.collection('users').getFullList({
-          filter: `${adminRolesClause} ${verifiedClause}`,
+          filter: f,
           batch: 500,
           fields: 'id,email,organization_id',
         });
         users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
       } else if (filter.kind === 'ALL_USERS') {
         const records = await pb.collection('users').getFullList({
-          filter: `${excludeSuper} ${verifiedClause}`,
+          filter: excludeSuper,
           batch: 500,
           fields: 'id,email,organization_id',
         });
         users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
       } else if (filter.kind === 'ORG') {
-        const roleClause = filter.rolesScope === 'ADMINS' ? `&& ${adminRolesClause}` : `&& ${excludeSuper}`;
+        const roleClause = filter.rolesScope === 'ADMINS' ? adminRolesClause : excludeSuper;
+        const f = `organization_id = "${filter.organizationId}" && ${roleClause}`;
         const records = await pb.collection('users').getFullList({
-          filter: `organization_id = "${filter.organizationId}" ${roleClause} ${verifiedClause}`,
+          filter: f,
           batch: 500,
           fields: 'id,email,organization_id',
         });
@@ -544,14 +549,15 @@ export const superAdminService = {
         });
         if (orgs.length === 0) return [];
 
-        const roleClause = filter.rolesScope === 'ADMINS' ? `&& ${adminRolesClause}` : `&& ${excludeSuper}`;
+        const roleClause = filter.rolesScope === 'ADMINS' ? adminRolesClause : excludeSuper;
         // Chunk org IDs to avoid excessively long filter strings
         const ORG_CHUNK = 50;
         for (let i = 0; i < orgs.length; i += ORG_CHUNK) {
           const chunk = orgs.slice(i, i + ORG_CHUNK);
           const orgClause = chunk.map(o => `organization_id = "${o.id}"`).join(' || ');
+          const f = `(${orgClause}) && ${roleClause}`;
           const records = await pb.collection('users').getFullList({
-            filter: `(${orgClause}) ${roleClause} ${verifiedClause}`,
+            filter: f,
             batch: 500,
             fields: 'id,email,organization_id',
           });
@@ -559,7 +565,7 @@ export const superAdminService = {
         }
       }
 
-      // De-dupe by email (case-insensitive)
+      // De-dupe by email (case-insensitive); skip rows with no email
       const seen = new Set<string>();
       const deduped: BulkRecipient[] = [];
       for (const u of users) {
@@ -570,7 +576,7 @@ export const superAdminService = {
       }
       return deduped;
     } catch (e: any) {
-      console.error('[SuperAdmin] resolveBulkRecipients failed:', e?.message || e);
+      console.error('[SuperAdmin] resolveBulkRecipients failed:', e?.message || e, e);
       return [];
     }
   },
@@ -601,7 +607,7 @@ export const superAdminService = {
 
     const recipients = await this.resolveBulkRecipients(filter);
     if (recipients.length === 0) {
-      return { success: false, message: 'No recipients matched the selected audience', queued: 0, failed: 0, campaignId: '' };
+      return { success: false, message: 'No recipients matched this audience', queued: 0, failed: 0, campaignId: '' };
     }
     if (recipients.length > MAX_BULK_RECIPIENTS) {
       return {

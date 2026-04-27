@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'Bulk Email Broadcaster — Fixes',
     entries: [
       { type: 'fix', description: 'Bulk Email "All organization admins" (and the per-org / per-subscription "Admins only" scopes) now match users with `role = "ADMIN"` OR `role = "HR"`. Previously the filter only matched `ADMIN`, so orgs that use HR as their admin role returned zero recipients on preview and could not be broadcast to' },
+      { type: 'fix', description: 'Dropped the `verified = true` requirement from super-admin bulk-email recipient resolution. Verification gates login, not deliverability — and many orgs had admins/HR who registered but never clicked the verification email, which made the broadcaster effectively unusable. Super-admin sends now reach every active platform user (still excluding `SUPER_ADMIN`)' },
       { type: 'fix', description: 'The "Yes, send now" confirmation modal now always closes after the send attempt (success OR error), and the page scrolls to the top so the success/error banner is visible. Previously, on certain failures the modal stayed open and the user got no confirmation that the email had been queued or had failed' },
     ],
   },

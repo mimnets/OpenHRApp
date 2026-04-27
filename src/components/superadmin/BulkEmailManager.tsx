@@ -106,7 +106,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
       const result = await superAdminService.previewBulkRecipients(filter);
       setPreview(result);
       if (result.count === 0) {
-        onMessage({ type: 'error', text: 'No verified recipients matched this audience' });
+        onMessage({ type: 'error', text: 'No recipients matched this audience' });
       }
     } catch {
       onMessage({ type: 'error', text: 'Preview failed. Check console for details.' });
