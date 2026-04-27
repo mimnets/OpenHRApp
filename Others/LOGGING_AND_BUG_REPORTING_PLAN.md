@@ -2,7 +2,7 @@
 
 Owner: engineering
 Status: Draft / proposal — no code changes made yet
-Target stack: React 19 (Vite) web + Capacitor Android + PocketBase backend (`Others/pb_hooks/*.pb.js`)
+Target stack: React 19 (Vite) PWA + PocketBase backend (`Others/pb_hooks/*.pb.js`)
 
 ---
 
@@ -10,7 +10,7 @@ Target stack: React 19 (Vite) web + Capacitor Android + PocketBase backend (`Oth
 
 We need a single, inspectable trail for three classes of signal:
 
-1. **Errors / crashes** — uncaught exceptions, React render errors, promise rejections, native (Capacitor) crashes, failed API calls.
+1. **Errors / crashes** — uncaught exceptions, React render errors, promise rejections, failed API calls.
 2. **Usage events** — feature usage, navigation, check-in / check-out lifecycle, session + workday state transitions (these are already load-bearing and have regressed 3× per `CLAUDE.md` — they deserve first-class logging).
 3. **User-submitted bug reports** — an in-app "Report a problem" affordance that attaches the recent client log + device metadata, so we can triage without asking users to re-describe.
 
@@ -34,7 +34,7 @@ Non-goals for v1: real-time dashboards, PII redaction beyond the basics, alertin
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  Client (React / Capacitor Android)                 │
+│  Client (React PWA)                                 │
 │                                                     │
 │   src/utils/logger.ts  ◄── single entry point       │
 │     ├── ring buffer (in-memory, last N=200 entries) │
@@ -83,8 +83,8 @@ Append-only log stream. One record = one log event.
 | org            | relation | → `organizations`, nullable                               |
 | session_id     | text     | client-generated UUID per app launch                      |
 | release        | text     | build version (e.g. `0.0.0+commit-abc123`)                |
-| platform       | select   | `web` \| `android`                                        |
-| app_version    | text     | Capacitor app version / `package.json` version           |
+| platform       | select   | `web` \| `pwa-standalone`                                 |
+| app_version    | text     | `package.json` version                                    |
 | user_agent     | text     | truncated UA                                              |
 
 Rules:
@@ -158,7 +158,7 @@ Install once from `src/index.tsx`:
 
 - `window.addEventListener('error', ...)` → `logger.error('window', ...)`
 - `window.addEventListener('unhandledrejection', ...)` → `logger.error('promise', ...)`
-- On Capacitor Android, also listen to `App.addListener('appStateChange', ...)` and log state transitions (helps diagnose the auto-close / session regressions).
+- `document.addEventListener('visibilitychange', ...)` and the standalone-PWA `display-mode` media query → log foreground/background transitions (helps diagnose auto-close / session regressions).
 
 ### 5.3 `ErrorBoundary` update
 
@@ -179,7 +179,7 @@ Install once from `src/index.tsx`:
 
 - Accessible from: user menu → "Report a problem" and from the `ErrorBoundary` fallback screen.
 - Fields: title, description, optional steps, optional screenshot.
-- On submit: attach `logger.getRecent(100)`, current route (`window.location.pathname`), device info (`navigator.userAgent`, `window.screen`, Capacitor `Device.getInfo()` when on Android), then POST to `bug_reports`.
+- On submit: attach `logger.getRecent(100)`, current route (`window.location.pathname`), device info (`navigator.userAgent`, `window.screen`, `display-mode` standalone flag), then POST to `bug_reports`.
 - On success: show ticket id, "we'll look into it."
 
 ### 5.7 Admin inspection UI
@@ -228,7 +228,7 @@ Each phase is a separate PR so we can pause and evaluate. Respect the git workfl
 
 ### Phase 3 — Bug report UI
 - `BugReportModal.tsx` + entry points from user menu and `ErrorBoundary` fallback.
-- Capacitor: pull device info via `@capacitor/device` (add dep).
+- Pull device info via standard browser APIs (`navigator.userAgent`, `navigator.connection`, `screen`, `display-mode` standalone flag).
 
 ### Phase 4 — Admin inspection
 - `src/pages/admin/Logs.tsx` with filters and bug-report triage.
@@ -258,7 +258,7 @@ Add to env / config (`src/config`):
 - `VITE_LOG_FLUSH_INTERVAL_MS` (default 30000)
 - `VITE_LOG_BATCH_SIZE` (default 50)
 
-### 8.3 Offline behavior (Android / PWA)
+### 8.3 Offline behavior (PWA)
 IndexedDB persistence already handles this — entries queue offline and flush when connectivity returns. `useServiceWorker.ts` should not intercept log POSTs (add URL exclusion).
 
 ### 8.4 Do not break the session/workday invariants
@@ -279,7 +279,7 @@ The whole reason this plan exists is to diagnose session regressions. It would b
 6. **[client]** Update `src/components/ErrorBoundary.tsx` to forward to logger.
 7. **[client]** Wrap `src/services/api.client.ts` to log failed responses.
 8. **[client]** Add `src/components/BugReportModal.tsx` + entry points.
-9. **[client]** Add `@capacitor/device` dep for Android metadata.
+9. **[client]** Capture standard browser device metadata (UA, screen, connection, standalone flag) — no extra deps needed.
 10. **[admin]** Add `src/pages/admin/Logs.tsx` inspection page.
 11. **[docs]** Update `src/pages/PrivacyPolicyPage.tsx` to disclose log collection.
 12. **[docs]** Update `src/data/changelog.ts` per phase.

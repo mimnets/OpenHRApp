@@ -2,10 +2,6 @@
 declare global {
   interface Window {
     PasswordCredential: typeof PasswordCredential;
-    AndroidAutofill?: {
-      commitAutofill: () => void;
-      requestAutofill: () => void;
-    };
   }
   interface PasswordCredentialData {
     id: string;
@@ -96,13 +92,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     // 4. Listen for Native Prompt Event (Async)
     const handlePwaReady = () => setCanPrompt(true);
     window.addEventListener('pwa-install-available', handlePwaReady);
-
-    // Android APK: explicitly request autofill suggestions when login page loads.
-    // This prompts Google Password Manager / Samsung Pass to show the fill UI
-    // for any previously saved credentials.
-    if (window.AndroidAutofill?.requestAutofill) {
-      try { window.AndroidAutofill.requestAutofill(); } catch (_) {}
-    }
 
     return () => window.removeEventListener('pwa-install-available', handlePwaReady);
   }, []);
@@ -243,10 +232,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
         const ua = navigator.userAgent;
         const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
 
-        // "Save Password" — three strategies by platform:
-        //   1. Android APK (Capacitor WebView): native AutofillManager.commit()
-        //   2. Chrome/Edge/Android browser & PWA: Credential Management API
-        //   3. iOS Safari & iOS PWA (standalone): hidden form submission trick
+        // "Save Password" — two strategies by platform:
+        //   1. Chrome/Edge/Android browser & PWA: Credential Management API
+        //   2. iOS Safari & iOS PWA (standalone): hidden form submission trick
         //
         // For iOS: the hidden form MUST be submitted while the login page DOM is
         // still mounted. If we call onLoginSuccess first, React unmounts the page
@@ -255,19 +243,15 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
         // For non-iOS: we complete login first, then save credentials async.
 
         if (isIOSDevice) {
-          // iOS path: submit hidden form BEFORE route change
           triggerSafariPasswordSave(() => {
             onLoginSuccess(result.user!);
           });
         } else {
-          // Non-iOS: complete login immediately, then save credentials
           onLoginSuccess(result.user);
 
           setTimeout(() => {
             try {
-              if (window.AndroidAutofill) {
-                window.AndroidAutofill.commitAutofill();
-              } else if (window.PasswordCredential) {
+              if (window.PasswordCredential) {
                 const cred = new window.PasswordCredential({
                   id: email,
                   password: password,

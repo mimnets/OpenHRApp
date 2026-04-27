@@ -1,7 +1,48 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Capacitor } from '@capacitor/core';
+import { convertToWebP } from '../../utils/imageConvert';
+
+const blobToDataURL = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+const pickImageFile = (capture: 'user' | 'environment' | null): Promise<File | null> => {
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    if (capture) input.setAttribute('capture', capture);
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+
+    let settled = false;
+    const finish = (file: File | null) => {
+      if (settled) return;
+      settled = true;
+      input.remove();
+      resolve(file);
+    };
+
+    input.onchange = () => finish(input.files?.[0] ?? null);
+    input.oncancel = () => finish(null);
+    // Some browsers don't fire `cancel`; clean up after a delay if window regains focus with no file
+    const onFocus = () => {
+      setTimeout(() => {
+        if (!settled && !input.files?.length) finish(null);
+      }, 500);
+      window.removeEventListener('focus', onFocus);
+    };
+    window.addEventListener('focus', onFocus);
+
+    input.click();
+  });
+};
 
 export const useCamera = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -11,10 +52,8 @@ export const useCamera = () => {
   const [loading, setLoading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  // Use a ref to always have the current stream value for cleanup/stop
   const streamRef = useRef<MediaStream | null>(null);
   streamRef.current = stream;
-  // Keep facing mode in a ref so recovery callbacks avoid stale closures
   const facingModeRef = useRef<'user' | 'environment'>(facingMode);
   facingModeRef.current = facingMode;
 
@@ -28,7 +67,6 @@ export const useCamera = () => {
   }, []);
 
   const startCamera = useCallback(async (mode: 'user' | 'environment' = 'user') => {
-    // Stop any existing stream using the ref (avoids stale closure)
     const existingStream = streamRef.current;
     if (existingStream) {
       existingStream.getTracks().forEach(track => track.stop());
@@ -40,8 +78,6 @@ export const useCamera = () => {
     try {
       setError(null);
 
-      // Let getUserMedia() run directly — on native, Capacitor's
-      // BridgeWebChromeClient handles the Android permission dialog automatically.
       const s = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
@@ -50,8 +86,6 @@ export const useCamera = () => {
         }
       });
 
-      // Guard: if the component unmounted or a newer startCamera call
-      // already replaced the stream, stop this one immediately.
       streamRef.current = s;
       setStream(s);
       setFacingMode(mode);
@@ -59,11 +93,10 @@ export const useCamera = () => {
         videoRef.current.srcObject = s;
       }
 
-      // Auto-recover when the OS reclaims the camera (e.g. app backgrounded)
+      // Auto-recover when the OS reclaims the camera (e.g. tab backgrounded)
       const videoTrack = s.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.onended = () => {
-          // Only restart if this is still the active stream
           if (streamRef.current === s) {
             setTimeout(() => {
               if (streamRef.current === s) {
@@ -74,17 +107,12 @@ export const useCamera = () => {
         };
       }
     } catch (err: any) {
-      // On native, fall back silently — takePhoto() will still work
-      if (Capacitor.isNativePlatform()) {
-        setError(null); // Clear error — fallback available via takePhoto
-      } else {
-        // iOS PWA standalone: camera may be unavailable but Camera.getPhoto() works
-        const isIOSPWA =
-          /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-          ((navigator as any).standalone === true ||
-            window.matchMedia('(display-mode: standalone)').matches);
-        setError(isIOSPWA ? null : 'Camera permission denied.');
-      }
+      // iOS PWA standalone: live stream may be blocked but takePhoto() still works via <input capture>
+      const isIOSPWA =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+        ((navigator as any).standalone === true ||
+          window.matchMedia('(display-mode: standalone)').matches);
+      setError(isIOSPWA ? null : 'Camera permission denied.');
     } finally {
       setLoading(false);
     }
@@ -95,7 +123,7 @@ export const useCamera = () => {
       const nextMode = prev === 'user' ? 'environment' : 'user';
       setIsTorchOn(false);
       startCamera(nextMode);
-      return prev; // startCamera will update via setFacingMode
+      return prev;
     });
   }, [startCamera]);
 
@@ -130,29 +158,16 @@ export const useCamera = () => {
     return canvas.toDataURL('image/webp', 0.8);
   }, [facingMode]);
 
-  /** Capacitor fallback: take a single photo when live stream isn't available */
+  /** Fallback: open the device camera via <input type=file capture> when live stream isn't available */
   const takePhoto = useCallback(async (): Promise<string | null> => {
     try {
       setLoading(true);
       setError(null);
-      const photo = await Camera.getPhoto({
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-        // Selfie quality — this hook is used only by the attendance page.
-        // 70 (vs previous 80) is visually equivalent for the audit UI and
-        // cuts ~15% off the native-plugin payload before our subsequent
-        // WebP downscale in attendance.service.ts::uploadSelfieOnce.
-        quality: 70,
-        width: 1080,
-        height: 1440,
-        correctOrientation: true,
-      });
-      return photo.dataUrl ?? null;
-    } catch (err: any) {
-      if (err?.message?.includes('cancelled') || err?.message?.includes('canceled')) {
-        // User cancelled — not an error
-        return null;
-      }
+      const file = await pickImageFile('user');
+      if (!file) return null;
+      const webp = await convertToWebP(file, 0.7, 1080);
+      return await blobToDataURL(webp);
+    } catch {
       setError('Failed to take photo. Please try again.');
       return null;
     } finally {
@@ -160,28 +175,16 @@ export const useCamera = () => {
     }
   }, []);
 
-  /** Pick a photo from the device gallery */
+  /** Pick a photo from the device gallery via <input type=file> (no capture attribute) */
   const selectFromGallery = useCallback(async (): Promise<string | null> => {
     try {
       setLoading(true);
       setError(null);
-      const photo = await Camera.getPhoto({
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Photos,
-        // Selfie quality — this hook is used only by the attendance page.
-        // 70 (vs previous 80) is visually equivalent for the audit UI and
-        // cuts ~15% off the native-plugin payload before our subsequent
-        // WebP downscale in attendance.service.ts::uploadSelfieOnce.
-        quality: 70,
-        width: 1080,
-        height: 1440,
-        correctOrientation: true,
-      });
-      return photo.dataUrl ?? null;
-    } catch (err: any) {
-      if (err?.message?.includes('cancelled') || err?.message?.includes('canceled')) {
-        return null;
-      }
+      const file = await pickImageFile(null);
+      if (!file) return null;
+      const webp = await convertToWebP(file, 0.7, 1080);
+      return await blobToDataURL(webp);
+    } catch {
       setError('Failed to select photo. Please try again.');
       return null;
     } finally {
@@ -189,19 +192,15 @@ export const useCamera = () => {
     }
   }, []);
 
-  // Assign stream to video element whenever it changes
   useEffect(() => {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {
-        // play() can fail on iOS PWA if page isn't user-activated yet;
-        // the video element's autoPlay + playsInline attributes will
-        // retry automatically once the user interacts.
+        // play() can fail on iOS PWA before user activation; autoPlay+playsInline retries.
       });
     }
   }, [stream]);
 
-  // Recover camera when page returns from background (track may have ended silently)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && streamRef.current) {
@@ -216,7 +215,6 @@ export const useCamera = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [startCamera]);
 
-  // Cleanup on unmount — use ref so the closure always has the latest stream
   useEffect(() => {
     return () => {
       const s = streamRef.current;

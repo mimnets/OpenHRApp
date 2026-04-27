@@ -12,9 +12,6 @@ dist
 dist-ssr
 *.local
 
-# APK binaries (distribute via GitHub Releases)
-public/downloads/*.apk
-
 # Design source files
 *.psd
 

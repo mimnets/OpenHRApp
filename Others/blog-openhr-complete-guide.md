@@ -156,8 +156,6 @@ OpenHR is a Progressive Web App, which in plain English means you can install it
 
 On Android, open it in Chrome and tap "Install App" from the menu. On iPhone, use Safari and hit Share > Add to Home Screen. Either way, it shows up as an icon, opens full-screen, and works offline for basic stuff.
 
-There's also a proper Android APK if your organization prefers distributing an installable app. The project uses Capacitor to wrap the web app into a native Android build, which gives you native camera and GPS access.
-
 For the selfie-based attendance to work on mobile, you do need to grant camera and location permissions. The app asks nicely and explains why, but if someone fat-fingers "Deny" on the permission popup, there's a help guide built into the attendance screen that walks them through re-enabling it on their specific browser or device.
 
 ---
