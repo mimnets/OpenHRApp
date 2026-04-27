@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
             navigationPreload: true,
             navigateFallbackDenylist: [
               /^\/sitemap\.xml$/,
+              /^\/feed\.xml$/,
               /^\/robots\.txt$/,
               /^\/manifest\.json$/,
               /^\/downloads\//,

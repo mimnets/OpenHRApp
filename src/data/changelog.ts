@@ -16,6 +16,13 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-27',
+    title: 'feed.xml 404 — PWA Service Worker Fix',
+    entries: [
+      { type: 'fix', description: '`/feed.xml` was rendering the React `NotFoundPage` for browsers with the PWA service worker installed. Same root cause as the prior `sitemap.xml` fix (commit `cf15ffd`): the Workbox NavigationRoute intercepted the request and returned the cached `index.html` shell, which then resolved to the SPA 404. Added `/^\\/feed\\.xml$/` to `navigateFallbackDenylist` in `vite.config.ts` and added `feed.xml` to the negative-lookahead in `vercel.json` so the static file is served at both layers' },
+    ],
+  },
+  {
+    date: '2026-04-27',
     title: 'Capacitor / Android Removed — PWA-Only',
     entries: [
       { type: 'breaking', description: 'Removed the entire Capacitor v8 Android pipeline. The `android/` directory, `capacitor.config.ts`, `CAPACITOR_BUILD.md`, the `public/.well-known/assetlinks.json` Digital Asset Links file, and `scripts/generate-icons.cjs` (Android mipmap generator) have all been deleted. The five `@capacitor/*` packages (`camera`, `core`, `geolocation`, `android`, `cli`) and their `cap:sync` / `cap:open` npm scripts are gone — `npm install` now resolves 72 fewer transitive packages. OpenHR is distributed exclusively as an installable PWA on iOS Safari, Android Chrome, and desktop browsers' },
