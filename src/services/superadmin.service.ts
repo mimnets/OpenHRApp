@@ -64,6 +64,7 @@ export const superAdminService = {
         records.map(async (r) => {
           let userCount = 0;
           let adminEmail = '';
+          let adminVerified: boolean | undefined;
 
           try {
             // Get user count
@@ -73,13 +74,17 @@ export const superAdminService = {
             });
             userCount = users.totalItems;
 
-            // Get admin email
+            // Get the first ADMIN/HR record (org's primary admin) — orgs created via
+            // self-registration get an ADMIN; orgs that later add HR-only managers
+            // still surface here so super admin sees their verification status too.
             const admins = await apiClient.pb!.collection('users').getList(1, 1, {
-              filter: `organization_id = "${r.id}" && role = "ADMIN"`,
-              sort: 'created'
+              filter: `organization_id = "${r.id}" && (role = "ADMIN" || role = "HR")`,
+              sort: 'created',
+              fields: 'id,email,verified',
             });
             if (admins.items.length > 0) {
               adminEmail = admins.items[0].email;
+              adminVerified = !!(admins.items[0] as any).verified;
             }
           } catch {
             // Ignore errors for stats
@@ -95,7 +100,8 @@ export const superAdminService = {
             created: r.created,
             updated: r.updated,
             userCount,
-            adminEmail
+            adminEmail,
+            adminVerified,
           } as Organization;
         })
       );

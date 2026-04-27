@@ -52,6 +52,7 @@ export interface Organization {
   // Computed fields
   userCount?: number;
   adminEmail?: string;
+  adminVerified?: boolean;
 }
 
 export interface SubscriptionInfo {

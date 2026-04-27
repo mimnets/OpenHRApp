@@ -2,6 +2,25 @@ import { apiClient } from './api.client';
 
 export const verificationService = {
   /**
+   * Public probe used by the post-registration page to detect when the user
+   * has clicked the verification link in their email. Returns false (never
+   * throws) on any error so the polling loop stays resilient.
+   */
+  async checkVerified(email: string): Promise<boolean> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return false;
+    if (!email) return false;
+    try {
+      const res = await apiClient.pb.send(
+        `/api/openhr/check-verification?email=${encodeURIComponent(email)}`,
+        { method: 'GET' }
+      );
+      return !!(res && (res as any).verified);
+    } catch {
+      return false;
+    }
+  },
+
+  /**
    * Test if email is configured in PocketBase
    */
   async testEmailConfiguration(testEmail: string): Promise<{ success: boolean; message: string }> {

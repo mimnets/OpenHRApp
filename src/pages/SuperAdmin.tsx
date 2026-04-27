@@ -668,7 +668,20 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
                         <span className="font-bold text-slate-700">{org.userCount || 0}</span>
                       </td>
                       <td className="p-4">
-                        <span className="text-sm text-slate-600">{org.adminEmail || '-'}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm text-slate-600">{org.adminEmail || '-'}</span>
+                          {org.adminEmail && (
+                            org.adminVerified ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                                <CheckCircle2 size={12} /> Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600">
+                                <Clock size={12} /> Pending verification
+                              </span>
+                            )
+                          )}
+                        </div>
                       </td>
                       <td className="p-4">
                         <span className="text-sm text-slate-500">

@@ -353,19 +353,26 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
               </div>
 
               {error && (
-                <div className="p-3.5 bg-rose-50 text-rose-600 text-[10px] font-semibold uppercase tracking-wider rounded-xl flex flex-col md:flex-row items-start md:items-center gap-3 border border-rose-100 animate-in shake">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle size={14} className="flex-shrink-0" />
-                    <span>{error}</span>
+                <div className="p-3.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 animate-in shake space-y-2">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3 text-[10px] font-semibold uppercase tracking-wider">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle size={14} className="flex-shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                    {showResend && (
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        className="ml-auto flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm text-rose-600 hover:text-rose-800 transition-colors"
+                      >
+                        <Send size={10} /> Resend Link
+                      </button>
+                    )}
                   </div>
                   {showResend && (
-                    <button 
-                      type="button" 
-                      onClick={handleResendVerification} 
-                      className="ml-auto flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm text-rose-600 hover:text-rose-800 transition-colors"
-                    >
-                      <Send size={10} /> Resend Link
-                    </button>
+                    <p className="text-[11px] font-medium normal-case tracking-normal text-rose-500/90 leading-snug">
+                      Already requested a link? <span className="font-bold">Check your spam or junk folder</span> before resending — verification emails from <span className="font-mono">noreply@openhrapp.com</span> sometimes land there.
+                    </p>
                   )}
                 </div>
               )}
