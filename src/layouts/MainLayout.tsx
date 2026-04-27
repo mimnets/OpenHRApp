@@ -33,6 +33,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
 
   return (
     <div className="flex bg-[#fcfdfe] min-h-screen relative overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-white focus:font-semibold focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       {/* Mobile Overlay */}
       <div 
         className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -102,7 +108,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
         <SubscriptionBanner onUpgradeClick={() => handleNavigate('upgrade')} userRole={user.role} />
 
         {/* Content */}
-        <div className="flex-1 p-6 md:p-12 w-full pb-28 md:pb-12 overflow-x-hidden">
+        <div id="main-content" className="flex-1 p-6 md:p-12 w-full pb-28 md:pb-12 overflow-x-hidden">
           <div className="max-w-4xl mx-auto w-full">
             {children}
           </div>

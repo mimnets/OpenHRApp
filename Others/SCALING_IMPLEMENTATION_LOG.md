@@ -203,6 +203,54 @@ Three independent edits to the same file, each reversible in isolation:
 
 ---
 
+## Next steps queue (revisit ~2026-05-03)
+
+The 4 root causes are DONE. These are the *next* improvements, ordered by leverage. Re-read this section in a week, after Phase A SW caching has had real-world rush-hour exposure.
+
+### NS1 — Per-org rush-hour windows (replaces hard-coded 08:45–09:30 / 17:30–19:00)
+
+**Why:** The current `inRushHourForOrg` helper in `cron.pb.js` correctly uses each org's IANA timezone, but the *windows themselves* are hard-coded. Factory orgs starting at 07:00 or multi-shift orgs (call centers, hospitals) get no protection during their actual rush.
+
+**Plan:**
+- Read each org's `app_config.officeStartTime` and `officeEndTime` from settings.
+- Also read the org's `shifts` collection — for each active shift, derive a window of `start_time − 15 min` to `start_time + 30 min`.
+- Combine into a per-org list of rush windows; cache for the cron run.
+- A session/user is in rush hour if "now" in org's timezone falls inside any of the org's windows.
+
+**Frozen-module gate:** Yes — touches `cron.pb.js`. This entry serves as the written plan.
+
+### NS2 — PWA SW caching Phase B (tenant-scoped stable config)
+
+**Why:** Phase A (shipped 2026-04-26) does NOT cache any multi-tenant collection responses to avoid cross-org leak on shared devices. Phase B adds caching for stable config (holidays, shifts, leave types, departments, designations, org settings) with a tenant-scoped cache key.
+
+**Pre-conditions before starting:**
+- 1 week of Phase A in production
+- Confirm the 30 s → 3 s timeout reduction actually helped rush hour
+- Confirm `/api/files/*` cache hit-rate is measurable (browser DevTools → Application → Cache Storage)
+
+**Plan:**
+- Add a Workbox plugin that reads PocketBase auth from localStorage (`pb_auth`), extracts `org_id`, and appends it to the cache key via `cacheKeyWillBeUsed`.
+- Add `StaleWhileRevalidate` for these collections only (`settings`, `shifts`, `holidays`, `teams`, `social_links`).
+- Test: log into Org A, log out, log into Org B — confirm Org A holidays are NOT shown.
+
+### NS3 — SQLite pragmas at PB boot
+
+**Why:** `synchronous=NORMAL`, `cache_size=-64000`, `mmap_size=268435456`, `busy_timeout=5000`. Reduces write-lock contention 2–5× per writer. Smallest possible change for biggest server-side win.
+
+**Plan:** One small `pb_hooks/00_pragmas.pb.js` file that runs the PRAGMAs once on boot. Not a frozen module.
+
+### NS4 — Single batched dashboard endpoint
+
+**Why:** Dashboard still fires ~8 parallel GETs on mount. One custom `/api/openhr/dashboard` PB hook returning everything in one JSON payload reduces 8 round-trips to 1. Plan §1.6.
+
+### NS5 — Phase 2 infra (only if NS1–NS4 don't fully fix rush hour)
+
+- Cloudflare in front of `pocketbase.mimnets.com` (free tier, HTTP/3, edge cache for files)
+- Move selfies to R2 / Backblaze B2 (massive disk-I/O reduction on PB host)
+- Uptime Kuma + Netdata for observability
+
+---
+
 ## Post-fix verification (run after all 4 are DONE)
 
 - [ ] Load test: 100 concurrent users invoking check-in within 30 s against staging — p95 < 2 s, p99 < 5 s
@@ -225,6 +273,7 @@ Three independent edits to the same file, each reversible in isolation:
 
 ## Global changelog (most recent first)
 
+- **2026-04-26** — PWA service-worker caching Phase A landed in `vite.config.ts`. NetworkFirst timeout cut from 30 s → 3 s, file URLs (`/api/files/*`) now CacheFirst for 30 days, public blog/tutorial endpoints SWR, realtime + auth explicitly NetworkOnly, all read caching gated on `GET`. Build verified clean. **Phase B (tenant-scoped caching for stable config) deferred** to ~2026-05-03 after a week of production monitoring.
 - **2026-04-19 (end of day)** — All 4 root causes fixed. Build green. Validator green. Ready for staging deploy. Pending: user tests under a staging rush-hour synthetic load before production cutover. Next session should read **Post-fix verification** section to know what metrics to capture.
 - **2026-04-19** — Root Cause #4 DONE: async selfie upload + localStorage retry queue + fire-and-forget late-alert.
 - **2026-04-19** — Root Cause #2 DONE: cron schedules staggered, per-org rush-hour skip guard added, validator passes.

@@ -15,6 +15,34 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-26',
+    title: 'Super Admin Bulk Email',
+    entries: [
+      { type: 'feature', description: 'Added a Bulk Email tab to the Super Admin dashboard so the platform owner can broadcast warnings, alerts, and announcements without leaving the app. Audiences supported: all org admins, all verified users, all users (or admins only) of a specific organization, or all users in orgs filtered by subscription status (TRIAL / ACTIVE / EXPIRED / SUSPENDED / AD_SUPPORTED). Compose uses the existing rich-text editor (bold, links, lists, images), and a two-step preview → confirm flow shows the exact recipient count before anything goes out' },
+      { type: 'feature', description: 'Added `superAdminService.resolveBulkRecipients`, `previewBulkRecipients`, `sendBulkEmail`, `getRecentBulkCampaigns`, and `getBulkCampaignDetail` methods. Sends are queued into the existing `reports_queue` collection in 50-row batches and tagged with `type = BULK_CAMPAIGN_<uuid>` so the History view can group per-recipient rows back into campaign-level rollups (sent / failed / pending) without needing a new collection. Recipients are de-duplicated by email and capped at 5,000 per send. The PocketBase mailer hook in `main.pb.js` does the actual sending — no changes to pb_hooks were required' },
+      { type: 'security', description: 'Always restricts targeting to `verified = true` users and excludes `SUPER_ADMIN`; bodies are passed through `sanitizeHtml` (DOMPurify) before being stored in `reports_queue`, defending against malformed paste from the rich editor' },
+    ],
+  },
+  {
+    date: '2026-04-26',
+    title: 'SEO & Accessibility Quick Wins',
+    entries: [
+      { type: 'feature', description: 'Generated a build-time RSS feed at `/feed.xml` (`scripts/generate-feed.mjs`) covering all published blog posts, wired into `npm run build` and discoverable via `<link rel="alternate" type="application/rss+xml">` in `index.html`. Improves discoverability for feed readers and AI/LLM crawlers that don\'t render JS' },
+      { type: 'improvement', description: 'Added a "Skip to content" link on `LandingPage` and `MainLayout` for keyboard users, wrapped landing-page sections in a `<main id="main-content">` landmark, and dropped `maximum-scale=1.0, user-scalable=no` from the viewport meta so users who need pinch-zoom are no longer blocked' },
+    ],
+  },
+  {
+    date: '2026-04-26',
+    title: 'PWA Service-Worker Caching — Phase A',
+    entries: [
+      { type: 'improvement', description: 'Tightened service-worker runtime caching in `vite.config.ts` to make rush-hour stalls feel ~10× shorter. Cut the API NetworkFirst fallback timeout from 30 s to 3 s — when PocketBase is contended, the app now serves last-known-good cached GETs within 3 seconds instead of spinning for half a minute' },
+      { type: 'improvement', description: 'Added explicit `NetworkOnly` rules for `/api/realtime` and `/api/collections/users/auth-*` so realtime SSE and login flows are never cached by accident' },
+      { type: 'improvement', description: 'Added `CacheFirst` for `/api/files/*` (selfies, avatars, blog covers, showcase logos) with a 30-day, 500-entry cache. Attendance audit pages and employee directories with many thumbnails now reload instantly from the device after the first visit' },
+      { type: 'improvement', description: 'Added `StaleWhileRevalidate` for the public marketing endpoints `/api/openhr/blog/*` and `/api/openhr/tutorials/*` (already public content, no tenant leak). Renders blog/tutorial pages instantly while refreshing in the background' },
+      { type: 'improvement', description: 'Guarded all read caching behind `request.method === "GET"` so writes (POST / PATCH / DELETE) bypass the SW entirely and always hit the network. No multi-tenant collection responses are cached in this phase — tenant-scoped caching for stable config (holidays, shifts, leave types) is deferred to Phase B after a week of monitoring' },
+    ],
+  },
+  {
     date: '2026-04-21',
     title: 'Check-In Sync Queue',
     entries: [

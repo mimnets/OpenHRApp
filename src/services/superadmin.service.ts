@@ -1,6 +1,43 @@
 import { apiClient } from './api.client';
-import { Organization, Employee, PlatformStats } from '../types';
+import { Organization, Employee, PlatformStats, SubscriptionStatus } from '../types';
 import { convertFileToWebP } from '../utils/imageConvert';
+import { sanitizeHtml } from '../utils/sanitize';
+
+// ==================== BULK EMAIL TYPES ====================
+
+export type BulkEmailFilter =
+  | { kind: 'ALL_ADMINS' }
+  | { kind: 'ALL_USERS' }
+  | { kind: 'ORG'; organizationId: string; rolesScope?: 'ALL' | 'ADMINS' }
+  | { kind: 'BY_SUBSCRIPTION'; statuses: SubscriptionStatus[]; rolesScope?: 'ALL' | 'ADMINS' };
+
+export interface BulkRecipient {
+  id: string;
+  email: string;
+  organization_id: string;
+}
+
+export interface BulkCampaignSummary {
+  campaignId: string;
+  subject: string;
+  totalRows: number;
+  sentCount: number;
+  failedCount: number;
+  pendingCount: number;
+  sentAt: string;
+}
+
+export interface BulkCampaignDetailRow {
+  id: string;
+  recipientEmail: string;
+  status: 'PENDING' | 'SENT' | 'FAILED';
+  sentAt?: string;
+  errorMessage?: string;
+}
+
+const BULK_CAMPAIGN_PREFIX = 'BULK_CAMPAIGN_';
+const MAX_BULK_RECIPIENTS = 5000;
+const INSERT_BATCH_SIZE = 50;
 
 export const superAdminService = {
   // Check if current user is super admin
@@ -459,5 +496,221 @@ export const superAdminService = {
     const fileName = record.image;
     const baseUrl = apiClient.pb.baseURL || '';
     return `${baseUrl}/api/files/content_images/${record.id}/${fileName}`;
-  }
+  },
+
+  // ==================== BULK EMAIL ====================
+
+  async resolveBulkRecipients(filter: BulkEmailFilter): Promise<BulkRecipient[]> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+
+    const pb = apiClient.pb;
+    const verifiedClause = '&& verified = true';
+    const excludeSuper = 'role != "SUPER_ADMIN"';
+
+    try {
+      let users: Array<{ id: string; email: string; organization_id: string }> = [];
+
+      if (filter.kind === 'ALL_ADMINS') {
+        const records = await pb.collection('users').getFullList({
+          filter: `role = "ADMIN" ${verifiedClause}`,
+          batch: 500,
+          fields: 'id,email,organization_id',
+        });
+        users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
+      } else if (filter.kind === 'ALL_USERS') {
+        const records = await pb.collection('users').getFullList({
+          filter: `${excludeSuper} ${verifiedClause}`,
+          batch: 500,
+          fields: 'id,email,organization_id',
+        });
+        users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
+      } else if (filter.kind === 'ORG') {
+        const roleClause = filter.rolesScope === 'ADMINS' ? '&& role = "ADMIN"' : `&& ${excludeSuper}`;
+        const records = await pb.collection('users').getFullList({
+          filter: `organization_id = "${filter.organizationId}" ${roleClause} ${verifiedClause}`,
+          batch: 500,
+          fields: 'id,email,organization_id',
+        });
+        users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
+      } else if (filter.kind === 'BY_SUBSCRIPTION') {
+        if (filter.statuses.length === 0) return [];
+        // Find matching orgs
+        const statusFilter = filter.statuses.map(s => `subscription_status = "${s}"`).join(' || ');
+        const orgs = await pb.collection('organizations').getFullList({
+          filter: statusFilter,
+          batch: 500,
+          fields: 'id',
+        });
+        if (orgs.length === 0) return [];
+
+        const roleClause = filter.rolesScope === 'ADMINS' ? '&& role = "ADMIN"' : `&& ${excludeSuper}`;
+        // Chunk org IDs to avoid excessively long filter strings
+        const ORG_CHUNK = 50;
+        for (let i = 0; i < orgs.length; i += ORG_CHUNK) {
+          const chunk = orgs.slice(i, i + ORG_CHUNK);
+          const orgClause = chunk.map(o => `organization_id = "${o.id}"`).join(' || ');
+          const records = await pb.collection('users').getFullList({
+            filter: `(${orgClause}) ${roleClause} ${verifiedClause}`,
+            batch: 500,
+            fields: 'id,email,organization_id',
+          });
+          users.push(...records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id })));
+        }
+      }
+
+      // De-dupe by email (case-insensitive)
+      const seen = new Set<string>();
+      const deduped: BulkRecipient[] = [];
+      for (const u of users) {
+        const key = (u.email || '').toLowerCase().trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(u);
+      }
+      return deduped;
+    } catch (e: any) {
+      console.error('[SuperAdmin] resolveBulkRecipients failed:', e?.message || e);
+      return [];
+    }
+  },
+
+  async previewBulkRecipients(filter: BulkEmailFilter): Promise<{ count: number; sampleEmails: string[] }> {
+    const recipients = await this.resolveBulkRecipients(filter);
+    return {
+      count: recipients.length,
+      sampleEmails: recipients.slice(0, 5).map(r => r.email),
+    };
+  },
+
+  async sendBulkEmail(
+    filter: BulkEmailFilter,
+    subject: string,
+    htmlContent: string
+  ): Promise<{ success: boolean; message: string; queued: number; failed: number; campaignId: string }> {
+    if (!apiClient.pb || !apiClient.isConfigured()) {
+      return { success: false, message: 'PocketBase not configured', queued: 0, failed: 0, campaignId: '' };
+    }
+    const trimmedSubject = (subject || '').trim();
+    if (!trimmedSubject) {
+      return { success: false, message: 'Subject is required', queued: 0, failed: 0, campaignId: '' };
+    }
+    if (!htmlContent || !htmlContent.trim()) {
+      return { success: false, message: 'Body is required', queued: 0, failed: 0, campaignId: '' };
+    }
+
+    const recipients = await this.resolveBulkRecipients(filter);
+    if (recipients.length === 0) {
+      return { success: false, message: 'No recipients matched the selected audience', queued: 0, failed: 0, campaignId: '' };
+    }
+    if (recipients.length > MAX_BULK_RECIPIENTS) {
+      return {
+        success: false,
+        message: `Recipient list (${recipients.length}) exceeds the per-campaign cap of ${MAX_BULK_RECIPIENTS}. Narrow the audience and split into multiple campaigns.`,
+        queued: 0,
+        failed: 0,
+        campaignId: '',
+      };
+    }
+
+    const safeHtml = sanitizeHtml(htmlContent);
+    const campaignId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const type = `${BULK_CAMPAIGN_PREFIX}${campaignId}`;
+
+    let queued = 0;
+    let failed = 0;
+    for (let i = 0; i < recipients.length; i += INSERT_BATCH_SIZE) {
+      const batch = recipients.slice(i, i + INSERT_BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(r =>
+          apiClient.pb!.collection('reports_queue').create({
+            recipient_email: r.email,
+            subject: trimmedSubject,
+            html_content: safeHtml,
+            status: 'PENDING',
+            type,
+            organization_id: r.organization_id || undefined,
+          })
+        )
+      );
+      for (const res of results) {
+        if (res.status === 'fulfilled') queued += 1;
+        else failed += 1;
+      }
+    }
+
+    const message =
+      failed === 0
+        ? `Queued ${queued} email${queued === 1 ? '' : 's'}. Delivery happens in the background.`
+        : `Queued ${queued} of ${recipients.length} emails — ${failed} failed to enqueue. Check logs.`;
+    return { success: queued > 0, message, queued, failed, campaignId };
+  },
+
+  async getRecentBulkCampaigns(limit = 20): Promise<BulkCampaignSummary[]> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    try {
+      const rows = await apiClient.pb.collection('reports_queue').getFullList({
+        filter: `type ~ "${BULK_CAMPAIGN_PREFIX}"`,
+        sort: '-created',
+        batch: 500,
+        fields: 'id,subject,status,sent_at,created,type',
+      });
+
+      const grouped = new Map<string, BulkCampaignSummary>();
+      for (const r of rows) {
+        const t: string = (r as any).type || '';
+        if (!t.startsWith(BULK_CAMPAIGN_PREFIX)) continue;
+        const id = t.slice(BULK_CAMPAIGN_PREFIX.length);
+        const existing = grouped.get(id);
+        const status = (r as any).status as 'PENDING' | 'SENT' | 'FAILED';
+        const sentAt = (r as any).sent_at || (r as any).created;
+        if (!existing) {
+          grouped.set(id, {
+            campaignId: id,
+            subject: (r as any).subject || '',
+            totalRows: 1,
+            sentCount: status === 'SENT' ? 1 : 0,
+            failedCount: status === 'FAILED' ? 1 : 0,
+            pendingCount: status === 'PENDING' ? 1 : 0,
+            sentAt,
+          });
+        } else {
+          existing.totalRows += 1;
+          if (status === 'SENT') existing.sentCount += 1;
+          else if (status === 'FAILED') existing.failedCount += 1;
+          else existing.pendingCount += 1;
+        }
+      }
+      const list = Array.from(grouped.values()).sort((a, b) => (b.sentAt || '').localeCompare(a.sentAt || ''));
+      return list.slice(0, limit);
+    } catch (e: any) {
+      console.error('[SuperAdmin] getRecentBulkCampaigns failed:', e?.message || e);
+      return [];
+    }
+  },
+
+  async getBulkCampaignDetail(campaignId: string): Promise<BulkCampaignDetailRow[]> {
+    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    if (!campaignId) return [];
+    try {
+      const rows = await apiClient.pb.collection('reports_queue').getFullList({
+        filter: `type = "${BULK_CAMPAIGN_PREFIX}${campaignId}"`,
+        sort: '-created',
+        batch: 500,
+        fields: 'id,recipient_email,status,sent_at,error_message',
+      });
+      return rows.map(r => ({
+        id: r.id,
+        recipientEmail: (r as any).recipient_email || '',
+        status: ((r as any).status || 'PENDING') as 'PENDING' | 'SENT' | 'FAILED',
+        sentAt: (r as any).sent_at || undefined,
+        errorMessage: (r as any).error_message || undefined,
+      }));
+    } catch (e: any) {
+      console.error('[SuperAdmin] getBulkCampaignDetail failed:', e?.message || e);
+      return [];
+    }
+  },
 };

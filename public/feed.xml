@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>OpenHR Blog</title>
+    <link>https://openhrapp.com/blog</link>
+    <atom:link href="https://openhrapp.com/feed.xml" rel="self" type="application/rss+xml" />
+    <description>Articles, guides, and updates from OpenHR — the open-source HR management system.</description>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 10 Mar 2026 07:02:06 GMT</lastBuildDate>
+    <item>
+      <title>The Complete Guide to OpenHRApp: Free Open Source HR Software That Actually Works</title>
+      <link>https://openhrapp.com/blog/the-complete-guide-to-openhrapp-free-open-source-hr-software-that-actually-works</link>
+      <guid isPermaLink="true">https://openhrapp.com/blog/the-complete-guide-to-openhrapp-free-open-source-hr-software-that-actually-works</guid>
+      <pubDate>Tue, 10 Mar 2026 05:44:58 GMT</pubDate>
+      <description>Managing human resources shouldn&apos;t require an enterprise budget. OpenHRApp is a free, open source HR management system built for growing organizations with 100 to 500 employees. It delivers online attendance tracking with selfie verification and GPS geofencing, multi-tier leave approval workflows, structured performance reviews, and a full employee directory — all self-hosted on a single-file PocketBase backend. 
+This step-by-step guide walks you through everything from initial setup to daily operations, covering how employees check in, how managers approve leave, and how HR runs the entire organization from one lightweight platform.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>The Ultimate &quot;No-Install&quot; HRMS: High-Precision Attendance Without the App Store Headache</title>
+      <link>https://openhrapp.com/blog/the-ultimate-no-install-hrms-high-precision-attendance-without-the-app-store-headache</link>
+      <guid isPermaLink="true">https://openhrapp.com/blog/the-ultimate-no-install-hrms-high-precision-attendance-without-the-app-store-headache</guid>
+      <pubDate>Fri, 13 Feb 2026 17:02:30 GMT</pubDate>
+      <description>Ditch the bulky downloads and expensive licenses. Our Open HR App uses modern PWA (Progressive Web App) technology to provide a high-precision, &quot;no-install&quot; attendance system. From Geofencing with GPS coordinates to biometric selfie verification, we’ve built a tool that ensures accountability for teams in the office or the field. Whether you host it yourself via GitHub or use our managed service at OpenHRApp.com, get enterprise-level leave workflows and daily reporting for free.</description>
+      <dc:creator>Admin</dc:creator>
+    </item>
+  </channel>
+</rss>
