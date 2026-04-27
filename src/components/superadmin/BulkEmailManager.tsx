@@ -82,7 +82,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
 
   const audienceLabel = useMemo(() => {
     if (audience === 'ALL_ADMINS') return 'All organization admins (ADMIN + HR roles)';
-    if (audience === 'ALL_USERS') return 'All verified users (excluding Super Admins)';
+    if (audience === 'ALL_USERS') return 'All registered users (excluding Super Admins)';
     if (audience === 'ORG') {
       const o = orgs.find(x => x.id === selectedOrgId);
       const role = orgRolesScope === 'ADMINS' ? 'admins (ADMIN + HR)' : 'users';
@@ -218,7 +218,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {([
                 { v: 'ALL_ADMINS', label: 'All org admins', desc: 'Every ADMIN across all organizations' },
-                { v: 'ALL_USERS', label: 'All users', desc: 'Every verified user (excluding Super Admins)' },
+                { v: 'ALL_USERS', label: 'All users', desc: 'Every registered user (excluding Super Admins)' },
                 { v: 'ORG', label: 'Specific organization', desc: 'Pick one org and target its admins or users' },
                 { v: 'BY_SUBSCRIPTION', label: 'By subscription status', desc: 'Target orgs in TRIAL / EXPIRED / etc.' },
               ] as Array<{ v: Audience; label: string; desc: string }>).map(opt => (
@@ -291,7 +291,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 text-amber-800 text-xs">
               <Info size={14} className="mt-0.5 shrink-0" />
               <span>
-                We only email <b>verified</b>, non-Super-Admin users. The recipient list is de-duplicated by email.
+                Recipients are every registered user matching the audience above (excluding Super Admins). Verification status is ignored — newly-registered admins/HR who haven't clicked their verification link are still reachable. The list is de-duplicated by email.
               </span>
             </div>
           </div>
@@ -354,7 +354,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
               <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold text-slate-900">{preview.count}</span>
-                  <span className="text-sm text-slate-500">verified recipient{preview.count === 1 ? '' : 's'}</span>
+                  <span className="text-sm text-slate-500">recipient{preview.count === 1 ? '' : 's'}</span>
                 </div>
                 {preview.sampleEmails.length > 0 && (
                   <div className="mt-2 text-xs text-slate-500">
