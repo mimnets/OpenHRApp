@@ -11,14 +11,9 @@
     "feed": "node scripts/generate-feed.mjs",
     "preview": "vite preview",
     "validate:hooks": "node scripts/validate-pb-hooks.cjs",
-    "cap:sync": "node -e \"require('fs').rmSync('dist/downloads',{recursive:true,force:true})\" && npx cap sync android",
-    "cap:open": "npx cap open android",
     "optimize-icons": "node scripts/optimize-icons.mjs"
   },
   "dependencies": {
-    "@capacitor/camera": "8.0.1",
-    "@capacitor/core": "^8.3.0",
-    "@capacitor/geolocation": "^8.2.0",
     "@types/dompurify": "^3.0.5",
     "@vercel/analytics": "^1.6.1",
     "dompurify": "^3.4.0",
@@ -31,8 +26,6 @@
     "recharts": "2.13.3"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.3.0",
-    "@capacitor/cli": "^8.3.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.14",

@@ -1,4 +1,4 @@
-// 2026-04-27: Bulk email broadcaster fixes (admins scope, send confirmation)
+// 2026-04-27: Capacitor / Android removal — PWA-only build pipeline
 export type ChangelogEntryType = 'feature' | 'fix' | 'improvement' | 'security' | 'breaking';
 
 export interface ChangelogEntry {
@@ -14,6 +14,20 @@ export interface ChangelogRelease {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    date: '2026-04-27',
+    title: 'Capacitor / Android Removed — PWA-Only',
+    entries: [
+      { type: 'breaking', description: 'Removed the entire Capacitor v8 Android pipeline. The `android/` directory, `capacitor.config.ts`, `CAPACITOR_BUILD.md`, the `public/.well-known/assetlinks.json` Digital Asset Links file, and `scripts/generate-icons.cjs` (Android mipmap generator) have all been deleted. The five `@capacitor/*` packages (`camera`, `core`, `geolocation`, `android`, `cli`) and their `cap:sync` / `cap:open` npm scripts are gone — `npm install` now resolves 72 fewer transitive packages. OpenHR is distributed exclusively as an installable PWA on iOS Safari, Android Chrome, and desktop browsers' },
+      { type: 'improvement', description: '`src/hooks/attendance/useCamera.ts` rewritten to drop the `Camera.getPhoto()` Capacitor fallback. The fallback path (used when `getUserMedia` is blocked, e.g. iOS PWA standalone before user activation) now opens the device camera via a programmatic `<input type="file" accept="image/*" capture="user">` and feeds the resulting `File` through the existing `convertToWebP()` pipeline, returning the same data-URL contract callers already expect. The `<input>` is reused for `selectFromGallery()` without the `capture` attribute. Public hook surface is unchanged' },
+      { type: 'improvement', description: '`src/hooks/attendance/useGeoLocation.ts` rewritten to use only `navigator.geolocation` — the three `Capacitor.isNativePlatform()` branches and `Geolocation.requestPermissions()` / `getCurrentPosition()` / `watchPosition()` / `clearWatch()` calls are gone. High-accuracy → network-fallback retry logic, OpenStreetMap Nominatim reverse geocoding, and geofence matching against `OFFICE_LOCATIONS` are all preserved. `watchIdRef` switched from a Capacitor string id to the browser numeric watch id' },
+      { type: 'improvement', description: '`src/pages/Login.tsx` no longer references the Android autofill JavaScript bridge. Removed the `window.AndroidAutofill` global type declaration, the `requestAutofill()` call on mount that prompted Google Password Manager, and the `commitAutofill()` call after successful login. The two surviving "Save Password" strategies — the Credential Management API for Chrome/Edge/Android browser, and the iOS Safari hidden-form-submission trick (with double-rAF before submit and the `safari-password-save` iframe absorber) — are unchanged' },
+      { type: 'improvement', description: '`Others/CLAUDE.md` updated: deleted the "Capacitor (Android) Rules" section (stack, version-matching rules, custom-hook list, Android build config), removed the four `cap` build commands from the top-level Build & Development block, dropped the four Capacitor / Android entries from the Pre-Commit Checklist, replaced the `adb logcat` debugging snippet with HTTPS-tunnel guidance for testing camera/geolocation on a phone, and dropped `capacitor.config.ts` from the Configuration Files reference' },
+      { type: 'improvement', description: '`README.md` updated: tech-stack table no longer lists "Capacitor v8 (Android APK)", the marketing bullet about "+ native Android APK via Capacitor" was rewritten to "Installable PWA on iOS, Android, and desktop with offline-aware caching", and the entire "Android Build (Optional)" Quick Start section (`npm run build && npx cap sync android && npx cap run android`) was removed. The architecture diagram now reads `React 19 (Installable PWA)` instead of `React 19 (PWA + Capacitor)`' },
+      { type: 'improvement', description: '`Others/LOGGING_AND_BUG_REPORTING_PLAN.md` (still a draft proposal) updated so the future logger plan no longer assumes Capacitor: target stack, error class enumeration, architecture diagram, the platform enum (web/android → web/pwa-standalone), the app_version field description, the global-error-handler list (replaced the Capacitor App.addListener appStateChange hook with visibilitychange plus display-mode standalone tracking), the bug-report device-info capture, and the rollout phase-3 dependency on @capacitor/device (now done with standard browser APIs)' },
+      { type: 'improvement', description: 'Removed the `public/downloads/*.apk` line from `.gitignore` and deleted the now-unused `public/downloads/` directory. The `/download` page route was already removed in 2026-04-15; this finishes the cleanup so the deploy artifact has no orphaned APK references. The `Others/openhr-development-playbook.md` historical playbook entries that mention Capacitor as a past photo source are intentionally left untouched (they document a snapshot of the WebP conversion task and would lose meaning if rewritten)' },
+    ],
+  },
   {
     date: '2026-04-27',
     title: 'Bulk Email Broadcaster — Fixes',

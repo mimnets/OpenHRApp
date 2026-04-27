@@ -15,7 +15,7 @@ Most open source HRMS tools are bloated, hard to deploy, or stuck in the past. O
 
 - **Single-file backend** — PocketBase means no database clusters, no Docker compose files, no DevOps headaches
 - **Modern stack** — React 19 + Tailwind CSS + TypeScript, not a legacy PHP monolith
-- **Mobile-ready** — PWA with install-to-homescreen support + native Android APK via Capacitor
+- **Mobile-ready** — Installable PWA on iOS, Android, and desktop with offline-aware caching
 - **Privacy-first** — Self-hosted, your employee data never leaves your server
 - **Multi-tenant** — One instance can serve multiple organizations with full data isolation
 
@@ -62,7 +62,7 @@ Most open source HRMS tools are bloated, hard to deploy, or stuck in the past. O
 |-------|-----------|
 | Frontend | React 19, TypeScript, Tailwind CSS |
 | Backend | [PocketBase](https://pocketbase.io) (Go-based, single-file DB + auth) |
-| Mobile | PWA + Capacitor v8 (Android APK) |
+| Mobile | Installable PWA (iOS Safari, Android Chrome, desktop) |
 | Icons | Lucide React |
 | Deployment | Vercel (frontend), any VPS (PocketBase) |
 
@@ -92,20 +92,12 @@ npm run dev
 
 Open the app and enter your PocketBase URL on the setup screen. Create your first Admin user in the PocketBase admin UI, then log in.
 
-### Android Build (Optional)
-
-```bash
-npm run build
-npx cap sync android
-npx cap run android
-```
-
 ---
 
 ## Architecture
 
 ```
-React 19 (PWA + Capacitor)
+React 19 (Installable PWA)
     ↓
 Custom Hooks → hrService (facade) → Domain Services → PocketBase SDK
     ↓

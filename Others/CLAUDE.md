@@ -10,9 +10,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Start Vite dev server on port 3000
 npm run build    # Production build
 npm run preview  # Serve production build locally
-npx cap sync android        # Sync web build to Android native project
-npx cap run android         # Build and run on connected Android device
-npx cap doctor              # Verify all Capacitor versions match
 ```
 
 Backend: PocketBase server must be running. Deploy ALL `.pb.js` files from `Others/pb_hooks/` to PocketBase's `pb_hooks/` folder (see PocketBase Hooks section below).
@@ -21,15 +18,14 @@ Backend: PocketBase server must be running. Deploy ALL `.pb.js` files from `Othe
 
 ## Architecture Overview
 
-OpenHR is a React 19 + TypeScript HR management system using PocketBase as the backend. It runs as a **PWA on web** and as a **native Android APK via Capacitor v8**.
+OpenHR is a React 19 + TypeScript HR management system using PocketBase as the backend. It runs as a **PWA on web** (installable on desktop, iOS, and Android via the browser).
 
 Key characteristics:
 - **No React Router** — Uses local state routing in `App.tsx` via `currentPath` state
 - **Context + Event Bus** for state management (no Redux)
 - **Service layer facade** — All API calls go through `hrService` which aggregates domain services
 - **Multi-tenant** — Every query includes `org_id` filtering via `apiClient.getOrganizationId()`
-- **PWA-enabled** with service worker support
-- **Capacitor v8** for Android native build (camera, geolocation, filesystem)
+- **PWA-enabled** with service worker support, install-to-homescreen on iOS/Android, and offline caching
 
 ### Data Flow Pattern
 
@@ -502,30 +498,17 @@ ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must 
 
 ---
 
-## Capacitor (Android) Rules — MUST FOLLOW
+## Camera & Geolocation — Web APIs
 
-### Stack
-- Capacitor v8
-- `@capacitor/camera` — employee photo (hybrid: live stream + Capacitor fallback)
-- `@capacitor/geolocation` — attendance location tracking (native on Android, browser on web)
-- `@capacitor/filesystem` — file downloads/exports
+The app is PWA-only. All native-feature hooks use standard browser APIs:
 
-### Rules
-- All Capacitor package versions MUST match exactly (`npx cap doctor`)
-- NEVER use `navigator.geolocation` or `navigator.mediaDevices` directly — always use Capacitor plugins on native
-- NEVER commit `android/` build artifacts
-- ALL native feature components MUST have an `<ErrorBoundary>` wrapper
-- Always request permissions at runtime (never assume granted)
-- Always separate web vs native logic with `Capacitor.isNativePlatform()`
-- Run `npx cap sync android` after every plugin install or web build change
+- `src/hooks/attendance/useCamera.ts` — `navigator.mediaDevices.getUserMedia()` for live stream; `<input type="file" accept="image/*" capture="user">` fallback for iOS PWA / blocked stream. WebP output via `convertToWebP()`.
+- `src/hooks/attendance/useGeoLocation.ts` — `navigator.geolocation.getCurrentPosition()` / `watchPosition()` with high-accuracy → network fallback, plus OpenStreetMap Nominatim reverse geocoding.
 
-### Custom Hooks — always use these, never call plugins directly
-- `src/hooks/attendance/useCamera.ts` — live stream + Capacitor fallback, WebP output
-- `src/hooks/attendance/useGeoLocation.ts` — Capacitor native + browser fallback + OpenStreetMap geocoding
-
-### Android Build Config
-- minSdkVersion: 24, targetSdkVersion: 36
-- `usesCleartextTraffic="true"` — debug builds only
+Rules:
+- ALL native-feature components MUST have an `<ErrorBoundary>` wrapper
+- Always handle permission-denied / no-geolocation errors with readable messages
+- Test camera + location on real iOS Safari and Android Chrome before shipping (PWA standalone mode is stricter than the browser tab)
 
 ---
 
@@ -556,7 +539,6 @@ ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must 
 | File | Purpose |
 |------|---------|
 | `vite.config.ts` | Port 3000, path alias `@/` → `./src/`, PWA plugin |
-| `capacitor.config.ts` | appId, appName, webDir |
 | `src/config/database.ts` | PocketBase URL from env or hardcoded fallback |
 | `src/constants.tsx` | All default config values, departments, locations, holidays, competencies |
 | `vercel.json` | Vercel deployment config |
@@ -579,8 +561,8 @@ ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must 
 | `src/context/ThemeContext.tsx` | Theme management (13+ themes, dark mode) |
 | `src/services/hrService.ts` | Unified service facade |
 | `src/services/api.client.ts` | PocketBase client + event bus |
-| `src/hooks/attendance/useCamera.ts` | Camera hook (hybrid approach) |
-| `src/hooks/attendance/useGeoLocation.ts` | Location hook (native + browser) |
+| `src/hooks/attendance/useCamera.ts` | Camera hook (live stream + file-input fallback) |
+| `src/hooks/attendance/useGeoLocation.ts` | Location hook (browser geolocation + OSM geocoding) |
 | `src/components/ErrorBoundary.tsx` | Error boundary for native features |
 | `Others/pb_hooks/main.pb.js` | Core PocketBase hooks + 16 API endpoints |
 | `Others/pb_hooks/leave_notifications.pb.js` | DEPRECATED — leave hooks now in main.pb.js (standalone backup only) |
@@ -604,14 +586,10 @@ Always push immediately after committing. Never leave unpushed commits.
 
 ## Pre-Commit Checklist
 
-- [ ] `npx cap doctor` — no version mismatches
-- [ ] `npx cap sync android` — native project in sync with web build
-- [ ] Permissions tested on real Android device (not just emulator)
-- [ ] Camera and location show proper denied/granted UI messages
+- [ ] Camera and location tested on real iOS Safari + Android Chrome (and PWA standalone) — not just desktop
+- [ ] Permission-denied UI shows readable messages
 - [ ] Lighthouse PWA score > 90
 - [ ] No hardcoded credentials, API keys, or PocketBase URLs
-- [ ] All `@capacitor/*` packages on the same version
-- [ ] `android/` build artifacts not staged in git
 - [ ] All notification hooks intact (leave, attendance, review)
 - [ ] All `.pb.js` files deployed to server's `pb_hooks/` directory
 
@@ -620,11 +598,11 @@ Always push immediately after committing. Never leave unpushed commits.
 ## Debugging
 
 ```bash
-# Live crash log from connected Android device
-adb logcat | grep -i "openhr\|capacitor\|error"
-
-# Live reload dev build on device
-npx cap run android --livereload
+# Test camera/location on a phone against the dev server:
+#   1. Start dev: npm run dev (Vite serves on port 3000)
+#   2. Expose via HTTPS tunnel (ngrok / cloudflared / Vite + cert)
+#   3. Open the tunnel URL on the phone — getUserMedia / geolocation
+#      require HTTPS (or localhost) to work.
 
 # Check PocketBase hook loading
 # Look for: [HOOKS] Loading ... and [HOOKS] ... loaded successfully
