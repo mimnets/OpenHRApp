@@ -728,6 +728,42 @@ routerAdd("GET", "/api/openhr/unverified-users", (e) => {
 });
 
 /* ============================================================
+   2D-bis. PUBLIC VERIFICATION-STATUS CHECK
+   Method: GET /api/openhr/check-verification?email=<address>
+   Auth:   Public (called from the post-registration page while the
+           user is still unauthenticated). Returns ONLY a boolean —
+           never any other user data — so it cannot be used as a
+           user-existence oracle beyond what registration already exposes.
+   ============================================================ */
+try {
+    routerAdd("GET", "/api/openhr/check-verification", (e) => {
+        try {
+            const email = (e.requestInfo().query && e.requestInfo().query.email) || "";
+            if (!email) return e.json(400, { verified: false, message: "Email required" });
+
+            try {
+                const rec = $app.findFirstRecordByFilter(
+                    "users",
+                    "email = {:email}",
+                    { email: email }
+                );
+                return e.json(200, { verified: !!rec.get("verified") });
+            } catch (notFound) {
+                // No record yet — treat as not verified rather than 404, so the
+                // client polls quietly without UI errors during the brief window
+                // before the user is fully persisted.
+                return e.json(200, { verified: false });
+            }
+        } catch (err) {
+            console.log("[CHECK-VERIFICATION] Error: " + err.toString());
+            return e.json(500, { verified: false, message: "Internal error" });
+        }
+    });
+} catch (e) {
+    console.log("[HOOKS] check-verification route registration failed: " + e.toString());
+}
+
+/* ============================================================
    2E. ACCEPT AD-SUPPORTED MODE ENDPOINT
    ============================================================ */
 routerAdd("POST", "/api/openhr/accept-ads", (e) => {

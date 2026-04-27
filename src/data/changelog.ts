@@ -1,4 +1,4 @@
-// 2026-04-16: Added dependency updates and logo fix entry
+// 2026-04-27: Bulk email broadcaster fixes (admins scope, send confirmation)
 export type ChangelogEntryType = 'feature' | 'fix' | 'improvement' | 'security' | 'breaking';
 
 export interface ChangelogEntry {
@@ -14,6 +14,16 @@ export interface ChangelogRelease {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    date: '2026-04-27',
+    title: 'Bulk Email Broadcaster — Fixes',
+    entries: [
+      { type: 'fix', description: 'Bulk Email "All organization admins" (and the per-org / per-subscription "Admins only" scopes) now match users with `role = "ADMIN"` OR `role = "HR"`. Previously the filter only matched `ADMIN`, so orgs that use HR as their admin role returned zero recipients on preview and could not be broadcast to' },
+      { type: 'fix', description: 'Dropped the `verified = true` requirement from super-admin bulk-email recipient resolution. The first admin of every org is created with `verified = false` (per `Others/pb_hooks/main.pb.js:135,140`) and only flips to `true` when they click the email-verification link or an existing admin manually approves them — verification is a login gate, not a deliverability gate. The bulk broadcaster now targets every registered admin/HR row in PocketBase that matches the audience, regardless of verification status (still excluding `SUPER_ADMIN`). Updated UI copy in `BulkEmailManager.tsx` accordingly so the audience labels and helper text no longer claim "verified" filtering' },
+      { type: 'fix', description: 'The "Yes, send now" confirmation modal now always closes after the send attempt (success OR error), and the page scrolls to the top so the success/error banner is visible. Previously, on certain failures the modal stayed open and the user got no confirmation that the email had been queued or had failed' },
+      { type: 'improvement', description: 'Email-verification UX hardening. (1) The Super Admin Organizations table now shows a "Verified" / "Pending verification" badge under each org\'s admin email so stuck signups are visible without drilling into the user list (`SuperAdmin.tsx` Admin column, `getAllOrganizations` widened to look up the first ADMIN-or-HR record and return its `verified` flag as `Organization.adminVerified`). (2) `RegistrationVerificationPage` was rewritten — replaced the legacy inline-style CSS with Tailwind that matches the rest of the app, added a prominent amber "check your spam or junk folder" warning right under the email address (the previous hint was buried in tiny grey footer text), added a working 8-second poll against a new `GET /api/openhr/check-verification?email=…` endpoint so the page actually detects verification and auto-advances (the prior `setInterval` only incremented a timer and never queried PocketBase), and added a "Back to home" button so users aren\'t stuck on the page. Polling stops after 10 minutes with a clear message. (3) The Login screen unverified-account error now shows the same spam-folder hint inline with the existing "Resend Link" button so users on the second-attempt path get the same guidance' },
+    ],
+  },
   {
     date: '2026-04-26',
     title: 'Super Admin Bulk Email',
