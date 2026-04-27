@@ -1,19 +1,247 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
-    <title>OpenHR Blog</title>
-    <link>https://openhrapp.com/blog</link>
+    <title>OpenHR</title>
+    <link>https://openhrapp.com</link>
     <atom:link href="https://openhrapp.com/feed.xml" rel="self" type="application/rss+xml" />
-    <description>Articles, guides, and updates from OpenHR — the open-source HR management system.</description>
+    <description>Articles, guides, and product updates from OpenHR — the open-source HR management system.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 10 Mar 2026 07:02:06 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 01 Apr 2026 06:20:14 GMT</lastBuildDate>
+    <item>
+      <title>Exporting Employee Data</title>
+      <link>https://openhrapp.com/how-to-use/exporting-employee-data</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/exporting-employee-data</guid>
+      <pubDate>Fri, 13 Mar 2026 06:06:48 GMT</pubDate>
+      <category>Guide — Reports</category>
+      <description>How to export your employee directory as CSV for data analysis or branded PDF for stakeholder sharing.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Subscription and Upgrade Options</title>
+      <link>https://openhrapp.com/how-to-use/subscription-upgrade-options</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/subscription-upgrade-options</guid>
+      <pubDate>Fri, 13 Mar 2026 06:05:10 GMT</pubDate>
+      <category>Guide — Getting Started</category>
+      <description>OpenHRApp&apos;s subscription model explained — Trial, Donation tiers, Ad-Supported free tier, and what happens when your trial expires.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Understanding the Dashboard</title>
+      <link>https://openhrapp.com/how-to-use/understanding-dashboard</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/understanding-dashboard</guid>
+      <pubDate>Fri, 13 Mar 2026 06:00:36 GMT</pubDate>
+      <category>Guide — Getting Started</category>
+      <description>A detailed tour of OpenHRApp&apos;s role-based dashboard — what each widget shows for Employees, Managers, and Admins.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Configuring Notification Settings</title>
+      <link>https://openhrapp.com/how-to-use/notification-settings</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/notification-settings</guid>
+      <pubDate>Fri, 13 Mar 2026 05:57:39 GMT</pubDate>
+      <category>Guide — Organization</category>
+      <description>How to configure email notifications, enable or disable notification types, set up SMTP, and manage notification retention.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Custom Leave Types and Special Leave</title>
+      <link>https://openhrapp.com/how-to-use/custom-leave-types</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/custom-leave-types</guid>
+      <pubDate>Fri, 13 Mar 2026 05:50:51 GMT</pubDate>
+      <category>Guide — Leave</category>
+      <description>Understanding all leave types in OpenHRApp — Maternity, Paternity, Earned, Unpaid, half-day leave, and custom-configured types.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Theme Customization</title>
+      <link>https://openhrapp.com/how-to-use/theme-customization</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/theme-customization</guid>
+      <pubDate>Fri, 13 Mar 2026 05:48:44 GMT</pubDate>
+      <category>Guide — Settings</category>
+      <description>Personalize OpenHRApp with 14 color themes, dark mode, light mode, and system preference — saved across devices.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Notifications — Bell Notifications and Admin Management</title>
+      <link>https://openhrapp.com/how-to-use/notifications-guide</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/notifications-guide</guid>
+      <pubDate>Fri, 13 Mar 2026 05:44:30 GMT</pubDate>
+      <category>Guide — Settings</category>
+      <description>How OpenHRApp&apos;s bell and email notification system works, what events trigger notifications, and how admins manage them.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Announcements — Viewing and Creating</title>
+      <link>https://openhrapp.com/how-to-use/announcements-guide</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/announcements-guide</guid>
+      <pubDate>Fri, 13 Mar 2026 05:42:12 GMT</pubDate>
+      <category>Guide — Announcements</category>
+      <description>How to view organization announcements in OpenHRApp, and how Admins can create, target, and manage company-wide communications.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Performance Reviews — HR Calibration</title>
+      <link>https://openhrapp.com/how-to-use/performance-reviews-hr-calibration</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/performance-reviews-hr-calibration</guid>
+      <pubDate>Fri, 13 Mar 2026 05:40:07 GMT</pubDate>
+      <category>Guide — Performance</category>
+      <description>How HR calibrates performance reviews, assigns final overall ratings, manages review cycles, and completes the process.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Performance Reviews — For Managers</title>
+      <link>https://openhrapp.com/how-to-use/performance-review-for-managers</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/performance-review-for-managers</guid>
+      <pubDate>Fri, 13 Mar 2026 05:37:01 GMT</pubDate>
+      <category>Guide — Performance</category>
+      <description>How managers review employee self-assessments, provide competency ratings and feedback, and submit for HR calibration.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Performance Reviews — Employee Self-Assessment</title>
+      <link>https://openhrapp.com/how-to-use/performance-review-self-assessment</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/performance-review-self-assessment</guid>
+      <pubDate>Fri, 13 Mar 2026 05:32:22 GMT</pubDate>
+      <category>Guide — Performance</category>
+      <description>How to complete your self-assessment in OpenHRApp — rate competencies, add comments, and submit for manager review.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Install OpenHRApp as an App (PWA) on Android and iOS</title>
+      <link>https://openhrapp.com/how-to-use/install-openhrapp-pwa</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/install-openhrapp-pwa</guid>
+      <pubDate>Fri, 13 Mar 2026 05:30:15 GMT</pubDate>
+      <category>Guide — Getting Started</category>
+      <description>Install OpenHRApp on your phone or desktop as a Progressive Web App (PWA) — no app store download required.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Roles and Permissions in OpenHRApp</title>
+      <link>https://openhrapp.com/how-to-use/roles-and-permissions</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/roles-and-permissions</guid>
+      <pubDate>Fri, 13 Mar 2026 05:25:29 GMT</pubDate>
+      <category>Guide — Getting Started</category>
+      <description>Complete guide to OpenHR&apos;s role-based access control — what Admin, HR, Manager, Team Lead, and Employee roles can access.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Managing Your Profile and Settings</title>
+      <link>https://openhrapp.com/how-to-use/managing-profile-settings</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/managing-profile-settings</guid>
+      <pubDate>Fri, 13 Mar 2026 05:20:04 GMT</pubDate>
+      <category>Guide — Settings</category>
+      <description>How to view your employee profile, update your name and email, change your password, and customize your app theme.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Generating Reports</title>
+      <link>https://openhrapp.com/how-to-use/generating-reports</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/generating-reports</guid>
+      <pubDate>Fri, 13 Mar 2026 05:18:27 GMT</pubDate>
+      <category>Guide — Reports</category>
+      <description>How to generate attendance and leave reports in OpenHRApp, export as CSV or PDF, and email summaries to stakeholders.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Setting Up Your Organization</title>
+      <link>https://openhrapp.com/how-to-use/setting-up-organization</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/setting-up-organization</guid>
+      <pubDate>Fri, 13 Mar 2026 05:17:05 GMT</pubDate>
+      <category>Guide — Organization</category>
+      <description>Complete admin guide to configuring departments, teams, shifts, GPS locations, leave policies, holidays, and workflows in OpenHRApp.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Managing Employees — Adding and Editing Staff</title>
+      <link>https://openhrapp.com/how-to-use/managing-employees</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/managing-employees</guid>
+      <pubDate>Fri, 13 Mar 2026 05:15:01 GMT</pubDate>
+      <category>Guide — Employees</category>
+      <description>How admins add new employees, assign roles and departments, manage the employee directory, and export staff data.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Understanding Leave Policies</title>
+      <link>https://openhrapp.com/how-to-use/understanding-leave-policies</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/understanding-leave-policies</guid>
+      <pubDate>Fri, 13 Mar 2026 05:12:31 GMT</pubDate>
+      <category>Guide — Leave</category>
+      <description>How leave types, balances, quotas, approval workflows, and holiday exclusions are configured in OpenHRApp.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Leave Approval — For HR and Admins</title>
+      <link>https://openhrapp.com/how-to-use/leave-approval-for-hr</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/leave-approval-for-hr</guid>
+      <pubDate>Fri, 13 Mar 2026 05:11:10 GMT</pubDate>
+      <category>Guide — Leave</category>
+      <description>How HR and Admin users verify, approve, reject, and manage leave records with admin override capabilities.
+</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Leave Approval — For Managers</title>
+      <link>https://openhrapp.com/how-to-use/leave-approval-for-managers</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/leave-approval-for-managers</guid>
+      <pubDate>Fri, 13 Mar 2026 05:05:31 GMT</pubDate>
+      <category>Guide — Leave</category>
+      <description>How managers review, approve, or reject leave requests from direct reports in OpenHR&apos;s multi-step approval workflow.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>How to Apply for Leave</title>
+      <link>https://openhrapp.com/how-to-use/how-to-apply-for-leave</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/how-to-apply-for-leave</guid>
+      <pubDate>Fri, 13 Mar 2026 05:02:01 GMT</pubDate>
+      <category>Guide — Leave</category>
+      <description>Step-by-step guide to applying for leave in OpenHR — check your balance, submit a request, and track the approval status.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Attendance for Admins — Audit and Manual Entries</title>
+      <link>https://openhrapp.com/how-to-use/attendance-admin-audit</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/attendance-admin-audit</guid>
+      <pubDate>Fri, 13 Mar 2026 04:56:33 GMT</pubDate>
+      <category>Guide — Attendance</category>
+      <description>How admins can audit attendance records, edit clock-in times, create manual entries, and mark employees as absent.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
     <item>
       <title>The Complete Guide to OpenHRApp: Free Open Source HR Software That Actually Works</title>
       <link>https://openhrapp.com/blog/the-complete-guide-to-openhrapp-free-open-source-hr-software-that-actually-works</link>
       <guid isPermaLink="true">https://openhrapp.com/blog/the-complete-guide-to-openhrapp-free-open-source-hr-software-that-actually-works</guid>
       <pubDate>Tue, 10 Mar 2026 05:44:58 GMT</pubDate>
+      <category>Blog</category>
       <description>Managing human resources shouldn&apos;t require an enterprise budget. OpenHRApp is a free, open source HR management system built for growing organizations with 100 to 500 employees. It delivers online attendance tracking with selfie verification and GPS geofencing, multi-tier leave approval workflows, structured performance reviews, and a full employee directory — all self-hosted on a single-file PocketBase backend. 
 This step-by-step guide walks you through everything from initial setup to daily operations, covering how employees check in, how managers approve leave, and how HR runs the entire organization from one lightweight platform.</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Understanding Your Attendance Logs</title>
+      <link>https://openhrapp.com/how-to-use/understanding-attendance-logs</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/understanding-attendance-logs</guid>
+      <pubDate>Tue, 17 Feb 2026 06:44:34 GMT</pubDate>
+      <category>Guide — Attendance</category>
+      <description>How to view your personal attendance history, understand attendance status badges, and read consolidated daily records.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>How to Clock In and Out</title>
+      <link>https://openhrapp.com/how-to-use/how-to-clock-in-and-out</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/how-to-clock-in-and-out</guid>
+      <pubDate>Tue, 17 Feb 2026 05:43:32 GMT</pubDate>
+      <category>Guide — Attendance</category>
+      <description>A complete guide to clocking in and out of work using OpenHR&apos;s selfie and GPS-based attendance system.
+</description>
+      <dc:creator>Monirul Islam</dc:creator>
+    </item>
+    <item>
+      <title>Welcome to OpenHRApp — Your First Steps</title>
+      <link>https://openhrapp.com/how-to-use/welcome-to-openhrapp</link>
+      <guid isPermaLink="true">https://openhrapp.com/how-to-use/welcome-to-openhrapp</guid>
+      <pubDate>Tue, 17 Feb 2026 05:41:03 GMT</pubDate>
+      <category>Guide — Getting Started</category>
+      <description>Complete guide to OpenHR&apos;s selfie-based attendance system with GPS location verification, office and factory clock-in modes.</description>
       <dc:creator>Monirul Islam</dc:creator>
     </item>
     <item>
@@ -21,8 +249,72 @@ This step-by-step guide walks you through everything from initial setup to daily
       <link>https://openhrapp.com/blog/the-ultimate-no-install-hrms-high-precision-attendance-without-the-app-store-headache</link>
       <guid isPermaLink="true">https://openhrapp.com/blog/the-ultimate-no-install-hrms-high-precision-attendance-without-the-app-store-headache</guid>
       <pubDate>Fri, 13 Feb 2026 17:02:30 GMT</pubDate>
+      <category>Blog</category>
       <description>Ditch the bulky downloads and expensive licenses. Our Open HR App uses modern PWA (Progressive Web App) technology to provide a high-precision, &quot;no-install&quot; attendance system. From Geofencing with GPS coordinates to biometric selfie verification, we’ve built a tool that ensures accountability for teams in the office or the field. Whether you host it yourself via GitHub or use our managed service at OpenHRApp.com, get enterprise-level leave workflows and daily reporting for free.</description>
       <dc:creator>Admin</dc:creator>
+    </item>
+    <item>
+      <title>Attendance Management</title>
+      <link>https://openhrapp.com/features/attendance-tracking</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/attendance-tracking</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Track employee attendance with selfie-based check-in, GPS verification, and real-time dashboards. Supports office and factory shift modes.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>Leave Management</title>
+      <link>https://openhrapp.com/features/leave-management</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/leave-management</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Streamline leave requests, approvals, and balance tracking. Configure custom leave types with automatic calculations.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>Performance Reviews</title>
+      <link>https://openhrapp.com/features/performance-reviews</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/performance-reviews</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Run structured performance reviews with self-assessment, manager evaluation, and HR finalization. Customizable competencies and rating scales.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>GPS &amp; Location Verification</title>
+      <link>https://openhrapp.com/features/gps-geofencing</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/gps-geofencing</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Verify employee attendance with GPS location tracking. Ideal for remote teams and field workers.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>Biometric Selfie Verification</title>
+      <link>https://openhrapp.com/features/biometric-selfie-verification</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/biometric-selfie-verification</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Prevent buddy punching with selfie-based attendance verification. Photo evidence ensures authentic check-ins. No special hardware needed.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>Employee Directory</title>
+      <link>https://openhrapp.com/features/employee-directory</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/employee-directory</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Manage employee profiles, departments, and org structure in one place. Role-based access, bulk import, and searchable directory.</description>
+      <dc:creator>OpenHR Team</dc:creator>
+    </item>
+    <item>
+      <title>Reports &amp; Analytics</title>
+      <link>https://openhrapp.com/features/reports-analytics</link>
+      <guid isPermaLink="true">https://openhrapp.com/features/reports-analytics</guid>
+      <pubDate>Wed, 01 Apr 2026 06:20:14 GMT</pubDate>
+      <category>Feature</category>
+      <description>Generate attendance reports, leave utilization analytics, and team performance insights. Interactive charts and CSV export.</description>
+      <dc:creator>OpenHR Team</dc:creator>
     </item>
   </channel>
 </rss>

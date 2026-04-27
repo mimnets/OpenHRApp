@@ -16,9 +16,10 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-27',
-    title: 'feed.xml 404 — PWA Service Worker Fix',
+    title: 'feed.xml — Combined Blog + Guides + Features',
     entries: [
       { type: 'fix', description: '`/feed.xml` was rendering the React `NotFoundPage` for browsers with the PWA service worker installed. Same root cause as the prior `sitemap.xml` fix (commit `cf15ffd`): the Workbox NavigationRoute intercepted the request and returned the cached `index.html` shell, which then resolved to the SPA 404. Added `/^\\/feed\\.xml$/` to `navigateFallbackDenylist` in `vite.config.ts` and added `feed.xml` to the negative-lookahead in `vercel.json` so the static file is served at both layers' },
+      { type: 'improvement', description: 'Extended `scripts/generate-feed.mjs` to fold tutorials/guides (`/api/openhr/tutorials/posts` → `/how-to-use/<slug>`) and the seven product features (`/features/<slug>`) into the existing single RSS feed, alongside blog posts. Each `<item>` now carries a `<category>` (`Blog`, `Guide — <category>`, or `Feature`) so feed readers and AI/LLM crawlers can distinguish content types. Dated content (blog + tutorials) is sorted newest-first; evergreen feature items are appended after with the `features.ts` file mtime as a stable `pubDate` so they don\'t displace fresh content. Result: feed went from 2 items to 34 (2 blog + 25 guide + 7 feature). Channel `<title>` updated from `OpenHR Blog` to `OpenHR` and description widened to "Articles, guides, and product updates" to match' },
     ],
   },
   {
