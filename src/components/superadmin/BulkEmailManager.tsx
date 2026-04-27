@@ -81,15 +81,15 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
   };
 
   const audienceLabel = useMemo(() => {
-    if (audience === 'ALL_ADMINS') return 'All organization admins';
+    if (audience === 'ALL_ADMINS') return 'All organization admins (ADMIN + HR roles)';
     if (audience === 'ALL_USERS') return 'All verified users (excluding Super Admins)';
     if (audience === 'ORG') {
       const o = orgs.find(x => x.id === selectedOrgId);
-      const role = orgRolesScope === 'ADMINS' ? 'admins' : 'users';
+      const role = orgRolesScope === 'ADMINS' ? 'admins (ADMIN + HR)' : 'users';
       return o ? `${role} of ${o.name}` : 'Specific organization';
     }
     if (audience === 'BY_SUBSCRIPTION') {
-      const role = subRolesScope === 'ADMINS' ? 'admins' : 'users';
+      const role = subRolesScope === 'ADMINS' ? 'admins (ADMIN + HR)' : 'users';
       return `${role} in orgs with status: ${subStatuses.join(', ') || '—'}`;
     }
     return '';
@@ -123,18 +123,21 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
       const result = await superAdminService.sendBulkEmail(filter, subject, body);
       if (result.success) {
         onMessage({ type: 'success', text: result.message });
-        // Reset compose state after a successful send
         setSubject('');
         setBody('');
         setPreview(null);
-        setConfirmOpen(false);
       } else {
         onMessage({ type: 'error', text: result.message });
       }
-    } catch {
+    } catch (err) {
+      console.error('[BulkEmail] sendBulkEmail failed:', err);
       onMessage({ type: 'error', text: 'Send failed. Check console for details.' });
     } finally {
       setSending(false);
+      setConfirmOpen(false);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 

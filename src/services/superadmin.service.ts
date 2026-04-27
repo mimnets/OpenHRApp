@@ -506,13 +506,14 @@ export const superAdminService = {
     const pb = apiClient.pb;
     const verifiedClause = '&& verified = true';
     const excludeSuper = 'role != "SUPER_ADMIN"';
+    const adminRolesClause = '(role = "ADMIN" || role = "HR")';
 
     try {
       let users: Array<{ id: string; email: string; organization_id: string }> = [];
 
       if (filter.kind === 'ALL_ADMINS') {
         const records = await pb.collection('users').getFullList({
-          filter: `role = "ADMIN" ${verifiedClause}`,
+          filter: `${adminRolesClause} ${verifiedClause}`,
           batch: 500,
           fields: 'id,email,organization_id',
         });
@@ -525,7 +526,7 @@ export const superAdminService = {
         });
         users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
       } else if (filter.kind === 'ORG') {
-        const roleClause = filter.rolesScope === 'ADMINS' ? '&& role = "ADMIN"' : `&& ${excludeSuper}`;
+        const roleClause = filter.rolesScope === 'ADMINS' ? `&& ${adminRolesClause}` : `&& ${excludeSuper}`;
         const records = await pb.collection('users').getFullList({
           filter: `organization_id = "${filter.organizationId}" ${roleClause} ${verifiedClause}`,
           batch: 500,
@@ -543,7 +544,7 @@ export const superAdminService = {
         });
         if (orgs.length === 0) return [];
 
-        const roleClause = filter.rolesScope === 'ADMINS' ? '&& role = "ADMIN"' : `&& ${excludeSuper}`;
+        const roleClause = filter.rolesScope === 'ADMINS' ? `&& ${adminRolesClause}` : `&& ${excludeSuper}`;
         // Chunk org IDs to avoid excessively long filter strings
         const ORG_CHUNK = 50;
         for (let i = 0; i < orgs.length; i += ORG_CHUNK) {

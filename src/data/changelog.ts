@@ -1,4 +1,4 @@
-// 2026-04-16: Added dependency updates and logo fix entry
+// 2026-04-27: Bulk email broadcaster fixes (admins scope, send confirmation)
 export type ChangelogEntryType = 'feature' | 'fix' | 'improvement' | 'security' | 'breaking';
 
 export interface ChangelogEntry {
@@ -14,6 +14,14 @@ export interface ChangelogRelease {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    date: '2026-04-27',
+    title: 'Bulk Email Broadcaster — Fixes',
+    entries: [
+      { type: 'fix', description: 'Bulk Email "All organization admins" (and the per-org / per-subscription "Admins only" scopes) now match users with `role = "ADMIN"` OR `role = "HR"`. Previously the filter only matched `ADMIN`, so orgs that use HR as their admin role returned zero recipients on preview and could not be broadcast to' },
+      { type: 'fix', description: 'The "Yes, send now" confirmation modal now always closes after the send attempt (success OR error), and the page scrolls to the top so the success/error banner is visible. Previously, on certain failures the modal stayed open and the user got no confirmation that the email had been queued or had failed' },
+    ],
+  },
   {
     date: '2026-04-26',
     title: 'Super Admin Bulk Email',
