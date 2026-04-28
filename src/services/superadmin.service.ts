@@ -272,6 +272,32 @@ export const superAdminService = {
       return { success: false, message: "PocketBase not configured" };
     }
 
+    // Prefer the server-side cascade endpoint — it bypasses per-collection
+    // API rules (some collections, e.g. `reports_queue`, deny `list` even to
+    // SUPER_ADMIN at the SDK layer, so the client can't sweep them).
+    try {
+      const response = await apiClient.pb.send('/api/openhr/delete-organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId: id }),
+      });
+      if (response && response.success) {
+        console.log('[SuperAdmin] Server-side delete summary:', response.summary);
+        return { success: true, message: 'Organization and all related data deleted successfully' };
+      }
+      return { success: false, message: response?.message || 'Server-side delete failed' };
+    } catch (err: any) {
+      // 404 here means the endpoint isn't deployed yet on this PocketBase
+      // instance — fall through to the legacy client-side cascade so existing
+      // deployments keep working until main.pb.js is reloaded.
+      if (err?.status !== 404) {
+        const detail = err?.response?.data || err?.data || err?.message || err;
+        console.error('[SuperAdmin] Server-side delete failed:', detail);
+        return { success: false, message: err?.message || 'Failed to delete organization' };
+      }
+      console.warn('[SuperAdmin] Server-side delete endpoint not available, falling back to client-side cascade');
+    }
+
     // Order matters: delete dependents before the parent organization.
     // Children-of-children (e.g. attendance → users) go first so user/team
     // deletes don't fail on required relations.
