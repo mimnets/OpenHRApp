@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -12,6 +12,7 @@ import CookieConsent from './components/CookieConsent';
 import SearchDialog from './components/search/SearchDialog';
 import { PWAUpdateBanner } from './components/PWAUpdateBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { lazyWithReload } from './utils/lazyWithReload';
 
 // Eager: public pages needed for first paint / SEO
 import Login from './pages/Login';
@@ -31,20 +32,23 @@ import FeaturesPage from './pages/FeaturesPage';
 import FeatureDetailPage from './pages/FeatureDetailPage';
 import ChangelogPage from './pages/ChangelogPage';
 
-// Lazy: authenticated pages loaded on demand after login
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const EmployeeDirectory = lazy(() => import('./pages/EmployeeDirectory'));
-const Attendance = lazy(() => import('./pages/Attendance'));
-const AttendanceLogs = lazy(() => import('./pages/AttendanceLogs'));
-const Leave = lazy(() => import('./pages/Leave'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Reports = lazy(() => import('./pages/Reports'));
-const Organization = lazy(() => import('./pages/Organization'));
-const SuperAdmin = lazy(() => import('./pages/SuperAdmin'));
-const Upgrade = lazy(() => import('./pages/Upgrade'));
-const PerformanceReview = lazy(() => import('./pages/PerformanceReview'));
-const Announcements = lazy(() => import('./pages/Announcements'));
-const AdminNotifications = lazy(() => import('./pages/AdminNotifications'));
+// Lazy: authenticated pages loaded on demand after login.
+// lazyWithReload auto-recovers from stale chunk hashes after a deploy
+// (one-shot reload + SW/cache wipe) so users don't get stuck on a blank
+// page when their cached service worker still references deleted assets.
+const Dashboard = lazyWithReload(() => import('./pages/Dashboard'));
+const EmployeeDirectory = lazyWithReload(() => import('./pages/EmployeeDirectory'));
+const Attendance = lazyWithReload(() => import('./pages/Attendance'));
+const AttendanceLogs = lazyWithReload(() => import('./pages/AttendanceLogs'));
+const Leave = lazyWithReload(() => import('./pages/Leave'));
+const Settings = lazyWithReload(() => import('./pages/Settings'));
+const Reports = lazyWithReload(() => import('./pages/Reports'));
+const Organization = lazyWithReload(() => import('./pages/Organization'));
+const SuperAdmin = lazyWithReload(() => import('./pages/SuperAdmin'));
+const Upgrade = lazyWithReload(() => import('./pages/Upgrade'));
+const PerformanceReview = lazyWithReload(() => import('./pages/PerformanceReview'));
+const Announcements = lazyWithReload(() => import('./pages/Announcements'));
+const AdminNotifications = lazyWithReload(() => import('./pages/AdminNotifications'));
 
 import { navigateTo } from './utils/seo';
 
