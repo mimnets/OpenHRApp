@@ -272,57 +272,48 @@ export const superAdminService = {
       return { success: false, message: "PocketBase not configured" };
     }
 
+    // Order matters: delete dependents before the parent organization.
+    // Children-of-children (e.g. attendance → users) go first so user/team
+    // deletes don't fail on required relations.
+    const childCollections = [
+      'attendance',
+      'leaves',
+      'performance_reviews',
+      'review_cycles',
+      'notifications',
+      'announcements',
+      'reports_queue',
+      'upgrade_requests',
+      'shifts',
+      'teams',
+      'settings',
+      'users',
+    ];
+
+    const deleteWhere = async (collection: string, filter: string) => {
+      try {
+        const records = await apiClient.pb!.collection(collection).getFullList({ filter, batch: 500 });
+        for (const r of records) {
+          try {
+            await apiClient.pb!.collection(collection).delete(r.id);
+          } catch (err: any) {
+            // 404 = already gone (cascade); keep going. Anything else: log and continue
+            // so a single stuck record doesn't block the rest of the cleanup.
+            if (err?.status !== 404) {
+              console.warn(`[SuperAdmin] delete ${collection}/${r.id} failed:`, err?.message || err);
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[SuperAdmin] list ${collection} failed:`, err?.message || err);
+      }
+    };
+
     try {
-      // Delete all related data first
-      // 1. Delete users
-      const users = await apiClient.pb.collection('users').getFullList({
-        filter: `organization_id = "${id}"`
-      });
-      for (const user of users) {
-        await apiClient.pb.collection('users').delete(user.id);
+      for (const c of childCollections) {
+        await deleteWhere(c, `organization_id = "${id}"`);
       }
 
-      // 2. Delete settings
-      try {
-        const settings = await apiClient.pb.collection('settings').getFullList({
-          filter: `organization_id = "${id}"`
-        });
-        for (const setting of settings) {
-          await apiClient.pb.collection('settings').delete(setting.id);
-        }
-      } catch { /* ignore */ }
-
-      // 3. Delete teams
-      try {
-        const teams = await apiClient.pb.collection('teams').getFullList({
-          filter: `organization_id = "${id}"`
-        });
-        for (const team of teams) {
-          await apiClient.pb.collection('teams').delete(team.id);
-        }
-      } catch { /* ignore */ }
-
-      // 4. Delete attendance
-      try {
-        const attendance = await apiClient.pb.collection('attendance').getFullList({
-          filter: `organization_id = "${id}"`
-        });
-        for (const record of attendance) {
-          await apiClient.pb.collection('attendance').delete(record.id);
-        }
-      } catch { /* ignore */ }
-
-      // 5. Delete leaves
-      try {
-        const leaves = await apiClient.pb.collection('leaves').getFullList({
-          filter: `organization_id = "${id}"`
-        });
-        for (const leave of leaves) {
-          await apiClient.pb.collection('leaves').delete(leave.id);
-        }
-      } catch { /* ignore */ }
-
-      // 6. Finally delete the organization
       await apiClient.pb.collection('organizations').delete(id);
 
       return { success: true, message: "Organization and all related data deleted successfully" };
