@@ -1768,8 +1768,13 @@ try {
    ============================================================ */
 
 // Helper function to load country-based holidays
+// NOTE: Lunar / Islamic / Hijri-calendar holidays shift each year. Where dates
+// are calendar-dependent (Eid, Diwali, Lunar New Year, etc.) we either omit
+// them or include conservative 2026 estimates — admins can adjust via the
+// Organization → HOLIDAYS tab. Fixed-date national holidays are authoritative.
 function loadHolidaysForCountry(countryCode) {
     const holidayData = {
+        // ─────────────── ASIA ───────────────
         "BD": [
             { id: "bd-h1", date: "2026-02-21", name: "International Mother Language Day", isGovernment: true, type: "NATIONAL" },
             { id: "bd-h2", date: "2026-03-17", name: "Sheikh Mujibur Rahman's Birthday", isGovernment: true, type: "NATIONAL" },
@@ -1780,28 +1785,211 @@ function loadHolidaysForCountry(countryCode) {
             { id: "bd-h7", date: "2026-12-16", name: "Victory Day", isGovernment: true, type: "NATIONAL" },
             { id: "bd-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
         ],
-        "US": [
-            { id: "us-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h2", date: "2026-01-19", name: "Martin Luther King Jr. Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h3", date: "2026-02-16", name: "Presidents' Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h4", date: "2026-05-25", name: "Memorial Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h5", date: "2026-07-04", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h6", date: "2026-09-07", name: "Labor Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h7", date: "2026-10-12", name: "Columbus Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h8", date: "2026-11-11", name: "Veterans Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h9", date: "2026-11-26", name: "Thanksgiving Day", isGovernment: true, type: "NATIONAL" },
-            { id: "us-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
-        ],
         "IN": [
             { id: "in-h1", date: "2026-01-26", name: "Republic Day", isGovernment: true, type: "NATIONAL" },
-            { id: "in-h2", date: "2026-03-11", name: "Holi", isGovernment: true, type: "FESTIVAL" },
-            { id: "in-h3", date: "2026-04-02", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h2", date: "2026-03-04", name: "Holi", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
             { id: "in-h4", date: "2026-08-15", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
             { id: "in-h5", date: "2026-10-02", name: "Gandhi Jayanti", isGovernment: true, type: "NATIONAL" },
-            { id: "in-h6", date: "2026-10-22", name: "Dussehra", isGovernment: true, type: "FESTIVAL" },
-            { id: "in-h7", date: "2026-11-11", name: "Diwali", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h6", date: "2026-10-20", name: "Dussehra", isGovernment: true, type: "FESTIVAL" },
+            { id: "in-h7", date: "2026-11-08", name: "Diwali", isGovernment: true, type: "FESTIVAL" },
             { id: "in-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
         ],
+        "NP": [
+            { id: "np-h1", date: "2026-01-11", name: "Prithvi Jayanti", isGovernment: true, type: "NATIONAL" },
+            { id: "np-h2", date: "2026-01-30", name: "Martyrs' Day", isGovernment: true, type: "NATIONAL" },
+            { id: "np-h3", date: "2026-02-19", name: "Democracy Day", isGovernment: true, type: "NATIONAL" },
+            { id: "np-h4", date: "2026-03-04", name: "Holi (Phagu Purnima)", isGovernment: true, type: "FESTIVAL" },
+            { id: "np-h5", date: "2026-04-14", name: "Nepali New Year", isGovernment: true, type: "FESTIVAL" },
+            { id: "np-h6", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "np-h7", date: "2026-05-28", name: "Republic Day", isGovernment: true, type: "NATIONAL" },
+            { id: "np-h8", date: "2026-09-20", name: "Constitution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "np-h9", date: "2026-10-19", name: "Dashain (Vijaya Dashami)", isGovernment: true, type: "FESTIVAL" },
+            { id: "np-h10", date: "2026-11-09", name: "Tihar (Deepawali)", isGovernment: true, type: "FESTIVAL" },
+            { id: "np-h11", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "PK": [
+            { id: "pk-h1", date: "2026-02-05", name: "Kashmir Solidarity Day", isGovernment: true, type: "NATIONAL" },
+            { id: "pk-h2", date: "2026-03-23", name: "Pakistan Day", isGovernment: true, type: "NATIONAL" },
+            { id: "pk-h3", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "pk-h4", date: "2026-08-14", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "pk-h5", date: "2026-11-09", name: "Iqbal Day", isGovernment: true, type: "NATIONAL" },
+            { id: "pk-h6", date: "2026-12-25", name: "Quaid-e-Azam Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "LK": [
+            { id: "lk-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "lk-h2", date: "2026-02-04", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "lk-h3", date: "2026-04-13", name: "Sinhala & Tamil New Year's Eve", isGovernment: true, type: "FESTIVAL" },
+            { id: "lk-h4", date: "2026-04-14", name: "Sinhala & Tamil New Year's Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "lk-h5", date: "2026-05-01", name: "May Day", isGovernment: true, type: "NATIONAL" },
+            { id: "lk-h6", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "MY": [
+            { id: "my-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "my-h2", date: "2026-02-01", name: "Federal Territory Day", isGovernment: true, type: "NATIONAL" },
+            { id: "my-h3", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "my-h4", date: "2026-06-01", name: "Agong's Birthday", isGovernment: true, type: "NATIONAL" },
+            { id: "my-h5", date: "2026-08-31", name: "Merdeka (National Day)", isGovernment: true, type: "NATIONAL" },
+            { id: "my-h6", date: "2026-09-16", name: "Malaysia Day", isGovernment: true, type: "NATIONAL" },
+            { id: "my-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "SG": [
+            { id: "sg-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "sg-h2", date: "2026-02-17", name: "Chinese New Year", isGovernment: true, type: "FESTIVAL" },
+            { id: "sg-h3", date: "2026-02-18", name: "Chinese New Year (Day 2)", isGovernment: true, type: "FESTIVAL" },
+            { id: "sg-h4", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "sg-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "sg-h6", date: "2026-08-09", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "sg-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "ID": [
+            { id: "id-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "id-h2", date: "2026-02-17", name: "Lunar New Year", isGovernment: true, type: "FESTIVAL" },
+            { id: "id-h3", date: "2026-03-19", name: "Day of Silence (Nyepi)", isGovernment: true, type: "FESTIVAL" },
+            { id: "id-h4", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "id-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "id-h6", date: "2026-06-01", name: "Pancasila Day", isGovernment: true, type: "NATIONAL" },
+            { id: "id-h7", date: "2026-08-17", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "id-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "TH": [
+            { id: "th-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h2", date: "2026-04-06", name: "Chakri Memorial Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h3", date: "2026-04-13", name: "Songkran Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "th-h4", date: "2026-04-14", name: "Songkran Festival (Day 2)", isGovernment: true, type: "FESTIVAL" },
+            { id: "th-h5", date: "2026-04-15", name: "Songkran Festival (Day 3)", isGovernment: true, type: "FESTIVAL" },
+            { id: "th-h6", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h7", date: "2026-05-04", name: "Coronation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h8", date: "2026-07-28", name: "King Vajiralongkorn's Birthday", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h9", date: "2026-08-12", name: "Mother's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h10", date: "2026-12-05", name: "Father's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h11", date: "2026-12-10", name: "Constitution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "th-h12", date: "2026-12-31", name: "New Year's Eve", isGovernment: true, type: "NATIONAL" }
+        ],
+        "VN": [
+            { id: "vn-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "vn-h2", date: "2026-02-17", name: "Lunar New Year (Tet)", isGovernment: true, type: "FESTIVAL" },
+            { id: "vn-h3", date: "2026-04-26", name: "Hung Kings' Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "vn-h4", date: "2026-04-30", name: "Reunification Day", isGovernment: true, type: "NATIONAL" },
+            { id: "vn-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "vn-h6", date: "2026-09-02", name: "National Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "PH": [
+            { id: "ph-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ph-h2", date: "2026-04-02", name: "Maundy Thursday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ph-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ph-h4", date: "2026-04-09", name: "Day of Valor", isGovernment: true, type: "NATIONAL" },
+            { id: "ph-h5", date: "2026-05-01", name: "Labor Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ph-h6", date: "2026-06-12", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ph-h7", date: "2026-08-31", name: "National Heroes Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ph-h8", date: "2026-11-30", name: "Bonifacio Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ph-h9", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ph-h10", date: "2026-12-30", name: "Rizal Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "JP": [
+            { id: "jp-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h2", date: "2026-01-12", name: "Coming of Age Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h3", date: "2026-02-11", name: "National Foundation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h4", date: "2026-02-23", name: "Emperor's Birthday", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h5", date: "2026-04-29", name: "Showa Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h6", date: "2026-05-03", name: "Constitution Memorial Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h7", date: "2026-05-04", name: "Greenery Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h8", date: "2026-05-05", name: "Children's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h9", date: "2026-08-11", name: "Mountain Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h10", date: "2026-11-03", name: "Culture Day", isGovernment: true, type: "NATIONAL" },
+            { id: "jp-h11", date: "2026-11-23", name: "Labour Thanksgiving Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "KR": [
+            { id: "kr-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h2", date: "2026-02-16", name: "Seollal (Lunar New Year)", isGovernment: true, type: "FESTIVAL" },
+            { id: "kr-h3", date: "2026-03-01", name: "Independence Movement Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h4", date: "2026-05-05", name: "Children's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h5", date: "2026-06-06", name: "Memorial Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h6", date: "2026-08-15", name: "Liberation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h7", date: "2026-09-25", name: "Chuseok (Mid-Autumn)", isGovernment: true, type: "FESTIVAL" },
+            { id: "kr-h8", date: "2026-10-03", name: "National Foundation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h9", date: "2026-10-09", name: "Hangul Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kr-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "CN": [
+            { id: "cn-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "cn-h2", date: "2026-02-17", name: "Spring Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "cn-h3", date: "2026-04-05", name: "Qingming Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "cn-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "cn-h5", date: "2026-06-19", name: "Dragon Boat Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "cn-h6", date: "2026-09-25", name: "Mid-Autumn Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "cn-h7", date: "2026-10-01", name: "National Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "HK": [
+            { id: "hk-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "hk-h2", date: "2026-02-17", name: "Lunar New Year", isGovernment: true, type: "FESTIVAL" },
+            { id: "hk-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "hk-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "hk-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "hk-h6", date: "2026-07-01", name: "HKSAR Establishment Day", isGovernment: true, type: "NATIONAL" },
+            { id: "hk-h7", date: "2026-10-01", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "hk-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "hk-h9", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "TW": [
+            { id: "tw-h1", date: "2026-01-01", name: "Founding Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tw-h2", date: "2026-02-17", name: "Lunar New Year", isGovernment: true, type: "FESTIVAL" },
+            { id: "tw-h3", date: "2026-02-28", name: "228 Peace Memorial Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tw-h4", date: "2026-04-04", name: "Tomb Sweeping Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "tw-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tw-h6", date: "2026-06-19", name: "Dragon Boat Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "tw-h7", date: "2026-09-25", name: "Mid-Autumn Festival", isGovernment: true, type: "FESTIVAL" },
+            { id: "tw-h8", date: "2026-10-10", name: "National Day", isGovernment: true, type: "NATIONAL" }
+        ],
+
+        // ─────────────── MIDDLE EAST ───────────────
+        "AE": [
+            { id: "ae-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ae-h2", date: "2026-12-01", name: "Commemoration Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ae-h3", date: "2026-12-02", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ae-h4", date: "2026-12-03", name: "National Day Holiday", isGovernment: true, type: "NATIONAL" }
+        ],
+        "SA": [
+            { id: "sa-h1", date: "2026-02-22", name: "Foundation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "sa-h2", date: "2026-09-23", name: "Saudi National Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "QA": [
+            { id: "qa-h1", date: "2026-02-10", name: "National Sport Day", isGovernment: true, type: "NATIONAL" },
+            { id: "qa-h2", date: "2026-12-18", name: "Qatar National Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "KW": [
+            { id: "kw-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kw-h2", date: "2026-02-25", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "kw-h3", date: "2026-02-26", name: "Liberation Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "BH": [
+            { id: "bh-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bh-h2", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bh-h3", date: "2026-12-16", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "bh-h4", date: "2026-12-17", name: "National Day Holiday", isGovernment: true, type: "NATIONAL" }
+        ],
+        "OM": [
+            { id: "om-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "om-h2", date: "2026-11-18", name: "National Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "IL": [
+            { id: "il-h1", date: "2026-04-22", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "il-h2", date: "2026-04-02", name: "Passover (Pesach)", isGovernment: true, type: "FESTIVAL" },
+            { id: "il-h3", date: "2026-05-22", name: "Shavuot", isGovernment: true, type: "FESTIVAL" },
+            { id: "il-h4", date: "2026-09-12", name: "Rosh Hashanah", isGovernment: true, type: "FESTIVAL" },
+            { id: "il-h5", date: "2026-09-21", name: "Yom Kippur", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "TR": [
+            { id: "tr-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tr-h2", date: "2026-04-23", name: "National Sovereignty Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tr-h3", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tr-h4", date: "2026-05-19", name: "Atatürk Memorial / Youth Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tr-h5", date: "2026-07-15", name: "Democracy & National Unity Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tr-h6", date: "2026-08-30", name: "Victory Day", isGovernment: true, type: "NATIONAL" },
+            { id: "tr-h7", date: "2026-10-29", name: "Republic Day", isGovernment: true, type: "NATIONAL" }
+        ],
+
+        // ─────────────── EUROPE ───────────────
         "GB": [
             { id: "gb-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
             { id: "gb-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
@@ -1810,16 +1998,288 @@ function loadHolidaysForCountry(countryCode) {
             { id: "gb-h5", date: "2026-05-25", name: "Spring Bank Holiday", isGovernment: true, type: "NATIONAL" },
             { id: "gb-h6", date: "2026-08-31", name: "Summer Bank Holiday", isGovernment: true, type: "NATIONAL" },
             { id: "gb-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
-            { id: "gb-h8", date: "2026-12-28", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+            { id: "gb-h8", date: "2026-12-28", name: "Boxing Day (Substitute)", isGovernment: true, type: "FESTIVAL" }
         ],
-        "AE": [
-            { id: "ae-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
-            { id: "ae-h2", date: "2026-12-02", name: "National Day", isGovernment: true, type: "NATIONAL" },
-            { id: "ae-h3", date: "2026-12-03", name: "National Day Holiday", isGovernment: true, type: "NATIONAL" }
+        "IE": [
+            { id: "ie-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h2", date: "2026-02-02", name: "St. Brigid's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h3", date: "2026-03-17", name: "St. Patrick's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ie-h5", date: "2026-05-04", name: "May Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h6", date: "2026-06-01", name: "June Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h7", date: "2026-08-03", name: "August Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h8", date: "2026-10-26", name: "October Bank Holiday", isGovernment: true, type: "NATIONAL" },
+            { id: "ie-h9", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ie-h10", date: "2026-12-26", name: "St. Stephen's Day", isGovernment: true, type: "FESTIVAL" }
         ],
-        "SA": [
-            { id: "sa-h1", date: "2026-09-23", name: "Saudi National Day", isGovernment: true, type: "NATIONAL" },
-            { id: "sa-h2", date: "2026-02-22", name: "Foundation Day", isGovernment: true, type: "NATIONAL" }
+        "DE": [
+            { id: "de-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "de-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "de-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "de-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "de-h5", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "de-h6", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "de-h7", date: "2026-10-03", name: "German Unity Day", isGovernment: true, type: "NATIONAL" },
+            { id: "de-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "de-h9", date: "2026-12-26", name: "St. Stephen's Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "FR": [
+            { id: "fr-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fr-h2", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "fr-h3", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fr-h4", date: "2026-05-08", name: "Victory in Europe Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fr-h5", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "fr-h6", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "fr-h7", date: "2026-07-14", name: "Bastille Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fr-h8", date: "2026-08-15", name: "Assumption of Mary", isGovernment: true, type: "FESTIVAL" },
+            { id: "fr-h9", date: "2026-11-01", name: "All Saints' Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "fr-h10", date: "2026-11-11", name: "Armistice Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fr-h11", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "IT": [
+            { id: "it-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "it-h2", date: "2026-01-06", name: "Epiphany", isGovernment: true, type: "FESTIVAL" },
+            { id: "it-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "it-h4", date: "2026-04-25", name: "Liberation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "it-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "it-h6", date: "2026-06-02", name: "Republic Day", isGovernment: true, type: "NATIONAL" },
+            { id: "it-h7", date: "2026-08-15", name: "Ferragosto", isGovernment: true, type: "FESTIVAL" },
+            { id: "it-h8", date: "2026-11-01", name: "All Saints' Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "it-h9", date: "2026-12-08", name: "Immaculate Conception", isGovernment: true, type: "FESTIVAL" },
+            { id: "it-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "it-h11", date: "2026-12-26", name: "St. Stephen's Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "ES": [
+            { id: "es-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "es-h2", date: "2026-01-06", name: "Epiphany", isGovernment: true, type: "FESTIVAL" },
+            { id: "es-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "es-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "es-h5", date: "2026-08-15", name: "Assumption of Mary", isGovernment: true, type: "FESTIVAL" },
+            { id: "es-h6", date: "2026-10-12", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "es-h7", date: "2026-11-01", name: "All Saints' Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "es-h8", date: "2026-12-06", name: "Constitution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "es-h9", date: "2026-12-08", name: "Immaculate Conception", isGovernment: true, type: "FESTIVAL" },
+            { id: "es-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "NL": [
+            { id: "nl-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nl-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "nl-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "nl-h4", date: "2026-04-27", name: "King's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nl-h5", date: "2026-05-05", name: "Liberation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nl-h6", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "nl-h7", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "nl-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "nl-h9", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "BE": [
+            { id: "be-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "be-h2", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "be-h3", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "be-h4", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "be-h5", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "be-h6", date: "2026-07-21", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "be-h7", date: "2026-08-15", name: "Assumption of Mary", isGovernment: true, type: "FESTIVAL" },
+            { id: "be-h8", date: "2026-11-01", name: "All Saints' Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "be-h9", date: "2026-11-11", name: "Armistice Day", isGovernment: true, type: "NATIONAL" },
+            { id: "be-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "AT": [
+            { id: "at-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "at-h2", date: "2026-01-06", name: "Epiphany", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "at-h5", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h6", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h7", date: "2026-08-15", name: "Assumption of Mary", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h8", date: "2026-10-26", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "at-h9", date: "2026-11-01", name: "All Saints' Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "at-h11", date: "2026-12-26", name: "St. Stephen's Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "CH": [
+            { id: "ch-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ch-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ch-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ch-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ch-h5", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ch-h6", date: "2026-08-01", name: "Swiss National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ch-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ch-h8", date: "2026-12-26", name: "St. Stephen's Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "SE": [
+            { id: "se-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "se-h2", date: "2026-01-06", name: "Epiphany", isGovernment: true, type: "FESTIVAL" },
+            { id: "se-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "se-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "se-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "se-h6", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "se-h7", date: "2026-06-06", name: "National Day", isGovernment: true, type: "NATIONAL" },
+            { id: "se-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "se-h9", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "NO": [
+            { id: "no-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "no-h2", date: "2026-04-02", name: "Maundy Thursday", isGovernment: true, type: "FESTIVAL" },
+            { id: "no-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "no-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "no-h5", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "no-h6", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "no-h7", date: "2026-05-17", name: "Constitution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "no-h8", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "no-h9", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "no-h10", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "DK": [
+            { id: "dk-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "dk-h2", date: "2026-04-02", name: "Maundy Thursday", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h5", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h6", date: "2026-05-25", name: "Whit Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h7", date: "2026-12-24", name: "Christmas Eve", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "dk-h9", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "FI": [
+            { id: "fi-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fi-h2", date: "2026-01-06", name: "Epiphany", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h5", date: "2026-05-01", name: "May Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fi-h6", date: "2026-05-14", name: "Ascension Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h7", date: "2026-06-19", name: "Midsummer Eve", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h8", date: "2026-12-06", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "fi-h9", date: "2026-12-24", name: "Christmas Eve", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "fi-h11", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+
+        // ─────────────── AMERICAS ───────────────
+        "US": [
+            { id: "us-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h2", date: "2026-01-19", name: "Martin Luther King Jr. Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h3", date: "2026-02-16", name: "Presidents' Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h4", date: "2026-05-25", name: "Memorial Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h5", date: "2026-06-19", name: "Juneteenth", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h6", date: "2026-07-04", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h7", date: "2026-09-07", name: "Labor Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h8", date: "2026-10-12", name: "Columbus Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h9", date: "2026-11-11", name: "Veterans Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h10", date: "2026-11-26", name: "Thanksgiving Day", isGovernment: true, type: "NATIONAL" },
+            { id: "us-h11", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "CA": [
+            { id: "ca-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ca-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ca-h3", date: "2026-05-18", name: "Victoria Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ca-h4", date: "2026-07-01", name: "Canada Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ca-h5", date: "2026-09-07", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ca-h6", date: "2026-10-12", name: "Thanksgiving", isGovernment: true, type: "NATIONAL" },
+            { id: "ca-h7", date: "2026-11-11", name: "Remembrance Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ca-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ca-h9", date: "2026-12-28", name: "Boxing Day (Substitute)", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "MX": [
+            { id: "mx-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "mx-h2", date: "2026-02-02", name: "Constitution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "mx-h3", date: "2026-03-16", name: "Benito Juárez Day", isGovernment: true, type: "NATIONAL" },
+            { id: "mx-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "mx-h5", date: "2026-09-16", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "mx-h6", date: "2026-11-16", name: "Revolution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "mx-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "BR": [
+            { id: "br-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "br-h2", date: "2026-02-16", name: "Carnival Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "br-h3", date: "2026-02-17", name: "Carnival Tuesday", isGovernment: true, type: "FESTIVAL" },
+            { id: "br-h4", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "br-h5", date: "2026-04-21", name: "Tiradentes Day", isGovernment: true, type: "NATIONAL" },
+            { id: "br-h6", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "br-h7", date: "2026-09-07", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "br-h8", date: "2026-10-12", name: "Our Lady of Aparecida", isGovernment: true, type: "FESTIVAL" },
+            { id: "br-h9", date: "2026-11-02", name: "All Souls' Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "br-h10", date: "2026-11-15", name: "Republic Proclamation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "br-h11", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "AR": [
+            { id: "ar-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ar-h2", date: "2026-03-24", name: "Day of Remembrance", isGovernment: true, type: "NATIONAL" },
+            { id: "ar-h3", date: "2026-04-02", name: "Malvinas Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ar-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ar-h5", date: "2026-05-25", name: "May Revolution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ar-h6", date: "2026-07-09", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ar-h7", date: "2026-12-08", name: "Immaculate Conception", isGovernment: true, type: "FESTIVAL" },
+            { id: "ar-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+
+        // ─────────────── OCEANIA ───────────────
+        "AU": [
+            { id: "au-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "au-h2", date: "2026-01-26", name: "Australia Day", isGovernment: true, type: "NATIONAL" },
+            { id: "au-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "au-h4", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "au-h5", date: "2026-04-25", name: "Anzac Day", isGovernment: true, type: "NATIONAL" },
+            { id: "au-h6", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "au-h7", date: "2026-12-28", name: "Boxing Day (Substitute)", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "NZ": [
+            { id: "nz-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h2", date: "2026-01-02", name: "Day after New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h3", date: "2026-02-06", name: "Waitangi Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h4", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "nz-h5", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "nz-h6", date: "2026-04-27", name: "Anzac Day (Observed)", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h7", date: "2026-06-01", name: "King's Birthday", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h8", date: "2026-07-10", name: "Matariki", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h9", date: "2026-10-26", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "nz-h10", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "nz-h11", date: "2026-12-28", name: "Boxing Day (Substitute)", isGovernment: true, type: "FESTIVAL" }
+        ],
+
+        // ─────────────── AFRICA ───────────────
+        "NG": [
+            { id: "ng-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ng-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ng-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ng-h4", date: "2026-05-01", name: "Workers' Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ng-h5", date: "2026-06-12", name: "Democracy Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ng-h6", date: "2026-10-01", name: "Independence Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ng-h7", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ng-h8", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "EG": [
+            { id: "eg-h1", date: "2026-01-07", name: "Coptic Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "eg-h2", date: "2026-01-25", name: "Revolution Day (Police Day)", isGovernment: true, type: "NATIONAL" },
+            { id: "eg-h3", date: "2026-04-25", name: "Sinai Liberation Day", isGovernment: true, type: "NATIONAL" },
+            { id: "eg-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "eg-h5", date: "2026-07-23", name: "Revolution Day", isGovernment: true, type: "NATIONAL" },
+            { id: "eg-h6", date: "2026-10-06", name: "Armed Forces Day", isGovernment: true, type: "NATIONAL" }
+        ],
+        "ZA": [
+            { id: "za-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h2", date: "2026-03-21", name: "Human Rights Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h3", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "za-h4", date: "2026-04-06", name: "Family Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h5", date: "2026-04-27", name: "Freedom Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h6", date: "2026-05-01", name: "Workers' Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h7", date: "2026-06-16", name: "Youth Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h8", date: "2026-08-09", name: "National Women's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h9", date: "2026-09-24", name: "Heritage Day", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h10", date: "2026-12-16", name: "Day of Reconciliation", isGovernment: true, type: "NATIONAL" },
+            { id: "za-h11", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "za-h12", date: "2026-12-26", name: "Day of Goodwill", isGovernment: true, type: "FESTIVAL" }
+        ],
+        "KE": [
+            { id: "ke-h1", date: "2026-01-01", name: "New Year's Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ke-h2", date: "2026-04-03", name: "Good Friday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ke-h3", date: "2026-04-06", name: "Easter Monday", isGovernment: true, type: "FESTIVAL" },
+            { id: "ke-h4", date: "2026-05-01", name: "Labour Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ke-h5", date: "2026-06-01", name: "Madaraka Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ke-h6", date: "2026-10-20", name: "Mashujaa Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ke-h7", date: "2026-12-12", name: "Jamhuri Day", isGovernment: true, type: "NATIONAL" },
+            { id: "ke-h8", date: "2026-12-25", name: "Christmas Day", isGovernment: true, type: "FESTIVAL" },
+            { id: "ke-h9", date: "2026-12-26", name: "Boxing Day", isGovernment: true, type: "FESTIVAL" }
         ]
     };
 
@@ -1829,29 +2289,66 @@ function loadHolidaysForCountry(countryCode) {
 // Helper function to get country defaults
 function getCountryDefaults(countryCode) {
     const defaults = {
+        // Asia
         "BD": { currency: "BDT", timezone: "Asia/Dhaka", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
-        "US": { currency: "USD", timezone: "America/New_York", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
         "IN": { currency: "INR", timezone: "Asia/Kolkata", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], dateFormat: "DD/MM/YYYY" },
-        "GB": { currency: "GBP", timezone: "Europe/London", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
-        "AE": { currency: "AED", timezone: "Asia/Dubai", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
-        "SA": { currency: "SAR", timezone: "Asia/Riyadh", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "NP": { currency: "NPR", timezone: "Asia/Kathmandu", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
         "PK": { currency: "PKR", timezone: "Asia/Karachi", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], dateFormat: "DD/MM/YYYY" },
+        "LK": { currency: "LKR", timezone: "Asia/Colombo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
         "MY": { currency: "MYR", timezone: "Asia/Kuala_Lumpur", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
         "SG": { currency: "SGD", timezone: "Asia/Singapore", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "ID": { currency: "IDR", timezone: "Asia/Jakarta", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "TH": { currency: "THB", timezone: "Asia/Bangkok", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "VN": { currency: "VND", timezone: "Asia/Ho_Chi_Minh", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
         "PH": { currency: "PHP", timezone: "Asia/Manila", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
-        "NG": { currency: "NGN", timezone: "Africa/Lagos", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
-        "EG": { currency: "EGP", timezone: "Africa/Cairo", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
-        "AU": { currency: "AUD", timezone: "Australia/Sydney", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
-        "CA": { currency: "CAD", timezone: "America/Toronto", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
-        "DE": { currency: "EUR", timezone: "Europe/Berlin", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
-        "FR": { currency: "EUR", timezone: "Europe/Paris", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
         "JP": { currency: "JPY", timezone: "Asia/Tokyo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
         "KR": { currency: "KRW", timezone: "Asia/Seoul", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
-        "BR": { currency: "BRL", timezone: "America/Sao_Paulo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "CN": { currency: "CNY", timezone: "Asia/Shanghai", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
+        "HK": { currency: "HKD", timezone: "Asia/Hong_Kong", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "TW": { currency: "TWD", timezone: "Asia/Taipei", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
+
+        // Middle East
+        "AE": { currency: "AED", timezone: "Asia/Dubai", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "SA": { currency: "SAR", timezone: "Asia/Riyadh", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
         "QA": { currency: "QAR", timezone: "Asia/Qatar", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
         "KW": { currency: "KWD", timezone: "Asia/Kuwait", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
         "BH": { currency: "BHD", timezone: "Asia/Bahrain", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
-        "OM": { currency: "OMR", timezone: "Asia/Muscat", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" }
+        "OM": { currency: "OMR", timezone: "Asia/Muscat", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "IL": { currency: "ILS", timezone: "Asia/Jerusalem", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "TR": { currency: "TRY", timezone: "Europe/Istanbul", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+
+        // Europe
+        "GB": { currency: "GBP", timezone: "Europe/London", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "IE": { currency: "EUR", timezone: "Europe/Dublin", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "DE": { currency: "EUR", timezone: "Europe/Berlin", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
+        "FR": { currency: "EUR", timezone: "Europe/Paris", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "IT": { currency: "EUR", timezone: "Europe/Rome", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "ES": { currency: "EUR", timezone: "Europe/Madrid", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "NL": { currency: "EUR", timezone: "Europe/Amsterdam", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD-MM-YYYY" },
+        "BE": { currency: "EUR", timezone: "Europe/Brussels", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "AT": { currency: "EUR", timezone: "Europe/Vienna", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
+        "CH": { currency: "CHF", timezone: "Europe/Zurich", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
+        "SE": { currency: "SEK", timezone: "Europe/Stockholm", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY-MM-DD" },
+        "NO": { currency: "NOK", timezone: "Europe/Oslo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
+        "DK": { currency: "DKK", timezone: "Europe/Copenhagen", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD-MM-YYYY" },
+        "FI": { currency: "EUR", timezone: "Europe/Helsinki", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD.MM.YYYY" },
+
+        // Americas
+        "US": { currency: "USD", timezone: "America/New_York", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
+        "CA": { currency: "CAD", timezone: "America/Toronto", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "MM/DD/YYYY" },
+        "MX": { currency: "MXN", timezone: "America/Mexico_City", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "BR": { currency: "BRL", timezone: "America/Sao_Paulo", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "AR": { currency: "ARS", timezone: "America/Argentina/Buenos_Aires", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+
+        // Oceania
+        "AU": { currency: "AUD", timezone: "Australia/Sydney", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "NZ": { currency: "NZD", timezone: "Pacific/Auckland", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+
+        // Africa
+        "NG": { currency: "NGN", timezone: "Africa/Lagos", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" },
+        "EG": { currency: "EGP", timezone: "Africa/Cairo", workingDays: ["Sunday","Monday","Tuesday","Wednesday","Thursday"], dateFormat: "DD/MM/YYYY" },
+        "ZA": { currency: "ZAR", timezone: "Africa/Johannesburg", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "YYYY/MM/DD" },
+        "KE": { currency: "KES", timezone: "Africa/Nairobi", workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"], dateFormat: "DD/MM/YYYY" }
     };
 
     return defaults[countryCode] || {
@@ -1860,6 +2357,83 @@ function getCountryDefaults(countryCode) {
         workingDays: ["Monday","Tuesday","Wednesday","Thursday","Friday"],
         dateFormat: "DD/MM/YYYY"
     };
+}
+
+/* ============================================================
+   ONE-TIME BACKFILL — Seed holidays for orgs with empty/missing
+   holiday settings. Idempotent: skips orgs that already have a
+   non-empty holiday list. Runs on every PocketBase boot but the
+   work after first run is just a quick scan + skip.
+   ============================================================ */
+try {
+    onBootstrap((e) => {
+        e.next();
+        try {
+            const orgs = $app.findRecordsByFilter("organizations", "id != ''", "", 1000, 0);
+            if (!orgs || orgs.length === 0) {
+                console.log("[HOLIDAY-BACKFILL] No organizations found — nothing to seed.");
+                return;
+            }
+
+            const settingsCol = $app.findCollectionByNameOrId("settings");
+            let seeded = 0;
+            let skipped = 0;
+
+            for (let i = 0; i < orgs.length; i++) {
+                const org = orgs[i];
+                const country = (org.getString("country") || "").toUpperCase();
+                if (!country) {
+                    skipped++;
+                    continue;
+                }
+
+                const countryHolidays = loadHolidaysForCountry(country);
+                if (!countryHolidays || countryHolidays.length === 0) {
+                    // Country has no bundled data — leave empty list, admin adds manually
+                    skipped++;
+                    continue;
+                }
+
+                let existing = null;
+                try {
+                    existing = $app.findFirstRecordByFilter(
+                        "settings",
+                        "key = 'holidays' && organization_id = {:orgId}",
+                        { orgId: org.id }
+                    );
+                } catch (notFound) {
+                    existing = null;
+                }
+
+                if (existing) {
+                    const currentValue = existing.get("value");
+                    if (Array.isArray(currentValue) && currentValue.length > 0) {
+                        // Already populated — never overwrite admin-curated lists
+                        skipped++;
+                        continue;
+                    }
+                    existing.set("value", countryHolidays);
+                    $app.save(existing);
+                } else {
+                    const rec = new Record(settingsCol);
+                    rec.set("key", "holidays");
+                    rec.set("value", countryHolidays);
+                    rec.set("organization_id", org.id);
+                    $app.save(rec);
+                }
+                seeded++;
+                console.log("[HOLIDAY-BACKFILL] Seeded " + countryHolidays.length + " holidays for org " + org.id + " (country: " + country + ")");
+            }
+
+            if (seeded > 0) {
+                console.log("[HOLIDAY-BACKFILL] Complete — seeded " + seeded + " org(s), skipped " + skipped);
+            }
+        } catch (err) {
+            console.log("[HOLIDAY-BACKFILL] Skipped (non-fatal): " + err.toString());
+        }
+    });
+} catch (e) {
+    console.log("[HOOKS] Could not register holiday backfill hook: " + e.toString());
 }
 
 /* ============================================================
@@ -1952,6 +2526,116 @@ routerAdd("POST", "/api/openhr/purge-all-notifications", (e) => {
     } catch (err) {
         console.log("[PURGE-NOTIF] Error:", err.toString());
         return e.json(500, { message: "Internal Server Error" });
+    }
+});
+
+// POST /api/openhr/delete-organization — Cascade-delete an org and all
+// its data, bypassing per-collection API rules. Required because some
+// child collections (reports_queue etc.) deny `list` even to SUPER_ADMIN
+// from the client SDK, so the frontend can't sweep them itself.
+routerAdd("POST", "/api/openhr/delete-organization", (e) => {
+    try {
+        const authRecord = e.auth;
+        if (!authRecord) return e.json(401, { message: "Unauthorized" });
+        if (authRecord.getString("role") !== "SUPER_ADMIN") {
+            return e.json(403, { message: "Super Admin access required" });
+        }
+
+        const body = e.requestInfo().body || {};
+        const orgId = body.organizationId || body.organization_id;
+        if (!orgId || typeof orgId !== "string") {
+            return e.json(400, { message: "organizationId is required" });
+        }
+
+        // Verify the org exists before doing anything destructive.
+        try {
+            $app.findRecordById("organizations", orgId);
+        } catch (notFound) {
+            return e.json(404, { message: "Organization not found" });
+        }
+
+        // Auto-discover every collection that has an `organization_id` field
+        // so future org-scoped tables are swept automatically. Skip system,
+        // view, and the `organizations` collection itself.
+        const allCollections = $app.findAllCollections();
+        const orgScoped = [];
+        for (let i = 0; i < allCollections.length; i++) {
+            const c = allCollections[i];
+            if (c.name === "organizations") continue;
+            if (c.system) continue;
+            if (c.type === "view") continue;
+            const fields = c.fields || [];
+            let hasOrgField = false;
+            for (let j = 0; j < fields.length; j++) {
+                if (fields[j].name === "organization_id") { hasOrgField = true; break; }
+            }
+            if (hasOrgField) orgScoped.push(c.name);
+        }
+
+        // Dependency-ordered priority — children of users/teams must be
+        // deleted before users/teams themselves to avoid required-relation
+        // failures. Anything else gets swept after.
+        const priority = [
+            "attendance", "leaves", "performance_reviews", "review_cycles",
+            "notifications", "announcements", "reports_queue",
+            "upgrade_requests", "shifts", "teams", "settings", "users",
+        ];
+        const ordered = [];
+        for (let i = 0; i < priority.length; i++) {
+            if (orgScoped.indexOf(priority[i]) !== -1) ordered.push(priority[i]);
+        }
+        for (let i = 0; i < orgScoped.length; i++) {
+            if (ordered.indexOf(orgScoped[i]) === -1) ordered.push(orgScoped[i]);
+        }
+
+        const summary = {};
+        const filter = 'organization_id = "' + orgId + '"';
+
+        for (let i = 0; i < ordered.length; i++) {
+            const collName = ordered[i];
+            let deleted = 0, errors = 0;
+            try {
+                // Loop in batches until empty — findRecordsByFilter caps at the
+                // limit arg, so a large org might need multiple passes.
+                let pass = 0;
+                while (pass < 20) {
+                    const records = $app.findRecordsByFilter(collName, filter, "", 500, 0);
+                    if (!records || records.length === 0) break;
+                    for (let k = 0; k < records.length; k++) {
+                        try {
+                            $app.delete(records[k]);
+                            deleted++;
+                        } catch (delErr) {
+                            errors++;
+                            console.log("[DELETE-ORG] " + collName + "/" + records[k].id + ": " + delErr.toString());
+                        }
+                    }
+                    if (records.length < 500) break;
+                    pass++;
+                }
+            } catch (findErr) {
+                console.log("[DELETE-ORG] find " + collName + " failed: " + findErr.toString());
+            }
+            summary[collName] = { deleted: deleted, errors: errors };
+        }
+
+        // Finally delete the organization itself.
+        try {
+            const orgRecord = $app.findRecordById("organizations", orgId);
+            $app.delete(orgRecord);
+        } catch (orgErr) {
+            console.log("[DELETE-ORG] Final org delete failed: " + orgErr.toString());
+            return e.json(500, {
+                message: "Cascade succeeded but organization delete failed: " + orgErr.toString(),
+                summary: summary
+            });
+        }
+
+        console.log("[DELETE-ORG] Deleted org " + orgId + " — summary: " + JSON.stringify(summary));
+        return e.json(200, { success: true, organizationId: orgId, summary: summary });
+    } catch (err) {
+        console.log("[DELETE-ORG] Error: " + err.toString());
+        return e.json(500, { message: "Internal Server Error: " + err.toString() });
     }
 });
 

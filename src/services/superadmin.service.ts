@@ -272,6 +272,32 @@ export const superAdminService = {
       return { success: false, message: "PocketBase not configured" };
     }
 
+    // Prefer the server-side cascade endpoint — it bypasses per-collection
+    // API rules (some collections, e.g. `reports_queue`, deny `list` even to
+    // SUPER_ADMIN at the SDK layer, so the client can't sweep them).
+    try {
+      const response = await apiClient.pb.send('/api/openhr/delete-organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId: id }),
+      });
+      if (response && response.success) {
+        console.log('[SuperAdmin] Server-side delete summary:', response.summary);
+        return { success: true, message: 'Organization and all related data deleted successfully' };
+      }
+      return { success: false, message: response?.message || 'Server-side delete failed' };
+    } catch (err: any) {
+      // 404 here means the endpoint isn't deployed yet on this PocketBase
+      // instance — fall through to the legacy client-side cascade so existing
+      // deployments keep working until main.pb.js is reloaded.
+      if (err?.status !== 404) {
+        const detail = err?.response?.data || err?.data || err?.message || err;
+        console.error('[SuperAdmin] Server-side delete failed:', detail);
+        return { success: false, message: err?.message || 'Failed to delete organization' };
+      }
+      console.warn('[SuperAdmin] Server-side delete endpoint not available, falling back to client-side cascade');
+    }
+
     // Order matters: delete dependents before the parent organization.
     // Children-of-children (e.g. attendance → users) go first so user/team
     // deletes don't fail on required relations.
@@ -309,12 +335,44 @@ export const superAdminService = {
       }
     };
 
+    // Discover any other collections that carry an `organization_id` relation
+    // — keeps cleanup correct if new org-scoped collections are added later.
+    const discovered = new Set<string>();
     try {
-      for (const c of childCollections) {
+      const allCollections = await apiClient.pb.collections.getFullList({ batch: 500 });
+      for (const col of allCollections) {
+        if (col.name === 'organizations') continue;
+        const hasOrgField = (col.fields || col.schema || []).some((f: any) => f.name === 'organization_id');
+        if (hasOrgField) discovered.add(col.name);
+      }
+    } catch (err: any) {
+      console.warn('[SuperAdmin] Could not enumerate collections, falling back to static list:', err?.message || err);
+    }
+
+    // Static list keeps a deterministic dependency order; discovered extras
+    // are appended (run before users/teams/settings to be safe).
+    const ordered = [...childCollections];
+    const extras = [...discovered].filter(c => !ordered.includes(c));
+    if (extras.length) {
+      console.log('[SuperAdmin] Sweeping additional org-scoped collections:', extras);
+      ordered.unshift(...extras);
+    }
+
+    try {
+      for (const c of ordered) {
         await deleteWhere(c, `organization_id = "${id}"`);
       }
 
-      await apiClient.pb.collection('organizations').delete(id);
+      try {
+        await apiClient.pb.collection('organizations').delete(id);
+      } catch (err: any) {
+        // PocketBase's "required relation reference" error doesn't name the
+        // blocking collection — surface enough detail so the next failure is
+        // diagnosable instead of opaque.
+        const detail = err?.response?.data || err?.data || err?.originalError || err;
+        console.error('[SuperAdmin] Org delete blocked. Server detail:', detail);
+        throw err;
+      }
 
       return { success: true, message: "Organization and all related data deleted successfully" };
     } catch (e: any) {
