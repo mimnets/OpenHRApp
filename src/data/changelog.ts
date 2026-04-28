@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-28',
+    title: 'PWA — Recover from stale chunk hashes after deploys',
+    entries: [
+      { type: 'fix', description: 'After a Vercel deploy, browsers with the old service worker cached would request stale hashed chunks (e.g. `/assets/Leave-CQ8GXgvs.js`). Vercel\'s SPA catch-all rewrite returned `index.html` for those missing files, so the browser tried to execute HTML as a JS module and the lazy-loaded route (Super Admin, Leave, etc.) crashed with a `Failed to fetch dynamically imported module` error. Two-layer fix: (1) `vercel.json` now excludes `/assets/*`, `sw.js`, `registerSW.js`, and `workbox-*.js` from the SPA fallback so a missing chunk returns a real 404 instead of HTML; (2) new `src/utils/lazyWithReload.ts` wraps `React.lazy()` so that on a chunk-load failure it unregisters the service worker, clears the Cache Storage, and reloads the page once. A 30s `sessionStorage` cooldown prevents reload loops if the failure is not actually a stale-chunk issue. `src/App.tsx` now uses `lazyWithReload(...)` for all 13 lazy-imported pages. Existing affected users auto-recover on their next page load' },
+    ],
+  },
+  {
     date: '2026-04-27',
     title: 'feed.xml — Combined Blog + Guides + Features',
     entries: [
