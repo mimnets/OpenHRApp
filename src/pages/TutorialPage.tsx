@@ -63,39 +63,52 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
       }
       breadcrumbItems.push({ '@type': 'ListItem', position: pos, name: tutorialData.title, item: `https://openhrapp.com/how-to-use/${slug}` });
 
-      setJsonLd({
-        '@context': 'https://schema.org',
-        '@graph': [
-          {
-            '@type': 'Article',
-            headline: tutorialData.title,
-            description: tutorialData.excerpt || '',
-            image: tutorialData.coverImage || 'https://openhrapp.com/img/screenshot-wide.png',
-            datePublished: tutorialData.created,
-            dateModified: tutorialData.updated || tutorialData.created,
-            author: {
-              '@type': 'Person',
-              name: tutorialData.authorName || 'OpenHR Team',
-            },
-            publisher: {
-              '@type': 'Organization',
-              name: 'OpenHRApp',
-              logo: {
-                '@type': 'ImageObject',
-                url: 'https://openhrapp.com/img/logo.webp',
-              },
-            },
-            mainEntityOfPage: {
-              '@type': 'WebPage',
-              '@id': `https://openhrapp.com/how-to-use/${slug}`,
-            },
+      const graph: any[] = [
+        {
+          '@type': 'Article',
+          headline: tutorialData.title,
+          description: tutorialData.excerpt || '',
+          image: tutorialData.coverImage || 'https://openhrapp.com/img/screenshot-wide.webp',
+          datePublished: tutorialData.created,
+          dateModified: tutorialData.updated || tutorialData.created,
+          author: {
+            '@type': 'Person',
+            name: tutorialData.authorName || 'OpenHR Team',
           },
-          {
-            '@type': 'BreadcrumbList',
-            itemListElement: breadcrumbItems,
+          publisher: {
+            '@type': 'Organization',
+            name: 'OpenHRApp',
+            logo: { '@type': 'ImageObject', url: 'https://openhrapp.com/img/logo.webp' },
           },
-        ],
-      });
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `https://openhrapp.com/how-to-use/${slug}`,
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: breadcrumbItems,
+        },
+      ];
+
+      // For step-based tutorials (ordered lists in content), add HowTo schema
+      const stepMatches = tutorialData.content.match(/<li>([\s\S]*?)<\/li>/g);
+      const hasOrderedList = /<ol[\s>]/.test(tutorialData.content);
+      if (hasOrderedList && stepMatches && stepMatches.length >= 2) {
+        const steps = stepMatches.slice(0, 10).map((li, i) => ({
+          '@type': 'HowToStep',
+          position: i + 1,
+          text: li.replace(/<[^>]+>/g, '').trim(),
+        }));
+        graph.push({
+          '@type': 'HowTo',
+          name: tutorialData.title,
+          description: tutorialData.excerpt || '',
+          step: steps,
+        });
+      }
+
+      setJsonLd({ '@context': 'https://schema.org', '@graph': graph });
     } else {
       setNotFound(true);
     }

@@ -83,6 +83,39 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
     setPosts(data.posts);
     setTotalPages(data.totalPages);
     setIsLoading(false);
+    if (data.posts.length > 0) {
+      setJsonLd({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'CollectionPage',
+            name: 'OpenHR Blog',
+            description: 'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
+            url: 'https://openhrapp.com/blog',
+            isPartOf: { '@type': 'WebSite', name: 'OpenHRApp', url: 'https://openhrapp.com' },
+          },
+          {
+            '@type': 'ItemList',
+            name: 'OpenHR Blog Posts',
+            url: 'https://openhrapp.com/blog',
+            numberOfItems: data.posts.length,
+            itemListElement: data.posts.map((post, i) => ({
+              '@type': 'ListItem',
+              position: i + 1,
+              url: `https://openhrapp.com/blog/${post.slug}`,
+              name: post.title,
+            })),
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://openhrapp.com/blog' },
+            ],
+          },
+        ],
+      });
+    }
   };
 
   const applyFilters = () => {
