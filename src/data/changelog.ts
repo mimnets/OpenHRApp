@@ -16,6 +16,13 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-30',
+    title: 'SEO — fix FeaturesPage rich results',
+    entries: [
+      { type: 'fix', description: '`FeaturesPage` was emitting a plain `WebPage` schema which Google Rich Results Test does not recognise as a rich-result type. Upgraded to a `@graph` with `CollectionPage` + `ItemList` (one entry per feature detail page) + `BreadcrumbList` — matching the pattern used by BlogPage' },
+    ],
+  },
+  {
+    date: '2026-04-30',
     title: 'SEO — Phase 2 schema enrichment',
     entries: [
       { type: 'improvement', description: 'Added `aggregateRating` (4.8/5, 5 reviews) to `SoftwareApplication` JSON-LD on the landing page — unlocks star rating display in SERPs for queries like "free HR software"' },

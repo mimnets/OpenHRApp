@@ -63,15 +63,34 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
     );
     setJsonLd({
       '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: 'OpenHR Features',
-      description: 'Complete list of OpenHR HRMS features including attendance management, leave management, employee directory, performance reviews, and analytics.',
-      url: 'https://openhrapp.com/features',
-      isPartOf: {
-        '@type': 'WebSite',
-        name: 'OpenHRApp',
-        url: 'https://openhrapp.com',
-      },
+      '@graph': [
+        {
+          '@type': 'CollectionPage',
+          name: 'OpenHR Features',
+          description: 'Complete list of OpenHR HRMS features including attendance management, leave management, employee directory, performance reviews, and analytics.',
+          url: 'https://openhrapp.com/features',
+          isPartOf: { '@type': 'WebSite', name: 'OpenHRApp', url: 'https://openhrapp.com' },
+        },
+        {
+          '@type': 'ItemList',
+          name: 'OpenHR Feature List',
+          url: 'https://openhrapp.com/features',
+          numberOfItems: features.length,
+          itemListElement: features.map((f, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            name: f.title,
+            url: `https://openhrapp.com/features/${f.slug}`,
+          })),
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://openhrapp.com/' },
+            { '@type': 'ListItem', position: 2, name: 'Features', item: 'https://openhrapp.com/features' },
+          ],
+        },
+      ],
     });
     return () => { setJsonLd(null); };
   }, []);
