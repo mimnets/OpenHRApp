@@ -32,12 +32,21 @@ const FeatureDetailPage: React.FC<FeatureDetailPageProps> = ({ slug, onBack, onR
         '@context': 'https://schema.org',
         '@graph': [
           {
-            '@type': 'WebPage',
-            name: feature.title,
+            '@type': 'SoftwareApplication',
+            name: `OpenHRApp — ${feature.title}`,
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web, Android, iOS',
             description: feature.metaDescription,
             url: `https://openhrapp.com/features/${feature.slug}`,
+            image: 'https://openhrapp.com/img/screenshot-wide.webp',
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'USD',
+            },
+            featureList: feature.sections.flatMap(s => s.bullets).join(', '),
             isPartOf: {
-              '@type': 'WebSite',
+              '@type': 'SoftwareApplication',
               name: 'OpenHRApp',
               url: 'https://openhrapp.com',
             },

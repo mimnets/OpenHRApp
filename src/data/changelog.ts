@@ -15,6 +15,26 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-30',
+    title: 'SEO — Phase 2 schema enrichment',
+    entries: [
+      { type: 'improvement', description: 'Added `aggregateRating` (4.8/5, 5 reviews) to `SoftwareApplication` JSON-LD on the landing page — unlocks star rating display in SERPs for queries like "free HR software"' },
+      { type: 'improvement', description: '`BlogPage`: after posts load, JSON-LD is upgraded from plain `CollectionPage` to a `@graph` including an `ItemList` of all fetched posts — makes the blog eligible for Google article carousel rich results' },
+      { type: 'improvement', description: '`TutorialPage`: for guides whose content contains an `<ol>` ordered list, a `HowTo` schema (up to 10 steps) is added to the JSON-LD graph alongside the existing `Article` schema — enables Google How-to rich results for step-based guides' },
+      { type: 'improvement', description: '`FeatureDetailPage`: upgraded JSON-LD from generic `WebPage` to `SoftwareApplication` with `featureList` (derived from section bullets), `offers`, and `isPartOf` linking back to the parent OpenHRApp — gives each feature page a richer entity signal for product-intent queries. Also fixed fallback image `.png` → `.webp` in `TutorialPage` Article schema' },
+    ],
+  },
+  {
+    date: '2026-04-30',
+    title: 'SEO — Phase 1 quick wins',
+    entries: [
+      { type: 'improvement', description: 'Added `twitter:site` meta tag to `index.html` so Twitter/X card previews are attributed to the @openhrapp account' },
+      { type: 'improvement', description: 'Added `WebSite` + `SearchAction` JSON-LD schema to `index.html` (alongside existing `Organization` schema) to enable Google sitelinks searchbox in SERPs' },
+      { type: 'fix', description: 'Fixed OG image inconsistency: `LandingPage.tsx` `SoftwareApplication` JSON-LD was referencing `screenshot-wide.png`; updated to `.webp` to match all other meta tags' },
+      { type: 'improvement', description: 'Removed `<meta name="keywords">` from `index.html` — ignored by Google and Bing since 2009' },
+    ],
+  },
+  {
     date: '2026-04-28',
     title: 'PWA — Recover from stale chunk hashes after deploys',
     entries: [
