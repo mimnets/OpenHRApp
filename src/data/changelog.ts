@@ -15,6 +15,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-04-30',
+    title: 'SEO — Phase 1 quick wins',
+    entries: [
+      { type: 'improvement', description: 'Added `twitter:site` meta tag to `index.html` so Twitter/X card previews are attributed to the @openhrapp account' },
+      { type: 'improvement', description: 'Added `WebSite` + `SearchAction` JSON-LD schema to `index.html` (alongside existing `Organization` schema) to enable Google sitelinks searchbox in SERPs' },
+      { type: 'fix', description: 'Fixed OG image inconsistency: `LandingPage.tsx` `SoftwareApplication` JSON-LD was referencing `screenshot-wide.png`; updated to `.webp` to match all other meta tags' },
+      { type: 'improvement', description: 'Removed `<meta name="keywords">` from `index.html` — ignored by Google and Bing since 2009' },
+    ],
+  },
+  {
     date: '2026-04-28',
     title: 'PWA — Recover from stale chunk hashes after deploys',
     entries: [

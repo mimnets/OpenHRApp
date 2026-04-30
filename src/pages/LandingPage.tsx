@@ -47,7 +47,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
           },
           description: 'Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.',
           url: 'https://openhrapp.com',
-          image: 'https://openhrapp.com/img/screenshot-wide.png',
+          image: 'https://openhrapp.com/img/screenshot-wide.webp',
         },
         {
           '@type': 'FAQPage',

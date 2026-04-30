@@ -7,7 +7,6 @@
 
   <!-- SEO Meta Tags -->
   <meta name="description" content="OpenHRApp is a free, open-source HR management system for organizations. Features include attendance tracking, leave management, employee directory, and local compliance tools.">
-  <meta name="keywords" content="HRMS, HR management system, open source HRMS, free HR software, attendance tracking, leave management, employee management, payroll, HR tools">
   <meta name="author" content="OpenHRApp">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://openhrapp.com/">
@@ -24,6 +23,7 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@openhrapp">
   <meta name="twitter:title" content="OpenHRApp - Open Source HR Management System">
   <meta name="twitter:description" content="Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools for modern organizations.">
   <meta name="twitter:image" content="https://openhrapp.com/img/screenshot-wide.webp">
@@ -35,17 +35,34 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="OpenHR">
 
-  <!-- Organization Structured Data -->
+  <!-- Organization + WebSite Structured Data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "OpenHRApp",
-    "url": "https://openhrapp.com",
-    "logo": "https://openhrapp.com/img/logo.webp",
-    "description": "Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.",
-    "sameAs": [
-      "https://github.com/mimnets/openhrapp"
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "OpenHRApp",
+        "url": "https://openhrapp.com",
+        "logo": "https://openhrapp.com/img/logo.webp",
+        "description": "Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.",
+        "sameAs": [
+          "https://github.com/mimnets/openhrapp"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "name": "OpenHRApp",
+        "url": "https://openhrapp.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://openhrapp.com/how-to-use?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
     ]
   }
   </script>
