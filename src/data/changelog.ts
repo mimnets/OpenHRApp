@@ -16,6 +16,20 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-04-30',
+    title: 'SEO — Phase 3: social bot prerender middleware',
+    entries: [
+      { type: 'improvement', description: 'Added Vercel Edge Middleware (`middleware.ts`) to fix broken link previews on Facebook, Slack, LinkedIn, WhatsApp, Telegram, and Discord. Social crawlers don\'t execute JavaScript, so they previously received homepage meta for every URL. The middleware detects known social bot user-agents and for matched routes (`/blog/:slug`, `/how-to-use/:slug`, `/features/:slug`) fetches real page metadata from PocketBase and returns a minimal HTML shell with correct `<title>`, `<meta description>`, Open Graph, and Twitter Card tags. Real users and Googlebot are passed through unchanged. Feature pages use inlined static meta (no API call needed). Responses are cached for 5 minutes with stale-while-revalidate for 1 hour' },
+    ],
+  },
+  {
+    date: '2026-04-30',
+    title: 'SEO — fix FeaturesPage rich results',
+    entries: [
+      { type: 'fix', description: '`FeaturesPage` was emitting a plain `WebPage` schema which Google Rich Results Test does not recognise as a rich-result type. Upgraded to a `@graph` with `CollectionPage` + `ItemList` (one entry per feature detail page) + `BreadcrumbList` — matching the pattern used by BlogPage' },
+    ],
+  },
+  {
+    date: '2026-04-30',
     title: 'SEO — Phase 2 schema enrichment',
     entries: [
       { type: 'improvement', description: 'Added `aggregateRating` (4.8/5, 5 reviews) to `SoftwareApplication` JSON-LD on the landing page — unlocks star rating display in SERPs for queries like "free HR software"' },
