@@ -1,4 +1,4 @@
-import { Holiday, AppConfig, CustomCompetency, CustomLeaveType, OrgReviewConfig, OrgNotificationConfig, UserNotificationPreferences } from './types';
+import { AppConfig, CustomCompetency, CustomLeaveType, OrgReviewConfig, OrgNotificationConfig, UserNotificationPreferences } from './types';
 
 export const DEPARTMENTS = [
   "Engineering",
@@ -29,18 +29,6 @@ export const OFFICE_LOCATIONS = [
   { name: "Sylhet Tech Hub", lat: 24.8949, lng: 91.8687, radius: 500 },
   { name: "Factory Zone", lat: 23.9999, lng: 90.5000, radius: 2000 },
   { name: "Remote Office", lat: 0, lng: 0, radius: 9999999 }
-];
-
-export const BD_HOLIDAYS: Holiday[] = [
-  { id: 'bd-h1', date: '2024-02-21', name: 'Shaheed Dibash (Language Day)', isGovernment: true, type: 'NATIONAL' },
-  { id: 'bd-h2', date: '2024-03-26', name: 'Independence Day', isGovernment: true, type: 'NATIONAL' },
-  { id: 'bd-h3', date: '2024-04-14', name: 'Pohela Boishakh (Bengali New Year)', isGovernment: true, type: 'FESTIVAL' },
-  { id: 'bd-h4', date: '2024-05-01', name: 'May Day', isGovernment: true, type: 'NATIONAL' },
-  { id: 'bd-h5', date: '2024-12-16', name: 'Victory Day', isGovernment: true, type: 'NATIONAL' },
-  { id: 'bd-h6', date: '2024-12-25', name: 'Christmas Day', isGovernment: true, type: 'FESTIVAL' },
-  { id: 'bd-h7', date: '2024-04-10', name: 'Eid-ul-Fitr', isGovernment: true, type: 'ISLAMIC' },
-  { id: 'bd-h8', date: '2024-04-11', name: 'Eid-ul-Fitr (Day 2)', isGovernment: true, type: 'ISLAMIC' },
-  { id: 'bd-h9', date: '2024-06-17', name: 'Eid-ul-Adha', isGovernment: true, type: 'ISLAMIC' },
 ];
 
 export const DEFAULT_COMPETENCIES: CustomCompetency[] = [
@@ -146,10 +134,77 @@ export const DEFAULT_USER_NOTIFICATION_PREFS: UserNotificationPreferences = {
   emailDigestFrequency: 'IMMEDIATE',
 };
 
+export const TIMEZONE_OPTIONS = [
+  { group: "UTC", zones: [
+    { label: "UTC (GMT+0)", value: "UTC" },
+  ]},
+  { group: "Africa", zones: [
+    { label: "Africa/Cairo (GMT+2)", value: "Africa/Cairo" },
+    { label: "Africa/Johannesburg (GMT+2)", value: "Africa/Johannesburg" },
+    { label: "Africa/Lagos (GMT+1)", value: "Africa/Lagos" },
+    { label: "Africa/Nairobi (GMT+3)", value: "Africa/Nairobi" },
+  ]},
+  { group: "America", zones: [
+    { label: "America/Argentina/Buenos_Aires (GMT-3)", value: "America/Argentina/Buenos_Aires" },
+    { label: "America/Mexico_City (GMT-6)", value: "America/Mexico_City" },
+    { label: "America/New_York (GMT-5)", value: "America/New_York" },
+    { label: "America/Sao_Paulo (GMT-3)", value: "America/Sao_Paulo" },
+    { label: "America/Toronto (GMT-5)", value: "America/Toronto" },
+  ]},
+  { group: "Asia", zones: [
+    { label: "Asia/Bahrain (GMT+3)", value: "Asia/Bahrain" },
+    { label: "Asia/Bangkok (GMT+7)", value: "Asia/Bangkok" },
+    { label: "Asia/Colombo (GMT+5:30)", value: "Asia/Colombo" },
+    { label: "Asia/Dhaka (GMT+6)", value: "Asia/Dhaka" },
+    { label: "Asia/Dubai (GMT+4)", value: "Asia/Dubai" },
+    { label: "Asia/Ho_Chi_Minh (GMT+7)", value: "Asia/Ho_Chi_Minh" },
+    { label: "Asia/Hong_Kong (GMT+8)", value: "Asia/Hong_Kong" },
+    { label: "Asia/Jakarta (GMT+7)", value: "Asia/Jakarta" },
+    { label: "Asia/Jerusalem (GMT+2)", value: "Asia/Jerusalem" },
+    { label: "Asia/Karachi (GMT+5)", value: "Asia/Karachi" },
+    { label: "Asia/Kathmandu (GMT+5:45)", value: "Asia/Kathmandu" },
+    { label: "Asia/Kolkata (GMT+5:30)", value: "Asia/Kolkata" },
+    { label: "Asia/Kuala_Lumpur (GMT+8)", value: "Asia/Kuala_Lumpur" },
+    { label: "Asia/Kuwait (GMT+3)", value: "Asia/Kuwait" },
+    { label: "Asia/Manila (GMT+8)", value: "Asia/Manila" },
+    { label: "Asia/Muscat (GMT+4)", value: "Asia/Muscat" },
+    { label: "Asia/Qatar (GMT+3)", value: "Asia/Qatar" },
+    { label: "Asia/Riyadh (GMT+3)", value: "Asia/Riyadh" },
+    { label: "Asia/Seoul (GMT+9)", value: "Asia/Seoul" },
+    { label: "Asia/Shanghai (GMT+8)", value: "Asia/Shanghai" },
+    { label: "Asia/Singapore (GMT+8)", value: "Asia/Singapore" },
+    { label: "Asia/Taipei (GMT+8)", value: "Asia/Taipei" },
+    { label: "Asia/Tokyo (GMT+9)", value: "Asia/Tokyo" },
+  ]},
+  { group: "Australia", zones: [
+    { label: "Australia/Sydney (GMT+10)", value: "Australia/Sydney" },
+  ]},
+  { group: "Europe", zones: [
+    { label: "Europe/Amsterdam (GMT+1)", value: "Europe/Amsterdam" },
+    { label: "Europe/Berlin (GMT+1)", value: "Europe/Berlin" },
+    { label: "Europe/Brussels (GMT+1)", value: "Europe/Brussels" },
+    { label: "Europe/Copenhagen (GMT+1)", value: "Europe/Copenhagen" },
+    { label: "Europe/Dublin (GMT+0)", value: "Europe/Dublin" },
+    { label: "Europe/Helsinki (GMT+2)", value: "Europe/Helsinki" },
+    { label: "Europe/Istanbul (GMT+3)", value: "Europe/Istanbul" },
+    { label: "Europe/London (GMT+0)", value: "Europe/London" },
+    { label: "Europe/Madrid (GMT+1)", value: "Europe/Madrid" },
+    { label: "Europe/Oslo (GMT+1)", value: "Europe/Oslo" },
+    { label: "Europe/Paris (GMT+1)", value: "Europe/Paris" },
+    { label: "Europe/Rome (GMT+1)", value: "Europe/Rome" },
+    { label: "Europe/Stockholm (GMT+1)", value: "Europe/Stockholm" },
+    { label: "Europe/Vienna (GMT+1)", value: "Europe/Vienna" },
+    { label: "Europe/Zurich (GMT+1)", value: "Europe/Zurich" },
+  ]},
+  { group: "Pacific", zones: [
+    { label: "Pacific/Auckland (GMT+12)", value: "Pacific/Auckland" },
+  ]},
+];
+
 export const DEFAULT_CONFIG: AppConfig = {
   companyName: "OpenHRApp Solutions Ltd.",
-  timezone: "Asia/Dhaka",
-  currency: "BDT",
+  timezone: "UTC",
+  currency: "USD",
   dateFormat: "DD/MM/YYYY",
   workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"],
   officeStartTime: "09:00",
