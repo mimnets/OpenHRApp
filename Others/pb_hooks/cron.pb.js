@@ -644,20 +644,20 @@ cronAdd("daily_attendance_report", "0 23 * * *", () => {
             if (orgName === "__SYSTEM__" || orgName === "Platform") continue;
 
             // Check if org has daily report enabled
+            let config = null;
             try {
                 const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config' && organization_id = {:orgId}", { orgId: orgId });
-                const config = configRecord.get("value");
+                config = configRecord.get("value");
                 if (!config || !config.dailyReportEnabled) continue;
             } catch (e) {
                 continue; // Skip if no config
             }
 
-            // Get today's date
+            // Get org-local date so the report reflects the correct business day
+            // regardless of server timezone.
             const now = new Date();
-            const year = now.getFullYear();
-            const month = ("0" + (now.getMonth() + 1)).slice(-2);
-            const day = ("0" + now.getDate()).slice(-2);
-            const dateStr = year + "-" + month + "-" + day;
+            const orgTime = getOrgLocalTime(orgId, now, config, {});
+            const dateStr = orgTime.orgTodayStr;
 
             // Get attendance records for today
             let presentCount = 0;
