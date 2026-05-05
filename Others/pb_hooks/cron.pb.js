@@ -206,6 +206,45 @@ cronAdd("auto_expire_trials", "0 0 * * *", () => {
  * This is called once per open session inside auto_close_sessions, so we
  * cache the per-org decision for the duration of this cron run.
  */
+/**
+ * Returns the org-local time strings for `now` using the org's configured
+ * timezone (IANA string, e.g. "Asia/Dhaka"). Falls back to server local time
+ * if the timezone is missing or the conversion fails.
+ *
+ * Result is cached per-orgId for the duration of one cron run.
+ * `config` is the already-loaded app_config value object (may be null).
+ */
+function getOrgLocalTime(orgId, now, config, cache) {
+    if (cache && cache[orgId]) return cache[orgId];
+
+    const tz = (config && config.timezone) ? String(config.timezone) : "";
+    let timeStr, dateStr;
+    try {
+        if (tz) {
+            timeStr = now.toLocaleString("en-GB", {
+                timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false
+            }); // "22:03"
+            dateStr = now.toLocaleString("en-CA", {
+                timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit"
+            }); // "2026-05-05"
+        }
+    } catch (e) { /* fall through to server-local fallback */ }
+
+    if (!timeStr || !dateStr) {
+        const h = ("0" + now.getHours()).slice(-2);
+        const m = ("0" + now.getMinutes()).slice(-2);
+        timeStr = h + ":" + m;
+        const yr = now.getFullYear();
+        const mo = ("0" + (now.getMonth() + 1)).slice(-2);
+        const dy = ("0" + now.getDate()).slice(-2);
+        dateStr = yr + "-" + mo + "-" + dy;
+    }
+
+    const result = { orgCurrentTimeStr: timeStr, orgTodayStr: dateStr };
+    if (cache) cache[orgId] = result;
+    return result;
+}
+
 function inRushHourForOrg(orgId, nowDate, cache) {
     if (cache && cache[orgId] !== undefined) return cache[orgId];
 
@@ -254,16 +293,8 @@ function inRushHourForOrg(orgId, nowDate, cache) {
 
 cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
     try {
-        // 1. Get current time
+        // 1. Get current time (server clock — org-local conversion happens per-session below)
         const now = new Date();
-        const h = ("0" + now.getHours()).slice(-2);
-        const m = ("0" + now.getMinutes()).slice(-2);
-        const currentTimeStr = h + ":" + m;
-
-        const year = now.getFullYear();
-        const month = ("0" + (now.getMonth() + 1)).slice(-2);
-        const day = ("0" + now.getDate()).slice(-2);
-        const todayStr = year + "-" + month + "-" + day;
 
         // 2. Find all open sessions (check_out is empty) for today and past dates
         let openSessions = [];
@@ -285,9 +316,10 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
 
         let closedCount = 0;
         let rushHourSkipCount = 0;
-        // Cache per-org rush-hour decisions within this single cron run so we
-        // don't hit the settings table 500 times.
+        // Per-org caches for this cron run — avoids hitting the settings table
+        // once per open session when many employees share the same org.
         const rushCache = {};
+        const tzCache = {}; // orgId → { orgCurrentTimeStr, orgTodayStr }
 
         for (let i = 0; i < openSessions.length; i++) {
             const session = openSessions[i];
@@ -306,10 +338,26 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
                 continue;
             }
 
-            // 3. Resolve auto-close time for this session's organization
+            // 3. Resolve auto-close time + org timezone for this session's org.
+            //    Always load org config so we have the timezone for local-time
+            //    comparison regardless of whether a shift override exists.
             let autoCloseTime = "23:59"; // fallback
+            let orgConfig = null;
 
-            // Check employee's shift first
+            // Always load org config first (needed for timezone)
+            try {
+                const configRecord = $app.findFirstRecordByFilter(
+                    "settings",
+                    "key = 'app_config' && organization_id = {:orgId}",
+                    { orgId: orgId }
+                );
+                orgConfig = configRecord.get("value");
+                if (orgConfig && orgConfig.autoSessionCloseTime) {
+                    autoCloseTime = orgConfig.autoSessionCloseTime;
+                }
+            } catch (e) { /* no config found, use fallback */ }
+
+            // Shift config takes priority over org config
             try {
                 const emp = $app.findRecordById("users", empId);
                 const shiftId = emp.getString("shift_id");
@@ -322,31 +370,21 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
                 }
             } catch (e) { /* employee not found */ }
 
-            // If no shift-level close time, check org config
-            if (autoCloseTime === "23:59") {
-                try {
-                    const configRecord = $app.findFirstRecordByFilter(
-                        "settings",
-                        "key = 'app_config' && organization_id = {:orgId}",
-                        { orgId: orgId }
-                    );
-                    const config = configRecord.get("value");
-                    if (config && config.autoSessionCloseTime) {
-                        autoCloseTime = config.autoSessionCloseTime;
-                    }
-                } catch (e) { /* no config found, use fallback */ }
-            }
+            // 4. Convert server clock to org-local time for correct comparison
+            const orgTime = getOrgLocalTime(orgId, now, orgConfig, tzCache);
+            const orgTodayStr = orgTime.orgTodayStr;
+            const orgCurrentTimeStr = orgTime.orgCurrentTimeStr;
 
-            // 4. Determine if session should be closed
+            // 5. Determine if session should be closed
             let shouldClose = false;
             let closeRemark = "";
 
-            if (sessionDate < todayStr) {
-                // Past-date session: close immediately
+            if (sessionDate < orgTodayStr) {
+                // Past-date session (in org's local timezone): close immediately
                 shouldClose = true;
                 closeRemark = " [System: Auto-Closed Past Date]";
-            } else if (sessionDate === todayStr && currentTimeStr >= autoCloseTime) {
-                // Today's session past auto-close time
+            } else if (sessionDate === orgTodayStr && orgCurrentTimeStr >= autoCloseTime) {
+                // Today's session (org-local) past auto-close time
                 shouldClose = true;
                 closeRemark = " [System: Max Time Reached]";
             }
@@ -358,7 +396,7 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
                     session.set("remarks", existingRemarks + closeRemark);
                     $app.save(session);
                     closedCount++;
-                    console.log("[CRON] Auto-closed session for " + empName + " (date: " + sessionDate + ", close time: " + autoCloseTime + ")");
+                    console.log("[CRON] Auto-closed session for " + empName + " (date: " + sessionDate + ", close time: " + autoCloseTime + ", org-local now: " + orgCurrentTimeStr + ")");
 
                     // Send notification to employee
                     try {
@@ -368,7 +406,7 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
                         notifRecord.set("organization_id", orgId);
                         notifRecord.set("type", "ATTENDANCE");
                         notifRecord.set("title", "Your session was auto-closed");
-                        notifRecord.set("message", sessionDate < todayStr
+                        notifRecord.set("message", sessionDate < orgTodayStr
                             ? "Check-out was missing for " + sessionDate + ". Session closed at " + autoCloseTime + "."
                             : "Max time reached. Session closed at " + autoCloseTime + ".");
                         notifRecord.set("is_read", false);
