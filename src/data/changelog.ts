@@ -27,7 +27,8 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-05-05',
     title: 'Fix: auto-close session now uses org timezone for correct global behaviour',
     entries: [
-      { type: 'fix', description: 'Auto-close session cron (cron.pb.js) was comparing the configured close time against the server\'s UTC clock instead of each organisation\'s local time. For example, a Bangladesh org (UTC+6) that set 10:00 PM as the close time would not have sessions closed until ~6 AM the next morning. Fixed by converting the server clock to each org\'s IANA timezone (stored in app_config) before comparing. Both the today-vs-past-date decision and the HH:MM comparison now use org-local time. The shift-level > org-level > fallback priority chain is unchanged. A per-org timezone cache prevents repeated DB lookups within a single cron run.' }
+      { type: 'fix', description: 'Auto-close session cron (cron.pb.js) was comparing the configured close time against the server\'s UTC clock instead of each organisation\'s local time. For example, a Bangladesh org (UTC+6) that set 10:00 PM as the close time would not have sessions closed until ~6 AM the next morning. Fixed by converting the server clock to each org\'s IANA timezone (stored in app_config) before comparing. Both the today-vs-past-date decision and the HH:MM comparison now use org-local time. The shift-level > org-level > fallback priority chain is unchanged. A per-org timezone cache prevents repeated DB lookups within a single cron run.' },
+      { type: 'fix', description: 'Rush-hour skip guard in auto_close_sessions was referencing an undefined todayStr variable (leftover from before the timezone fix). Guard now correctly uses orgTodayStr derived from the org\'s IANA timezone, computed before the guard check.' }
     ]
   },
   {

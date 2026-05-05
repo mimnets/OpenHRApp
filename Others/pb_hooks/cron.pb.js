@@ -328,16 +328,6 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
             const empName = session.getString("employee_name");
             const orgId = session.getString("organization_id");
 
-            // Rush-hour skip guard (E2.3): do not take the writer lock on
-            // this session's org while its employees are checking in/out.
-            // The session will be picked up on the next run (5 min later).
-            // Past-date sessions are still eligible — those need to close
-            // regardless of current time-of-day.
-            if (sessionDate === todayStr && orgId && inRushHourForOrg(orgId, now, rushCache)) {
-                rushHourSkipCount++;
-                continue;
-            }
-
             // 3. Resolve auto-close time + org timezone for this session's org.
             //    Always load org config so we have the timezone for local-time
             //    comparison regardless of whether a shift override exists.
@@ -374,6 +364,16 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
             const orgTime = getOrgLocalTime(orgId, now, orgConfig, tzCache);
             const orgTodayStr = orgTime.orgTodayStr;
             const orgCurrentTimeStr = orgTime.orgCurrentTimeStr;
+
+            // Rush-hour skip guard (E2.3): do not take the writer lock on
+            // this session's org while its employees are checking in/out.
+            // The session will be picked up on the next run (5 min later).
+            // Past-date sessions are still eligible — those need to close
+            // regardless of current time-of-day.
+            if (sessionDate === orgTodayStr && orgId && inRushHourForOrg(orgId, now, rushCache)) {
+                rushHourSkipCount++;
+                continue;
+            }
 
             // 5. Determine if session should be closed
             let shouldClose = false;
