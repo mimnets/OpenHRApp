@@ -16,6 +16,15 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-05-05',
+    title: 'Fix: auto-absent check now per-org with correct timezone',
+    entries: [
+      { type: 'fix', description: 'auto_absent_check cron was loading a single app_config with no organization_id filter, applying one random org\'s autoAbsentTime, workingDays, and holidays to all employees across every org. Rewritten to loop over each org independently, loading its own config with a scoped filter.' },
+      { type: 'fix', description: 'auto_absent_check used server-local clock for time matching, date string, and day-of-week. All three now use org-local time via getOrgLocalTime() (same helper used by auto_close_sessions), ensuring absent marks fire at the correct local time on the correct local date for every org regardless of server timezone.' },
+      { type: 'fix', description: 'Absent records were missing the organization_id field, breaking multi-tenant attendance queries. Field now set on every auto-absent record.' },
+    ]
+  },
+  {
+    date: '2026-05-05',
     title: 'Fix: org registration country-aware timezone, currency, and default config',
     entries: [
       { type: 'fix', description: 'Timezone dropdown in System Settings was hardcoded to 3 options (Asia/Dhaka, UTC, Asia/Kolkata). When a non-Bangladesh org was registered, the backend correctly stored the right timezone (e.g. Asia/Bahrain) but the select had no matching option so the browser displayed the first option (Asia/Dhaka). Replaced with a full grouped IANA timezone list covering all 73 countries supported by the platform.' },
