@@ -442,141 +442,184 @@ cronAdd("auto_close_sessions", "3-59/5 * * * *", () => {
    The minute-precision target time (config.autoAbsentTime, e.g. "23:55")
    demands a minute-by-minute check. We cannot stagger to */5 without
    losing that precision. Instead we make the early-exit branch
-   cheaper: move the settings read INSIDE the minute-match guard so
-   the 1439 minutes-per-day that do NOT match perform zero DB I/O.
+   cheaper: the :X0/:X5 suffix guard fires before any DB I/O, and
+   the per-org loop only runs on the one minute per day that matches
+   each org's configured target time.
+
+   Per-org loop introduced 2026-05-05: previously used a single app_config
+   with no org_id filter (applied one org's settings to all employees) and
+   server-local time (wrong timezone for non-UTC orgs). Now each org is
+   evaluated independently with its own config and org-local clock.
 
    See Others/SCALING_PLAN.md §3.2 and Others/SCALING_IMPLEMENTATION_LOG.md
    E2.2 for the full rationale.
    ============================================================ */
 cronAdd("auto_absent_check", "* * * * *", () => {
     try {
-        // Cheap early-exit path: build current time WITHOUT touching the DB.
+        // Cheap early-exit: build server time WITHOUT touching the DB.
+        // Used only for the suffix guard — actual time comparison uses org-local time below.
         const now = new Date();
-        const localDate = now; // server time — matches prior behavior
-        const h = ("0" + localDate.getHours()).slice(-2);
-        const m = ("0" + localDate.getMinutes()).slice(-2);
-        const currentTimeStr = h + ":" + m;
+        const mm = ("0" + now.getMinutes()).slice(-2);
 
-        // Only skip the DB read on minutes that could never match any
-        // configured autoAbsentTime. A minute ending in "5" is the
-        // conventional default (e.g. 23:55); we also tolerate any HH:MM
-        // by doing a cheap suffix check. If you need a non-:X5 target,
-        // remove this guard — it's a perf micro-opt, not correctness.
-        // (Minute-level precision is still validated below against the
-        // exact configured target.)
-        if (m[1] !== '5' && m[1] !== '0') {
-            return;
-        }
+        // Perf guard: only :X0 and :X5 minutes can match any standard autoAbsentTime.
+        if (mm[1] !== '5' && mm[1] !== '0') return;
 
-        const configRecord = $app.findFirstRecordByFilter("settings", "key = 'app_config'");
-        const config = configRecord.get("value");
-
-        // Silent exit if feature is disabled
-        if (!config || !config.autoAbsentEnabled) return;
-
-        // Exact minute match against configured target
-        const targetTime = config.autoAbsentTime || "23:55";
-        if (currentTimeStr !== targetTime) {
-            return;
-        }
-
-        console.log("[CRON] ------------------------------------------------");
-        console.log("[CRON] TIME MATCHED (" + currentTimeStr + ")! Starting Auto-Absent Process...");
-
-        // 2. GENERATE 'YYYY-MM-DD' STRING
-        // We manually construct this to ensure it matches the "Business Day" regardless of UTC offsets.
-        const year = localDate.getFullYear();
-        const month = ("0" + (localDate.getMonth() + 1)).slice(-2);
-        const day = ("0" + localDate.getDate()).slice(-2);
-        const dateStr = year + "-" + month + "-" + day;
-
-        console.log("[CRON] Processing Business Date: " + dateStr);
-
-        // 3. Validate Working Day
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const dayName = dayNames[localDate.getDay()];
 
-        if (!config.workingDays || !config.workingDays.includes(dayName)) {
-            console.log("[CRON] Skipping: " + dayName + " is not a working day.");
-            return;
+        // Load all non-suspended orgs and process each independently.
+        let orgs = [];
+        try {
+            orgs = $app.findRecordsByFilter(
+                "organizations",
+                "subscription_status != 'SUSPENDED'",
+                {}, "", 500, 0
+            );
+        } catch (e) { return; }
+
+        for (let o = 0; o < orgs.length; o++) {
+            const org = orgs[o];
+            const orgId = org.id;
+            const orgName = org.getString("name");
+            if (orgName === "__SYSTEM__" || orgName === "Platform") continue;
+
+            // Load this org's config (org-scoped filter — not a global read).
+            let config = null;
+            try {
+                const cfgRecord = $app.findFirstRecordByFilter(
+                    "settings",
+                    "key = 'app_config' && organization_id = {:orgId}",
+                    { orgId: orgId }
+                );
+                config = cfgRecord.get("value");
+            } catch (e) { continue; }
+
+            if (!config || !config.autoAbsentEnabled) continue;
+
+            const targetTime = config.autoAbsentTime || "23:55";
+
+            // Convert server clock to org-local time (reuses getOrgLocalTime defined above).
+            const orgTime = getOrgLocalTime(orgId, now, config, {});
+            const orgCurrentTimeStr = orgTime.orgCurrentTimeStr;
+            const orgTodayStr = orgTime.orgTodayStr;
+
+            // Exact minute match in org-local time.
+            if (orgCurrentTimeStr !== targetTime) continue;
+
+            // Validate org-local day of week.
+            // Use noon on orgTodayStr to avoid any DST midnight edge.
+            const orgDayIndex = new Date(orgTodayStr + "T12:00:00").getDay();
+            const orgDayName = dayNames[orgDayIndex];
+            if (!config.workingDays || !config.workingDays.includes(orgDayName)) {
+                console.log("[CRON] auto_absent [" + orgName + "] Skip: " + orgDayName + " not a working day.");
+                continue;
+            }
+
+            // Check org's own holiday list.
+            let isHoliday = false;
+            try {
+                const holRecord = $app.findFirstRecordByFilter(
+                    "settings",
+                    "key = 'holidays' && organization_id = {:orgId}",
+                    { orgId: orgId }
+                );
+                const holidays = holRecord.get("value") || [];
+                for (let h = 0; h < holidays.length; h++) {
+                    if (holidays[h].date === orgTodayStr) { isHoliday = true; break; }
+                }
+            } catch (e) { /* no holidays configured for this org */ }
+            if (isHoliday) {
+                console.log("[CRON] auto_absent [" + orgName + "] Skip: holiday on " + orgTodayStr);
+                continue;
+            }
+
+            // Fetch only this org's active employees.
+            let employees = [];
+            try {
+                employees = $app.findRecordsByFilter(
+                    "users",
+                    "status = 'ACTIVE' && role != 'ADMIN' && organization_id = {:orgId}",
+                    { orgId: orgId }, "", 500, 0
+                );
+            } catch (e) { continue; }
+
+            console.log("[CRON] ------------------------------------------------");
+            console.log("[CRON] auto_absent [" + orgName + "] TIME MATCHED (" + orgCurrentTimeStr + "). Checking " + employees.length + " employees for " + orgTodayStr + "...");
+
+            let countMarked = 0;
+            let countSkipped = 0;
+
+            for (let i = 0; i < employees.length; i++) {
+                const emp = employees[i];
+                const empId = emp.id;
+                const empName = emp.getString("name");
+
+                // Already has attendance record for org-local today?
+                try {
+                    const att = $app.findFirstRecordByFilter(
+                        "attendance",
+                        "employee_id = {:empId} && date = {:dateStr}",
+                        { empId: empId, dateStr: orgTodayStr }
+                    );
+                    if (att) { countSkipped++; continue; }
+                } catch (e) { /* not found, continue */ }
+
+                // On approved leave covering org-local today?
+                try {
+                    const leave = $app.findFirstRecordByFilter(
+                        "leaves",
+                        "employee_id = {:empId} && status = 'APPROVED' && start_date <= {:dateStr} && end_date >= {:dateStr}",
+                        { empId: empId, dateStr: orgTodayStr }
+                    );
+                    if (leave) {
+                        console.log("[CRON] auto_absent Skip " + empName + ": approved leave.");
+                        countSkipped++; continue;
+                    }
+                } catch (e) { /* no leave, continue */ }
+
+                // Mark absent.
+                try {
+                    const col = $app.findCollectionByNameOrId("attendance");
+                    const rec = new Record(col);
+                    rec.set("employee_id", empId);
+                    rec.set("employee_name", empName);
+                    rec.set("organization_id", orgId);
+                    rec.set("date", orgTodayStr);
+                    rec.set("status", "ABSENT");
+                    rec.set("check_in", "-");
+                    rec.set("check_out", "-");
+                    rec.set("remarks", "System Auto-Absent: No punch by " + targetTime);
+                    rec.set("location", "N/A");
+                    $app.save(rec);
+                    countMarked++;
+                    console.log("[CRON] auto_absent MARKED ABSENT: " + empName);
+
+                    // Notify employee.
+                    try {
+                        const notifCol = $app.findCollectionByNameOrId("notifications");
+                        const notif = new Record(notifCol);
+                        notif.set("user_id", empId);
+                        notif.set("organization_id", orgId);
+                        notif.set("type", "ATTENDANCE");
+                        notif.set("title", "Marked Absent");
+                        notif.set("message", "No attendance punch recorded for " + orgTodayStr + ". Marked as absent.");
+                        notif.set("is_read", false);
+                        notif.set("priority", "HIGH");
+                        notif.set("action_url", "attendance-logs");
+                        $app.save(notif);
+                    } catch (ne) {
+                        console.log("[CRON] auto_absent: notify failed for " + empName + ": " + ne.toString());
+                    }
+                } catch (err) {
+                    console.error("[CRON] auto_absent FAILED for " + empName + ": " + err.toString());
+                }
+            }
+
+            console.log("[CRON] auto_absent [" + orgName + "] Done. Absent: " + countMarked + " | Skipped: " + countSkipped);
+            console.log("[CRON] ------------------------------------------------");
         }
 
-        // 4. Check Holidays
-        try {
-            const holidayRecord = $app.findFirstRecordByFilter("settings", "key = 'holidays'");
-            const holidays = holidayRecord.get("value") || [];
-            let isHoliday = false;
-            for(let i=0; i<holidays.length; i++) {
-                if (holidays[i].date === dateStr) { isHoliday = true; break; }
-            }
-            if (isHoliday) {
-                console.log("[CRON] Skipping: Today is a holiday.");
-                return;
-            }
-        } catch(e) { /* Ignore if settings missing */ }
-
-        // 5. Fetch Employees & Process
-        const employees = $app.findRecordsByFilter("users", "status = 'ACTIVE' && role != 'ADMIN'");
-        let countMarked = 0;
-        let countSkipped = 0;
-
-        console.log("[CRON] Checking " + employees.length + " active employees...");
-
-        employees.forEach((emp) => {
-            const empId = emp.id;
-            const empName = emp.getString("name");
-
-            // A. Check if already Present (Any status: PRESENT, LATE, etc.)
-            try {
-                const att = $app.findFirstRecordByFilter("attendance", "employee_id = {:empId} && date = {:dateStr}", { empId: empId, dateStr: dateStr });
-                if (att) {
-                    countSkipped++;
-                    return; 
-                }
-            } catch(e) { /* No record found, continue */ }
-
-            // B. Check if on Approved Leave
-            try {
-                const leave = $app.findFirstRecordByFilter(
-                    "leaves",
-                    "employee_id = {:empId} && status = 'APPROVED' && start_date <= {:dateStr} && end_date >= {:dateStr}",
-                    { empId: empId, dateStr: dateStr }
-                );
-                if (leave) {
-                    console.log("[CRON] Skip " + empName + ": On Approved Leave.");
-                    countSkipped++;
-                    return; 
-                }
-            } catch(e) { /* No leave found, continue */ }
-
-            // C. Insert Absent Record
-            try {
-                const collection = $app.findCollectionByNameOrId("attendance");
-                const record = new Record(collection);
-                
-                record.set("employee_id", empId);
-                record.set("employee_name", empName);
-                record.set("date", dateStr); // This is the crucial Business Date string
-                record.set("status", "ABSENT");
-                record.set("check_in", "-");
-                record.set("check_out", "-");
-                record.set("remarks", "System Auto-Absent: No punch by " + targetTime);
-                record.set("location", "N/A");
-                
-                $app.save(record);
-                
-                console.log("[CRON] MARKED ABSENT: " + empName);
-                countMarked++;
-            } catch(err) {
-                console.error("[CRON] FAILED to save absent for " + empName + ": " + err.toString());
-            }
-        });
-
-        console.log("[CRON] Run Complete. Absent: " + countMarked + " | Skipped (Present/Leave): " + countSkipped);
-        console.log("[CRON] ------------------------------------------------");
-
-    } catch(e) {
-        console.error("[CRON] Fatal Error: " + e.toString());
+    } catch (e) {
+        console.error("[CRON] auto_absent Fatal: " + e.toString());
     }
 });
 
