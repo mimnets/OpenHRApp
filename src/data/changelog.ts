@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-05',
+    title: 'Registration: countrywise holiday data for 24 missing countries',
+    entries: [
+      { type: 'fix', description: 'Added public holiday data for 24 countries that previously received an empty holiday list on registration: Afghanistan, Albania, Brunei, Chile, Colombia, Czech Republic, Algeria, Ethiopia, Ghana, Greece, Croatia, Hungary, Iraq, Jordan, Cambodia, Lebanon, Morocco, Myanmar, Maldives, Poland, Portugal, Romania, Russia, Zimbabwe' }
+    ]
+  },
+  {
     date: '2026-04-30',
     title: 'SEO — Phase 3: social bot prerender middleware',
     entries: [
