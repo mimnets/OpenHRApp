@@ -17,7 +17,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    country: 'BD', // Default to Bangladesh
+    country: '',
     address: '',
     logo: null as File | null
   });
@@ -124,6 +124,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
                 <div className="relative">
                   <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                   <select required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all appearance-none" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}>
+                    <option value="" disabled>Select country...</option>
                     {COUNTRIES.map(country => (
                       <option key={country.code} value={country.code}>
                         {getFlagEmoji(country.code)} {country.name}

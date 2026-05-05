@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Globe, Moon, MapPin, Upload, Building2, Tag } from 'lucide-react';
 import { AppConfig } from '../../types';
 import { COUNTRIES, getFlagEmoji } from '../../data/countries';
+import { TIMEZONE_OPTIONS } from '../../constants';
 import { apiClient } from '../../services/api.client';
 import { convertFileToWebP } from '../../utils/imageConvert';
 import { useToast } from '../../context/ToastContext';
@@ -183,9 +184,13 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
             <div className="space-y-1">
                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Timezone</label>
                <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-blue-50 transition-all" value={config.timezone} onChange={e => handleChange('timezone', e.target.value)}>
-                  <option value="Asia/Dhaka">Asia/Dhaka (GMT+6)</option>
-                  <option value="UTC">UTC</option>
-                  <option value="Asia/Kolkata">Asia/Kolkata</option>
+                  {TIMEZONE_OPTIONS.map(group => (
+                    <optgroup key={group.group} label={group.group}>
+                      {group.zones.map(zone => (
+                        <option key={zone.value} value={zone.value}>{zone.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                </select>
             </div>
             <div className="space-y-1">

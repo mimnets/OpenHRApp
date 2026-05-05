@@ -16,6 +16,15 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-05-05',
+    title: 'Fix: org registration country-aware timezone, currency, and default config',
+    entries: [
+      { type: 'fix', description: 'Timezone dropdown in System Settings was hardcoded to 3 options (Asia/Dhaka, UTC, Asia/Kolkata). When a non-Bangladesh org was registered, the backend correctly stored the right timezone (e.g. Asia/Bahrain) but the select had no matching option so the browser displayed the first option (Asia/Dhaka). Replaced with a full grouped IANA timezone list covering all 73 countries supported by the platform.' },
+      { type: 'fix', description: 'DEFAULT_CONFIG fallback in constants.tsx hardcoded timezone: "Asia/Dhaka" and currency: "BDT". On any config load failure or race condition after registration, all orgs would fall back to Bangladesh values. Changed fallback to timezone: "UTC" and currency: "USD".' },
+      { type: 'fix', description: 'Registration form defaulted country to "BD" (Bangladesh). If an admin did not change the dropdown, the backend would seed Bangladesh timezone, currency, and holidays for a non-Bangladesh org. Default changed to empty string with a required "Select country..." placeholder, forcing an explicit selection.' },
+    ]
+  },
+  {
+    date: '2026-05-05',
     title: 'Fix: auto-close session now uses org timezone for correct global behaviour',
     entries: [
       { type: 'fix', description: 'Auto-close session cron (cron.pb.js) was comparing the configured close time against the server\'s UTC clock instead of each organisation\'s local time. For example, a Bangladesh org (UTC+6) that set 10:00 PM as the close time would not have sessions closed until ~6 AM the next morning. Fixed by converting the server clock to each org\'s IANA timezone (stored in app_config) before comparing. Both the today-vs-past-date decision and the HH:MM comparison now use org-local time. The shift-level > org-level > fallback priority chain is unchanged. A per-org timezone cache prevents repeated DB lookups within a single cron run.' }
