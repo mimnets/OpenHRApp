@@ -21,6 +21,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'auto_absent_check cron was loading a single app_config with no organization_id filter, applying one random org\'s autoAbsentTime, workingDays, and holidays to all employees across every org. Rewritten to loop over each org independently, loading its own config with a scoped filter.' },
       { type: 'fix', description: 'auto_absent_check used server-local clock for time matching, date string, and day-of-week. All three now use org-local time via getOrgLocalTime() (same helper used by auto_close_sessions), ensuring absent marks fire at the correct local time on the correct local date for every org regardless of server timezone.' },
       { type: 'fix', description: 'Absent records were missing the organization_id field, breaking multi-tenant attendance queries. Field now set on every auto-absent record.' },
+      { type: 'fix', description: 'daily_attendance_report cron used server-local clock to build the dateStr for attendance queries. For UTC+6 orgs the report at 23:00 UTC (05:00 Dhaka next day) would query the wrong date. Now uses getOrgLocalTime() per org so the report always reflects the correct local business day.' },
     ]
   },
   {
