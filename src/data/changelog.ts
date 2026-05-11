@@ -16,8 +16,14 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-05-11',
-    title: 'Fix: registration now seeds correct country holidays',
+    title: 'Fix: PWA update reliability + manifest improvements',
     entries: [
+      { type: 'fix', description: 'PWA update button sometimes did nothing or required a second manual refresh. Added controllerchange listener as a reload safety net — fires when the new SW takes control, ensuring the page always reloads with fresh assets after an update.' },
+      { type: 'fix', description: 'Update banner now shows a loading/spinning state while the new SW is activating, so the UI does not appear frozen during the brief activation gap.' },
+      { type: 'improvement', description: 'Added webp and png to Workbox globPatterns — app icons and screenshots now precached so the install prompt works fully offline.' },
+      { type: 'improvement', description: 'Switched injectRegister to inline so SW registration does not depend solely on the React hook mounting — prevents edge cases where SW never registers.' },
+      { type: 'improvement', description: 'apple-touch-icon now points to icon-192.png (correct 192×192 PNG) instead of logo.png — fixes blurry iOS home screen icon.' },
+      { type: 'improvement', description: 'Manifest id set to "openhrapp" — stable unique identifier for Chrome install tracking instead of generic "/".' },
       { type: 'fix', description: 'Registration endpoint was reading FormData fields from requestInfo.body (always empty for multipart) instead of requestInfo.data. country defaulted to BD for every org. Now merges both sources so the correct country code is used for holiday and config seeding.' },
     ]
   },

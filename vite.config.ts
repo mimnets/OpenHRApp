@@ -22,10 +22,10 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'prompt',
-          injectRegister: false,
+          injectRegister: 'inline',
           manifest: false,
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+            globPatterns: ['**/*.{js,css,html,ico,svg,woff2,webp,png}'],
             maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
             cleanupOutdatedCaches: true,
             clientsClaim: true,
