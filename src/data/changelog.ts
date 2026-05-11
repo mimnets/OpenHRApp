@@ -16,6 +16,13 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-05-11',
+    title: 'Fix: Bulk email recipient count incorrect',
+    entries: [
+      { type: 'fix', description: 'Bulk email recipient preview was showing only 1 admin instead of all org admins. PocketBase fields projection hid the email field due to collection-level field rules. Removed fields restriction from all audience queries so email is always returned.' },
+    ]
+  },
+  {
+    date: '2026-05-11',
     title: 'Fix: Selfie cleanup now deletes from Cloudflare R2',
     entries: [
       { type: 'fix', description: 'Selfie retention cron was clearing DB fields but never deleting actual image files from Cloudflare R2 storage. Added explicit $app.deleteFile() calls before field-clearing so objects are removed from R2 on schedule.' },
