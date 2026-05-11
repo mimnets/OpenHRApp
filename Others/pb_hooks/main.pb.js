@@ -48,11 +48,15 @@ routerAdd("POST", "/api/openhr/register", (e) => {
         let data = {};
         try {
             const requestInfo = e.requestInfo();
-            if (requestInfo && requestInfo.body && typeof requestInfo.body === 'object') {
-                data = requestInfo.body;
-            } else if (requestInfo && requestInfo.data) {
-                // FormData comes through requestInfo.data
-                data = requestInfo.data;
+            if (requestInfo) {
+                // Merge both sources: JSON body fields + multipart FormData fields
+                // FormData fields come through requestInfo.data; JSON body via requestInfo.body
+                const bodyPart = (requestInfo.body && typeof requestInfo.body === 'object') ? requestInfo.body : {};
+                const dataPart = (requestInfo.data && typeof requestInfo.data === 'object') ? requestInfo.data : {};
+                data = Object.assign({}, bodyPart, dataPart);
+                if (Object.keys(data).length === 0) {
+                    return e.json(400, { message: "Invalid request body structure" });
+                }
             } else {
                 return e.json(400, { message: "Invalid request body structure" });
             }

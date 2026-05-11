@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-11',
+    title: 'Fix: registration now seeds correct country holidays',
+    entries: [
+      { type: 'fix', description: 'Registration endpoint was reading FormData fields from requestInfo.body (always empty for multipart) instead of requestInfo.data. country defaulted to BD for every org. Now merges both sources so the correct country code is used for holiday and config seeding.' },
+    ]
+  },
+  {
     date: '2026-05-05',
     title: 'Fix: auto-absent check now per-org with correct timezone',
     entries: [
