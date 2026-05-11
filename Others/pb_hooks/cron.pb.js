@@ -804,7 +804,14 @@ cronAdd("selfie_cleanup", "0 2 * * *", () => {
             for (let i = 0; i < records.length; i++) {
                 const record = records[i];
                 try {
-                    // Clear selfie fields (PocketBase auto-deletes orphaned files)
+                    // Explicitly delete R2 objects before clearing fields
+                    // (field-clear alone does not delete from external S3/R2 storage)
+                    if (record.getString("selfie_in")) {
+                        try { $app.deleteFile(record, "selfie_in"); } catch(e) {}
+                    }
+                    if (record.getString("selfie_out")) {
+                        try { $app.deleteFile(record, "selfie_out"); } catch(e) {}
+                    }
                     record.set("selfie_in", "");
                     record.set("selfie_out", "");
                     $app.save(record);
