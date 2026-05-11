@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'Fix: Bulk email recipient count incorrect',
     entries: [
       { type: 'fix', description: 'Bulk email recipient preview was showing only 1 admin instead of all org admins. PocketBase fields projection hid the email field due to collection-level field rules. Removed fields restriction from all audience queries so email is always returned.' },
+      { type: 'fix', description: 'PWA update banner: clicking Update caused stuck loading screen. Double reload — updateServiceWorker(true) and controllerchange listener both called location.reload(). Added reloadingRef guard so controllerchange skips reload when applyUpdate already triggered it.' },
     ]
   },
   {
