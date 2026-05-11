@@ -5,6 +5,7 @@ const UPDATE_CHECK_INTERVAL = 60 * 1000; // 60 seconds
 
 export function useServiceWorker() {
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const reloadingRef = useRef(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const {
@@ -38,10 +39,11 @@ export function useServiceWorker() {
     },
   });
 
-  // Reload when new SW takes control — fallback for when updateServiceWorker()'s
-  // internal reload races activation and the page ends up on stale chunks
+  // Reload when new SW takes control — fallback only when not already reloading
+  // from applyUpdate (which calls updateServiceWorker(true) → location.reload internally)
   useEffect(() => {
     const handleControllerChange = () => {
+      if (reloadingRef.current) return;
       window.location.reload();
     };
     navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
@@ -67,9 +69,8 @@ export function useServiceWorker() {
   }, []);
 
   const applyUpdate = useCallback(() => {
+    reloadingRef.current = true;
     setIsUpdating(true);
-    // reloadPage=true: vite-plugin-pwa calls location.reload() after SKIP_WAITING
-    // controllerchange listener above is the safety net if that races
     updateServiceWorker(true);
   }, [updateServiceWorker]);
 
