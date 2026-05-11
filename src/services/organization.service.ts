@@ -1,6 +1,6 @@
 import { apiClient } from './api.client';
 import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, CustomLeaveType, OrgNotificationConfig } from '../types';
-import { DEFAULT_CONFIG, BD_HOLIDAYS, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
+import { DEFAULT_CONFIG, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
 import { shiftService } from './shift.service';
 
 // Internal Cache with TTL
@@ -144,7 +144,7 @@ export const organizationService = {
 
   async getHolidays(): Promise<Holiday[]> {
     if (cachedHolidays && isCacheValid()) return cachedHolidays;
-    const val = await getSetting('holidays', BD_HOLIDAYS);
+    const val = await getSetting('holidays', []);
     cachedHolidays = val;
     touchCache();
     return val;
