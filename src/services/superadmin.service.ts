@@ -574,14 +574,12 @@ export const superAdminService = {
         const records = await pb.collection('users').getFullList({
           filter: f,
           batch: 500,
-          fields: 'id,email,organization_id',
         });
         users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
       } else if (filter.kind === 'ALL_USERS') {
         const records = await pb.collection('users').getFullList({
           filter: excludeSuper,
           batch: 500,
-          fields: 'id,email,organization_id',
         });
         users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
       } else if (filter.kind === 'ORG') {
@@ -590,7 +588,6 @@ export const superAdminService = {
         const records = await pb.collection('users').getFullList({
           filter: f,
           batch: 500,
-          fields: 'id,email,organization_id',
         });
         users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
       } else if (filter.kind === 'BY_SUBSCRIPTION') {
@@ -614,7 +611,6 @@ export const superAdminService = {
           const records = await pb.collection('users').getFullList({
             filter: f,
             batch: 500,
-            fields: 'id,email,organization_id',
           });
           users.push(...records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id })));
         }
