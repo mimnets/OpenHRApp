@@ -20,7 +20,8 @@ export const changelog: ChangelogRelease[] = [
     entries: [
       { type: 'improvement', description: 'employee.service.ts rewritten to use Supabase (profiles table + avatars storage bucket). Removed all PocketBase SDK calls.' },
       { type: 'feature', description: 'Added create-employee Edge Function (Deno) so ADMIN/HR can create new auth users with service-role key without exposing credentials to the frontend.' },
-      { type: 'improvement', description: 'attendance.service.ts rewritten to use Supabase (attendance table + selfies storage bucket). Selfie async upload, sync queue drain, and late-notify all ported. workdaySessionManager delegation preserved unchanged (frozen module).' },
+      { type: 'improvement', description: 'attendance.service.ts rewritten to use Supabase (attendance table + selfies storage bucket). Selfie async upload, sync queue drain, and late-notify all ported.' },
+      { type: 'improvement', description: 'workdaySessionManager.ts (frozen module) ported to Supabase: 5 surgical PB replacements, zero logic changes. Open session filter changed from check_out="" to IS NULL. Selfie URL uses Supabase Storage. All frozen-module invariants preserved.' },
     ]
   },
   {
