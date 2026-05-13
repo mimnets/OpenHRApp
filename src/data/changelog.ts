@@ -26,6 +26,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'organization.service.ts rewritten to use Supabase. getSetting/setSetting use upsert on settings table. Teams CRUD, report queue, admin verify, guide links all ported. Added migration 0006 for unique constraint on (organization_id,key).' },
       { type: 'improvement', description: 'shift.service.ts rewritten to use Supabase. PB camelCase fields (startTime) mapped to Supabase snake_case (start_time). clearOtherDefaults uses batch update instead of parallel individual updates.' },
       { type: 'improvement', description: 'notification.service.ts rewritten to use Supabase. Bulk create uses single insert. markAllAsRead uses single update filter. deleteAllNotifications uses single delete. getUnreadCount uses count:exact head query.' },
+      { type: 'improvement', description: 'announcement.service.ts rewritten to use Supabase. All CRUD and bulk notification fan-out ported.' },
     ]
   },
   {
