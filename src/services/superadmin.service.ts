@@ -1,3 +1,4 @@
+import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from './supabase';
 import { apiClient } from './api.client';
 import { Organization, Employee, PlatformStats, SubscriptionStatus } from '../types';
 import { convertFileToWebP } from '../utils/imageConvert';
@@ -39,98 +40,90 @@ const BULK_CAMPAIGN_PREFIX = 'BULK_CAMPAIGN_';
 const MAX_BULK_RECIPIENTS = 5000;
 const INSERT_BATCH_SIZE = 50;
 
+// Cached role — populated lazily by async methods; read by isSuperAdmin()
+let _cachedRole: string | null = null;
+
+async function ensureCachedRole(): Promise<void> {
+  if (_cachedRole !== null) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { _cachedRole = ''; return; }
+  const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  _cachedRole = data?.role ?? '';
+}
+
+export function invalidateCachedRole(): void {
+  _cachedRole = null;
+}
+
+function mapOrg(r: any, userCount = 0, adminEmail = '', adminVerified?: boolean): Organization {
+  return {
+    id: r.id,
+    name: r.name,
+    address: r.address || '',
+    logo: r.logo ? getSupabaseStorageUrl('org-logos', r.logo) : undefined,
+    subscriptionStatus: r.subscription_status || 'TRIAL',
+    trialEndDate: r.trial_end_date || undefined,
+    created: r.created_at,
+    updated: r.updated_at,
+    userCount,
+    adminEmail,
+    adminVerified,
+  } as Organization;
+}
+
 export const superAdminService = {
-  // Check if current user is super admin
   isSuperAdmin(): boolean {
-    const role = apiClient.pb?.authStore.model?.role;
-    return role === 'SUPER_ADMIN';
+    return _cachedRole === 'SUPER_ADMIN';
   },
 
   // ==================== ORGANIZATIONS ====================
 
   async getAllOrganizations(): Promise<Organization[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      console.warn("[SuperAdmin] PocketBase not configured");
-      return [];
-    }
-
+    if (!isSupabaseConfigured()) return [];
+    await ensureCachedRole();
     try {
-      const records = await apiClient.pb.collection('organizations').getFullList({
-        sort: '-created'
+      const { data: orgs, error: orgsErr } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (orgsErr) throw orgsErr;
+      if (!orgs || orgs.length === 0) return [];
+
+      // Single query: all profiles across these orgs (id, org_id, role, email)
+      const orgIds = orgs.map(o => o.id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, organization_id, role, email')
+        .in('organization_id', orgIds);
+
+      const profilesByOrg = new Map<string, Array<{ id: string; role: string; email: string }>>();
+      for (const p of profiles ?? []) {
+        const list = profilesByOrg.get(p.organization_id) ?? [];
+        list.push(p);
+        profilesByOrg.set(p.organization_id, list);
+      }
+
+      return orgs.map(r => {
+        const members = profilesByOrg.get(r.id) ?? [];
+        const admins = members
+          .filter(p => p.role === 'ADMIN' || p.role === 'HR')
+          .sort((a, b) => (a.role === 'ADMIN' ? -1 : 1)); // ADMIN before HR
+        return mapOrg(r, members.length, admins[0]?.email ?? '', admins[0] ? true : undefined);
       });
-
-      // Get user counts for each organization
-      const orgsWithStats = await Promise.all(
-        records.map(async (r) => {
-          let userCount = 0;
-          let adminEmail = '';
-          let adminVerified: boolean | undefined;
-
-          try {
-            // Get user count
-            const users = await apiClient.pb!.collection('users').getList(1, 1, {
-              filter: `organization_id = "${r.id}"`,
-              skipTotal: false
-            });
-            userCount = users.totalItems;
-
-            // Get the first ADMIN/HR record (org's primary admin) — orgs created via
-            // self-registration get an ADMIN; orgs that later add HR-only managers
-            // still surface here so super admin sees their verification status too.
-            const admins = await apiClient.pb!.collection('users').getList(1, 1, {
-              filter: `organization_id = "${r.id}" && (role = "ADMIN" || role = "HR")`,
-              sort: 'created',
-              fields: 'id,email,verified',
-            });
-            if (admins.items.length > 0) {
-              adminEmail = admins.items[0].email;
-              adminVerified = !!(admins.items[0] as any).verified;
-            }
-          } catch {
-            // Ignore errors for stats
-          }
-
-          return {
-            id: r.id,
-            name: r.name,
-            address: r.address || '',
-            logo: r.logo ? apiClient.pb!.files.getURL(r, r.logo) : undefined,
-            subscriptionStatus: r.subscription_status || 'TRIAL',
-            trialEndDate: r.trial_end_date || undefined,
-            created: r.created,
-            updated: r.updated,
-            userCount,
-            adminEmail,
-            adminVerified,
-          } as Organization;
-        })
-      );
-
-      console.log(`[SuperAdmin] Fetched ${orgsWithStats.length} organizations`);
-      return orgsWithStats;
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to fetch organizations:", e?.message || e);
+      console.error('[SuperAdmin] Failed to fetch organizations:', e?.message || e);
       return [];
     }
   },
 
   async getOrganization(id: string): Promise<Organization | null> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return null;
-
+    if (!isSupabaseConfigured()) return null;
     try {
-      const r = await apiClient.pb.collection('organizations').getOne(id);
-      return {
-        id: r.id,
-        name: r.name,
-        address: r.address || '',
-        logo: r.logo ? apiClient.pb.files.getURL(r, r.logo) : undefined,
-        subscriptionStatus: r.subscription_status || 'TRIAL',
-        trialEndDate: r.trial_end_date || undefined,
-        created: r.created,
-        updated: r.updated
-      };
+      const { data: r, error } = await supabase.from('organizations').select('*').eq('id', id).single();
+      if (error) throw error;
+      return mapOrg(r);
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to fetch organization:", e?.message || e);
+      console.error('[SuperAdmin] Failed to fetch organization:', e?.message || e);
       return null;
     }
   },
@@ -143,300 +136,145 @@ export const superAdminService = {
     adminEmail: string;
     adminPassword: string;
   }): Promise<{ success: boolean; message: string; organizationId?: string }> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return { success: false, message: "PocketBase not configured" };
-    }
-
+    if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
-      // 1. Create organization
-      // Set trial end date to 14 days from now if status is TRIAL
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 14);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return { success: false, message: 'Not authenticated' };
 
-      const org = await apiClient.pb.collection('organizations').create({
-        name: data.name,
-        address: data.address || '',
-        subscription_status: data.subscriptionStatus || 'TRIAL',
-        trial_end_date: data.subscriptionStatus === 'ACTIVE' ? null : trialEndDate.toISOString()
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/superadmin-create-org`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: data.name,
+          address: data.address,
+          subscriptionStatus: data.subscriptionStatus,
+          adminName: data.adminName,
+          adminEmail: data.adminEmail,
+          adminPassword: data.adminPassword,
+        }),
       });
-
-      // 2. Create admin user
-      const randId = Math.floor(1000 + Math.random() * 9000);
-      const timestamp = new Date().getTime().toString().slice(-4);
-      const adminId = "ADM-" + timestamp + "-" + randId;
-
-      try {
-        await apiClient.pb.collection('users').create({
-          email: data.adminEmail,
-          password: data.adminPassword,
-          passwordConfirm: data.adminPassword,
-          name: data.adminName,
-          role: 'ADMIN',
-          organization_id: org.id,
-          employee_id: adminId,
-          designation: 'System Admin',
-          department: 'Management',
-          verified: true,
-          emailVisibility: true
-        });
-      } catch (userErr: any) {
-        // Rollback: delete organization if user creation fails
-        await apiClient.pb.collection('organizations').delete(org.id);
-        return { success: false, message: `Failed to create admin user: ${userErr.message}` };
-      }
-
-      // 3. Create default settings
-      try {
-        const createSetting = async (key: string, value: any) => {
-          await apiClient.pb!.collection('settings').create({
-            key,
-            value,
-            organization_id: org.id
-          });
-        };
-
-        await createSetting('app_config', {
-          companyName: data.name,
-          workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"],
-          officeStartTime: "09:00",
-          officeEndTime: "18:00"
-        });
-        await createSetting('departments', ["Engineering", "HR", "Sales", "Marketing"]);
-        await createSetting('designations', ["Manager", "Lead", "Associate", "Intern"]);
-      } catch {
-        // Non-fatal, settings can be created later
-        console.warn("[SuperAdmin] Failed to create default settings");
-      }
-
-      return { success: true, message: "Organization created successfully", organizationId: org.id };
+      const json = await res.json();
+      if (!json.success) return { success: false, message: json.message || 'Failed to create organization' };
+      apiClient.notify();
+      return { success: true, message: 'Organization created successfully', organizationId: json.organizationId };
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to create organization:", e?.message || e);
-      return { success: false, message: e?.message || "Failed to create organization" };
+      console.error('[SuperAdmin] Failed to create organization:', e?.message || e);
+      return { success: false, message: e?.message || 'Failed to create organization' };
     }
   },
 
   async updateOrganization(id: string, data: Partial<Organization>): Promise<{ success: boolean; message: string }> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return { success: false, message: "PocketBase not configured" };
-    }
-
+    if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
-      const updateData: any = {};
+      const update: any = {};
+      if (data.name !== undefined) update.name = data.name;
+      if (data.address !== undefined) update.address = data.address;
+      if (data.subscriptionStatus !== undefined) update.subscription_status = data.subscriptionStatus;
 
-      // Only include fields that are provided
-      if (data.name !== undefined) {
-        updateData.name = data.name;
-      }
-      if (data.address !== undefined) {
-        updateData.address = data.address;
-      }
-      if (data.subscriptionStatus !== undefined) {
-        updateData.subscription_status = data.subscriptionStatus;
-      }
-
-      // Handle trial_end_date based on subscription status
       if (data.subscriptionStatus === 'ACTIVE' || data.subscriptionStatus === 'SUSPENDED' || data.subscriptionStatus === 'AD_SUPPORTED') {
-        // Clear trial_end_date for non-trial statuses
-        updateData.trial_end_date = '';
+        update.trial_end_date = null;
       } else if (data.subscriptionStatus === 'TRIAL') {
-        // For TRIAL status, set trial_end_date if provided, otherwise set to 14 days from now
         if (data.trialEndDate) {
-          // Convert date to ISO string if it's just YYYY-MM-DD
-          const dateStr = data.trialEndDate.includes('T') ? data.trialEndDate : data.trialEndDate + 'T23:59:59.999Z';
-          updateData.trial_end_date = dateStr;
+          update.trial_end_date = data.trialEndDate.includes('T') ? data.trialEndDate : data.trialEndDate + 'T23:59:59.999Z';
         } else {
-          // Default to 14 days from now
-          const trialEnd = new Date();
-          trialEnd.setDate(trialEnd.getDate() + 14);
-          updateData.trial_end_date = trialEnd.toISOString();
+          const end = new Date();
+          end.setDate(end.getDate() + 14);
+          update.trial_end_date = end.toISOString();
         }
       } else if (data.subscriptionStatus === 'EXPIRED') {
-        // For EXPIRED, keep or clear trial_end_date
-        updateData.trial_end_date = data.trialEndDate || '';
+        update.trial_end_date = data.trialEndDate || null;
       }
 
-      console.log("[SuperAdmin] Updating organization:", id, "with data:", updateData);
-
-      await apiClient.pb.collection('organizations').update(id, updateData);
-
-      console.log("[SuperAdmin] Organization updated successfully");
-      return { success: true, message: "Organization updated successfully" };
+      const { error } = await supabase.from('organizations').update(update).eq('id', id);
+      if (error) throw error;
+      apiClient.notify();
+      return { success: true, message: 'Organization updated successfully' };
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to update organization:", e?.message || e);
-      return { success: false, message: e?.message || "Failed to update organization" };
+      console.error('[SuperAdmin] Failed to update organization:', e?.message || e);
+      return { success: false, message: e?.message || 'Failed to update organization' };
     }
   },
 
   async deleteOrganization(id: string): Promise<{ success: boolean; message: string }> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return { success: false, message: "PocketBase not configured" };
-    }
-
-    // Prefer the server-side cascade endpoint — it bypasses per-collection
-    // API rules (some collections, e.g. `reports_queue`, deny `list` even to
-    // SUPER_ADMIN at the SDK layer, so the client can't sweep them).
+    if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
-      const response = await apiClient.pb.send('/api/openhr/delete-organization', {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return { success: false, message: 'Not authenticated' };
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/superadmin-delete-org`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ organizationId: id }),
       });
-      if (response && response.success) {
-        console.log('[SuperAdmin] Server-side delete summary:', response.summary);
-        return { success: true, message: 'Organization and all related data deleted successfully' };
-      }
-      return { success: false, message: response?.message || 'Server-side delete failed' };
-    } catch (err: any) {
-      // 404 here means the endpoint isn't deployed yet on this PocketBase
-      // instance — fall through to the legacy client-side cascade so existing
-      // deployments keep working until main.pb.js is reloaded.
-      if (err?.status !== 404) {
-        const detail = err?.response?.data || err?.data || err?.message || err;
-        console.error('[SuperAdmin] Server-side delete failed:', detail);
-        return { success: false, message: err?.message || 'Failed to delete organization' };
-      }
-      console.warn('[SuperAdmin] Server-side delete endpoint not available, falling back to client-side cascade');
-    }
-
-    // Order matters: delete dependents before the parent organization.
-    // Children-of-children (e.g. attendance → users) go first so user/team
-    // deletes don't fail on required relations.
-    const childCollections = [
-      'attendance',
-      'leaves',
-      'performance_reviews',
-      'review_cycles',
-      'notifications',
-      'announcements',
-      'reports_queue',
-      'upgrade_requests',
-      'shifts',
-      'teams',
-      'settings',
-      'users',
-    ];
-
-    const deleteWhere = async (collection: string, filter: string) => {
-      try {
-        const records = await apiClient.pb!.collection(collection).getFullList({ filter, batch: 500 });
-        for (const r of records) {
-          try {
-            await apiClient.pb!.collection(collection).delete(r.id);
-          } catch (err: any) {
-            // 404 = already gone (cascade); keep going. Anything else: log and continue
-            // so a single stuck record doesn't block the rest of the cleanup.
-            if (err?.status !== 404) {
-              console.warn(`[SuperAdmin] delete ${collection}/${r.id} failed:`, err?.message || err);
-            }
-          }
-        }
-      } catch (err: any) {
-        console.warn(`[SuperAdmin] list ${collection} failed:`, err?.message || err);
-      }
-    };
-
-    // Discover any other collections that carry an `organization_id` relation
-    // — keeps cleanup correct if new org-scoped collections are added later.
-    const discovered = new Set<string>();
-    try {
-      const allCollections = await apiClient.pb.collections.getFullList({ batch: 500 });
-      for (const col of allCollections) {
-        if (col.name === 'organizations') continue;
-        const hasOrgField = (col.fields || col.schema || []).some((f: any) => f.name === 'organization_id');
-        if (hasOrgField) discovered.add(col.name);
-      }
-    } catch (err: any) {
-      console.warn('[SuperAdmin] Could not enumerate collections, falling back to static list:', err?.message || err);
-    }
-
-    // Static list keeps a deterministic dependency order; discovered extras
-    // are appended (run before users/teams/settings to be safe).
-    const ordered = [...childCollections];
-    const extras = [...discovered].filter(c => !ordered.includes(c));
-    if (extras.length) {
-      console.log('[SuperAdmin] Sweeping additional org-scoped collections:', extras);
-      ordered.unshift(...extras);
-    }
-
-    try {
-      for (const c of ordered) {
-        await deleteWhere(c, `organization_id = "${id}"`);
-      }
-
-      try {
-        await apiClient.pb.collection('organizations').delete(id);
-      } catch (err: any) {
-        // PocketBase's "required relation reference" error doesn't name the
-        // blocking collection — surface enough detail so the next failure is
-        // diagnosable instead of opaque.
-        const detail = err?.response?.data || err?.data || err?.originalError || err;
-        console.error('[SuperAdmin] Org delete blocked. Server detail:', detail);
-        throw err;
-      }
-
-      return { success: true, message: "Organization and all related data deleted successfully" };
+      const json = await res.json();
+      if (!json.success) return { success: false, message: json.message || 'Failed to delete organization' };
+      apiClient.notify();
+      return { success: true, message: 'Organization and all related data deleted successfully' };
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to delete organization:", e?.message || e);
-      return { success: false, message: e?.message || "Failed to delete organization" };
+      console.error('[SuperAdmin] Failed to delete organization:', e?.message || e);
+      return { success: false, message: e?.message || 'Failed to delete organization' };
     }
   },
 
   // ==================== USERS ====================
 
   async getOrganizationUsers(orgId: string): Promise<Employee[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
-
+    if (!isSupabaseConfigured()) return [];
     try {
-      const records = await apiClient.pb.collection('users').getFullList({
-        filter: `organization_id = "${orgId}"`,
-        sort: '-created'
-      });
-
-      return records.map(r => ({
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map(r => ({
         id: r.id,
         employeeId: r.employee_id || '',
         name: r.name || 'No Name',
-        email: r.email,
+        email: r.email || '',
         role: (r.role || 'EMPLOYEE').toString().toUpperCase() as any,
         department: r.department || 'Unassigned',
         designation: r.designation || 'Staff',
-        avatar: r.avatar ? apiClient.pb!.files.getURL(r, r.avatar) : undefined,
-        joiningDate: r.joining_date || "",
-        mobile: r.mobile || "",
-        emergencyContact: r.emergency_contact || "",
+        avatar: r.avatar ? getSupabaseStorageUrl('avatars', r.avatar) : undefined,
+        joiningDate: r.joining_date || '',
+        mobile: r.mobile || '',
+        emergencyContact: r.emergency_contact || '',
         salary: r.salary || 0,
-        status: r.status || "ACTIVE",
-        employmentType: r.employment_type || "PERMANENT",
-        location: r.location || "",
-        workType: r.work_type || "OFFICE",
+        status: r.status || 'ACTIVE',
+        employmentType: r.employment_type || 'PERMANENT',
+        location: r.location || '',
+        workType: r.work_type || 'OFFICE',
         verified: r.verified,
-        organizationId: r.organization_id
+        organizationId: r.organization_id,
       })) as Employee[];
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to fetch organization users:", e?.message || e);
+      console.error('[SuperAdmin] Failed to fetch organization users:', e?.message || e);
       return [];
     }
   },
 
   async updateUser(userId: string, data: Partial<Employee>): Promise<{ success: boolean; message: string }> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return { success: false, message: "PocketBase not configured" };
-    }
-
+    if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
-      const updateData: any = {};
-      if (data.name) updateData.name = data.name;
-      if (data.role) updateData.role = data.role;
-      if (data.department) updateData.department = data.department;
-      if (data.designation) updateData.designation = data.designation;
-      if (data.status) updateData.status = data.status;
-      if (typeof (data as any).verified === 'boolean') updateData.verified = (data as any).verified;
+      const update: any = {};
+      if (data.name) update.name = data.name;
+      if (data.role) update.role = data.role;
+      if (data.department) update.department = data.department;
+      if (data.designation) update.designation = data.designation;
+      if (data.status) update.status = data.status;
+      if (typeof (data as any).verified === 'boolean') update.verified = (data as any).verified;
 
-      await apiClient.pb.collection('users').update(userId, updateData);
-      return { success: true, message: "User updated successfully" };
+      const { error } = await supabase.from('profiles').update(update).eq('id', userId);
+      if (error) throw error;
+      apiClient.notify();
+      return { success: true, message: 'User updated successfully' };
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to update user:", e?.message || e);
-      return { success: false, message: e?.message || "Failed to update user" };
+      console.error('[SuperAdmin] Failed to update user:', e?.message || e);
+      return { success: false, message: e?.message || 'Failed to update user' };
     }
   },
 
@@ -445,228 +283,157 @@ export const superAdminService = {
   },
 
   async deleteUser(userId: string): Promise<{ success: boolean; message: string }> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return { success: false, message: "PocketBase not configured" };
-    }
-
+    if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
-      await apiClient.pb.collection('users').delete(userId);
-      return { success: true, message: "User deleted successfully" };
+      // Delete profile — cascade handles child rows. Auth user cleanup requires service role.
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) throw error;
+      apiClient.notify();
+      return { success: true, message: 'User deleted successfully' };
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to delete user:", e?.message || e);
-      return { success: false, message: e?.message || "Failed to delete user" };
+      console.error('[SuperAdmin] Failed to delete user:', e?.message || e);
+      return { success: false, message: e?.message || 'Failed to delete user' };
     }
   },
 
   // ==================== STATS ====================
 
   async getPlatformStats(): Promise<PlatformStats> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return {
-        totalOrganizations: 0,
-        totalUsers: 0,
-        activeOrganizations: 0,
-        trialOrganizations: 0,
-        expiredOrganizations: 0,
-        recentRegistrations: 0
-      };
-    }
-
+    const empty: PlatformStats = {
+      totalOrganizations: 0,
+      totalUsers: 0,
+      activeOrganizations: 0,
+      trialOrganizations: 0,
+      expiredOrganizations: 0,
+      recentRegistrations: 0,
+    };
+    if (!isSupabaseConfigured()) return empty;
     try {
-      // Get organizations
-      const orgs = await apiClient.pb.collection('organizations').getFullList();
-
-      // Get users count
-      const usersResult = await apiClient.pb.collection('users').getList(1, 1, {
-        filter: 'role != "SUPER_ADMIN"',
-        skipTotal: false
-      });
-
-      // Calculate 30 days ago
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-      // Get recent registrations
-      const recentOrgs = await apiClient.pb.collection('organizations').getList(1, 1, {
-        filter: `created >= "${thirtyDaysAgoStr}"`,
-        skipTotal: false
-      });
+      const [orgsRes, usersRes, recentRes] = await Promise.all([
+        supabase.from('organizations').select('id, subscription_status'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('role', 'SUPER_ADMIN'),
+        supabase.from('organizations').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString()),
+      ]);
 
+      const orgs = orgsRes.data ?? [];
       return {
         totalOrganizations: orgs.length,
-        totalUsers: usersResult.totalItems,
+        totalUsers: usersRes.count ?? 0,
         activeOrganizations: orgs.filter(o => o.subscription_status === 'ACTIVE').length,
         trialOrganizations: orgs.filter(o => o.subscription_status === 'TRIAL').length,
         expiredOrganizations: orgs.filter(o => o.subscription_status === 'EXPIRED' || o.subscription_status === 'SUSPENDED').length,
-        recentRegistrations: recentOrgs.totalItems
+        recentRegistrations: recentRes.count ?? 0,
       };
     } catch (e: any) {
-      console.error("[SuperAdmin] Failed to fetch platform stats:", e?.message || e);
-      return {
-        totalOrganizations: 0,
-        totalUsers: 0,
-        activeOrganizations: 0,
-        trialOrganizations: 0,
-        expiredOrganizations: 0,
-        recentRegistrations: 0
-      };
+      console.error('[SuperAdmin] Failed to fetch platform stats:', e?.message || e);
+      return empty;
     }
   },
 
-  // Guide Help Links (platform-level, no org_id)
+  // Guide Help Links (platform-level, organization_id IS NULL)
   async getGuideHelpLinks(): Promise<Record<string, string>> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return {};
+    if (!isSupabaseConfigured()) return {};
     try {
-      const record = await apiClient.pb.collection('settings').getFirstListItem('key = "guide_help_links"');
-      return record.value || {};
+      const { data } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'guide_help_links')
+        .is('organization_id', null)
+        .maybeSingle();
+      return data?.value ?? {};
     } catch {
       return {};
     }
   },
 
   async setGuideHelpLinks(links: Record<string, string>): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    try {
-      const record = await apiClient.pb.collection('settings').getFirstListItem('key = "guide_help_links"');
-      await apiClient.pb.collection('settings').update(record.id, { value: links });
-    } catch {
-      // Create new record (no org_id — platform-level)
-      await apiClient.pb!.collection('settings').create({ key: 'guide_help_links', value: links });
-    }
+    if (!isSupabaseConfigured()) return;
+    await supabase
+      .from('settings')
+      .upsert({ key: 'guide_help_links', value: links, organization_id: null }, { onConflict: 'key' });
   },
 
   // ==================== CONTENT IMAGES ====================
 
   async uploadContentImage(file: File): Promise<string> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      throw new Error("PocketBase not configured");
-    }
-
+    if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
     const webpFile = await convertFileToWebP(file);
-    const formData = new FormData();
-    formData.append('image', webpFile);
-
-    const record = await apiClient.pb.collection('content_images').create(formData);
-    const fileName = record.image;
-    const baseUrl = apiClient.pb.baseURL || '';
-    return `${baseUrl}/api/files/content_images/${record.id}/${fileName}`;
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}.webp`;
+    const { error } = await supabase.storage.from('content-images').upload(path, webpFile, { contentType: 'image/webp', upsert: false });
+    if (error) throw new Error('Failed to upload content image: ' + error.message);
+    return getSupabaseStorageUrl('content-images', path);
   },
 
   // ==================== BULK EMAIL ====================
 
   async resolveBulkRecipients(filter: BulkEmailFilter): Promise<BulkRecipient[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
-
-    const pb = apiClient.pb;
-    // Super-admin broadcasts target every active platform user (admins, HR, managers, employees).
-    // We do NOT require `verified = true` — verification gates login, not deliverability — and
-    // many orgs have admins/HR who registered but never clicked the verification email. We still
-    // always exclude SUPER_ADMIN from broadcasts.
-    const excludeSuper = 'role != "SUPER_ADMIN"';
-    const adminRolesClause = '(role = "ADMIN" || role = "HR")';
-
+    if (!isSupabaseConfigured()) return [];
     try {
-      let users: Array<{ id: string; email: string; organization_id: string }> = [];
+      let query = supabase.from('profiles').select('id, email, organization_id').neq('role', 'SUPER_ADMIN');
 
       if (filter.kind === 'ALL_ADMINS') {
-        const f = adminRolesClause;
-        const records = await pb.collection('users').getFullList({
-          filter: f,
-          batch: 500,
-        });
-        users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
+        query = query.in('role', ['ADMIN', 'HR']);
       } else if (filter.kind === 'ALL_USERS') {
-        const records = await pb.collection('users').getFullList({
-          filter: excludeSuper,
-          batch: 500,
-        });
-        users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
+        // already excludes SUPER_ADMIN above
       } else if (filter.kind === 'ORG') {
-        const roleClause = filter.rolesScope === 'ADMINS' ? adminRolesClause : excludeSuper;
-        const f = `organization_id = "${filter.organizationId}" && ${roleClause}`;
-        const records = await pb.collection('users').getFullList({
-          filter: f,
-          batch: 500,
-        });
-        users = records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id }));
+        query = query.eq('organization_id', filter.organizationId);
+        if (filter.rolesScope === 'ADMINS') query = query.in('role', ['ADMIN', 'HR']);
       } else if (filter.kind === 'BY_SUBSCRIPTION') {
         if (filter.statuses.length === 0) return [];
-        // Find matching orgs
-        const statusFilter = filter.statuses.map(s => `subscription_status = "${s}"`).join(' || ');
-        const orgs = await pb.collection('organizations').getFullList({
-          filter: statusFilter,
-          batch: 500,
-          fields: 'id',
-        });
-        if (orgs.length === 0) return [];
-
-        const roleClause = filter.rolesScope === 'ADMINS' ? adminRolesClause : excludeSuper;
-        // Chunk org IDs to avoid excessively long filter strings
-        const ORG_CHUNK = 50;
-        for (let i = 0; i < orgs.length; i += ORG_CHUNK) {
-          const chunk = orgs.slice(i, i + ORG_CHUNK);
-          const orgClause = chunk.map(o => `organization_id = "${o.id}"`).join(' || ');
-          const f = `(${orgClause}) && ${roleClause}`;
-          const records = await pb.collection('users').getFullList({
-            filter: f,
-            batch: 500,
-          });
-          users.push(...records.map(r => ({ id: r.id, email: r.email, organization_id: r.organization_id })));
-        }
+        const { data: orgs } = await supabase
+          .from('organizations')
+          .select('id')
+          .in('subscription_status', filter.statuses);
+        const orgIds = (orgs ?? []).map(o => o.id);
+        if (orgIds.length === 0) return [];
+        query = query.in('organization_id', orgIds);
+        if (filter.rolesScope === 'ADMINS') query = query.in('role', ['ADMIN', 'HR']);
       }
 
-      // De-dupe by email (case-insensitive); skip rows with no email
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // De-dupe by email (case-insensitive)
       const seen = new Set<string>();
       const deduped: BulkRecipient[] = [];
-      for (const u of users) {
+      for (const u of data ?? []) {
         const key = (u.email || '').toLowerCase().trim();
         if (!key || seen.has(key)) continue;
         seen.add(key);
-        deduped.push(u);
+        deduped.push({ id: u.id, email: u.email, organization_id: u.organization_id });
       }
       return deduped;
     } catch (e: any) {
       console.error('[SuperAdmin] resolveBulkRecipients failed:', e?.message || e, e);
-      return [];
+      throw e;
     }
   },
 
   async previewBulkRecipients(filter: BulkEmailFilter): Promise<{ count: number; sampleEmails: string[] }> {
     const recipients = await this.resolveBulkRecipients(filter);
-    return {
-      count: recipients.length,
-      sampleEmails: recipients.slice(0, 5).map(r => r.email),
-    };
+    return { count: recipients.length, sampleEmails: recipients.slice(0, 5).map(r => r.email) };
   },
 
   async sendBulkEmail(
     filter: BulkEmailFilter,
     subject: string,
-    htmlContent: string
+    htmlContent: string,
   ): Promise<{ success: boolean; message: string; queued: number; failed: number; campaignId: string }> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      return { success: false, message: 'PocketBase not configured', queued: 0, failed: 0, campaignId: '' };
-    }
+    if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured', queued: 0, failed: 0, campaignId: '' };
     const trimmedSubject = (subject || '').trim();
-    if (!trimmedSubject) {
-      return { success: false, message: 'Subject is required', queued: 0, failed: 0, campaignId: '' };
-    }
-    if (!htmlContent || !htmlContent.trim()) {
-      return { success: false, message: 'Body is required', queued: 0, failed: 0, campaignId: '' };
-    }
+    if (!trimmedSubject) return { success: false, message: 'Subject is required', queued: 0, failed: 0, campaignId: '' };
+    if (!htmlContent?.trim()) return { success: false, message: 'Body is required', queued: 0, failed: 0, campaignId: '' };
 
     const recipients = await this.resolveBulkRecipients(filter);
-    if (recipients.length === 0) {
-      return { success: false, message: 'No recipients matched this audience', queued: 0, failed: 0, campaignId: '' };
-    }
+    if (recipients.length === 0) return { success: false, message: 'No recipients matched this audience', queued: 0, failed: 0, campaignId: '' };
     if (recipients.length > MAX_BULK_RECIPIENTS) {
       return {
         success: false,
         message: `Recipient list (${recipients.length}) exceeds the per-campaign cap of ${MAX_BULK_RECIPIENTS}. Narrow the audience and split into multiple campaigns.`,
-        queued: 0,
-        failed: 0,
-        campaignId: '',
+        queued: 0, failed: 0, campaignId: '',
       };
     }
 
@@ -681,53 +448,48 @@ export const superAdminService = {
     let failed = 0;
     for (let i = 0; i < recipients.length; i += INSERT_BATCH_SIZE) {
       const batch = recipients.slice(i, i + INSERT_BATCH_SIZE);
-      const results = await Promise.allSettled(
-        batch.map(r =>
-          apiClient.pb!.collection('reports_queue').create({
-            recipient_email: r.email,
-            subject: trimmedSubject,
-            html_content: safeHtml,
-            status: 'PENDING',
-            type,
-            organization_id: r.organization_id || undefined,
-          })
-        )
-      );
-      for (const res of results) {
-        if (res.status === 'fulfilled') queued += 1;
-        else failed += 1;
-      }
+      const rows = batch.map(r => ({
+        recipient_email: r.email,
+        subject: trimmedSubject,
+        html_content: safeHtml,
+        status: 'PENDING',
+        type,
+        organization_id: r.organization_id || null,
+      }));
+      const { error } = await supabase.from('reports_queue').insert(rows);
+      if (error) { failed += batch.length; console.error('[SuperAdmin] bulk insert batch failed:', error.message); }
+      else queued += batch.length;
     }
 
-    const message =
-      failed === 0
-        ? `Queued ${queued} email${queued === 1 ? '' : 's'}. Delivery happens in the background.`
-        : `Queued ${queued} of ${recipients.length} emails — ${failed} failed to enqueue. Check logs.`;
+    const message = failed === 0
+      ? `Queued ${queued} email${queued === 1 ? '' : 's'}. Delivery happens in the background.`
+      : `Queued ${queued} of ${recipients.length} emails — ${failed} failed to enqueue. Check logs.`;
     return { success: queued > 0, message, queued, failed, campaignId };
   },
 
   async getRecentBulkCampaigns(limit = 20): Promise<BulkCampaignSummary[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    if (!isSupabaseConfigured()) return [];
     try {
-      const rows = await apiClient.pb.collection('reports_queue').getFullList({
-        filter: `type ~ "${BULK_CAMPAIGN_PREFIX}"`,
-        sort: '-created',
-        batch: 500,
-        fields: 'id,subject,status,sent_at,created,type',
-      });
+      const { data, error } = await supabase
+        .from('reports_queue')
+        .select('id, subject, status, sent_at, created_at, type')
+        .like('type', `${BULK_CAMPAIGN_PREFIX}%`)
+        .order('created_at', { ascending: false })
+        .limit(2000);
+      if (error) throw error;
 
       const grouped = new Map<string, BulkCampaignSummary>();
-      for (const r of rows) {
-        const t: string = (r as any).type || '';
+      for (const r of data ?? []) {
+        const t: string = r.type || '';
         if (!t.startsWith(BULK_CAMPAIGN_PREFIX)) continue;
         const id = t.slice(BULK_CAMPAIGN_PREFIX.length);
+        const status = (r.status || 'PENDING') as 'PENDING' | 'SENT' | 'FAILED';
+        const sentAt = r.sent_at || r.created_at;
         const existing = grouped.get(id);
-        const status = (r as any).status as 'PENDING' | 'SENT' | 'FAILED';
-        const sentAt = (r as any).sent_at || (r as any).created;
         if (!existing) {
           grouped.set(id, {
             campaignId: id,
-            subject: (r as any).subject || '',
+            subject: r.subject || '',
             totalRows: 1,
             sentCount: status === 'SENT' ? 1 : 0,
             failedCount: status === 'FAILED' ? 1 : 0,
@@ -741,8 +503,9 @@ export const superAdminService = {
           else existing.pendingCount += 1;
         }
       }
-      const list = Array.from(grouped.values()).sort((a, b) => (b.sentAt || '').localeCompare(a.sentAt || ''));
-      return list.slice(0, limit);
+      return Array.from(grouped.values())
+        .sort((a, b) => (b.sentAt || '').localeCompare(a.sentAt || ''))
+        .slice(0, limit);
     } catch (e: any) {
       console.error('[SuperAdmin] getRecentBulkCampaigns failed:', e?.message || e);
       return [];
@@ -750,21 +513,21 @@ export const superAdminService = {
   },
 
   async getBulkCampaignDetail(campaignId: string): Promise<BulkCampaignDetailRow[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
-    if (!campaignId) return [];
+    if (!isSupabaseConfigured() || !campaignId) return [];
     try {
-      const rows = await apiClient.pb.collection('reports_queue').getFullList({
-        filter: `type = "${BULK_CAMPAIGN_PREFIX}${campaignId}"`,
-        sort: '-created',
-        batch: 500,
-        fields: 'id,recipient_email,status,sent_at,error_message',
-      });
-      return rows.map(r => ({
+      const { data, error } = await supabase
+        .from('reports_queue')
+        .select('id, recipient_email, status, sent_at, error_message')
+        .eq('type', `${BULK_CAMPAIGN_PREFIX}${campaignId}`)
+        .order('created_at', { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      return (data ?? []).map(r => ({
         id: r.id,
-        recipientEmail: (r as any).recipient_email || '',
-        status: ((r as any).status || 'PENDING') as 'PENDING' | 'SENT' | 'FAILED',
-        sentAt: (r as any).sent_at || undefined,
-        errorMessage: (r as any).error_message || undefined,
+        recipientEmail: r.recipient_email || '',
+        status: (r.status || 'PENDING') as 'PENDING' | 'SENT' | 'FAILED',
+        sentAt: r.sent_at || undefined,
+        errorMessage: r.error_message || undefined,
       }));
     } catch (e: any) {
       console.error('[SuperAdmin] getBulkCampaignDetail failed:', e?.message || e);

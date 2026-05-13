@@ -28,6 +28,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'notification.service.ts rewritten to use Supabase. Bulk create uses single insert. markAllAsRead uses single update filter. deleteAllNotifications uses single delete. getUnreadCount uses count:exact head query.' },
       { type: 'improvement', description: 'announcement.service.ts rewritten to use Supabase. All CRUD and bulk notification fan-out ported.' },
       { type: 'improvement', description: 'review.service.ts rewritten to use Supabase. self_ratings/manager_ratings stored as jsonb objects (no JSON.stringify). Legacy column writes removed. Attendance/leave summary queries ported.' },
+      { type: 'improvement', description: 'superadmin.service.ts rewritten to use Supabase. getAllOrganizations uses single profiles query + client-side aggregation (no N+1). createOrganization/deleteOrganization delegate to new Edge Functions (superadmin-create-org, superadmin-delete-org). deleteOrganization cascade deletes auth users via service-role. Bulk email, platform stats, guide links, content image upload all ported.' },
     ]
   },
   {
