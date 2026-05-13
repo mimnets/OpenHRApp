@@ -1,4 +1,5 @@
 
+import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient } from './api.client';
 import {
   ReviewCycle,
@@ -9,19 +10,12 @@ import {
 } from '../types';
 import { consolidateAttendance } from '../utils/attendanceUtils';
 
-// Legacy competency keys used for backward compat when reading old individual-column reviews
 const LEGACY_COMPETENCY_KEYS = [
-  'AGILITY',
-  'COLLABORATION',
-  'CUSTOMER_FOCUS',
-  'DEVELOPING_OTHERS',
-  'GLOBAL_MINDSET',
-  'INNOVATION_MINDSET',
+  'AGILITY', 'COLLABORATION', 'CUSTOMER_FOCUS',
+  'DEVELOPING_OTHERS', 'GLOBAL_MINDSET', 'INNOVATION_MINDSET',
 ];
 
-const competencyFieldName = (id: string): string => {
-  return id.toLowerCase();
-};
+const competencyFieldName = (id: string) => id.toLowerCase();
 
 const mapCycleRecord = (r: any): ReviewCycle => ({
   id: r.id,
@@ -40,18 +34,15 @@ const mapCycleRecord = (r: any): ReviewCycle => ({
 const parseJsonField = (val: any): any[] => {
   if (!val) return [];
   if (Array.isArray(val)) return val;
-  if (typeof val === 'string') {
-    try { return JSON.parse(val); } catch { return []; }
-  }
+  if (typeof val === 'string') { try { return JSON.parse(val); } catch { return []; } }
   return [];
 };
 
 const mapReviewRecord = (r: any): PerformanceReview => {
-  // Try JSON fields first (new format), fall back to legacy individual columns
   let selfRatings: CompetencyRating[] = parseJsonField(r.self_ratings);
   let managerRatings: CompetencyRating[] = parseJsonField(r.manager_ratings);
 
-  // Backward compat: if JSON fields are empty, read from old individual columns
+  // Backward compat: if JSON fields empty, read legacy individual columns
   if (selfRatings.length === 0) {
     selfRatings = LEGACY_COMPETENCY_KEYS.map(id => ({
       competencyId: id,
@@ -67,13 +58,11 @@ const mapReviewRecord = (r: any): PerformanceReview => {
     }));
   }
 
-  // Parse leave summary — try JSON first, then legacy fields
   let leaveSummary: LeaveSummary;
   const leaveSummaryJson = r.leave_summary_json ? parseJsonField(r.leave_summary_json) : null;
   if (leaveSummaryJson && typeof leaveSummaryJson === 'object' && !Array.isArray(leaveSummaryJson)) {
     leaveSummary = leaveSummaryJson as any;
   } else {
-    // Legacy format
     const typeBreakdown: Record<string, number> = {};
     if (r.annual_leave_taken) typeBreakdown['ANNUAL'] = r.annual_leave_taken;
     if (r.casual_leave_taken) typeBreakdown['CASUAL'] = r.casual_leave_taken;
@@ -119,95 +108,87 @@ const mapReviewRecord = (r: any): PerformanceReview => {
 };
 
 export const reviewService = {
-  // ─── Review Cycles ───────────────────────────────────────────
+  // ─── Review Cycles ────────────────────────────────────────────
 
   async getReviewCycles(): Promise<ReviewCycle[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    if (!isSupabaseConfigured()) return [];
     try {
       const orgId = apiClient.getOrganizationId();
-      console.log('[ReviewService] Fetching cycles, orgId:', orgId, 'authValid:', apiClient.pb.authStore.isValid);
-      const result = await apiClient.pb.collection('review_cycles').getList(1, 50, { sort: '-created' });
-      const records = result.items;
-      console.log('[ReviewService] Raw cycle records:', records.length, records.map(r => ({ id: r.id, name: r.name, org: r.organization_id })));
-      return records.map(mapCycleRecord);
+      let query = supabase.from('review_cycles').select('*').order('created', { ascending: false }).limit(50);
+      if (orgId) query = query.eq('organization_id', orgId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []).map(mapCycleRecord);
     } catch (e: any) {
-      console.error('[ReviewService] Failed to fetch cycles:', e?.message || e, e?.response || '', e?.data || '');
+      console.error('[ReviewService] Failed to fetch cycles:', e?.message || e);
       return [];
     }
   },
 
   async createReviewCycle(data: Omit<ReviewCycle, 'id'>): Promise<ReviewCycle | null> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return null;
+    if (!isSupabaseConfigured()) return null;
     const orgId = apiClient.getOrganizationId();
-    const payload: any = {
-      name: data.name,
-      cycle_type: data.cycleType,
-      start_date: data.startDate,
-      end_date: data.endDate,
-      review_start_date: data.reviewStartDate,
-      review_end_date: data.reviewEndDate,
-      active_competencies: data.activeCompetencies || [],
-      is_active: data.isActive || false,
-      status: data.status || 'UPCOMING',
-      organization_id: orgId,
-    };
-    try {
-      const record = await apiClient.pb.collection('review_cycles').create(payload);
-      apiClient.notify();
-      return mapCycleRecord(record);
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to create cycle:', e?.message || e);
-      throw new Error('Failed to create review cycle');
-    }
+    const { data: record, error } = await supabase
+      .from('review_cycles')
+      .insert({
+        name: data.name,
+        cycle_type: data.cycleType,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        review_start_date: data.reviewStartDate,
+        review_end_date: data.reviewEndDate,
+        active_competencies: data.activeCompetencies || [],
+        is_active: data.isActive || false,
+        status: data.status || 'UPCOMING',
+        organization_id: orgId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error('Failed to create review cycle');
+    apiClient.notify();
+    return mapCycleRecord(record);
   },
 
   async updateReviewCycle(id: string, data: Partial<ReviewCycle>): Promise<ReviewCycle | null> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return null;
+    if (!isSupabaseConfigured()) return null;
     const payload: any = {};
-    if (data.name !== undefined) payload.name = data.name;
-    if (data.cycleType !== undefined) payload.cycle_type = data.cycleType;
-    if (data.startDate !== undefined) payload.start_date = data.startDate;
-    if (data.endDate !== undefined) payload.end_date = data.endDate;
-    if (data.reviewStartDate !== undefined) payload.review_start_date = data.reviewStartDate;
-    if (data.reviewEndDate !== undefined) payload.review_end_date = data.reviewEndDate;
+    if (data.name !== undefined)               payload.name = data.name;
+    if (data.cycleType !== undefined)          payload.cycle_type = data.cycleType;
+    if (data.startDate !== undefined)          payload.start_date = data.startDate;
+    if (data.endDate !== undefined)            payload.end_date = data.endDate;
+    if (data.reviewStartDate !== undefined)    payload.review_start_date = data.reviewStartDate;
+    if (data.reviewEndDate !== undefined)      payload.review_end_date = data.reviewEndDate;
     if (data.activeCompetencies !== undefined) payload.active_competencies = data.activeCompetencies;
-    if (data.isActive !== undefined) payload.is_active = data.isActive;
-    if (data.status !== undefined) payload.status = data.status;
-    try {
-      const record = await apiClient.pb.collection('review_cycles').update(id, payload);
-      apiClient.notify();
-      return mapCycleRecord(record);
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to update cycle:', e?.message || e);
-      throw new Error('Failed to update review cycle');
-    }
+    if (data.isActive !== undefined)           payload.is_active = data.isActive;
+    if (data.status !== undefined)             payload.status = data.status;
+    const { data: record, error } = await supabase
+      .from('review_cycles').update(payload).eq('id', id).select().single();
+    if (error) throw new Error('Failed to update review cycle');
+    apiClient.notify();
+    return mapCycleRecord(record);
   },
 
   async deleteReviewCycle(id: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    try {
-      await apiClient.pb.collection('review_cycles').delete(id);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to delete cycle:', e?.message || e);
-      throw new Error('Failed to delete review cycle');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('review_cycles').delete().eq('id', id);
+    if (error) throw new Error('Failed to delete review cycle');
+    apiClient.notify();
   },
 
-  // ─── Performance Reviews ────────────────────────────────────
+  // ─── Performance Reviews ──────────────────────────────────────
 
   async getReviews(): Promise<PerformanceReview[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    if (!isSupabaseConfigured()) return [];
     try {
-      const result = await apiClient.pb.collection('performance_reviews').getList(1, 200, { sort: '-created' });
-      const records = result.items;
+      const orgId = apiClient.getOrganizationId();
+      let query = supabase.from('performance_reviews').select('*').order('created', { ascending: false }).limit(200);
+      if (orgId) query = query.eq('organization_id', orgId);
+      const { data, error } = await query;
+      if (error) throw error;
       const reviews: PerformanceReview[] = [];
-      for (const r of records) {
-        try {
-          reviews.push(mapReviewRecord(r));
-        } catch (mapErr) {
-          console.warn('[ReviewService] Failed to map review record:', r.id, mapErr);
-        }
+      for (const r of data ?? []) {
+        try { reviews.push(mapReviewRecord(r)); }
+        catch (mapErr) { console.warn('[ReviewService] Failed to map review:', r.id, mapErr); }
       }
       return reviews;
     } catch (e: any) {
@@ -217,10 +198,11 @@ export const reviewService = {
   },
 
   async getReviewById(id: string): Promise<PerformanceReview | null> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return null;
+    if (!isSupabaseConfigured()) return null;
     try {
-      const record = await apiClient.pb.collection('performance_reviews').getOne(id);
-      return mapReviewRecord(record);
+      const { data, error } = await supabase.from('performance_reviews').select('*').eq('id', id).single();
+      if (error) throw error;
+      return mapReviewRecord(data);
     } catch (e: any) {
       console.error('[ReviewService] Failed to fetch review:', e?.message || e);
       return null;
@@ -234,15 +216,14 @@ export const reviewService = {
     lineManagerId?: string,
     managerName?: string,
   ): Promise<PerformanceReview | null> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return null;
+    if (!isSupabaseConfigured()) return null;
     const orgId = apiClient.getOrganizationId();
 
-    // Calculate attendance & leave summaries for the cycle period
     let attendanceSummary: AttendanceSummary = { totalWorkingDays: 0, presentDays: 0, lateDays: 0, absentDays: 0, earlyOutDays: 0, attendancePercentage: 0 };
     let leaveSummary: LeaveSummary = { typeBreakdown: {}, totalLeaveDays: 0 };
 
     try {
-      const cycle = await apiClient.pb.collection('review_cycles').getOne(cycleId);
+      const { data: cycle } = await supabase.from('review_cycles').select('start_date, end_date').eq('id', cycleId).single();
       if (cycle) {
         attendanceSummary = await reviewService.calculateAttendanceSummary(employeeId, cycle.start_date, cycle.end_date);
         leaveSummary = await reviewService.calculateLeaveSummary(employeeId, cycle.start_date, cycle.end_date);
@@ -251,149 +232,113 @@ export const reviewService = {
       console.warn('[ReviewService] Could not calculate summaries:', e);
     }
 
-    const payload: any = {
-      employee_id: employeeId.trim(),
-      employee_name: employeeName,
-      cycle_id: cycleId,
-      line_manager_id: lineManagerId || '',
-      manager_name: managerName || '',
-      status: 'DRAFT',
-      organization_id: orgId,
-      // Attendance summary
-      total_working_days: attendanceSummary.totalWorkingDays,
-      present_days: attendanceSummary.presentDays,
-      late_days: attendanceSummary.lateDays,
-      absent_days: attendanceSummary.absentDays,
-      early_out_days: attendanceSummary.earlyOutDays,
-      attendance_percentage: attendanceSummary.attendancePercentage,
-      // Leave summary (legacy columns for backward compat)
-      annual_leave_taken: leaveSummary.typeBreakdown['ANNUAL'] || 0,
-      casual_leave_taken: leaveSummary.typeBreakdown['CASUAL'] || 0,
-      sick_leave_taken: leaveSummary.typeBreakdown['SICK'] || 0,
-      unpaid_leave_taken: leaveSummary.typeBreakdown['UNPAID'] || 0,
-      total_leave_days: leaveSummary.totalLeaveDays,
-    };
+    const { data: record, error } = await supabase
+      .from('performance_reviews')
+      .insert({
+        employee_id: employeeId.trim(),
+        employee_name: employeeName,
+        cycle_id: cycleId,
+        line_manager_id: lineManagerId || '',
+        manager_name: managerName || '',
+        status: 'DRAFT',
+        organization_id: orgId,
+        present_days: attendanceSummary.presentDays,
+        late_days: attendanceSummary.lateDays,
+        absent_days: attendanceSummary.absentDays,
+        early_out_days: attendanceSummary.earlyOutDays,
+        attendance_percentage: attendanceSummary.attendancePercentage,
+        annual_leave_taken: leaveSummary.typeBreakdown['ANNUAL'] || 0,
+        casual_leave_taken: leaveSummary.typeBreakdown['CASUAL'] || 0,
+        sick_leave_taken: leaveSummary.typeBreakdown['SICK'] || 0,
+        leave_summary_json: leaveSummary,
+      })
+      .select()
+      .single();
 
-    try {
-      const record = await apiClient.pb.collection('performance_reviews').create(payload);
-      apiClient.notify();
-      return mapReviewRecord(record);
-    } catch (e: any) {
-      if (e.response?.id) { apiClient.notify(); return null; }
-      console.error('[ReviewService] Failed to create review:', e?.message || e);
-      throw new Error('Failed to create performance review');
-    }
+    if (error) throw new Error('Failed to create performance review');
+    apiClient.notify();
+    return mapReviewRecord(record);
   },
 
   async submitSelfAssessment(reviewId: string, selfRatings: CompetencyRating[]): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const now = new Date().toISOString().replace('T', ' ').split('.')[0];
-    const payload: any = {
-      status: 'SELF_REVIEW_SUBMITTED',
-      submitted_at: now,
-      self_ratings: JSON.stringify(selfRatings),
-    };
-
-    // Also write legacy individual columns for backward compat
-    selfRatings.forEach(r => {
-      const field = competencyFieldName(r.competencyId);
-      payload[`self_${field}_rating`] = r.rating;
-      payload[`self_${field}_comment`] = r.comment;
-    });
-
-    try {
-      await apiClient.pb.collection('performance_reviews').update(reviewId, payload);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to submit self-assessment:', e?.message || e);
-      throw new Error('Failed to submit self-assessment');
-    }
+    if (!isSupabaseConfigured()) return;
+    // Supabase uses jsonb — store as object, not stringified
+    const { error } = await supabase
+      .from('performance_reviews')
+      .update({
+        status: 'SELF_REVIEW_SUBMITTED',
+        submitted_at: new Date().toISOString(),
+        self_ratings: selfRatings,
+      })
+      .eq('id', reviewId);
+    if (error) throw new Error('Failed to submit self-assessment');
+    apiClient.notify();
   },
 
   async submitManagerReview(reviewId: string, managerRatings: CompetencyRating[]): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const now = new Date().toISOString().replace('T', ' ').split('.')[0];
-    const payload: any = {
-      status: 'MANAGER_REVIEWED',
-      manager_reviewed_at: now,
-      manager_ratings: JSON.stringify(managerRatings),
-    };
-
-    // Also write legacy individual columns for backward compat
-    managerRatings.forEach(r => {
-      const field = competencyFieldName(r.competencyId);
-      payload[`manager_${field}_rating`] = r.rating;
-      payload[`manager_${field}_comment`] = r.comment;
-    });
-
-    try {
-      await apiClient.pb.collection('performance_reviews').update(reviewId, payload);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to submit manager review:', e?.message || e);
-      throw new Error('Failed to submit manager review');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase
+      .from('performance_reviews')
+      .update({
+        status: 'MANAGER_REVIEWED',
+        manager_reviewed_at: new Date().toISOString(),
+        manager_ratings: managerRatings,
+      })
+      .eq('id', reviewId);
+    if (error) throw new Error('Failed to submit manager review');
+    apiClient.notify();
   },
 
   async finalizeReview(reviewId: string, hrRemarks: string, overallRating: string, finalizedBy: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const now = new Date().toISOString().replace('T', ' ').split('.')[0];
-    const payload: any = {
-      status: 'COMPLETED',
-      completed_at: now,
-      hr_final_remarks: hrRemarks,
-      hr_overall_rating: overallRating,
-      finalized_by: finalizedBy,
-    };
-
-    try {
-      await apiClient.pb.collection('performance_reviews').update(reviewId, payload);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to finalize review:', e?.message || e);
-      throw new Error('Failed to finalize review');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase
+      .from('performance_reviews')
+      .update({
+        status: 'COMPLETED',
+        completed_at: new Date().toISOString(),
+        hr_final_remarks: hrRemarks,
+        hr_overall_rating: overallRating,
+        finalized_by: finalizedBy,
+      })
+      .eq('id', reviewId);
+    if (error) throw new Error('Failed to finalize review');
+    apiClient.notify();
   },
 
   async deleteReview(id: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    try {
-      await apiClient.pb.collection('performance_reviews').delete(id);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to delete review:', e?.message || e);
-      throw new Error('Failed to delete performance review');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('performance_reviews').delete().eq('id', id);
+    if (error) throw new Error('Failed to delete performance review');
+    apiClient.notify();
   },
 
   async adminUpdateReview(id: string, data: { lineManagerId?: string; managerName?: string; status?: string }): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     const payload: any = {};
     if (data.lineManagerId !== undefined) payload.line_manager_id = data.lineManagerId;
-    if (data.managerName !== undefined) payload.manager_name = data.managerName;
-    if (data.status !== undefined) payload.status = data.status;
-    try {
-      await apiClient.pb.collection('performance_reviews').update(id, payload);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error('[ReviewService] Failed to admin-update review:', e?.message || e);
-      throw new Error('Failed to update performance review');
-    }
+    if (data.managerName !== undefined)   payload.manager_name = data.managerName;
+    if (data.status !== undefined)        payload.status = data.status;
+    const { error } = await supabase.from('performance_reviews').update(payload).eq('id', id);
+    if (error) throw new Error('Failed to update performance review');
+    apiClient.notify();
   },
 
-  // ─── Attendance & Leave Summaries ───────────────────────────
+  // ─── Attendance & Leave Summaries ────────────────────────────
 
   async calculateAttendanceSummary(employeeId: string, startDate: string, endDate: string): Promise<AttendanceSummary> {
     const summary: AttendanceSummary = { totalWorkingDays: 0, presentDays: 0, lateDays: 0, absentDays: 0, earlyOutDays: 0, attendancePercentage: 0 };
-    if (!apiClient.pb || !apiClient.isConfigured()) return summary;
-
+    if (!isSupabaseConfigured()) return summary;
     try {
-      const records = await apiClient.pb.collection('attendance').getFullList({
-        filter: `employee_id = "${employeeId.trim()}" && date >= "${startDate}" && date <= "${endDate}"`,
-        sort: 'date',
-      });
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('id, employee_id, employee_name, date, check_in, check_out, status, remarks')
+        .eq('employee_id', employeeId.trim())
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date');
+      if (error) throw error;
 
-      const logs = records.map(r => ({
+      const logs = (data ?? []).map(r => ({
         id: r.id,
         employeeId: r.employee_id || '',
         employeeName: r.employee_name || '',
@@ -406,7 +351,6 @@ export const reviewService = {
 
       const consolidated = consolidateAttendance(logs);
       summary.totalWorkingDays = consolidated.length;
-
       consolidated.forEach(log => {
         const status = (log.status || '').toUpperCase();
         if (status === 'PRESENT') summary.presentDays++;
@@ -414,28 +358,29 @@ export const reviewService = {
         else if (status === 'ABSENT') summary.absentDays++;
         else if (status === 'EARLY_OUT') { summary.earlyOutDays++; summary.presentDays++; }
       });
-
       if (summary.totalWorkingDays > 0) {
         summary.attendancePercentage = Math.round((summary.presentDays / summary.totalWorkingDays) * 100);
       }
     } catch (e: any) {
       console.error('[ReviewService] Failed to calculate attendance summary:', e?.message || e);
     }
-
     return summary;
   },
 
   async calculateLeaveSummary(employeeId: string, startDate: string, endDate: string): Promise<LeaveSummary> {
     const typeBreakdown: Record<string, number> = {};
     let totalLeaveDays = 0;
-    if (!apiClient.pb || !apiClient.isConfigured()) return { typeBreakdown, totalLeaveDays };
-
+    if (!isSupabaseConfigured()) return { typeBreakdown, totalLeaveDays };
     try {
-      const records = await apiClient.pb.collection('leaves').getFullList({
-        filter: `employee_id = "${employeeId.trim()}" && status = "APPROVED" && start_date >= "${startDate}" && end_date <= "${endDate}"`,
-      });
-
-      records.forEach(r => {
+      const { data, error } = await supabase
+        .from('leaves')
+        .select('type, total_days')
+        .eq('employee_id', employeeId.trim())
+        .eq('status', 'APPROVED')
+        .gte('start_date', startDate)
+        .lte('end_date', endDate);
+      if (error) throw error;
+      (data ?? []).forEach(r => {
         const days = r.total_days || 0;
         const type = (r.type || '').toUpperCase();
         typeBreakdown[type] = (typeBreakdown[type] || 0) + days;
@@ -444,7 +389,6 @@ export const reviewService = {
     } catch (e: any) {
       console.error('[ReviewService] Failed to calculate leave summary:', e?.message || e);
     }
-
     return { typeBreakdown, totalLeaveDays };
   },
 };
