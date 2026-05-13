@@ -1,11 +1,29 @@
 
+import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient, dedupe } from './api.client';
 import { LeaveRequest, LeaveBalance } from '../types';
 import { organizationService } from './organization.service';
 
 let cachedLeaves: LeaveRequest[] | null = null;
 let leaveCacheTimestamp = 0;
-const LEAVE_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const LEAVE_CACHE_TTL = 2 * 60 * 1000;
+
+const mapLeave = (r: any): LeaveRequest => ({
+  id: r.id,
+  employeeId: r.employee_id ? r.employee_id.toString().trim() : '',
+  employeeName: r.employee_name,
+  lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
+  appliedDate: r.applied_date,
+  startDate: r.start_date,
+  endDate: r.end_date,
+  totalDays: r.total_days || 0,
+  type: r.type,
+  reason: r.reason || '',
+  status: (r.status || 'PENDING_MANAGER').toString().trim().toUpperCase() as any,
+  managerRemarks: r.manager_remarks || '',
+  approverRemarks: r.approver_remarks || '',
+  organizationId: r.organization_id,
+});
 
 export const leaveService = {
   clearCache() {
@@ -15,146 +33,107 @@ export const leaveService = {
 
   async getLeaves(): Promise<LeaveRequest[]> {
     if (cachedLeaves && Date.now() - leaveCacheTimestamp < LEAVE_CACHE_TTL) return cachedLeaves;
-    // Dedupe key is scoped by orgId so superadmin impersonation across orgs
-    // can't alias onto the same in-flight promise. See
-    // Others/CONCURRENCY_FIX_RECORD.md §3.
     const orgId = apiClient.getOrganizationId();
     return dedupe(`leaves:${orgId ?? 'none'}`, async () => {
-      if (!apiClient.pb || !apiClient.isConfigured()) {
-        console.warn("[LeaveService] PocketBase not configured");
+      if (!isSupabaseConfigured()) {
+        console.warn('[LeaveService] Supabase not configured');
         return [];
       }
       try {
-        // Scope to recent-ish leave requests to prevent unbounded growth.
-        // 180 days covers the usual planning horizon (current + prior half).
-        // Historical leaves remain accessible via explicit date-ranged queries.
         const halfYearAgo = new Date();
         halfYearAgo.setDate(halfYearAgo.getDate() - 180);
         const since = halfYearAgo.toISOString().split('T')[0];
-        const clauses: string[] = [`applied_date >= "${since}"`];
-        if (orgId) clauses.push(`organization_id = "${orgId}"`);
 
-        // NOTE: use getFullList (paginates in 500-row batches) instead of
-        // getList(1, 2000, ...) — PocketBase's default server cap is 500
-        // rows per request, so getList would have silently dropped older
-        // leaves beyond the 500th most-recent. The date-range + org filters
-        // still scope the DB query; the SDK just walks pages client-side.
-        const records = await apiClient.pb.collection('leaves').getFullList({
-          sort: '-applied_date',
-          filter: clauses.join(' && '),
-          batch: 500,
-        });
-        console.log(`[LeaveService] Fetched ${records.length} leave records`);
-        const result = records.map(r => ({
-          id: r.id.toString().trim(),
-          employeeId: r.employee_id ? r.employee_id.toString().trim() : "",
-          employeeName: r.employee_name,
-          lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
-          appliedDate: r.applied_date,
-          startDate: r.start_date,
-          endDate: r.end_date,
-          totalDays: r.total_days || 0,
-          type: r.type,
-          reason: r.reason || "",
-          status: (r.status || 'PENDING_MANAGER').toString().trim().toUpperCase() as any,
-          managerRemarks: r.manager_remarks || "",
-          approverRemarks: r.approver_remarks || "",
-          organizationId: r.organization_id
-        }));
+        let query = supabase
+          .from('leaves')
+          .select('*')
+          .gte('applied_date', since)
+          .order('applied_date', { ascending: false });
+
+        if (orgId) query = query.eq('organization_id', orgId);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        console.log(`[LeaveService] Fetched ${data?.length ?? 0} leave records`);
+        const result = (data ?? []).map(mapLeave);
         cachedLeaves = result;
         leaveCacheTimestamp = Date.now();
         return result;
       } catch (e: any) {
-        console.error("[LeaveService] Failed to fetch leaves:", e?.message || e);
+        console.error('[LeaveService] Failed to fetch leaves:', e?.message || e);
         return [];
       }
     });
   },
 
   async saveLeaveRequest(data: Partial<LeaveRequest>) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    
-    // 1. Get Employee Info to determine Department
+    if (!isSupabaseConfigured()) return;
+
+    // Fetch employee's department + line_manager_id for workflow routing
     let department = 'Unassigned';
-    let lineManagerId = null;
-    
+    let lineManagerId: string | null = null;
     try {
       if (data.employeeId) {
-        const empRecord = await apiClient.pb.collection('users').getOne(data.employeeId);
-        department = empRecord.department || 'Unassigned';
-        lineManagerId = empRecord.line_manager_id || null;
+        const { data: emp } = await supabase
+          .from('profiles')
+          .select('department, line_manager_id')
+          .eq('id', data.employeeId)
+          .single();
+        department = emp?.department || 'Unassigned';
+        lineManagerId = emp?.line_manager_id || null;
       }
-    } catch(e) { console.error("Could not fetch employee details for workflow"); }
+    } catch (e) { console.error('Could not fetch employee details for workflow'); }
 
-    // 2. Determine Initial Status based on Workflow
+    // Determine initial status from workflow config
     let initialStatus = 'PENDING_MANAGER';
-    
     try {
       const workflows = await organizationService.getWorkflows();
       const deptWorkflow = workflows.find(w => w.department === department);
-      
-      // If workflow is set to HR or ADMIN, skip manager approval
       if (deptWorkflow && (deptWorkflow.approverRole === 'HR' || deptWorkflow.approverRole === 'ADMIN')) {
         initialStatus = 'PENDING_HR';
       }
-      // If employee has no manager, default to HR
       if (!lineManagerId && initialStatus === 'PENDING_MANAGER') {
         initialStatus = 'PENDING_HR';
       }
-    } catch(e) { console.warn("Workflow check failed, defaulting to Manager"); }
+    } catch (e) { console.warn('Workflow check failed, defaulting to Manager'); }
 
-    const formatPbDate = (dateStr: string) => {
-      if (!dateStr) return null;
-      if (dateStr.length === 10) return `${dateStr} 00:00:00`;
-      if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
-      return dateStr;
-    };
-    
-    const now = new Date();
-    const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
     const orgId = apiClient.getOrganizationId();
-    
     const payload: any = {
       employee_id: data.employeeId?.trim(),
       employee_name: data.employeeName,
-      line_manager_id: lineManagerId, // Use database source of truth
+      line_manager_id: lineManagerId,
       type: data.type,
-      start_date: formatPbDate(data.startDate || ''),
-      end_date: formatPbDate(data.endDate || ''),
+      start_date: data.startDate || null,
+      end_date: data.endDate || null,
       total_days: Number(data.totalDays) || 0,
-      reason: data.reason || "",
+      reason: data.reason || '',
       status: initialStatus,
-      applied_date: appliedAt,
-      organization_id: orgId
+      applied_date: new Date().toISOString(),
+      organization_id: orgId,
     };
-    
-    try {
-      await apiClient.pb.collection('leaves').create(payload);
-      leaveService.clearCache();
-      apiClient.notify();
-    } catch (err: any) {
-      if (err.response?.id) { leaveService.clearCache(); apiClient.notify(); return; }
-      throw new Error(`Failed to create record`);
-    }
+
+    const { error } = await supabase.from('leaves').insert(payload);
+    if (error) throw new Error(`Failed to create record: ${error.message}`);
+    leaveService.clearCache();
+    apiClient.notify();
   },
 
   async updateLeaveStatus(id: string, status: string, remarks: string, role: string) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     const update: any = { status };
     if (role === 'MANAGER') {
       update.manager_remarks = remarks;
       if (status === 'APPROVED') update.status = 'PENDING_HR';
     } else if (role === 'ADMIN' || role === 'HR') {
       update.approver_remarks = remarks;
-      // Admin/HR can approve at any stage — force final status
     } else {
       update.approver_remarks = remarks;
     }
-    try {
-      await apiClient.pb.collection('leaves').update(id.trim(), update);
-      leaveService.clearCache();
-      apiClient.notify();
-    } catch (err: any) { throw new Error("Access Denied"); }
+    const { error } = await supabase.from('leaves').update(update).eq('id', id.trim());
+    if (error) throw new Error('Access Denied');
+    leaveService.clearCache();
+    apiClient.notify();
   },
 
   async adminCreateLeave(data: {
@@ -168,49 +147,38 @@ export const leaveService = {
     status: string;
     remarks: string;
   }) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const formatPbDate = (dateStr: string) => {
-      if (!dateStr) return null;
-      if (dateStr.length === 10) return `${dateStr} 00:00:00`;
-      if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
-      return dateStr;
-    };
-    const now = new Date();
-    const appliedAt = now.toISOString().replace('T', ' ').split('.')[0];
-    const orgId = apiClient.getOrganizationId();
+    if (!isSupabaseConfigured()) return;
 
-    // Fetch employee's line_manager_id so the hook can notify the manager
-    let lineManagerId = null;
+    let lineManagerId: string | null = null;
     try {
-      if (data.employeeId && apiClient.pb) {
-        const empRecord = await apiClient.pb.collection('users').getOne(data.employeeId.trim());
-        lineManagerId = empRecord.line_manager_id || null;
-      }
-    } catch(e) { /* non-fatal */ }
+      const { data: emp } = await supabase
+        .from('profiles')
+        .select('line_manager_id')
+        .eq('id', data.employeeId.trim())
+        .single();
+      lineManagerId = emp?.line_manager_id || null;
+    } catch (e) { /* non-fatal */ }
 
+    const orgId = apiClient.getOrganizationId();
     const payload: any = {
       employee_id: data.employeeId.trim(),
       employee_name: data.employeeName,
       line_manager_id: lineManagerId,
       type: data.type,
-      start_date: formatPbDate(data.startDate),
-      end_date: formatPbDate(data.endDate),
+      start_date: data.startDate || null,
+      end_date: data.endDate || null,
       total_days: Number(data.totalDays) || 0,
       reason: data.reason || '',
       status: data.status || 'APPROVED',
       approver_remarks: data.remarks || '',
-      applied_date: appliedAt,
-      organization_id: orgId
+      applied_date: new Date().toISOString(),
+      organization_id: orgId,
     };
 
-    try {
-      await apiClient.pb.collection('leaves').create(payload);
-      leaveService.clearCache();
-      apiClient.notify();
-    } catch (err: any) {
-      if (err.response?.id) { leaveService.clearCache(); apiClient.notify(); return; }
-      throw new Error('Failed to create leave record');
-    }
+    const { error } = await supabase.from('leaves').insert(payload);
+    if (error) throw new Error('Failed to create leave record');
+    leaveService.clearCache();
+    apiClient.notify();
   },
 
   async adminUpdateLeave(id: string, data: {
@@ -223,60 +191,47 @@ export const leaveService = {
     managerRemarks?: string;
     approverRemarks?: string;
   }) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const formatPbDate = (dateStr: string) => {
-      if (!dateStr) return null;
-      if (dateStr.length === 10) return `${dateStr} 00:00:00`;
-      if (dateStr.includes('T')) return dateStr.replace('T', ' ').split('.')[0];
-      return dateStr;
-    };
+    if (!isSupabaseConfigured()) return;
     const update: any = {};
-    if (data.type !== undefined) update.type = data.type;
-    if (data.startDate !== undefined) update.start_date = formatPbDate(data.startDate);
-    if (data.endDate !== undefined) update.end_date = formatPbDate(data.endDate);
-    if (data.totalDays !== undefined) update.total_days = Number(data.totalDays);
-    if (data.reason !== undefined) update.reason = data.reason;
-    if (data.status !== undefined) update.status = data.status;
+    if (data.type !== undefined)           update.type = data.type;
+    if (data.startDate !== undefined)      update.start_date = data.startDate || null;
+    if (data.endDate !== undefined)        update.end_date = data.endDate || null;
+    if (data.totalDays !== undefined)      update.total_days = Number(data.totalDays);
+    if (data.reason !== undefined)         update.reason = data.reason;
+    if (data.status !== undefined)         update.status = data.status;
     if (data.managerRemarks !== undefined) update.manager_remarks = data.managerRemarks;
     if (data.approverRemarks !== undefined) update.approver_remarks = data.approverRemarks;
 
-    try {
-      await apiClient.pb.collection('leaves').update(id.trim(), update);
-      leaveService.clearCache();
-      apiClient.notify();
-    } catch (err: any) {
-      throw new Error('Failed to update leave record');
-    }
+    const { error } = await supabase.from('leaves').update(update).eq('id', id.trim());
+    if (error) throw new Error('Failed to update leave record');
+    leaveService.clearCache();
+    apiClient.notify();
   },
 
   async adminDeleteLeave(id: string) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    try {
-      await apiClient.pb.collection('leaves').delete(id.trim());
-      leaveService.clearCache();
-      apiClient.notify();
-    } catch (err: any) {
-      throw new Error('Failed to delete leave record');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('leaves').delete().eq('id', id.trim());
+    if (error) throw new Error('Failed to delete leave record');
+    leaveService.clearCache();
+    apiClient.notify();
   },
 
   async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
     const policy = await organizationService.getLeavePolicy();
     const quota = policy.overrides[employeeId] || policy.defaults;
     const balance: LeaveBalance = { employeeId };
-
-    // Initialize balance from quota (all types with defined quotas)
     for (const [type, amount] of Object.entries(quota)) {
       balance[type] = amount as number;
     }
-
-    if (!apiClient.pb || !apiClient.isConfigured()) return balance;
-
+    if (!isSupabaseConfigured()) return balance;
     try {
-      const records = await apiClient.pb.collection('leaves').getFullList({
-        filter: `employee_id = "${employeeId.trim()}" && status = "APPROVED"`
-      });
-      records.forEach(r => {
+      const { data, error } = await supabase
+        .from('leaves')
+        .select('type, total_days')
+        .eq('employee_id', employeeId.trim())
+        .eq('status', 'APPROVED');
+      if (error) throw error;
+      (data ?? []).forEach(r => {
         const type = r.type as string;
         if (type in balance && typeof balance[type] === 'number') {
           (balance as any)[type] = (balance[type] as number) - (r.total_days || 0);
@@ -284,5 +239,5 @@ export const leaveService = {
       });
       return balance;
     } catch (e) { return balance; }
-  }
+  },
 };
