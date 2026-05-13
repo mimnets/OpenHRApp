@@ -11,7 +11,11 @@
     "feed": "node scripts/generate-feed.mjs",
     "preview": "vite preview",
     "validate:hooks": "node scripts/validate-pb-hooks.cjs",
-    "optimize-icons": "node scripts/optimize-icons.mjs"
+    "optimize-icons": "node scripts/optimize-icons.mjs",
+    "migrate:export": "node scripts/migrate-from-pb/01-export.mjs",
+    "migrate:import": "node scripts/migrate-from-pb/02-import.mjs",
+    "migrate:verify": "node scripts/migrate-from-pb/03-verify.mjs",
+    "migrate:files": "node scripts/migrate-from-pb/04-files.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
