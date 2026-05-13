@@ -1,66 +1,40 @@
 
+import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from './supabase';
 import { apiClient, dedupe } from './api.client';
 import { Employee } from '../types';
 
 let cachedEmployees: Employee[] | null = null;
 let empCacheTimestamp = 0;
-const EMP_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const EMP_CACHE_TTL = 2 * 60 * 1000;
 
-const sanitizeUserPayload = (data: any, isUpdate: boolean = false) => {
-  const pbData: any = {};
-  if (data.name) pbData.name = data.name;
-  if (data.role) pbData.role = data.role.toUpperCase();
-  if (data.department) pbData.department = data.department;
-  if (data.designation) pbData.designation = data.designation;
-  if (data.employeeId !== undefined) pbData.employee_id = data.employeeId;
+const SUPABASE_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : null;
 
-  // Handle lineManagerId (both camelCase and snake_case)
-  if (data.lineManagerId !== undefined) {
-    pbData.line_manager_id = data.lineManagerId === '' ? null : data.lineManagerId;
-  } else if (data.line_manager_id !== undefined) {
-    pbData.line_manager_id = data.line_manager_id === '' ? null : data.line_manager_id;
-  }
-
-  // Handle teamId (both camelCase and snake_case)
-  if (data.teamId !== undefined) {
-    pbData.team_id = data.teamId === '' ? null : data.teamId;
-  } else if (data.team_id !== undefined) {
-    pbData.team_id = data.team_id === '' ? null : data.team_id;
-  }
-
-  // Handle shiftId (both camelCase and snake_case)
-  if (data.shiftId !== undefined) {
-    pbData.shift_id = data.shiftId === '' ? null : data.shiftId;
-  } else if (data.shift_id !== undefined) {
-    pbData.shift_id = data.shift_id === '' ? null : data.shift_id;
-  }
-
-  if (data.avatar && typeof data.avatar === 'string' && !data.avatar.startsWith('http')) {
-    pbData.avatar = data.avatar;
-  }
-
-  // Password Logic
-  if (data.password && data.password.trim().length > 0) {
-    pbData.password = data.password;
-    pbData.passwordConfirm = data.password;
-    if (data.oldPassword) {
-      pbData.oldPassword = data.oldPassword;
-    }
-  }
-
-  if (!isUpdate) {
-    if (data.email) pbData.email = data.email;
-    if (data.employeeId) {
-      pbData.username = `user_${data.employeeId.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-    }
-    pbData.emailVisibility = true;
-    
-    // Inject Organization ID
-    const orgId = apiClient.getOrganizationId();
-    if (orgId) pbData.organization_id = orgId;
-  }
-  return pbData;
-};
+function mapProfileToEmployee(r: any): Employee {
+  return {
+    id: r.id,
+    employeeId: r.employee_id || '',
+    lineManagerId: r.line_manager_id || undefined,
+    teamId: r.team_id || undefined,
+    shiftId: r.shift_id || undefined,
+    organizationId: r.organization_id,
+    name: r.name || 'No Name',
+    email: r.email || '',
+    role: (r.role || 'EMPLOYEE').toUpperCase(),
+    department: r.department || 'Unassigned',
+    designation: r.designation || 'Staff',
+    avatar: r.avatar ? getSupabaseStorageUrl('avatars', r.avatar) : undefined,
+    joiningDate: r.joining_date || '',
+    mobile: r.mobile || '',
+    emergencyContact: r.emergency_contact || '',
+    salary: r.salary || 0,
+    status: r.status || 'ACTIVE',
+    employmentType: r.employment_type || 'PERMANENT',
+    location: r.location || '',
+    workType: r.work_type || 'OFFICE',
+  } as any;
+}
 
 export const employeeService = {
   clearCache() {
@@ -70,107 +44,140 @@ export const employeeService = {
 
   async getEmployees(): Promise<Employee[]> {
     if (cachedEmployees && Date.now() - empCacheTimestamp < EMP_CACHE_TTL) return cachedEmployees;
-    // Dedupe key is scoped by orgId so superadmin impersonation across orgs
-    // can't alias onto the same in-flight promise. See
-    // Others/CONCURRENCY_FIX_RECORD.md §2.
+
     const orgId = apiClient.getOrganizationId();
     return dedupe(`employees:${orgId ?? 'none'}`, async () => {
-      if (!apiClient.pb || !apiClient.isConfigured()) {
-        console.warn("[EmployeeService] PocketBase not configured");
+      if (!isSupabaseConfigured()) {
+        console.warn('[EmployeeService] Supabase not configured');
         return [];
       }
       try {
-        // Explicit org filter — defence-in-depth beyond the API rule, and
-        // ensures SQLite uses the organization_id index instead of scanning
-        // rows belonging to other tenants (16+ orgs share this table).
-        //
-        // NOTE: uses getFullList (not getList) so the SDK paginates in
-        // 500-row batches and returns every matching row. The previous
-        // getList(1, 5000, ...) call was silently capped by the PocketBase
-        // server's default per-request max (500), which dropped employees
-        // beyond the 500th newest from the lookup cache — surfacing as
-        // "(N/A) / STAFF" fallbacks on the Attendance Audit page for any
-        // older employee record (regression introduced in 1c88728).
-        const records = await apiClient.pb.collection('users').getFullList({
-          sort: '-created',
-          expand: 'line_manager_id,team_id',
-          filter: orgId ? `organization_id = "${orgId}"` : undefined,
-          batch: 500,
-        });
-        console.log(`[EmployeeService] Fetched ${records.length} employees`);
-        const result = records.map(r => ({
-          id: r.id.toString().trim(),
-          employeeId: r.employee_id || '',
-          lineManagerId: r.line_manager_id ? r.line_manager_id.toString().trim() : undefined,
-          teamId: (r.team_id && r.team_id.length > 5) ? r.team_id : undefined,
-          shiftId: r.shift_id || undefined,
-          organizationId: r.organization_id,
-          name: r.name || 'No Name',
-          email: r.email,
-          role: (r.role || 'EMPLOYEE').toString().toUpperCase(),
-          department: r.department || 'Unassigned',
-          designation: r.designation || 'Staff',
-          avatar: r.avatar ? apiClient.pb!.files.getURL(r, r.avatar) : undefined,
-          joiningDate: r.joining_date || "",
-          mobile: r.mobile || "",
-          emergencyContact: r.emergency_contact || "",
-          salary: r.salary || 0,
-          status: r.status || "ACTIVE",
-          employmentType: r.employment_type || "PERMANENT",
-          location: r.location || "",
-          workType: r.work_type || "OFFICE"
-        })) as any;
+        let query = supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (orgId) query = query.eq('organization_id', orgId);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        console.log(`[EmployeeService] Fetched ${data?.length ?? 0} employees`);
+        const result = (data ?? []).map(mapProfileToEmployee);
         cachedEmployees = result;
         empCacheTimestamp = Date.now();
         return result;
       } catch (e: any) {
-        console.error("[EmployeeService] Failed to fetch employees:", e?.message || e);
+        console.error('[EmployeeService] Failed to fetch employees:', e?.message || e);
         return [];
       }
     });
   },
 
   async addEmployee(emp: Partial<Employee>) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const pbData = sanitizeUserPayload(emp, false);
+    if (!isSupabaseConfigured() || !SUPABASE_FUNCTIONS_URL) return;
 
-    console.log('[EmployeeService] Creating employee with data:', pbData);
-    console.log('[EmployeeService] Original input:', { teamId: emp.teamId, shiftId: emp.shiftId });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
 
-    if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
-      await apiClient.pb.collection('users').create(await apiClient.toFormData(pbData, 'avatar.webp'));
-    } else {
-      await apiClient.pb.collection('users').create(pbData);
+    const formData = new FormData();
+    if (emp.email)       formData.append('email', emp.email);
+    if ((emp as any).password) formData.append('password', (emp as any).password);
+    if (emp.name)        formData.append('name', emp.name);
+    if (emp.role)        formData.append('role', emp.role.toUpperCase());
+    if (emp.department)  formData.append('department', emp.department);
+    if (emp.designation) formData.append('designation', emp.designation);
+    if (emp.employeeId)  formData.append('employeeId', emp.employeeId);
+    if (emp.lineManagerId) formData.append('lineManagerId', emp.lineManagerId);
+    if (emp.teamId)      formData.append('teamId', emp.teamId);
+    if (emp.shiftId)     formData.append('shiftId', emp.shiftId);
+    if (emp.mobile)      formData.append('mobile', emp.mobile);
+    if (emp.joiningDate) formData.append('joiningDate', emp.joiningDate);
+
+    // Avatar: data URL → Blob
+    if (emp.avatar && typeof emp.avatar === 'string' && emp.avatar.startsWith('data:')) {
+      const blob = await (await fetch(emp.avatar)).blob();
+      formData.append('avatar', blob, 'avatar.webp');
     }
+
+    const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/create-employee`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: formData,
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to create employee');
+
     employeeService.clearCache();
     apiClient.notify();
   },
 
   async updateProfile(id: string, updates: Partial<Employee> | any) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const pbData = sanitizeUserPayload(updates, true);
+    if (!isSupabaseConfigured()) return;
 
-    console.log('[EmployeeService] Updating employee:', id);
-    console.log('[EmployeeService] Input data:', { teamId: updates.teamId, shiftId: updates.shiftId, lineManagerId: updates.lineManagerId });
-    console.log('[EmployeeService] Processed data:', { team_id: pbData.team_id, shift_id: pbData.shift_id, line_manager_id: pbData.line_manager_id });
+    const payload: any = {};
+    if (updates.name !== undefined)        payload.name = updates.name;
+    if (updates.role !== undefined)        payload.role = updates.role.toUpperCase();
+    if (updates.department !== undefined)  payload.department = updates.department;
+    if (updates.designation !== undefined) payload.designation = updates.designation;
+    if (updates.employeeId !== undefined)  payload.employee_id = updates.employeeId;
+    if (updates.mobile !== undefined)      payload.mobile = updates.mobile;
+    if (updates.joiningDate !== undefined) payload.joining_date = updates.joiningDate;
+    if (updates.status !== undefined)      payload.status = updates.status;
+    if (updates.employmentType !== undefined) payload.employment_type = updates.employmentType;
+    if (updates.workType !== undefined)    payload.work_type = updates.workType;
+    if (updates.salary !== undefined)      payload.salary = updates.salary;
+    if (updates.location !== undefined)    payload.location = updates.location;
+    if (updates.emergencyContact !== undefined) payload.emergency_contact = updates.emergencyContact;
 
-    if (pbData.avatar && typeof pbData.avatar === 'string' && pbData.avatar.startsWith('data:')) {
-      const result = await apiClient.pb.collection('users').update(id.trim(), await apiClient.toFormData(pbData, 'avatar.webp'));
-      console.log('[EmployeeService] Update result:', result);
-    } else {
-      delete pbData.avatar;
-      const result = await apiClient.pb.collection('users').update(id.trim(), pbData);
-      console.log('[EmployeeService] Update result:', result);
+    const lmId = updates.lineManagerId ?? updates.line_manager_id;
+    if (lmId !== undefined) payload.line_manager_id = lmId === '' ? null : lmId;
+
+    const tId = updates.teamId ?? updates.team_id;
+    if (tId !== undefined) payload.team_id = tId === '' ? null : tId;
+
+    const sId = updates.shiftId ?? updates.shift_id;
+    if (sId !== undefined) payload.shift_id = sId === '' ? null : sId;
+
+    // Avatar upload to storage
+    if (updates.avatar && typeof updates.avatar === 'string' && updates.avatar.startsWith('data:')) {
+      try {
+        const blob = await (await fetch(updates.avatar)).blob();
+        const path = `${id}/avatar.webp`;
+        const { error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(path, blob, { upsert: true, contentType: 'image/webp' });
+        if (!uploadErr) payload.avatar = path;
+      } catch (e) {
+        console.warn('[EmployeeService] Avatar upload failed:', e);
+      }
     }
+
+    // Password change goes through Supabase auth admin — not supported from anon key.
+    // Password updates must be handled via the update-password Edge Function or
+    // supabase.auth.updateUser (for self-updates only).
+    if (updates.password) {
+      console.warn('[EmployeeService] Password update for other users requires an admin Edge Function. Skipping.');
+    }
+
+    console.log('[EmployeeService] Updating profile:', id, payload);
+    const { error } = await supabase.from('profiles').update(payload).eq('id', id);
+    if (error) throw error;
+
     employeeService.clearCache();
     apiClient.notify();
   },
 
   async deleteEmployee(id: string) {
-    if (apiClient.pb && apiClient.isConfigured()) {
-      await apiClient.pb.collection('users').delete(id.trim());
-      employeeService.clearCache();
-      apiClient.notify();
-    }
-  }
+    if (!isSupabaseConfigured()) return;
+
+    // Deleting from profiles cascades to auth.users via FK (on delete cascade).
+    // Service-role is needed to delete auth.users — use Edge Function if RLS blocks.
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) throw error;
+
+    employeeService.clearCache();
+    apiClient.notify();
+  },
 };
