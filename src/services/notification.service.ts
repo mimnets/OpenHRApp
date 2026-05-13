@@ -1,103 +1,97 @@
 
+import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient } from './api.client';
 import { AppNotification, NotificationType, NotificationPriority, UserNotificationPreferences } from '../types';
 import { organizationService } from './organization.service';
 import { DEFAULT_USER_NOTIFICATION_PREFS } from '../constants';
 
+async function getCurrentUserId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+const mapNotification = (r: any): AppNotification => ({
+  id: r.id,
+  userId: r.user_id || '',
+  type: (r.type || 'SYSTEM') as NotificationType,
+  title: r.title || '',
+  message: r.message || undefined,
+  isRead: !!r.is_read,
+  priority: (r.priority || 'NORMAL') as NotificationPriority,
+  referenceId: r.reference_id || undefined,
+  referenceType: r.reference_type || undefined,
+  actionUrl: r.action_url || undefined,
+  metadata: r.metadata || undefined,
+  organizationId: r.organization_id,
+  created: r.created_at,
+  updated: r.updated_at,
+});
+
 export const notificationService = {
   async getNotifications(): Promise<AppNotification[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      console.warn("[NotificationService] PocketBase not configured");
-      return [];
-    }
+    if (!isSupabaseConfigured()) return [];
     try {
-      const userId = apiClient.pb.authStore.model?.id;
+      const userId = await getCurrentUserId();
       if (!userId) return [];
-
-      const result = await apiClient.pb.collection('notifications').getList(1, 100, {
-        sort: '-created',
-        filter: `user_id = "${userId}"`,
-      });
-      const records = result.items;
-      return records.map(r => ({
-        id: r.id.toString().trim(),
-        userId: r.user_id || '',
-        type: (r.type || 'SYSTEM') as NotificationType,
-        title: r.title || '',
-        message: r.message || undefined,
-        isRead: !!r.is_read,
-        priority: (r.priority || 'NORMAL') as NotificationPriority,
-        referenceId: r.reference_id || undefined,
-        referenceType: r.reference_type || undefined,
-        actionUrl: r.action_url || undefined,
-        metadata: r.metadata || undefined,
-        organizationId: r.organization_id,
-        created: r.created,
-        updated: r.updated,
-      }));
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []).map(mapNotification);
     } catch (e: any) {
-      console.error("[NotificationService] Failed to fetch notifications:", e?.message || e);
+      console.error('[NotificationService] Failed to fetch notifications:', e?.message || e);
       return [];
     }
   },
 
   async getUnreadCount(): Promise<number> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return 0;
+    if (!isSupabaseConfigured()) return 0;
     try {
-      const userId = apiClient.pb.authStore.model?.id;
+      const userId = await getCurrentUserId();
       if (!userId) return 0;
-
-      const result = await apiClient.pb.collection('notifications').getList(1, 1, {
-        filter: `user_id = "${userId}" && is_read = false`,
-      });
-      return result.totalItems;
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+      if (error) throw error;
+      return count ?? 0;
     } catch (e: any) {
-      console.error("[NotificationService] Failed to get unread count:", e?.message || e);
+      console.error('[NotificationService] Failed to get unread count:', e?.message || e);
       return 0;
     }
   },
 
   async markAsRead(id: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    try {
-      await apiClient.pb.collection('notifications').update(id.trim(), { is_read: true });
-      apiClient.notify();
-    } catch (err: any) {
-      throw new Error('Failed to mark notification as read');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id.trim());
+    if (error) throw new Error('Failed to mark notification as read');
+    apiClient.notify();
   },
 
   async markAllAsRead(): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     try {
-      const userId = apiClient.pb.authStore.model?.id;
+      const userId = await getCurrentUserId();
       if (!userId) return;
       const orgId = apiClient.getOrganizationId();
-
-      // Cap at 500 newest unread to avoid flooding the write-lock with
-      // hundreds of updates during rush hour. Anything older will stay
-      // unread until the user explicitly opens it — acceptable trade-off.
-      const filter = orgId
-        ? `user_id = "${userId}" && organization_id = "${orgId}" && is_read = false`
-        : `user_id = "${userId}" && is_read = false`;
-      const unread = await apiClient.pb.collection('notifications').getList(1, 500, {
-        filter,
-        sort: '-created',
-        fields: 'id',
-      }).then(r => r.items);
-
-      // Serialize updates to avoid 500 concurrent writes all piling onto
-      // SQLite's single-writer lock. Chunks of 10 parallel is plenty.
-      const CHUNK = 10;
-      for (let i = 0; i < unread.length; i += CHUNK) {
-        const slice = unread.slice(i, i + CHUNK);
-        await Promise.all(
-          slice.map(r => apiClient.pb!.collection('notifications').update(r.id, { is_read: true }))
-        );
-      }
+      let query = supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+      if (orgId) query = query.eq('organization_id', orgId);
+      const { error } = await query;
+      if (error) throw error;
       apiClient.notify();
     } catch (err: any) {
-      console.error("[NotificationService] Failed to mark all as read:", err?.message || err);
+      console.error('[NotificationService] Failed to mark all as read:', err?.message || err);
     }
   },
 
@@ -112,10 +106,9 @@ export const notificationService = {
     actionUrl?: string;
     metadata?: Record<string, any>;
   }): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     const orgId = apiClient.getOrganizationId();
-
-    const payload: any = {
+    const { error } = await supabase.from('notifications').insert({
       user_id: data.userId.trim(),
       type: data.type,
       title: data.title,
@@ -127,13 +120,8 @@ export const notificationService = {
       action_url: data.actionUrl || null,
       metadata: data.metadata || null,
       organization_id: orgId,
-    };
-
-    try {
-      await apiClient.pb.collection('notifications').create(payload);
-    } catch (err: any) {
-      console.error("[NotificationService] Failed to create notification:", err?.message || err);
-    }
+    });
+    if (error) console.error('[NotificationService] Failed to create notification:', error.message);
   },
 
   async createBulkNotifications(notifications: Array<{
@@ -147,106 +135,82 @@ export const notificationService = {
     actionUrl?: string;
     metadata?: Record<string, any>;
   }>): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured() || notifications.length === 0) return;
     const orgId = apiClient.getOrganizationId();
-
-    const promises = notifications.map(data => {
-      const payload: any = {
-        user_id: data.userId.trim(),
-        type: data.type,
-        title: data.title,
-        message: data.message || null,
-        is_read: false,
-        priority: data.priority || 'NORMAL',
-        reference_id: data.referenceId || null,
-        reference_type: data.referenceType || null,
-        action_url: data.actionUrl || null,
-        metadata: data.metadata || null,
-        organization_id: orgId,
-      };
-      return apiClient.pb!.collection('notifications').create(payload).catch(err => {
-        console.error("[NotificationService] Failed to create bulk notification:", err?.message || err);
-      });
-    });
-
-    await Promise.all(promises);
-    apiClient.notify();
+    const rows = notifications.map(data => ({
+      user_id: data.userId.trim(),
+      type: data.type,
+      title: data.title,
+      message: data.message || null,
+      is_read: false,
+      priority: data.priority || 'NORMAL',
+      reference_id: data.referenceId || null,
+      reference_type: data.referenceType || null,
+      action_url: data.actionUrl || null,
+      metadata: data.metadata || null,
+      organization_id: orgId,
+    }));
+    const { error } = await supabase.from('notifications').insert(rows);
+    if (error) console.error('[NotificationService] Failed to create bulk notifications:', error.message);
+    else apiClient.notify();
   },
 
   async getAllNotifications(): Promise<AppNotification[]> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return [];
+    if (!isSupabaseConfigured()) return [];
     try {
-      const result = await apiClient.pb.collection('notifications').getList(1, 200, {
-        sort: '-created',
-      });
-      const records = result.items;
-      return records.map(r => ({
-        id: r.id.toString().trim(),
-        userId: r.user_id || '',
-        type: (r.type || 'SYSTEM') as NotificationType,
-        title: r.title || '',
-        message: r.message || undefined,
-        isRead: !!r.is_read,
-        priority: (r.priority || 'NORMAL') as NotificationPriority,
-        referenceId: r.reference_id || undefined,
-        referenceType: r.reference_type || undefined,
-        actionUrl: r.action_url || undefined,
-        metadata: r.metadata || undefined,
-        organizationId: r.organization_id,
-        created: r.created,
-        updated: r.updated,
-      }));
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []).map(mapNotification);
     } catch (e: any) {
-      console.error("[NotificationService] Failed to fetch all notifications:", e?.message || e);
+      console.error('[NotificationService] Failed to fetch all notifications:', e?.message || e);
       return [];
     }
   },
 
   async deleteNotification(id: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    try {
-      await apiClient.pb.collection('notifications').delete(id);
-      apiClient.notify();
-    } catch (e: any) {
-      console.error("[NotificationService] Failed to delete notification:", e?.message || e);
-      throw new Error('Failed to delete notification');
-    }
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('notifications').delete().eq('id', id);
+    if (error) throw new Error('Failed to delete notification');
+    apiClient.notify();
   },
 
   async deleteAllNotifications(): Promise<number> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return 0;
+    if (!isSupabaseConfigured()) return 0;
     try {
-      const records = await apiClient.pb.collection('notifications').getFullList({
-        fields: 'id',
-      });
-
-      let deleted = 0;
-      for (const r of records) {
-        try {
-          await apiClient.pb.collection('notifications').delete(r.id);
-          deleted++;
-        } catch (e: any) {
-          console.error("[NotificationService] Failed to delete notification", r.id, ":", e?.message || e);
-        }
-      }
-
-      console.log(`[NotificationService] Deleted ${deleted}/${records.length} notifications`);
+      const userId = await getCurrentUserId();
+      if (!userId) return 0;
+      // Count first, then delete
+      const { count } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId);
+      if (error) throw error;
+      const deleted = count ?? 0;
+      console.log(`[NotificationService] Deleted ${deleted} notifications`);
       apiClient.notify();
       return deleted;
     } catch (e: any) {
-      console.error("[NotificationService] Failed to delete all notifications:", e?.message || e);
+      console.error('[NotificationService] Failed to delete all notifications:', e?.message || e);
       throw new Error('Failed to delete all notifications');
     }
   },
 
   async getUserPreferences(): Promise<UserNotificationPreferences> {
-    const userId = apiClient.pb?.authStore.model?.id;
+    const userId = await getCurrentUserId();
     if (!userId) return DEFAULT_USER_NOTIFICATION_PREFS;
     return organizationService.getSetting(`notification_prefs_${userId}`, DEFAULT_USER_NOTIFICATION_PREFS);
   },
 
   async setUserPreferences(prefs: UserNotificationPreferences): Promise<void> {
-    const userId = apiClient.pb?.authStore.model?.id;
+    const userId = await getCurrentUserId();
     if (!userId) return;
     await organizationService.setSetting(`notification_prefs_${userId}`, prefs);
     apiClient.notify();
