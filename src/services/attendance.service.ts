@@ -1,4 +1,5 @@
 
+import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient, dedupe } from './api.client';
 import { Attendance } from '../types';
 import { organizationService } from './organization.service';
@@ -9,19 +10,13 @@ import { convertToWebP } from '../utils/imageConvert';
 import { checkInSyncQueue, classifySyncError } from './attendance/syncQueue';
 import { CheckInSyncEntry } from './attendance/syncQueue.types';
 
-// Selfie-specific WebP settings. These apply ONLY to attendance selfies —
-// avatars, blog covers, logos, and other uploads continue to use the
-// `toFormData` default (0.8, unbounded). A 720px face photo at 0.65 quality
-// is visually indistinguishable for audit use and ~30–40% smaller than the
-// previous 0.8/full-resolution capture. Reducing the payload directly
-// shrinks the rush-hour upload bandwidth and the async-upload retry surface.
 const SELFIE_WEBP_QUALITY = 0.65;
 const SELFIE_MAX_DIMENSION = 720;
+const SELFIE_BUCKET = 'selfies';
 
-// Cache is keyed by query window so different callers (dashboard=30d, reports=365d)
-// don't evict each other. Key format: "sinceDate|untilDate|employeeId|orgId".
+// Cache keyed by query window: "sinceDate|untilDate|employeeId|orgId"
 const attCache = new Map<string, { data: Attendance[]; ts: number }>();
-const ATT_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const ATT_CACHE_TTL = 2 * 60 * 1000;
 
 const DEFAULT_DAYS = 30;
 const daysAgoISO = (days: number): string => {
@@ -31,21 +26,13 @@ const daysAgoISO = (days: number): string => {
 };
 
 export interface GetAttendanceOptions {
-  /** YYYY-MM-DD. Defaults to 30 days ago. Pass '' to disable the lower bound. */
   since?: string;
-  /** YYYY-MM-DD. Defaults to today (no upper bound applied). */
   until?: string;
-  /** Scope to a single employee (uses indexed employee_id filter). */
   employeeId?: string;
-  /** Safety cap on rows returned. Raise only for explicit historical reports. */
   maxRows?: number;
 }
 
-// ─── Async selfie upload (RC #4) ─────────────────────────────────────────
-// Uploading a selfie as part of check-in used to block the user for
-// seconds during rush hour. We now create the attendance record first
-// and PATCH the selfie afterwards, with retries + a localStorage queue
-// for offline / failure recovery.
+// ─── Async selfie upload ──────────────────────────────────────────────────────
 
 interface PendingSelfie {
   recordId: string;
@@ -70,20 +57,24 @@ const writeSelfieQueue = (queue: PendingSelfie[]) => {
     if (queue.length === 0) localStorage.removeItem(SELFIE_QUEUE_KEY);
     else localStorage.setItem(SELFIE_QUEUE_KEY, JSON.stringify(queue));
   } catch (e) {
-    // Storage quota exceeded — drop the queue to avoid breaking the app.
-    console.warn("[AttendanceService] Could not persist selfie queue:", e);
+    console.warn('[AttendanceService] Could not persist selfie queue:', e);
   }
 };
 
 const uploadSelfieOnce = async (recordId: string, selfieDataUrl: string): Promise<void> => {
-  if (!apiClient.pb) throw new Error('PocketBase not configured');
-  // Convert with selfie-specific quality + dimension cap instead of routing
-  // through `apiClient.toFormData` (which uses the generic 0.8/unbounded
-  // defaults appropriate for covers/logos). Build the FormData manually.
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
   const webpBlob = await convertToWebP(selfieDataUrl, SELFIE_WEBP_QUALITY, SELFIE_MAX_DIMENSION);
-  const formData = new FormData();
-  formData.append('selfie', webpBlob, 'selfie.webp');
-  await apiClient.pb.collection('attendance').update(recordId, formData);
+  const path = `${recordId}/selfie.webp`;
+  const { error: uploadErr } = await supabase.storage
+    .from(SELFIE_BUCKET)
+    .upload(path, webpBlob, { upsert: true, contentType: 'image/webp' });
+  if (uploadErr) throw uploadErr;
+  // Patch selfie path onto the attendance record
+  const { error: updateErr } = await supabase
+    .from('attendance')
+    .update({ selfie: path })
+    .eq('id', recordId);
+  if (updateErr) throw updateErr;
 };
 
 const uploadSelfieWithRetry = async (recordId: string, selfieDataUrl: string): Promise<void> => {
@@ -96,12 +87,10 @@ const uploadSelfieWithRetry = async (recordId: string, selfieDataUrl: string): P
       return;
     } catch (e) {
       lastErr = e;
-      // Exponential backoff: 1 s, 3 s, 9 s
       const delay = Math.pow(3, attempt - 1) * 1000;
       await new Promise((r) => setTimeout(r, delay));
     }
   }
-  // Give up inline — push to persistent queue for retry on next app boot.
   const queue = readSelfieQueue();
   queue.push({ recordId, selfieDataUrl, queuedAt: Date.now() });
   writeSelfieQueue(queue);
@@ -109,11 +98,15 @@ const uploadSelfieWithRetry = async (recordId: string, selfieDataUrl: string): P
 };
 
 const notifyLineManagerOfLate = async (data: Attendance): Promise<void> => {
-  if (!apiClient.pb) return;
+  if (!isSupabaseConfigured()) return;
   const orgConfig = await organizationService.getNotificationConfig();
   if (!orgConfig.enabledTypes.includes('ATTENDANCE')) return;
-  const empRecord = await apiClient.pb.collection('users').getOne(data.employeeId.trim());
-  const managerId = empRecord.line_manager_id;
+  const { data: empRow } = await supabase
+    .from('profiles')
+    .select('line_manager_id')
+    .eq('id', data.employeeId.trim())
+    .single();
+  const managerId = empRow?.line_manager_id;
   if (!managerId) return;
   await notificationService.createNotification({
     userId: managerId,
@@ -124,9 +117,6 @@ const notifyLineManagerOfLate = async (data: Attendance): Promise<void> => {
   });
 };
 
-/** Shape the PocketBase payload for an attendance create. Shared
- *  between the inline `saveAttendance` path and the queue-drain path
- *  so they can never drift. */
 const buildAttendancePayload = (data: Attendance, orgId: string | undefined): any => ({
   employee_id: data.employeeId.trim(),
   employee_name: data.employeeName,
@@ -142,22 +132,25 @@ const buildAttendancePayload = (data: Attendance, orgId: string | undefined): an
 });
 
 const mapAttendance = (r: any): Attendance => ({
-  id: r.id.toString().trim(),
-  employeeId: r.employee_id ? r.employee_id.toString().trim() : "", 
+  id: r.id,
+  employeeId: r.employee_id ? r.employee_id.toString().trim() : '',
   employeeName: r.employee_name,
   date: r.date,
   checkIn: r.check_in,
-  checkOut: r.check_out || "",
+  checkOut: r.check_out || '',
   status: r.status as any,
-  location: { 
-    lat: Number(r.latitude) || 0, 
-    lng: Number(r.longitude) || 0, 
-    address: r.location || "Unknown" 
+  location: {
+    lat: Number(r.latitude) || 0,
+    lng: Number(r.longitude) || 0,
+    address: r.location || 'Unknown',
   },
-  selfie: r.selfie ? apiClient.pb?.files.getURL(r, r.selfie) : undefined,
-  remarks: r.remarks || "",
+  // selfie is stored as a storage path; build signed URL lazily if needed
+  selfie: r.selfie
+    ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${SELFIE_BUCKET}/${r.selfie}`
+    : undefined,
+  remarks: r.remarks || '',
   dutyType: r.duty_type as any,
-  organizationId: r.organization_id
+  organizationId: r.organization_id,
 });
 
 export const attendanceService = {
@@ -165,18 +158,6 @@ export const attendanceService = {
     attCache.clear();
   },
 
-  /**
-   * Fetch attendance records, scoped by default to the last 30 days.
-   *
-   * Callers that need a wider window (Reports, AttendanceLogs audit mode) must
-   * pass explicit `since`/`until` options. Always pair with an `organization_id`
-   * server-side API rule — this client-side filter is defence-in-depth.
-   *
-   * Performance: previously this loaded the whole `attendance` collection
-   * unbounded. For a multi-tenant DB with 16+ orgs × 100+ users × 250+ days,
-   * that was the main cause of the 9 AM rush-hour stall. See
-   * `Others/SCALING_PLAN.md §3.1`.
-   */
   async getAttendance(options: GetAttendanceOptions = {}): Promise<Attendance[]> {
     const since = options.since !== undefined ? options.since : daysAgoISO(DEFAULT_DAYS);
     const until = options.until || '';
@@ -189,89 +170,61 @@ export const attendanceService = {
     if (cached && Date.now() - cached.ts < ATT_CACHE_TTL) return cached.data;
 
     return dedupe(`attendance:${cacheKey}`, async () => {
-      if (!apiClient.pb || !apiClient.isConfigured()) {
-        console.warn("[AttendanceService] PocketBase not configured");
+      if (!isSupabaseConfigured()) {
+        console.warn('[AttendanceService] Supabase not configured');
         return [];
       }
       try {
-        // Build a server-side filter so the DB returns only relevant rows.
-        // Server-side API rules still enforce org isolation; the explicit
-        // organization_id clause here is defence-in-depth and helps SQLite
-        // use the index instead of a full scan.
-        const clauses: string[] = [];
-        if (orgId) clauses.push(`organization_id = "${orgId}"`);
-        if (since) clauses.push(`date >= "${since}"`);
-        if (until) clauses.push(`date <= "${until}"`);
-        if (employeeId) clauses.push(`employee_id = "${employeeId}"`);
-        const filter = clauses.join(' && ');
+        let query = supabase
+          .from('attendance')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(maxRows);
 
-        // NOTE: getFullList paginates in 500-row batches and is capped by
-        // `maxRows` below — prevents the silent drop that `getList(1, 500+, ...)`
-        // causes against PocketBase's default per-request cap. The date
-        // window + org filter keep the server-side query small; `batch:500`
-        // is the fetch size, `maxRows` is the client-side safety limit.
-        const all = await apiClient.pb.collection('attendance').getFullList({
-          sort: '-date',
-          filter: filter || undefined,
-          batch: 500,
-        });
-        const bounded = all.slice(0, maxRows);
-        const result = bounded.map(mapAttendance);
+        if (orgId)      query = query.eq('organization_id', orgId);
+        if (since)      query = query.gte('date', since);
+        if (until)      query = query.lte('date', until);
+        if (employeeId) query = query.eq('employee_id', employeeId);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const result = (data ?? []).map(mapAttendance);
         attCache.set(cacheKey, { data: result, ts: Date.now() });
         return result;
       } catch (e: any) {
-        console.error("[AttendanceService] Failed to fetch attendance:", e?.message || e);
+        console.error('[AttendanceService] Failed to fetch attendance:', e?.message || e);
         return [];
       }
     });
   },
 
-  /**
-   * Returns today's active session for the employee.
-   *
-   * Past-date open sessions are reconciled (closed) by the workday session
-   * manager (FROZEN MODULE — see Others/CLAUDE.md). Callers that also need
-   * the list of past sessions that were just closed should call
-   * `getActiveAttendanceWithReconciliation` instead.
-   */
+  // FROZEN: delegates to workdaySessionManager which still uses PocketBase.
+  // Do not change this delegation without the plan-approval gate in CLAUDE.md.
   async getActiveAttendance(employeeId: string): Promise<Attendance | undefined> {
     const { active } = await workdaySessionManager.reconcileOpenSessions(employeeId);
     return active;
   },
 
-  /**
-   * Same as `getActiveAttendance` but also returns the list of past-date
-   * sessions that were just auto-closed — so the UI can show a one-time
-   * toast explaining what happened.
-   */
   async getActiveAttendanceWithReconciliation(employeeId: string): Promise<ReconcileResult> {
     return workdaySessionManager.reconcileOpenSessions(employeeId);
   },
 
-  /**
-   * Save an attendance record. Returns as soon as the core record is
-   * created; the selfie (if any) uploads in the background with retries
-   * and is queued in localStorage if it ultimately fails. See
-   * Others/SCALING_PLAN.md §3.4 and SCALING_IMPLEMENTATION_LOG.md RC#4.
-   */
   async saveAttendance(data: Attendance) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     const orgId = apiClient.getOrganizationId();
 
-    // Step 1 (synchronous, fast): create the record WITHOUT the selfie.
-    // This unblocks the user in <1 s instead of waiting for a mobile-network
-    // multipart upload. Critical for rush-hour: during check-in bursts, 20
-    // simultaneous multipart uploads were starving the server's connections.
-    const payload = buildAttendancePayload(data, orgId);
-    let created;
+    const payload = buildAttendancePayload(data, orgId ?? undefined);
+    let createdId: string;
     try {
-      created = await apiClient.pb.collection('attendance').create(payload);
+      const { data: created, error } = await supabase
+        .from('attendance')
+        .insert(payload)
+        .select('id')
+        .single();
+      if (error) throw error;
+      createdId = created.id;
     } catch (err: any) {
-      // Enqueue to the local sync queue so the check-in isn't lost on
-      // offline / 5xx / network-blip failures. See
-      // Others/CHECKIN_SYNC_QUEUE_RECORD.md. Non-retryable errors are
-      // still enqueued so the UI can surface them via DEAD_LETTER — the
-      // user's intent to check in deserves visibility, not silent loss.
       const syncErr = classifySyncError(err);
       try {
         checkInSyncQueue.enqueue({
@@ -283,74 +236,46 @@ export const attendanceService = {
       } catch (enqueueErr) {
         console.error('[AttendanceService] Could not enqueue check-in:', enqueueErr);
       }
-      throw err; // preserve existing UI behavior (showToast error)
+      throw err;
     }
     attendanceService.clearCache();
     apiClient.notify();
 
-    // Step 2 (asynchronous, best-effort): upload the selfie in the
-    // background. Success → record is patched with the file URL. Failure
-    // after retries → payload queued in localStorage and retried on next
-    // app boot via retryPendingSelfies().
     if (data.selfie) {
-      // Fire-and-forget. We deliberately do NOT await this so the UI
-      // sees "Checked in ✓" before the upload finishes.
-      uploadSelfieWithRetry(created.id, data.selfie).catch((err) => {
-        console.warn("[AttendanceService] Selfie upload failed after retries, queued for retry:", err?.message || err);
+      uploadSelfieWithRetry(createdId, data.selfie).catch((err) => {
+        console.warn('[AttendanceService] Selfie upload failed after retries, queued:', err?.message || err);
       });
     }
 
-    // Late Alert: notify line manager if status is LATE. Runs in parallel
-    // with the selfie upload; both are independent of the check-in ack.
     if (data.status === 'LATE') {
-      // Fire-and-forget; don't block the user on the notification round-trip.
       notifyLineManagerOfLate(data).catch((e: any) => {
-        console.error("[AttendanceService] Failed to send late alert:", e?.message || e);
+        console.error('[AttendanceService] Failed to send late alert:', e?.message || e);
       });
     }
   },
 
-  /**
-   * Drain the local check-in sync queue. Called from the attendance
-   * screen's refreshData() alongside retryPendingSelfies(). Walks
-   * eligible entries one at a time (not parallel) so we don't thunder
-   * PocketBase on the same path that was already under stress.
-   * Safe to call repeatedly — a successful create removes the entry;
-   * a retryable failure reschedules it with backoff.
-   *
-   * Selfie uploads from queued entries still flow through the existing
-   * selfie retry ladder, so the two queues compose rather than fight.
-   */
   async drainCheckInQueue(): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     const orgId = apiClient.getOrganizationId();
-
-    // Budget so the drain can't monopolize the network on boot. Remaining
-    // entries will be picked up on the next refreshData() tick.
     const MAX_DRAIN_PER_TICK = 10;
     let drained = 0;
 
-    // eslint-disable-next-line no-constant-condition
     while (drained < MAX_DRAIN_PER_TICK) {
       const entry: CheckInSyncEntry | null = checkInSyncQueue.pickNext();
       if (!entry) break;
 
       try {
-        // Rebuild the payload with the *current* orgId at drain time.
-        // If the user switched orgs between enqueue and drain, the
-        // original org on the payload is preserved via organization_id
-        // on the payload itself below — but we defer to the stored
-        // payload's organizationId so a mid-session org switch doesn't
-        // mis-attribute the record.
         const effectiveOrgId = entry.payload.organizationId || orgId;
-        const pbPayload = buildAttendancePayload(entry.payload as Attendance, effectiveOrgId);
-        const created = await apiClient.pb.collection('attendance').create(pbPayload);
+        const pbPayload = buildAttendancePayload(entry.payload as Attendance, effectiveOrgId ?? undefined);
+        const { data: created, error } = await supabase
+          .from('attendance')
+          .insert(pbPayload)
+          .select('id')
+          .single();
+        if (error) throw error;
         checkInSyncQueue.markSuccess(entry.id);
         drained += 1;
 
-        // If the queued entry carried a selfie, hand it off to the
-        // existing selfie retry ladder. Fire-and-forget; selfie queue
-        // owns its own persistence.
         if (entry.payload.selfie) {
           uploadSelfieWithRetry(created.id, entry.payload.selfie).catch((e) => {
             console.warn('[AttendanceService] Queued selfie upload failed:', e?.message || e);
@@ -359,9 +284,6 @@ export const attendanceService = {
       } catch (err: any) {
         const syncErr = classifySyncError(err);
         checkInSyncQueue.markFailure(entry.id, syncErr);
-        // Stop draining on the first failure — if the network is down
-        // for one, it's down for all. Prevents burning the whole
-        // backoff budget in one tick.
         break;
       }
     }
@@ -372,13 +294,8 @@ export const attendanceService = {
     }
   },
 
-  /**
-   * Retries any selfie uploads that were queued after network failure.
-   * Called from app bootstrap. Safe to call repeatedly — a successful
-   * upload removes the entry; a failing one stays queued for next time.
-   */
   async retryPendingSelfies(): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
+    if (!isSupabaseConfigured()) return;
     const queue = readSelfieQueue();
     if (queue.length === 0) return;
     console.log(`[AttendanceService] Retrying ${queue.length} pending selfie upload(s)`);
@@ -386,9 +303,7 @@ export const attendanceService = {
     for (const entry of queue) {
       try {
         await uploadSelfieOnce(entry.recordId, entry.selfieDataUrl);
-        // success — drop from queue
-      } catch (e) {
-        // keep it for next time, but expire after 7 days
+      } catch {
         if (Date.now() - entry.queuedAt < 7 * 24 * 60 * 60 * 1000) {
           remaining.push(entry);
         }
@@ -399,22 +314,24 @@ export const attendanceService = {
   },
 
   async updateAttendance(id: string, data: Partial<Attendance>) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    const pbUpdates: any = {};
-    if (data.date) pbUpdates.date = data.date;
-    if (data.checkIn) pbUpdates.check_in = data.checkIn;
-    if (data.checkOut) pbUpdates.check_out = data.checkOut;
-    if (data.remarks) pbUpdates.remarks = data.remarks;
-    if (data.status) pbUpdates.status = data.status;
-    await apiClient.pb.collection('attendance').update(id.trim(), pbUpdates);
+    if (!isSupabaseConfigured()) return;
+    const updates: any = {};
+    if (data.date)     updates.date = data.date;
+    if (data.checkIn)  updates.check_in = data.checkIn;
+    if (data.checkOut) updates.check_out = data.checkOut;
+    if (data.remarks)  updates.remarks = data.remarks;
+    if (data.status)   updates.status = data.status;
+    const { error } = await supabase.from('attendance').update(updates).eq('id', id.trim());
+    if (error) throw error;
     attendanceService.clearCache();
     apiClient.notify();
   },
 
   async deleteAttendance(id: string) {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-    await apiClient.pb.collection('attendance').delete(id.trim());
+    if (!isSupabaseConfigured()) return;
+    const { error } = await supabase.from('attendance').delete().eq('id', id.trim());
+    if (error) throw error;
     attendanceService.clearCache();
     apiClient.notify();
-  }
+  },
 };
