@@ -1,9 +1,24 @@
 
-import { Shift, ShiftOverride } from '../types';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient } from './api.client';
+import { Shift, ShiftOverride } from '../types';
 
 let cachedShifts: Shift[] | null = null;
 let cachedOverrides: ShiftOverride[] | null = null;
+
+// Supabase uses snake_case; PB used camelCase for shift fields.
+const mapShift = (r: any): Shift => ({
+  id: r.id,
+  name: r.name,
+  startTime: r.start_time,
+  endTime: r.end_time,
+  lateGracePeriod: r.late_grace_period,
+  earlyOutGracePeriod: r.early_out_grace_period,
+  earliestCheckIn: r.earliest_check_in,
+  autoSessionCloseTime: r.auto_session_close_time,
+  workingDays: r.working_days,
+  isDefault: r.is_default,
+});
 
 export const shiftService = {
   clearCache() {
@@ -12,47 +27,26 @@ export const shiftService = {
   },
 
   async getShifts(): Promise<Shift[]> {
-    if (cachedShifts) {
-      return cachedShifts;
-    }
-
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      console.warn('[ShiftService] PocketBase not configured');
+    if (cachedShifts) return cachedShifts;
+    if (!isSupabaseConfigured()) {
+      console.warn('[ShiftService] Supabase not configured');
       return [];
     }
-
+    const orgId = apiClient.getOrganizationId();
+    if (!orgId) {
+      console.warn('[ShiftService] No organization ID available');
+      return [];
+    }
     try {
-      const orgId = apiClient.getOrganizationId();
-      if (!orgId) {
-        console.warn('[ShiftService] No organization ID available');
-        return [];
-      }
-
-      // Cap at 200 rows. No realistic org has >200 shifts; the explicit
-      // limit replaces the unbounded `getFullList` as a safety net on the
-      // check-in critical path (see Others/SCALING_PLAN.md).
-      const result = await apiClient.pb.collection('shifts').getList(1, 200, {
-        sort: '-created',
-        filter: `organization_id="${orgId}"`
-      });
-      const records = result.items;
-
-      const shifts = records.map(r => ({
-        id: r.id,
-        name: r.name,
-        startTime: r.startTime,
-        endTime: r.endTime,
-        lateGracePeriod: r.lateGracePeriod,
-        earlyOutGracePeriod: r.earlyOutGracePeriod,
-        earliestCheckIn: r.earliestCheckIn,
-        autoSessionCloseTime: r.autoSessionCloseTime,
-        workingDays: r.workingDays,
-        isDefault: r.isDefault
-      }));
-
-      cachedShifts = shifts;
-      return shifts;
-
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('organization_id', orgId)
+        .order('created', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      cachedShifts = (data ?? []).map(mapShift);
+      return cachedShifts;
     } catch (e: any) {
       console.error('[ShiftService] Failed to fetch shifts:', e?.message || e);
       return [];
@@ -60,155 +54,99 @@ export const shiftService = {
   },
 
   async createShift(shift: Partial<Shift>): Promise<Shift> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      throw new Error('PocketBase not configured');
-    }
-
+    if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
     const orgId = apiClient.getOrganizationId();
-    if (!orgId) {
-      throw new Error('No organization ID available');
-    }
+    if (!orgId) throw new Error('No organization ID available');
 
-    try {
-      const pbData = {
-        name: shift.name,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        lateGracePeriod: shift.lateGracePeriod || 15,
-        earlyOutGracePeriod: shift.earlyOutGracePeriod || 15,
-        earliestCheckIn: shift.earliestCheckIn || "06:00",
-        autoSessionCloseTime: shift.autoSessionCloseTime || "23:59",
-        workingDays: shift.workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"],
-        isDefault: shift.isDefault || false,
-        organization_id: orgId
-      };
+    if (shift.isDefault) await this.clearOtherDefaults();
 
-      if (pbData.isDefault) {
-        await this.clearOtherDefaults();
-      }
+    const payload = {
+      name: shift.name,
+      start_time: shift.startTime,
+      end_time: shift.endTime,
+      late_grace_period: shift.lateGracePeriod ?? 15,
+      early_out_grace_period: shift.earlyOutGracePeriod ?? 15,
+      earliest_check_in: shift.earliestCheckIn ?? '06:00',
+      auto_session_close_time: shift.autoSessionCloseTime ?? '23:59',
+      working_days: shift.workingDays ?? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Sunday'],
+      is_default: shift.isDefault ?? false,
+      organization_id: orgId,
+    };
 
-      const record = await apiClient.pb.collection('shifts').create(pbData);
-
-      this.clearCache();
-      apiClient.notify();
-
-      return {
-        id: record.id,
-        name: record.name,
-        startTime: record.startTime,
-        endTime: record.endTime,
-        lateGracePeriod: record.lateGracePeriod,
-        earlyOutGracePeriod: record.earlyOutGracePeriod,
-        earliestCheckIn: record.earliestCheckIn,
-        autoSessionCloseTime: record.autoSessionCloseTime,
-        workingDays: record.workingDays,
-        isDefault: record.isDefault
-      };
-
-    } catch (e: any) {
-      console.error('[ShiftService] Failed to create shift:', e?.message || e);
-      throw e;
-    }
+    const { data, error } = await supabase.from('shifts').insert(payload).select().single();
+    if (error) throw error;
+    this.clearCache();
+    apiClient.notify();
+    return mapShift(data);
   },
 
   async updateShift(id: string, shift: Partial<Shift>): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      throw new Error('PocketBase not configured');
-    }
+    if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
 
-    try {
-      const pbData: any = {};
-      if (shift.name !== undefined) pbData.name = shift.name;
-      if (shift.startTime !== undefined) pbData.startTime = shift.startTime;
-      if (shift.endTime !== undefined) pbData.endTime = shift.endTime;
-      if (shift.lateGracePeriod !== undefined) pbData.lateGracePeriod = shift.lateGracePeriod;
-      if (shift.earlyOutGracePeriod !== undefined) pbData.earlyOutGracePeriod = shift.earlyOutGracePeriod;
-      if (shift.earliestCheckIn !== undefined) pbData.earliestCheckIn = shift.earliestCheckIn;
-      if (shift.autoSessionCloseTime !== undefined) pbData.autoSessionCloseTime = shift.autoSessionCloseTime;
-      if (shift.workingDays !== undefined) pbData.workingDays = shift.workingDays;
-      if (shift.isDefault !== undefined) pbData.isDefault = shift.isDefault;
+    const payload: any = {};
+    if (shift.name !== undefined)                payload.name = shift.name;
+    if (shift.startTime !== undefined)           payload.start_time = shift.startTime;
+    if (shift.endTime !== undefined)             payload.end_time = shift.endTime;
+    if (shift.lateGracePeriod !== undefined)     payload.late_grace_period = shift.lateGracePeriod;
+    if (shift.earlyOutGracePeriod !== undefined) payload.early_out_grace_period = shift.earlyOutGracePeriod;
+    if (shift.earliestCheckIn !== undefined)     payload.earliest_check_in = shift.earliestCheckIn;
+    if (shift.autoSessionCloseTime !== undefined) payload.auto_session_close_time = shift.autoSessionCloseTime;
+    if (shift.workingDays !== undefined)         payload.working_days = shift.workingDays;
+    if (shift.isDefault !== undefined)           payload.is_default = shift.isDefault;
 
-      if (pbData.isDefault) {
-        await this.clearOtherDefaults(id);
-      }
+    if (payload.is_default) await this.clearOtherDefaults(id);
 
-      await apiClient.pb.collection('shifts').update(id, pbData);
-
-      this.clearCache();
-      apiClient.notify();
-
-    } catch (e: any) {
-      console.error('[ShiftService] Failed to update shift:', e?.message || e);
-      throw e;
-    }
+    const { error } = await supabase.from('shifts').update(payload).eq('id', id);
+    if (error) throw error;
+    this.clearCache();
+    apiClient.notify();
   },
 
   async deleteShift(id: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) {
-      throw new Error('PocketBase not configured');
-    }
-
-    try {
-      await apiClient.pb.collection('shifts').delete(id);
-
-      this.clearCache();
-      apiClient.notify();
-
-      await this.ensureDefaultShift();
-
-    } catch (e: any) {
-      console.error('[ShiftService] Failed to delete shift:', e?.message || e);
-      throw e;
-    }
+    if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+    const { error } = await supabase.from('shifts').delete().eq('id', id);
+    if (error) throw error;
+    this.clearCache();
+    apiClient.notify();
+    await this.ensureDefaultShift();
   },
 
   async clearOtherDefaults(exceptId?: string): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-
+    if (!isSupabaseConfigured()) return;
+    const orgId = apiClient.getOrganizationId();
+    if (!orgId) return;
     try {
-      const orgId = apiClient.getOrganizationId();
-      if (!orgId) return;
-
-      const filter = exceptId
-        ? `organization_id="${orgId}" && isDefault=true && id!="${exceptId}"`
-        : `organization_id="${orgId}" && isDefault=true`;
-
-      const result = await apiClient.pb.collection('shifts').getList(1, 200, {
-        filter
-      });
-      const defaultShifts = result.items;
-
-      await Promise.all(
-        defaultShifts.map(shift =>
-          apiClient.pb!.collection('shifts').update(shift.id, { isDefault: false })
-        )
-      );
-
+      let query = supabase
+        .from('shifts')
+        .update({ is_default: false })
+        .eq('organization_id', orgId)
+        .eq('is_default', true);
+      if (exceptId) query = query.neq('id', exceptId);
+      const { error } = await query;
+      if (error) throw error;
     } catch (e: any) {
       console.error('[ShiftService] Failed to clear other defaults:', e?.message || e);
     }
   },
 
   async ensureDefaultShift(): Promise<void> {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-
+    if (!isSupabaseConfigured()) return;
     try {
       const shifts = await this.getShifts();
-
       if (shifts.length === 0) return;
-
-      const hasDefault = shifts.some(s => s.isDefault);
-
-      if (!hasDefault) {
-        await apiClient.pb.collection('shifts').update(shifts[0].id, { isDefault: true });
-        this.clearCache();
-      }
-
+      if (shifts.some(s => s.isDefault)) return;
+      const { error } = await supabase
+        .from('shifts')
+        .update({ is_default: true })
+        .eq('id', shifts[0].id);
+      if (error) throw error;
+      this.clearCache();
     } catch (e: any) {
       console.error('[ShiftService] Failed to ensure default shift:', e?.message || e);
     }
   },
 
+  // In-memory only — no DB backing needed
   async getShiftOverrides(): Promise<ShiftOverride[]> {
     if (cachedOverrides) return cachedOverrides;
     return [];
@@ -225,10 +163,9 @@ export const shiftService = {
   ): Promise<Shift | null> {
     const shifts = await this.getShifts();
     if (shifts.length === 0) return null;
-
     const targetDate = date || new Date().toISOString().split('T')[0];
 
-    // 1. Check overrides first
+    // 1. Overrides
     const overrides = await this.getShiftOverrides();
     const activeOverride = overrides.find(
       o => o.employeeId === employeeId && targetDate >= o.startDate && targetDate <= o.endDate
@@ -244,8 +181,7 @@ export const shiftService = {
       if (assignedShift) return assignedShift;
     }
 
-    // 3. Default shift
-    const defaultShift = shifts.find(s => s.isDefault);
-    return defaultShift || null;
-  }
+    // 3. Default
+    return shifts.find(s => s.isDefault) || null;
+  },
 };

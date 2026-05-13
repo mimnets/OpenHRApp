@@ -24,6 +24,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'workdaySessionManager.ts (frozen module) ported to Supabase: 5 surgical PB replacements, zero logic changes. Open session filter changed from check_out="" to IS NULL. Selfie URL uses Supabase Storage. All frozen-module invariants preserved.' },
       { type: 'improvement', description: 'leave.service.ts rewritten to use Supabase. All CRUD, workflow routing, leave balance, and admin operations ported. PB date formatting removed — ISO dates used directly.' },
       { type: 'improvement', description: 'organization.service.ts rewritten to use Supabase. getSetting/setSetting use upsert on settings table. Teams CRUD, report queue, admin verify, guide links all ported. Added migration 0006 for unique constraint on (organization_id,key).' },
+      { type: 'improvement', description: 'shift.service.ts rewritten to use Supabase. PB camelCase fields (startTime) mapped to Supabase snake_case (start_time). clearOtherDefaults uses batch update instead of parallel individual updates.' },
     ]
   },
   {
