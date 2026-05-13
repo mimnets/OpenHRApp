@@ -17,7 +17,8 @@
  *   - forceLogout() is the single exit path that clears the auth store.
  */
 
-import { pb } from '../pocketbase';
+import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from '../supabase';
+import type { SupabaseUser } from '../supabase';
 import { User } from '../../types';
 import {
   LogoutReason,
@@ -43,18 +44,18 @@ const listeners: Set<SessionListener> = new Set();
 
 // --- Helpers ---------------------------------------------------------------
 
-function buildUserFromModel(model: any): User {
+function buildUserFromModel(supabaseUser: SupabaseUser, profile: any): User {
   return {
-    id: model.id,
-    employeeId: model.employee_id || '',
-    name: model.name || 'User',
-    email: model.email,
-    role: (model.role || 'EMPLOYEE').toString().toUpperCase() as any,
-    department: model.department || 'Unassigned',
-    designation: model.designation || 'Staff',
-    teamId: model.team_id || undefined,
-    organizationId: model.organization_id || undefined,
-    avatar: model.avatar && pb ? pb.files.getURL(model, model.avatar) : undefined,
+    id: supabaseUser.id,
+    employeeId: profile.employee_id || '',
+    name: profile.name || 'User',
+    email: supabaseUser.email || '',
+    role: (profile.role || 'EMPLOYEE').toString().toUpperCase() as any,
+    department: profile.department || 'Unassigned',
+    designation: profile.designation || 'Staff',
+    teamId: profile.team_id || undefined,
+    organizationId: profile.organization_id || undefined,
+    avatar: profile.avatar ? getSupabaseStorageUrl('avatars', profile.avatar) : undefined,
   };
 }
 
@@ -86,14 +87,15 @@ function sleep(ms: number) {
  */
 function isHardAuthFailure(err: any): boolean {
   if (!err) return false;
+  const name = err.name || '';
+  if (name === 'AuthSessionMissingError') return true;
+  if (name === 'AuthInvalidRefreshTokenError') return true;
   const status = err.status ?? err.response?.status ?? err.originalError?.status;
   if (status === 401 || status === 403) return true;
-
-  // PocketBase sometimes wraps these; look at message as a secondary signal
   const msg = String(err.message || err.response?.message || '').toLowerCase();
   if (msg.includes('invalid token') || msg.includes('missing token')) return true;
+  if (msg.includes('invalid refresh token') || msg.includes('token has expired')) return true;
   if (msg.includes('not authenticated')) return true;
-
   // Network failures / aborts / offline → transient
   return false;
 }
@@ -105,7 +107,7 @@ function isHardAuthFailure(err: any): boolean {
  * being fully constructed.
  */
 async function performForceLogout(reason: LogoutReason): Promise<void> {
-  if (pb) pb.authStore.clear();
+  await supabase.auth.signOut();
   setUser(null);
   setStatus({ kind: 'forcedLogout', reason, at: Date.now() });
 }
@@ -113,7 +115,9 @@ async function performForceLogout(reason: LogoutReason): Promise<void> {
 // --- Core refresh with retry ----------------------------------------------
 
 async function attemptRefresh(): Promise<RefreshResult> {
-  if (!pb || !pb.authStore.isValid) {
+  if (!isSupabaseConfigured()) return { ok: false };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
     // No token at all — nothing to refresh, not an error.
     return { ok: false };
   }
@@ -122,12 +126,14 @@ async function attemptRefresh(): Promise<RefreshResult> {
 
   for (let attempt = 0; attempt < RETRY_DELAYS_MS.length + 1; attempt++) {
     try {
-      await pb.collection('users').authRefresh();
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) throw error;
       lastSuccessfulRefresh = Date.now();
       setStatus({ kind: 'ok', at: lastSuccessfulRefresh });
-      // Sync user from refreshed model
-      if (pb.authStore.model) {
-        setUser(buildUserFromModel(pb.authStore.model));
+      // Sync user from refreshed session + profile
+      if (data.user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+        if (profile) setUser(buildUserFromModel(data.user, profile));
       }
       return { ok: true };
     } catch (err) {
@@ -168,9 +174,10 @@ export const sessionManager = {
    *   user and let the periodic/visibility refresh retry later.
    */
   async initialize(): Promise<{ user: User | null }> {
-    if (!pb) return { user: null };
+    if (!isSupabaseConfigured()) return { user: null };
 
-    if (!pb.authStore.isValid || !pb.authStore.model) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || !session.user) {
       setUser(null);
       return { user: null };
     }
@@ -182,11 +189,15 @@ export const sessionManager = {
       return { user: null };
     }
 
-    // Either ok OR transient — in both cases we keep the stored model as the
+    // Either ok OR transient — in both cases keep the stored session as the
     // starting point. On transient, a retry is scheduled by schedulers.
-    const user = pb.authStore.model ? buildUserFromModel(pb.authStore.model) : null;
-    setUser(user);
-    return { user };
+    if (!currentUser) {
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const user = profile ? buildUserFromModel(session.user, profile) : null;
+      setUser(user);
+      return { user };
+    }
+    return { user: currentUser };
   },
 
   /**
@@ -223,7 +234,7 @@ export const sessionManager = {
    * Throttled by VISIBILITY_COOLDOWN_MS so we don't thrash refreshes.
    */
   async onVisible(): Promise<void> {
-    if (!pb?.authStore.isValid) return;
+    if (!currentUser) return;
     if (Date.now() - lastSuccessfulRefresh <= VISIBILITY_COOLDOWN_MS) return;
     await attemptRefresh();
   },

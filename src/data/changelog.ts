@@ -33,6 +33,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'tutorial.service.ts rewritten to use Supabase. Public methods query tutorials table directly. Cover images in content-images storage bucket.' },
       { type: 'improvement', description: 'upgrade.service.ts rewritten to use Supabase. Donation screenshots in donation-screenshots bucket. acceptAdSupported does direct org update. processRequest updates request + org subscription inline.' },
       { type: 'improvement', description: 'verification.service.ts rewritten to use Supabase. verifyEmailToken uses supabase.auth.verifyOtp. resendVerificationEmail uses supabase.auth.resend. manuallyVerifyUser and getUnverifiedUsers use profiles table directly. All PocketBase SDK calls removed.' },
+      { type: 'improvement', description: 'sessionManager.ts (frozen module, Phase 6) ported to Supabase. initialize uses supabase.auth.getSession. attemptRefresh uses supabase.auth.refreshSession + profiles fetch. performForceLogout uses supabase.auth.signOut. isHardAuthFailure adds Supabase AuthSessionMissingError/AuthInvalidRefreshTokenError detection. All invariants (transient-vs-hard, single logout exit, retry backoff) preserved.' },
     ]
   },
   {
