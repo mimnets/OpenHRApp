@@ -28,6 +28,7 @@
  */
 
 import { Attendance } from '../../types';
+import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from '../supabase';
 import { apiClient } from '../api.client';
 import { organizationService } from '../organization.service';
 import { shiftService } from '../shift.service';
@@ -51,7 +52,7 @@ function mapAttendance(r: any): Attendance {
       lng: Number(r.longitude) || 0,
       address: r.location || 'Unknown',
     },
-    selfie: r.selfie ? apiClient.pb?.files.getURL(r, r.selfie) : undefined,
+    selfie: r.selfie ? getSupabaseStorageUrl('selfies', r.selfie) : undefined,
     remarks: r.remarks || '',
     dutyType: r.duty_type as any,
     organizationId: r.organization_id,
@@ -68,11 +69,15 @@ function todayYMD(): string {
  */
 async function resolveCloseTime(employeeId: string, date: string): Promise<string> {
   try {
-    if (apiClient.pb) {
+    if (isSupabaseConfigured()) {
       let shiftId: string | undefined;
       try {
-        const empRecord = await apiClient.pb.collection('users').getOne(employeeId.trim());
-        shiftId = empRecord.shift_id || undefined;
+        const { data: empRow } = await supabase
+          .from('profiles')
+          .select('shift_id')
+          .eq('id', employeeId.trim())
+          .single();
+        shiftId = empRow?.shift_id || undefined;
       } catch { /* employee record not accessible; fall through */ }
 
       const shift = await shiftService.resolveShiftForEmployee(employeeId, shiftId, date);
@@ -95,16 +100,20 @@ export const workdaySessionManager = {
    */
   async reconcileOpenSessions(employeeId: string): Promise<ReconcileResult> {
     const empty: ReconcileResult = { active: undefined, closedPast: [] };
-    if (!apiClient.pb || !apiClient.isConfigured()) return empty;
+    if (!isSupabaseConfigured()) return empty;
 
     const today = todayYMD();
 
     let openRecords: any[];
     try {
-      const result = await apiClient.pb.collection('attendance').getList(1, 50, {
-        filter: `employee_id = "${employeeId.trim()}" && check_out = ""`,
-      });
-      openRecords = result.items;
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('employee_id', employeeId.trim())
+        .is('check_out', null)
+        .limit(50);
+      if (error) throw error;
+      openRecords = data ?? [];
     } catch (e: any) {
       console.error('[WorkdaySessionManager] Failed to fetch open sessions:', e?.message || e);
       return empty;
@@ -130,10 +139,13 @@ export const workdaySessionManager = {
       try {
         const closeTime = await resolveCloseTime(employeeId, date);
         const existingRemarks = (rec.remarks as string) || '';
-        const updated = await apiClient.pb.collection('attendance').update(rec.id.trim(), {
-          check_out: closeTime,
-          remarks: existingRemarks + CLIENT_CLOSE_REMARK,
-        });
+        const { data: updated, error: closeErr } = await supabase
+          .from('attendance')
+          .update({ check_out: closeTime, remarks: existingRemarks + CLIENT_CLOSE_REMARK })
+          .eq('id', rec.id)
+          .select()
+          .single();
+        if (closeErr) throw closeErr;
         closedPast.push(mapAttendance(updated));
         console.log(
           `[WorkdaySessionManager] Client-closed past session ${rec.id} (date: ${date}, close: ${closeTime})`
