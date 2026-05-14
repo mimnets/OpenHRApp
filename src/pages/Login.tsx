@@ -63,6 +63,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotStatus, setForgotStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
+  const [forgotError, setForgotError] = useState('');
 
   // Install Help State
   const [showInstallHelp, setShowInstallHelp] = useState(false);
@@ -222,8 +223,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     e.preventDefault();
     if (!forgotEmail) return;
     setForgotStatus('loading');
-    const ok = await authService.requestPasswordReset(forgotEmail);
-    setForgotStatus(ok ? 'sent' : 'error');
+    const result = await authService.requestPasswordReset(forgotEmail);
+    if (result.ok) {
+      setForgotStatus('sent');
+    } else {
+      setForgotError(result.error || 'Could not send reset email. Try again.');
+      setForgotStatus('error');
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -317,7 +323,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                     </div>
                     <button
                       type="button"
-                      onClick={() => { setShowForgot(false); setForgotStatus('idle'); setForgotEmail(''); }}
+                      onClick={() => { setShowForgot(false); setForgotStatus('idle'); setForgotEmail(''); setForgotError(''); }}
                       className="w-full py-4 bg-primary text-white rounded-xl font-semibold text-xs uppercase tracking-[0.2em] shadow-sm hover:bg-primary-hover active:scale-[0.97] transition-all flex items-center justify-center gap-3"
                     >
                       Back to Login <ArrowRight size={16} />
@@ -347,7 +353,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                     {forgotStatus === 'error' && (
                       <div className="p-3.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider">
                         <AlertCircle size={14} className="flex-shrink-0" />
-                        <span>Could not send reset email. Try again.</span>
+                        <span>{forgotError}</span>
                       </div>
                     )}
                     <button
@@ -359,7 +365,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setShowForgot(false); setForgotStatus('idle'); }}
+                      onClick={() => { setShowForgot(false); setForgotStatus('idle'); setForgotError(''); }}
                       className="w-full py-2.5 text-slate-400 text-[10px] font-semibold uppercase tracking-widest hover:text-primary transition-colors"
                     >
                       Back to Login
@@ -450,7 +456,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
                 <button
                   type="button"
-                  onClick={() => { setShowForgot(true); setForgotEmail(email); setForgotStatus('idle'); }}
+                  onClick={() => { setShowForgot(true); setForgotEmail(email); setForgotStatus('idle'); setForgotError(''); }}
                   className="w-full py-2 text-slate-400 text-[10px] font-semibold uppercase tracking-widest hover:text-primary transition-colors"
                 >
                   Forgot Password?
