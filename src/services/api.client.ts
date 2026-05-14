@@ -75,11 +75,8 @@ export const apiClient = {
 
   getOrganizationId(): string | undefined {
     if ((this as any)._cachedOrgId) return (this as any)._cachedOrgId;
-    // PocketBase fallback (removed in Phase 5 after all services migrated)
+    // PocketBase fallback (legacy — removed after full Supabase cutover)
     const orgId = pb?.authStore.model?.organization_id;
-    if (!orgId && pb?.authStore.isValid) {
-      console.warn("[API Client] User authenticated but no organization_id found in auth model");
-    }
     return orgId;
   },
 
