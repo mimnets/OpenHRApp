@@ -106,15 +106,21 @@ function toTimestamptz(timeStr, date) {
     };
   }).filter(r => r.organization_id); // skip rows with unresolvable org
 
-  console.log(`Upserting ${rows.length} rows (conflict: employee_id + date)…`);
+  // Fetch existing (employee_id, date) pairs to skip duplicates
+  const { data: existing } = await db
+    .from('attendance')
+    .select('employee_id, date')
+    .gte('date', SINCE);
+  const existingKeys = new Set((existing || []).map(r => `${r.employee_id}|${r.date}`));
+
+  const newRows = rows.filter(r => !existingKeys.has(`${r.employee_id}|${r.date}`));
+  console.log(`Inserting ${newRows.length} new rows (${rows.length - newRows.length} already exist)…`);
 
   const BATCH = 50;
   let inserted = 0, failed = 0;
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH);
-    const { error } = await db
-      .from('attendance')
-      .upsert(batch, { onConflict: 'organization_id,employee_id,date', ignoreDuplicates: false });
+  for (let i = 0; i < newRows.length; i += BATCH) {
+    const batch = newRows.slice(i, i + BATCH);
+    const { error } = await db.from('attendance').insert(batch);
     if (error) {
       console.error(`  ERROR batch ${i}: ${error.message}`);
       failed += batch.length;
