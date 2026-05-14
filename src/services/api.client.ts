@@ -95,10 +95,11 @@ export const apiClient = {
   },
 
   getOrganizationId(): string | undefined {
-    if ((this as any)._cachedOrgId) return (this as any)._cachedOrgId;
-    // PocketBase fallback (legacy — removed after full Supabase cutover)
-    const orgId = pb?.authStore.model?.organization_id;
-    return orgId;
+    // Supabase-only after full cutover. PocketBase authStore fallback removed —
+    // it returned stale 15-char PB IDs that broke Supabase uuid filters.
+    // Cache is populated by authService.login / getCurrentUser, and async
+    // resolveOrgId() in api.client handles cold-cache page reloads.
+    return (this as any)._cachedOrgId;
   },
 
   // Helpers
