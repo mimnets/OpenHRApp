@@ -65,10 +65,23 @@ const uploadSelfieOnce = async (recordId: string, selfieDataUrl: string): Promis
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
   const webpBlob = await convertToWebP(selfieDataUrl, SELFIE_WEBP_QUALITY, SELFIE_MAX_DIMENSION);
   const path = `${recordId}/selfie.webp`;
+  // upsert:false so Supabase Storage RLS only evaluates the INSERT policy.
+  // selfies_update policy requires (storage.foldername)[1] = auth.uid() but
+  // we use <recordId>/ as folder — upsert:true would trigger UPDATE eval
+  // and 403 for regular employees. recordId is unique per check-in row.
+  // On retry, a prior partial success returns 409 "already exists" — we
+  // treat that as success and continue to the DB patch step (idempotent).
   const { error: uploadErr } = await supabase.storage
     .from(SELFIE_BUCKET)
-    .upload(path, webpBlob, { upsert: true, contentType: 'image/webp' });
-  if (uploadErr) throw uploadErr;
+    .upload(path, webpBlob, { upsert: false, contentType: 'image/webp' });
+  if (uploadErr) {
+    const msg = String((uploadErr as any).message || '');
+    const isDuplicate =
+      msg.toLowerCase().includes('already exists') ||
+      (uploadErr as any).statusCode === '409' ||
+      (uploadErr as any).statusCode === 409;
+    if (!isDuplicate) throw uploadErr;
+  }
   // Patch selfie path onto the attendance record
   const { error: updateErr } = await supabase
     .from('attendance')
