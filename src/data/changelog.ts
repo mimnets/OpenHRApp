@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-14',
+    title: 'Supabase Migration: OrgSystem migrated from PocketBase',
+    entries: [
+      { type: 'improvement', description: 'OrgSystem now reads and writes organization data (name, country, address, logo) via Supabase. Logo uploads go to the org-logos storage bucket. No more PocketBase dependency in this component.' },
+    ],
+  },
+  {
     date: '2026-05-13',
     title: 'Supabase Migration Phase 5.5: employee + attendance services ported',
     entries: [

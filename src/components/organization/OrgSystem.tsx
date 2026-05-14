@@ -5,6 +5,7 @@ import { AppConfig } from '../../types';
 import { COUNTRIES, getFlagEmoji } from '../../data/countries';
 import { TIMEZONE_OPTIONS } from '../../constants';
 import { apiClient } from '../../services/api.client';
+import { supabase } from '../../services/supabase';
 import { convertFileToWebP } from '../../utils/imageConvert';
 import { useToast } from '../../context/ToastContext';
 
@@ -21,34 +22,24 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Load organization data
     const loadOrgData = async () => {
-      if (!apiClient.pb || !apiClient.pb.authStore.model) {
-        console.warn('OrgSystem: PocketBase or auth not available');
-        return;
-      }
-      try {
-        const orgId = apiClient.pb.authStore.model.organization_id;
-        if (!orgId) {
-          console.warn('OrgSystem: No organization_id found');
-          return;
-        }
-        console.log('OrgSystem: Loading organization data for ID:', orgId);
-        const org = await apiClient.pb.collection('organizations').getOne(orgId);
-        console.log('OrgSystem: Organization data loaded:', org);
-        setOrgData({
-          name: org.name || '',
-          country: org.country || 'BD',
-          address: org.address || '',
-          logo: org.logo || ''
-        });
-        if (org.logo) {
-          setLogoPreview(apiClient.pb.files.getURL(org, org.logo));
-        }
-      } catch (err) {
-        console.error('OrgSystem: Failed to load organization data:', err);
-        // Continue with defaults even if load fails
-        setOrgData({ name: '', country: 'BD', address: '', logo: '' });
+      const orgId = apiClient.getOrganizationId();
+      if (!orgId) return;
+      const { data: org, error } = await supabase
+        .from('organizations')
+        .select('name, country, address, logo')
+        .eq('id', orgId)
+        .maybeSingle();
+      if (error || !org) return;
+      setOrgData({
+        name: org.name || '',
+        country: org.country || 'BD',
+        address: org.address || '',
+        logo: org.logo || ''
+      });
+      if (org.logo) {
+        const { data } = supabase.storage.from('org-logos').getPublicUrl(org.logo);
+        setLogoPreview(data.publicUrl);
       }
     };
     loadOrgData();
@@ -79,22 +70,25 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
   };
 
   const handleOrgDataSave = async () => {
-    if (!apiClient.pb || !apiClient.pb.authStore.model) return;
+    const orgId = apiClient.getOrganizationId();
+    if (!orgId) return;
     setIsSaving(true);
     try {
-      const orgId = apiClient.pb.authStore.model.organization_id;
-      if (!orgId) return;
-
-      const formData = new FormData();
-      formData.append('name', orgData.name);
-      formData.append('country', orgData.country);
-      formData.append('address', orgData.address);
+      let logoPath = orgData.logo;
       if (logoFile) {
         const webpLogo = await convertFileToWebP(logoFile);
-        formData.append('logo', webpLogo);
+        const fileName = `${orgId}/logo.webp`;
+        const { error: uploadError } = await supabase.storage
+          .from('org-logos')
+          .upload(fileName, webpLogo, { upsert: true, contentType: 'image/webp' });
+        if (uploadError) throw uploadError;
+        logoPath = fileName;
       }
-
-      await apiClient.pb.collection('organizations').update(orgId, formData);
+      const { error } = await supabase
+        .from('organizations')
+        .update({ name: orgData.name, country: orgData.country, address: orgData.address, logo: logoPath })
+        .eq('id', orgId);
+      if (error) throw error;
       showToast('Organization details updated successfully!', 'success');
     } catch (err) {
       console.error('Failed to update organization:', err);
