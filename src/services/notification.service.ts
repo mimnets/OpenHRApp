@@ -23,8 +23,8 @@ const mapNotification = (r: any): AppNotification => ({
   actionUrl: r.action_url || undefined,
   metadata: r.metadata || undefined,
   organizationId: r.organization_id,
-  created: r.created_at,
-  updated: r.updated_at,
+  created: r.created,
+  updated: r.updated,
 });
 
 export const notificationService = {
@@ -37,7 +37,7 @@ export const notificationService = {
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .order('created', { ascending: false })
         .limit(100);
       if (error) throw error;
       return (data ?? []).map(mapNotification);
@@ -161,7 +161,7 @@ export const notificationService = {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created', { ascending: false })
         .limit(200);
       if (error) throw error;
       return (data ?? []).map(mapNotification);

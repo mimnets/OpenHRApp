@@ -55,7 +55,7 @@ export const employeeService = {
         let query = supabase
           .from('profiles')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created', { ascending: false });
 
         if (orgId) query = query.eq('organization_id', orgId);
 

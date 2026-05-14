@@ -290,7 +290,7 @@ export const organizationService = {
       const { data, error } = await supabase
         .from('reports_queue')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created', { ascending: false })
         .limit(10);
       if (error) throw error;
       return data ?? [];

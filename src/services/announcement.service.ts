@@ -14,7 +14,7 @@ export const announcementService = {
       let query = supabase
         .from('announcements')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created', { ascending: false })
         .limit(200);
       if (orgId) query = query.eq('organization_id', orgId);
       const { data, error } = await query;
@@ -30,8 +30,8 @@ export const announcementService = {
         targetRoles: (r.target_roles || []) as Role[],
         expiresAt: r.expires_at || undefined,
         organizationId: r.organization_id,
-        created: r.created_at,
-        updated: r.updated_at,
+        created: r.created,
+        updated: r.updated,
       }));
     } catch (e: any) {
       console.error('[AnnouncementService] Failed to fetch announcements:', e?.message || e);

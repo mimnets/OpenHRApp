@@ -36,8 +36,8 @@ export const tutorialService = {
         parentId: r.parent_id || '',
         category: r.category || '',
         publishedAt: r.published_at || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       }));
 
       const totalTutorials = count ?? tutorials.length;
@@ -74,8 +74,8 @@ export const tutorialService = {
         parentId: r.parent_id || '',
         category: r.category || '',
         publishedAt: r.published_at || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       };
     } catch (e: any) {
       console.error('[TutorialService] Failed to fetch tutorial by slug:', e?.message || e);
@@ -90,7 +90,7 @@ export const tutorialService = {
         .from('tutorials')
         .select('*')
         .order('display_order', { ascending: true })
-        .order('created_at', { ascending: false });
+        .order('created', { ascending: false });
 
       if (error) throw error;
       return (data || []).map((r: any) => ({
@@ -106,8 +106,8 @@ export const tutorialService = {
         parentId: r.parent_id || '',
         category: r.category || '',
         publishedAt: r.published_at || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       }));
     } catch (e: any) {
       console.error('[TutorialService] Failed to fetch all tutorials:', e?.message || e);

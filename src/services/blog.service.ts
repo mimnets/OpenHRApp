@@ -35,8 +35,8 @@ export const blogService = {
         authorId: '',
         authorName: r.author_name || '',
         publishedAt: r.published_at || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       }));
 
       const totalPosts = count ?? posts.length;
@@ -76,8 +76,8 @@ export const blogService = {
         authorId: '',
         authorName: r.author_name || '',
         publishedAt: r.published_at || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       };
     } catch (e: any) {
       console.error('[BlogService] Failed to fetch post by slug:', e?.message || e);
@@ -91,7 +91,7 @@ export const blogService = {
       const { data, error } = await supabase
         .from('blog_posts')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created', { ascending: false });
 
       if (error) throw error;
 
@@ -106,8 +106,8 @@ export const blogService = {
         authorId: '',
         authorName: r.author_name || '',
         publishedAt: r.published_at || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       }));
     } catch (e: any) {
       console.error('[BlogService] Failed to fetch all posts:', e?.message || e);

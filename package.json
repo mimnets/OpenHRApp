@@ -15,7 +15,8 @@
     "migrate:export": "node scripts/migrate-from-pb/01-export.mjs",
     "migrate:import": "node scripts/migrate-from-pb/02-import.mjs",
     "migrate:verify": "node scripts/migrate-from-pb/03-verify.mjs",
-    "migrate:files": "node scripts/migrate-from-pb/04-files.mjs"
+    "migrate:files": "node scripts/migrate-from-pb/04-files.mjs",
+    "migrate:incremental": "node scripts/migrate-from-pb/05-incremental-attendance.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

@@ -5,11 +5,10 @@ export const verificationService = {
   async checkVerified(email: string): Promise<boolean> {
     if (!isSupabaseConfigured() || !email) return false;
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('verified')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
+      // email lives in auth.users, not profiles — resolve via current session
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email?.toLowerCase() !== email.toLowerCase().trim()) return false;
+      const { data } = await supabase.from('profiles').select('verified').eq('id', user.id).maybeSingle();
       return !!(data?.verified);
     } catch {
       return false;
@@ -39,18 +38,18 @@ export const verificationService = {
       const orgId = apiClient.getOrganizationId();
       let query = supabase
         .from('profiles')
-        .select('id, email, name, role, created_at, updated_at')
+        .select('id, name, role, created, updated')
         .eq('verified', false);
       if (orgId) query = query.eq('organization_id', orgId);
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('created', { ascending: false });
       if (error) throw error;
       const users = (data || []).map(r => ({
         id: r.id,
-        email: r.email || '',
+        email: '', // email lives in auth.users — not available via profiles query
         name: r.name || '',
         role: r.role || '',
-        created: r.created_at || '',
-        updated: r.updated_at || '',
+        created: r.created || '',
+        updated: r.updated || '',
       }));
       return { success: true, count: users.length, users };
     } catch (err: any) {

@@ -63,8 +63,8 @@ function mapOrg(r: any, userCount = 0, adminEmail = '', adminVerified?: boolean)
     logo: r.logo ? getSupabaseStorageUrl('org-logos', r.logo) : undefined,
     subscriptionStatus: r.subscription_status || 'TRIAL',
     trialEndDate: r.trial_end_date || undefined,
-    created: r.created_at,
-    updated: r.updated_at,
+    created: r.created,
+    updated: r.updated,
     userCount,
     adminEmail,
     adminVerified,
@@ -85,7 +85,7 @@ export const superAdminService = {
       const { data: orgs, error: orgsErr } = await supabase
         .from('organizations')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created', { ascending: false });
       if (orgsErr) throw orgsErr;
       if (!orgs || orgs.length === 0) return [];
 
@@ -93,10 +93,10 @@ export const superAdminService = {
       const orgIds = orgs.map(o => o.id);
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, organization_id, role, email')
+        .select('id, organization_id, role')
         .in('organization_id', orgIds);
 
-      const profilesByOrg = new Map<string, Array<{ id: string; role: string; email: string }>>();
+      const profilesByOrg = new Map<string, Array<{ id: string; role: string }>>();
       for (const p of profiles ?? []) {
         const list = profilesByOrg.get(p.organization_id) ?? [];
         list.push(p);
@@ -108,7 +108,7 @@ export const superAdminService = {
         const admins = members
           .filter(p => p.role === 'ADMIN' || p.role === 'HR')
           .sort((a, b) => (a.role === 'ADMIN' ? -1 : 1)); // ADMIN before HR
-        return mapOrg(r, members.length, admins[0]?.email ?? '', admins[0] ? true : undefined);
+        return mapOrg(r, members.length, '', admins[0] ? true : undefined);
       });
     } catch (e: any) {
       console.error('[SuperAdmin] Failed to fetch organizations:', e?.message || e);
@@ -229,7 +229,7 @@ export const superAdminService = {
         .from('profiles')
         .select('*')
         .eq('organization_id', orgId)
-        .order('created_at', { ascending: false });
+        .order('created', { ascending: false });
       if (error) throw error;
       return (data ?? []).map(r => ({
         id: r.id,
@@ -315,7 +315,7 @@ export const superAdminService = {
       const [orgsRes, usersRes, recentRes] = await Promise.all([
         supabase.from('organizations').select('id, subscription_status'),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('role', 'SUPER_ADMIN'),
-        supabase.from('organizations').select('id', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString()),
+        supabase.from('organizations').select('id', { count: 'exact', head: true }).gte('created', thirtyDaysAgo.toISOString()),
       ]);
 
       const orgs = orgsRes.data ?? [];
@@ -372,7 +372,9 @@ export const superAdminService = {
   async resolveBulkRecipients(filter: BulkEmailFilter): Promise<BulkRecipient[]> {
     if (!isSupabaseConfigured()) return [];
     try {
-      let query = supabase.from('profiles').select('id, email, organization_id').neq('role', 'SUPER_ADMIN');
+      // TODO: email lives in auth.users, not profiles — emails will be empty until a
+      // server-side join (Edge Function) is wired up; bulk email delivery is blocked until then.
+      let query = supabase.from('profiles').select('id, organization_id, role').neq('role', 'SUPER_ADMIN');
 
       if (filter.kind === 'ALL_ADMINS') {
         query = query.in('role', ['ADMIN', 'HR']);
@@ -396,14 +398,13 @@ export const superAdminService = {
       const { data, error } = await query;
       if (error) throw error;
 
-      // De-dupe by email (case-insensitive)
+      // De-dupe by id (email unavailable — see TODO above)
       const seen = new Set<string>();
       const deduped: BulkRecipient[] = [];
       for (const u of data ?? []) {
-        const key = (u.email || '').toLowerCase().trim();
-        if (!key || seen.has(key)) continue;
-        seen.add(key);
-        deduped.push({ id: u.id, email: u.email, organization_id: u.organization_id });
+        if (!u.id || seen.has(u.id)) continue;
+        seen.add(u.id);
+        deduped.push({ id: u.id, email: '', organization_id: u.organization_id });
       }
       return deduped;
     } catch (e: any) {

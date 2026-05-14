@@ -94,7 +94,7 @@ export const upgradeService = {
         .select('*')
         .eq('organization_id', orgId)
         .eq('status', 'PENDING')
-        .order('created_at', { ascending: false })
+        .order('created', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -112,7 +112,7 @@ export const upgradeService = {
         extensionReason: r.extension_reason,
         extensionDays: r.extension_days,
         adminNotes: r.admin_notes,
-        created: r.created_at,
+        created: r.created,
       };
     } catch (e: any) {
       console.error('[UpgradeService] Failed to get pending request:', e);
@@ -126,7 +126,7 @@ export const upgradeService = {
       let query = supabase
         .from('upgrade_requests')
         .select('*, organizations(name)')
-        .order('created_at', { ascending: false });
+        .order('created', { ascending: false });
       if (statusFilter) query = query.eq('status', statusFilter);
 
       const { data, error } = await query;
@@ -146,7 +146,7 @@ export const upgradeService = {
         adminNotes: r.admin_notes,
         processedBy: r.processed_by,
         processedAt: r.processed_at,
-        created: r.created_at,
+        created: r.created,
       }));
     } catch (e: any) {
       console.error('[UpgradeService] Failed to get all requests:', e);
