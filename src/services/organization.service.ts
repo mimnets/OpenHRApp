@@ -111,9 +111,10 @@ export const organizationService = {
   async getDepartments(): Promise<string[]> {
     if (cachedDepartments && isCacheValid()) return cachedDepartments;
     const val = await getSetting('departments', []);
-    cachedDepartments = val;
+    const arr = Array.isArray(val) ? val : [];
+    cachedDepartments = arr;
     touchCache();
-    return val;
+    return arr;
   },
 
   async setDepartments(depts: string[]) {
@@ -125,9 +126,10 @@ export const organizationService = {
   async getDesignations(): Promise<string[]> {
     if (cachedDesignations && isCacheValid()) return cachedDesignations;
     const val = await getSetting('designations', []);
-    cachedDesignations = val;
+    const arr = Array.isArray(val) ? val : [];
+    cachedDesignations = arr;
     touchCache();
-    return val;
+    return arr;
   },
 
   async setDesignations(desigs: string[]) {
@@ -139,9 +141,10 @@ export const organizationService = {
   async getHolidays(): Promise<Holiday[]> {
     if (cachedHolidays && isCacheValid()) return cachedHolidays;
     const val = await getSetting('holidays', []);
-    cachedHolidays = val;
+    const arr = Array.isArray(val) ? val : [];
+    cachedHolidays = arr;
     touchCache();
-    return val;
+    return arr;
   },
 
   async setHolidays(hols: Holiday[]) {
@@ -208,7 +211,8 @@ export const organizationService = {
   },
 
   async getWorkflows(): Promise<LeaveWorkflow[]> {
-    return getSetting('workflows', []);
+    const val = await getSetting('workflows', []);
+    return Array.isArray(val) ? val : [];
   },
 
   async setWorkflows(wfs: LeaveWorkflow[]) {
@@ -250,8 +254,9 @@ export const organizationService = {
   async getLeaveTypes(): Promise<CustomLeaveType[]> {
     if (cachedLeaveTypes && isCacheValid()) return cachedLeaveTypes;
     const val = await getSetting('leave_types', DEFAULT_LEAVE_TYPES);
-    cachedLeaveTypes = val;
-    return val;
+    const arr = Array.isArray(val) ? val : DEFAULT_LEAVE_TYPES;
+    cachedLeaveTypes = arr;
+    return arr;
   },
 
   async setLeaveTypes(types: CustomLeaveType[]) {
