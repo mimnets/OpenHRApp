@@ -16,8 +16,9 @@ declare global {
 }
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send, Home } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send, Home, CheckCircle2 } from 'lucide-react';
 import { hrService } from '../services/hrService';
+import { authService } from '../services/auth.service';
 import { isPocketBaseConfigured } from '../services/pocketbase';
 import { useToast } from '../context/ToastContext';
 
@@ -59,7 +60,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
   const [error, setError] = useState(initError || '');
   const [isLoading, setIsLoading] = useState(false);
   const [showResend, setShowResend] = useState(false);
-  
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStatus, setForgotStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
+
   // Install Help State
   const [showInstallHelp, setShowInstallHelp] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -214,6 +218,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotStatus('loading');
+    const ok = await authService.requestPasswordReset(forgotEmail);
+    setForgotStatus(ok ? 'sent' : 'error');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isConfigured) {
@@ -289,7 +301,73 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
             {/* Brand Header */}
             <BrandLogo />
 
-            {/* Login Form */}
+            {/* Forgot Password Flow */}
+            {showForgot ? (
+              <div className="space-y-6">
+                {forgotStatus === 'sent' ? (
+                  <div className="flex flex-col items-center gap-5 text-center py-2">
+                    <div className="p-4 bg-emerald-50 rounded-full">
+                      <CheckCircle2 size={36} className="text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">Check your email</p>
+                      <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                        A password reset link was sent to <span className="font-bold text-slate-600">{forgotEmail}</span>. Check spam if you don't see it.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setShowForgot(false); setForgotStatus('idle'); setForgotEmail(''); }}
+                      className="w-full py-4 bg-primary text-white rounded-xl font-semibold text-xs uppercase tracking-[0.2em] shadow-sm hover:bg-primary-hover active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+                    >
+                      Back to Login <ArrowRight size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleForgotPassword} className="space-y-5">
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-semibold text-slate-800">Reset Password</p>
+                      <p className="text-xs text-slate-400">Enter your email and we'll send a reset link.</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Email</label>
+                      <div className="relative group">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors z-10" size={18} />
+                        <input
+                          type="email"
+                          required
+                          autoComplete="email"
+                          className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary-light placeholder:text-slate-300"
+                          placeholder="e.g. name@company.com"
+                          value={forgotEmail}
+                          onChange={e => setForgotEmail(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {forgotStatus === 'error' && (
+                      <div className="p-3.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider">
+                        <AlertCircle size={14} className="flex-shrink-0" />
+                        <span>Could not send reset email. Try again.</span>
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={forgotStatus === 'loading'}
+                      className="w-full py-4 bg-primary text-white rounded-xl font-semibold text-xs uppercase tracking-[0.2em] shadow-sm hover:bg-primary-hover active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+                    >
+                      {forgotStatus === 'loading' ? <RefreshCw className="animate-spin" size={18} /> : <>Send Reset Link <ArrowRight size={16} /></>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowForgot(false); setForgotStatus('idle'); }}
+                      className="w-full py-2.5 text-slate-400 text-[10px] font-semibold uppercase tracking-widest hover:text-primary transition-colors"
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+                )}
+              </div>
+            ) : (
             <form onSubmit={handleLogin} className="space-y-6" autoComplete="on" method="post" action=".">
               <div className="space-y-5">
                 <div className="space-y-1.5">
@@ -362,12 +440,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
               )}
 
               <div className="space-y-4">
-                <button 
-                  type="submit" 
-                  disabled={isLoading} 
+                <button
+                  type="submit"
+                  disabled={isLoading}
                   className="w-full py-4 bg-primary text-white rounded-xl font-semibold text-xs uppercase tracking-[0.2em] shadow-sm hover:bg-primary-hover active:scale-[0.97] transition-all flex items-center justify-center gap-3 disabled:opacity-70 mt-2"
                 >
                   {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <>Continue <ArrowRight size={16} /></>}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(true); setForgotEmail(email); setForgotStatus('idle'); }}
+                  className="w-full py-2 text-slate-400 text-[10px] font-semibold uppercase tracking-widest hover:text-primary transition-colors"
+                >
+                  Forgot Password?
                 </button>
 
                 <button
@@ -414,6 +500,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
                 </div>
               </div>
             </form>
+            )} {/* end showForgot */}
           </div>
         </div>
 

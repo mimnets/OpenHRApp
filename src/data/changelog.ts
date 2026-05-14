@@ -16,6 +16,13 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-05-14',
+    title: 'Forgot Password flow added',
+    entries: [
+      { type: 'feature', description: 'Added Forgot Password to the login page. Users can request a password reset email from an inline form. Supabase sends a magic link that lands back on the app and shows a set-new-password screen.' },
+    ],
+  },
+  {
+    date: '2026-05-14',
     title: 'Supabase Migration: OrgSystem migrated from PocketBase',
     entries: [
       { type: 'improvement', description: 'OrgSystem now reads and writes organization data (name, country, address, logo) via Supabase. Logo uploads go to the org-logos storage bucket. No more PocketBase dependency in this component.' },
