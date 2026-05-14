@@ -136,6 +136,8 @@ export const authService = {
       .single();
 
     if (!profile) return null;
+    // Keep apiClient org ID warm for page-refresh case (login() not called)
+    apiClient.setOrganizationId(profile.organization_id ?? undefined);
     return profileToUser({ ...profile, email: user.email });
   },
 };

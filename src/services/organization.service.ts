@@ -22,12 +22,26 @@ function isCacheValid() {
 }
 function touchCache() { orgCacheTimestamp = Date.now(); }
 
+async function resolveOrgId(): Promise<string | undefined> {
+  const cached = apiClient.getOrganizationId();
+  if (cached) return cached;
+  // Cold cache (page refresh before apiClient.setOrganizationId was called) —
+  // resolve from current Supabase session and warm the cache.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return undefined;
+  const { data: profile } = await supabase
+    .from('profiles').select('organization_id').eq('id', user.id).maybeSingle();
+  const orgId = profile?.organization_id ?? undefined;
+  if (orgId) apiClient.setOrganizationId(orgId);
+  return orgId;
+}
+
 async function getSetting(key: string, defaultValue: any) {
   if (!isSupabaseConfigured()) {
     console.warn(`[OrgService] Supabase not configured, returning default for: ${key}`);
     return defaultValue;
   }
-  const orgId = apiClient.getOrganizationId();
+  const orgId = await resolveOrgId();
   if (!orgId) {
     console.warn(`[OrgService] No organization_id, returning default for: ${key}`);
     return defaultValue;
@@ -49,7 +63,7 @@ async function getSetting(key: string, defaultValue: any) {
 
 async function setSetting(key: string, value: any) {
   if (!isSupabaseConfigured()) return;
-  const orgId = apiClient.getOrganizationId();
+  const orgId = await resolveOrgId();
   if (!orgId) throw new Error('No Organization Context');
   // Upsert requires unique constraint on (organization_id, key) — see migration 0001.
   const { error } = await supabase
