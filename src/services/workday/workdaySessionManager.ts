@@ -141,8 +141,18 @@ export const workdaySessionManager = {
       try {
         const closeTime = await resolveCloseTime(employeeId, date);
         // attendance.check_out is timestamptz — combine the row's date with
-        // HH:mm to a full ISO timestamp or Postgres rejects the update.
-        const closeIso = new Date(`${date}T${closeTime}:00`).toISOString();
+        // HH:mm[:ss] to a full ISO timestamp or Postgres rejects the update.
+        // Postgres `time` columns serialize as "HH:MM:SS"; HH:mm fallback also
+        // supported. Build a Date in local TZ then serialize to UTC ISO.
+        const parts = String(closeTime).split(':');
+        const h = (parts[0] || '0').padStart(2, '0');
+        const m = (parts[1] || '0').padStart(2, '0');
+        const s = (parts[2] || '00').padStart(2, '0');
+        const local = new Date(`${date}T${h}:${m}:${s}`);
+        if (isNaN(local.getTime())) {
+          throw new Error(`Invalid close time computed: date=${date} closeTime=${closeTime}`);
+        }
+        const closeIso = local.toISOString();
         const existingRemarks = (rec.remarks as string) || '';
         const { data: updated, error: closeErr } = await supabase
           .from('attendance')

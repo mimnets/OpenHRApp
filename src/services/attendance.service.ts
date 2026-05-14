@@ -117,15 +117,18 @@ const notifyLineManagerOfLate = async (data: Attendance): Promise<void> => {
   });
 };
 
-// Combine YYYY-MM-DD date + HH:mm time into ISO timestamp for timestamptz columns.
+// Combine YYYY-MM-DD date + HH:mm[:ss] time into ISO timestamp for timestamptz columns.
 // If value already looks like an ISO timestamp, pass through.
 function hhmmToISO(hhmm: string | undefined, dateYMD?: string): string | null {
-  if (!hhmm || hhmm === '-' || hhmm.trim() === '') return null;
+  if (!hhmm || hhmm === '-' || String(hhmm).trim() === '') return null;
   if (/T\d{2}:\d{2}/.test(hhmm)) return hhmm; // already ISO
   const date = dateYMD || new Date().toISOString().split('T')[0];
-  const [h, m] = hhmm.split(':');
-  if (!h || !m) return null;
-  const iso = new Date(`${date}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`);
+  const parts = String(hhmm).split(':');
+  if (parts.length < 2) return null;
+  const h = parts[0].padStart(2, '0');
+  const m = parts[1].padStart(2, '0');
+  const s = (parts[2] || '00').padStart(2, '0');
+  const iso = new Date(`${date}T${h}:${m}:${s}`);
   return isNaN(iso.getTime()) ? null : iso.toISOString();
 }
 
