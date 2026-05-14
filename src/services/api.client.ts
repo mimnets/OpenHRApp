@@ -48,6 +48,27 @@ export async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   throw lastErr;
 }
 
+// Deduped async org-id resolver. All services call this on cold cache so only
+// one auth.getUser + profiles fetch fires regardless of parallel callers.
+let _orgIdPromise: Promise<string | undefined> | null = null;
+
+export async function resolveOrgId(): Promise<string | undefined> {
+  const cached = (apiClient as any)._cachedOrgId as string | undefined;
+  if (cached) return cached;
+  if (!_orgIdPromise) {
+    _orgIdPromise = (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return undefined;
+      const { data: profile } = await supabase
+        .from('profiles').select('organization_id').eq('id', user.id).maybeSingle();
+      const orgId = profile?.organization_id ?? undefined;
+      if (orgId) apiClient.setOrganizationId(orgId);
+      return orgId;
+    })().finally(() => { _orgIdPromise = null; });
+  }
+  return _orgIdPromise;
+}
+
 export const apiClient = {
   pb,
   supabase,

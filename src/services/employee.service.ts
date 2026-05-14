@@ -1,6 +1,6 @@
 
 import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from './supabase';
-import { apiClient, dedupe } from './api.client';
+import { apiClient, dedupe, resolveOrgId } from './api.client';
 import { Employee } from '../types';
 
 let cachedEmployees: Employee[] | null = null;
@@ -45,7 +45,7 @@ export const employeeService = {
   async getEmployees(): Promise<Employee[]> {
     if (cachedEmployees && Date.now() - empCacheTimestamp < EMP_CACHE_TTL) return cachedEmployees;
 
-    const orgId = apiClient.getOrganizationId();
+    const orgId = await resolveOrgId();
     return dedupe(`employees:${orgId ?? 'none'}`, async () => {
       if (!isSupabaseConfigured()) {
         console.warn('[EmployeeService] Supabase not configured');

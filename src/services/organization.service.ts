@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { apiClient } from './api.client';
+import { apiClient, resolveOrgId } from './api.client';
 import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, CustomLeaveType, OrgNotificationConfig } from '../types';
 import { DEFAULT_CONFIG, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
 import { shiftService } from './shift.service';
@@ -22,19 +22,6 @@ function isCacheValid() {
 }
 function touchCache() { orgCacheTimestamp = Date.now(); }
 
-async function resolveOrgId(): Promise<string | undefined> {
-  const cached = apiClient.getOrganizationId();
-  if (cached) return cached;
-  // Cold cache (page refresh before apiClient.setOrganizationId was called) —
-  // resolve from current Supabase session and warm the cache.
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return undefined;
-  const { data: profile } = await supabase
-    .from('profiles').select('organization_id').eq('id', user.id).maybeSingle();
-  const orgId = profile?.organization_id ?? undefined;
-  if (orgId) apiClient.setOrganizationId(orgId);
-  return orgId;
-}
 
 async function getSetting(key: string, defaultValue: any) {
   if (!isSupabaseConfigured()) {
