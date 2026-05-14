@@ -117,11 +117,23 @@ const notifyLineManagerOfLate = async (data: Attendance): Promise<void> => {
   });
 };
 
+// Combine YYYY-MM-DD date + HH:mm time into ISO timestamp for timestamptz columns.
+// If value already looks like an ISO timestamp, pass through.
+function hhmmToISO(hhmm: string | undefined, dateYMD?: string): string | null {
+  if (!hhmm || hhmm === '-' || hhmm.trim() === '') return null;
+  if (/T\d{2}:\d{2}/.test(hhmm)) return hhmm; // already ISO
+  const date = dateYMD || new Date().toISOString().split('T')[0];
+  const [h, m] = hhmm.split(':');
+  if (!h || !m) return null;
+  const iso = new Date(`${date}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`);
+  return isNaN(iso.getTime()) ? null : iso.toISOString();
+}
+
 const buildAttendancePayload = (data: Attendance, orgId: string | undefined): any => ({
   employee_id: data.employeeId.trim(),
   employee_name: data.employeeName,
   date: data.date,
-  check_in: data.checkIn,
+  check_in: hhmmToISO(data.checkIn, data.date),
   status: data.status,
   remarks: data.remarks || '',
   location: data.location?.address || '',
@@ -340,11 +352,21 @@ export const attendanceService = {
 
   async updateAttendance(id: string, data: Partial<Attendance>) {
     if (!isSupabaseConfigured()) return;
+    // Resolve target date for time→timestamp conversion: explicit data.date, then existing row.
+    let targetDate = data.date;
+    if (!targetDate && (data.checkIn || data.checkOut)) {
+      const { data: existing } = await supabase
+        .from('attendance')
+        .select('date')
+        .eq('id', id.trim())
+        .single();
+      targetDate = existing?.date;
+    }
     const updates: any = {};
     if (data.date)     updates.date = data.date;
-    if (data.checkIn)  updates.check_in = data.checkIn;
-    if (data.checkOut) updates.check_out = data.checkOut;
-    if (data.remarks)  updates.remarks = data.remarks;
+    if (data.checkIn)  updates.check_in = hhmmToISO(data.checkIn, targetDate);
+    if (data.checkOut) updates.check_out = hhmmToISO(data.checkOut, targetDate);
+    if (data.remarks !== undefined) updates.remarks = data.remarks;
     if (data.status)   updates.status = data.status;
     const { error } = await supabase.from('attendance').update(updates).eq('id', id.trim());
     if (error) throw error;
