@@ -131,23 +131,32 @@ const buildAttendancePayload = (data: Attendance, orgId: string | undefined): an
   organization_id: orgId,
 });
 
+// Supabase stores check_in/check_out as timestamptz (full ISO string).
+// The rest of the app expects HH:mm. Convert only when the value looks like
+// an ISO timestamp; leave bare HH:mm strings (legacy data) unchanged.
+function isoToHHMM(val: string | null | undefined): string {
+  if (!val) return '';
+  if (/^\d{2}:\d{2}/.test(val)) return val.slice(0, 5); // already HH:mm
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 const mapAttendance = (r: any): Attendance => ({
   id: r.id,
   employeeId: r.employee_id ? r.employee_id.toString().trim() : '',
   employeeName: r.employee_name,
   date: r.date,
-  checkIn: r.check_in,
-  checkOut: r.check_out || '',
+  checkIn: isoToHHMM(r.check_in),
+  checkOut: isoToHHMM(r.check_out),
   status: r.status as any,
   location: {
     lat: Number(r.latitude) || 0,
     lng: Number(r.longitude) || 0,
     address: r.location || 'Unknown',
   },
-  // selfie is stored as a storage path; build signed URL lazily if needed
-  selfie: r.selfie
-    ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${SELFIE_BUCKET}/${r.selfie}`
-    : undefined,
+  // selfie stores the storage path; signed URLs resolved after fetch (private bucket)
+  selfie: r.selfie || undefined,
   remarks: r.remarks || '',
   dutyType: r.duty_type as any,
   organizationId: r.organization_id,
@@ -190,6 +199,22 @@ export const attendanceService = {
         if (error) throw error;
 
         const result = (data ?? []).map(mapAttendance);
+
+        // Resolve signed URLs for selfies (private bucket — public URLs return 403)
+        const withSelfie = result.filter(r => r.selfie);
+        if (withSelfie.length > 0) {
+          const paths = withSelfie.map(r => r.selfie as string);
+          const { data: signed } = await supabase.storage
+            .from(SELFIE_BUCKET)
+            .createSignedUrls(paths, 3600);
+          if (signed) {
+            const urlMap = new Map(signed.map(s => [s.path, s.signedUrl]));
+            result.forEach(r => {
+              if (r.selfie) r.selfie = urlMap.get(r.selfie) ?? r.selfie;
+            });
+          }
+        }
+
         attCache.set(cacheKey, { data: result, ts: Date.now() });
         return result;
       } catch (e: any) {

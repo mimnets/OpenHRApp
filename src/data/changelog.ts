@@ -20,6 +20,8 @@ export const changelog: ChangelogRelease[] = [
     entries: [
       { type: 'improvement', description: 'OrgSystem now reads and writes organization data (name, country, address, logo) via Supabase. Logo uploads go to the org-logos storage bucket. No more PocketBase dependency in this component.' },
       { type: 'fix', description: 'Fixed employee dashboard slow load and intermittent blank screen on page refresh. Root cause: resolveOrgId() was not deduplicated — 6 parallel dashboard service calls each fired their own auth.getUser + profiles fetch on cold cache (~12 extra network requests). Now a single shared promise resolves org context once for all callers. Also fixed employee.service.getEmployees() which used a sync org-id lookup that returned undefined on cold cache, causing an unfiltered full-table query.' },
+      { type: 'fix', description: 'Fixed attendance history showing raw ISO timestamps (2026-05-14T03:30:00+00:00) instead of HH:mm. Supabase check_in/check_out columns are timestamptz; added isoToHHMM() to extract local time on read. Fixed broken selfie thumbnails in History: selfies bucket is private so public URLs return 403 — now batch-generates signed URLs (1 hr TTL) after fetching attendance records.' },
+      { type: 'fix', description: 'Fixed blank dashboard on web + PWA after migration. Migrated leave_policy rows lacked the overrides key, so getLeaveBalance threw "Cannot read properties of undefined" and the whole Promise.all rejected. Hardened getLeavePolicy() to normalize defaults/overrides, and getLeaveBalance() to fall back to defaults when overrides absent.' },
     ],
   },
   {

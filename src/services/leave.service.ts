@@ -218,7 +218,9 @@ export const leaveService = {
 
   async getLeaveBalance(employeeId: string): Promise<LeaveBalance> {
     const policy = await organizationService.getLeavePolicy();
-    const quota = policy.overrides[employeeId] || policy.defaults;
+    const defaults = policy?.defaults ?? { ANNUAL: 15, CASUAL: 10, SICK: 14 };
+    const overrides = policy?.overrides ?? {};
+    const quota = overrides[employeeId] || defaults;
     const balance: LeaveBalance = { employeeId };
     for (const [type, amount] of Object.entries(quota)) {
       balance[type] = amount as number;

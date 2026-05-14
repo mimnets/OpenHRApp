@@ -220,8 +220,12 @@ export const organizationService = {
     if (cachedLeavePolicy && isCacheValid()) return cachedLeavePolicy;
     const defaultPolicy: LeavePolicy = { defaults: { ANNUAL: 15, CASUAL: 10, SICK: 14 }, overrides: {} };
     const val = await getSetting('leave_policy', defaultPolicy);
-    cachedLeavePolicy = val;
-    return val;
+    const normalized: LeavePolicy = {
+      defaults: val?.defaults ?? defaultPolicy.defaults,
+      overrides: val?.overrides ?? {},
+    };
+    cachedLeavePolicy = normalized;
+    return normalized;
   },
 
   async setLeavePolicy(policy: LeavePolicy) {
