@@ -28,7 +28,7 @@
  */
 
 import { Attendance } from '../../types';
-import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from '../supabase';
+import { supabase, isSupabaseConfigured } from '../supabase';
 import { apiClient } from '../api.client';
 import { organizationService } from '../organization.service';
 import { shiftService } from '../shift.service';
@@ -52,7 +52,9 @@ function mapAttendance(r: any): Attendance {
       lng: Number(r.longitude) || 0,
       address: r.location || 'Unknown',
     },
-    selfie: r.selfie ? getSupabaseStorageUrl('selfies', r.selfie) : undefined,
+    // selfie stores the storage path; signed URLs resolved by the caller
+    // (private bucket — same convention as attendance.service.ts).
+    selfie: r.selfie || undefined,
     remarks: r.remarks || '',
     dutyType: r.duty_type as any,
     organizationId: r.organization_id,
@@ -138,10 +140,13 @@ export const workdaySessionManager = {
       // Past-date open session → close it as a client-side fallback.
       try {
         const closeTime = await resolveCloseTime(employeeId, date);
+        // attendance.check_out is timestamptz — combine the row's date with
+        // HH:mm to a full ISO timestamp or Postgres rejects the update.
+        const closeIso = new Date(`${date}T${closeTime}:00`).toISOString();
         const existingRemarks = (rec.remarks as string) || '';
         const { data: updated, error: closeErr } = await supabase
           .from('attendance')
-          .update({ check_out: closeTime, remarks: existingRemarks + CLIENT_CLOSE_REMARK })
+          .update({ check_out: closeIso, remarks: existingRemarks + CLIENT_CLOSE_REMARK })
           .eq('id', rec.id)
           .select()
           .single();
@@ -163,6 +168,28 @@ export const workdaySessionManager = {
       // Invalidate any consumer caches and notify subscribers so the UI
       // refreshes lists/dashboards.
       apiClient.notify();
+    }
+
+    // Resolve signed URLs for any selfies on the records we are returning.
+    // selfies bucket is private — public URLs would return 403.
+    const toSign: Attendance[] = [];
+    if (active?.selfie) toSign.push(active);
+    for (const r of closedPast) if (r.selfie) toSign.push(r);
+    if (toSign.length > 0) {
+      try {
+        const paths = toSign.map(r => r.selfie as string);
+        const { data: signed } = await supabase.storage
+          .from('selfies')
+          .createSignedUrls(paths, 3600);
+        if (signed) {
+          const urlMap = new Map(signed.map(s => [s.path, s.signedUrl]));
+          toSign.forEach(r => {
+            if (r.selfie) r.selfie = urlMap.get(r.selfie) ?? r.selfie;
+          });
+        }
+      } catch (e: any) {
+        console.warn('[WorkdaySessionManager] Selfie sign failed:', e?.message || e);
+      }
     }
 
     return { active, closedPast };
