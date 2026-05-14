@@ -76,12 +76,12 @@ export const authService = {
     return true;
   },
 
-  async requestPasswordReset(email: string): Promise<boolean> {
+  async requestPasswordReset(email: string): Promise<{ ok: boolean; error?: string }> {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/?reset=1`,
     });
-    if (error) { console.error('[Auth] Password reset request failed:', error.message); return false; }
-    return true;
+    if (error) { console.error('[Auth] Password reset request failed:', error.message); return { ok: false, error: error.message }; }
+    return { ok: true };
   },
 
   async registerOrganization(data: {
