@@ -41,7 +41,12 @@ async function getSetting(key: string, defaultValue: any) {
       .eq('organization_id', orgId)
       .maybeSingle();
     if (error) throw error;
-    return data?.value ?? defaultValue;
+    if (data?.value == null) return defaultValue;
+    try {
+      return typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+    } catch {
+      return defaultValue;
+    }
   } catch (e: any) {
     console.warn(`[OrgService] Failed to fetch setting '${key}':`, e?.message || e);
     return defaultValue;
