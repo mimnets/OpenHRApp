@@ -1,5 +1,10 @@
 // OpenHR — Super Admin Bulk Email Edge Function
-// Resolves recipients from auth.users (service role), sends via Resend, records results in reports_queue.
+// Resolves recipients from auth.users (service role), personalises per-recipient,
+// sends via Resend batch API, records results in reports_queue.
+//
+// Template placeholders supported in subject and htmlContent:
+//   {{name}}        — recipient's display name from profiles
+//   {{reset_link}}  — Supabase-generated password recovery link (unique per user)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -24,6 +29,12 @@ function jsonResponse(status: number, body: unknown) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+function personalise(template: string, name: string, resetLink: string): string {
+  return template
+    .replace(/\{\{name\}\}/g, name || 'User')
+    .replace(/\{\{reset_link\}\}/g, resetLink || '#');
 }
 
 Deno.serve(async (req: Request) => {
@@ -64,8 +75,10 @@ Deno.serve(async (req: Request) => {
   if (!subject) return jsonResponse(400, { success: false, message: 'subject is required' });
   if (!htmlContent) return jsonResponse(400, { success: false, message: 'htmlContent is required' });
 
-  // Resolve profile IDs matching the filter
-  let profileQuery = adminClient.from('profiles').select('id, organization_id, role').neq('role', 'SUPER_ADMIN');
+  const needsResetLink = htmlContent.includes('{{reset_link}}') || subject.includes('{{reset_link}}');
+
+  // Resolve profiles matching the filter — fetch name too for personalisation
+  let profileQuery = adminClient.from('profiles').select('id, organization_id, role, name').neq('role', 'SUPER_ADMIN');
 
   if (filter.kind === 'ALL_ADMINS') {
     profileQuery = profileQuery.in('role', ['ADMIN', 'HR']);
@@ -80,7 +93,6 @@ Deno.serve(async (req: Request) => {
     profileQuery = profileQuery.in('organization_id', orgIds);
     if (filter.rolesScope === 'ADMINS') profileQuery = profileQuery.in('role', ['ADMIN', 'HR']);
   }
-  // ALL_USERS: no extra filter beyond neq SUPER_ADMIN
 
   const { data: profiles, error: profilesError } = await profileQuery;
   if (profilesError) return jsonResponse(500, { success: false, message: `Failed to resolve recipients: ${profilesError.message}` });
@@ -94,8 +106,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Fetch emails from auth.users for all profile IDs
-  const profileIds = profiles.map((p: { id: string }) => p.id);
+  // Fetch emails from auth.users
   const { data: { users: authUsers }, error: authError } = await adminClient.auth.admin.listUsers({ perPage: 10000 });
   if (authError) return jsonResponse(500, { success: false, message: `Failed to fetch auth users: ${authError.message}` });
 
@@ -111,12 +122,11 @@ Deno.serve(async (req: Request) => {
   let sent = 0;
   let failed = 0;
 
-  for (let i = 0; i < profileIds.length; i += SEND_BATCH_SIZE) {
+  for (let i = 0; i < profiles.length; i += SEND_BATCH_SIZE) {
     const batch = profiles.slice(i, i + SEND_BATCH_SIZE);
     const queueRows: unknown[] = [];
+    const toSend: { profile: typeof batch[0]; email: string; html: string; subj: string }[] = [];
 
-    // Separate profiles with/without emails
-    const toSend: { profile: typeof batch[0]; email: string }[] = [];
     for (const profile of batch) {
       const email = emailMap.get(profile.id);
       if (!email) {
@@ -127,23 +137,50 @@ Deno.serve(async (req: Request) => {
           error_message: 'Email not found in auth.users', sent_at: null,
         });
         failed++;
-      } else {
-        toSend.push({ profile, email });
+        continue;
       }
+
+      // Generate password recovery link if template needs it
+      let resetLink = '';
+      if (needsResetLink) {
+        try {
+          const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+            type: 'recovery',
+            email,
+          });
+          if (linkError) throw linkError;
+          resetLink = linkData?.properties?.action_link ?? '';
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          queueRows.push({
+            organization_id: profile.organization_id || null,
+            type, status: 'FAILED', recipient_email: email,
+            subject, message: htmlContent,
+            error_message: `Failed to generate reset link: ${msg}`, sent_at: null,
+          });
+          failed++;
+          continue;
+        }
+      }
+
+      const name = (profile.name || '').split(' ')[0] || 'User';
+      const personalisedHtml = personalise(htmlContent, name, resetLink);
+      const personalisedSubject = personalise(subject, name, resetLink);
+      toSend.push({ profile, email, html: personalisedHtml, subj: personalisedSubject });
     }
 
-    // Send batch via Resend batch API (1 request = up to 100 emails)
+    // Send batch via Resend batch API — each item can have unique html/subject
     if (toSend.length > 0) {
       let batchError: string | null = null;
       try {
         const res = await fetch('https://api.resend.com/emails/batch', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(toSend.map(({ email }) => ({
+          body: JSON.stringify(toSend.map(({ email, html, subj }) => ({
             from: FROM_EMAIL,
             to: [email],
-            subject,
-            html: htmlContent,
+            subject: subj,
+            html,
           }))),
         });
         if (!res.ok) {
@@ -154,13 +191,13 @@ Deno.serve(async (req: Request) => {
         batchError = e instanceof Error ? e.message : String(e);
       }
 
-      for (const { profile, email } of toSend) {
+      for (const { profile, email, html } of toSend) {
         if (batchError) {
           failed++;
           queueRows.push({
             organization_id: profile.organization_id || null,
             type, status: 'FAILED', recipient_email: email,
-            subject, message: htmlContent,
+            subject, message: html,
             error_message: batchError, sent_at: null,
           });
         } else {
@@ -168,7 +205,7 @@ Deno.serve(async (req: Request) => {
           queueRows.push({
             organization_id: profile.organization_id || null,
             type, status: 'SENT', recipient_email: email,
-            subject, message: htmlContent,
+            subject, message: html,
             error_message: null, sent_at: now,
           });
         }
@@ -180,7 +217,7 @@ Deno.serve(async (req: Request) => {
 
   const message = failed === 0
     ? `Sent ${sent} email${sent === 1 ? '' : 's'} successfully.`
-    : `Sent ${sent} of ${profileIds.length} emails — ${failed} failed.`;
+    : `Sent ${sent} of ${profiles.length} emails — ${failed} failed.`;
 
   return jsonResponse(200, { success: sent > 0, message, sent, failed, campaignId });
 });

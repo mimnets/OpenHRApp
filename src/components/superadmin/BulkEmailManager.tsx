@@ -16,10 +16,10 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: 'password_reset',
     label: 'Password Reset Notice',
     subject: 'Action Required: Reset Your OpenHR Password',
-    body: `<p>Dear User,</p>
+    body: `<p>Dear {{name}},</p>
 <p>We have recently migrated our platform and your account requires a password reset before you can log in.</p>
-<p>Please click the button below to set a new password:</p>
-<p><a href="https://app.openhrapp.com/?forgot=1" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Reset My Password</a></p>
+<p>Please click the button below to set a new password. This link is unique to your account and expires in 24 hours.</p>
+<p><a href="{{reset_link}}" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Reset My Password</a></p>
 <p>If you did not request this, you can safely ignore this email.</p>
 <p>Best regards,<br/>The OpenHR Team</p>`,
   },
@@ -27,7 +27,7 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: 'newsletter',
     label: 'Newsletter',
     subject: 'OpenHR Monthly Update — [Month Year]',
-    body: `<p>Dear OpenHR Community,</p>
+    body: `<p>Dear {{name}},</p>
 <h2>What's New This Month</h2>
 <p>Here are the latest updates and improvements we've shipped:</p>
 <ul>
@@ -44,7 +44,7 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: 'maintenance',
     label: 'System Maintenance',
     subject: 'Scheduled Maintenance: OpenHR Will Be Unavailable on [Date]',
-    body: `<p>Dear User,</p>
+    body: `<p>Dear {{name}},</p>
 <p>We want to give you advance notice of scheduled maintenance on the OpenHR platform.</p>
 <p><strong>Date:</strong> [Date]<br/>
 <strong>Time:</strong> [Start Time] – [End Time] ([Timezone])<br/>
@@ -57,7 +57,7 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: 'announcement',
     label: 'General Announcement',
     subject: 'Important Announcement from OpenHR',
-    body: `<p>Dear User,</p>
+    body: `<p>Dear {{name}},</p>
 <p>We have an important update to share with you.</p>
 <p>[Write your announcement here.]</p>
 <p>If you have any questions, please reach out to us at <a href="mailto:support@openhrapp.com">support@openhrapp.com</a>.</p>
@@ -66,8 +66,8 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: 'welcome',
     label: 'Welcome / Onboarding',
-    subject: 'Welcome to OpenHR — Get Started Today',
-    body: `<p>Dear User,</p>
+    subject: 'Welcome to OpenHR, {{name}}!',
+    body: `<p>Dear {{name}},</p>
 <p>Welcome to <strong>OpenHR</strong> — your all-in-one HR management platform.</p>
 <p>Here's how to get started:</p>
 <ol>
@@ -412,7 +412,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
                   </button>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Select a template to pre-fill subject and body. You can edit freely after.</p>
+              <p className="text-[10px] text-slate-400 mt-1">Select a template to pre-fill subject and body. You can edit freely after. Use <code className="bg-slate-100 px-1 rounded">{"{{name}}"}</code> for the recipient's first name and <code className="bg-slate-100 px-1 rounded">{"{{reset_link}}"}</code> for a unique password reset link.</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1">Subject</label>
