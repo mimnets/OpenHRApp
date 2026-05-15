@@ -20,6 +20,7 @@ import Setup from './pages/Setup';
 import RegisterOrganization from './pages/RegisterOrganization';
 import LandingPage from './pages/LandingPage';
 import { VerifyAccount } from './pages/VerifyAccount';
+import { ResetPassword } from './pages/ResetPassword';
 import { SuspendedPage } from './components/subscription';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
@@ -106,6 +107,7 @@ const AppContent: React.FC = () => {
   const [showLanding, setShowLanding] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(() => {
     return parseBlogRoute(window.location.pathname);
   });
@@ -179,9 +181,16 @@ const AppContent: React.FC = () => {
 
     if (token) {
       setVerificationToken(token);
-      // Clean URL to prevent re-triggering and look cleaner
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
+      return;
+    }
+
+    // Check for password reset redirect: /?reset=1
+    if (new URLSearchParams(window.location.search).get('reset') === '1') {
+      setShowPasswordReset(true);
+      setShowLanding(false);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
@@ -353,6 +362,11 @@ const AppContent: React.FC = () => {
   // Priority 1: Verification Flow (must come BEFORE 404 check)
   if (verificationToken) {
     return <VerifyAccount token={verificationToken} onFinished={() => { setVerificationToken(null); setShowLanding(false); setShowRegister(false); }} />;
+  }
+
+  // Priority 1.5: Password Reset Flow
+  if (showPasswordReset) {
+    return <ResetPassword onFinished={() => { setShowPasswordReset(false); setShowLanding(false); }} />;
   }
 
   // 404: Unknown clean URL path (after all valid routes are checked)

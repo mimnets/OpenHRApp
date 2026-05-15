@@ -1,8 +1,84 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Mail, Send, Eye, Users, Building2, AlertTriangle, CheckCircle2, XCircle,
-  Clock, RefreshCw, History, Pencil, X, Loader2, Info,
+  Clock, RefreshCw, History, Pencil, X, Loader2, Info, FileText,
 } from 'lucide-react';
+
+interface EmailTemplate {
+  id: string;
+  label: string;
+  subject: string;
+  body: string;
+}
+
+const EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    id: 'password_reset',
+    label: 'Password Reset Notice',
+    subject: 'Action Required: Reset Your OpenHR Password',
+    body: `<p>Dear {{name}},</p>
+<p>We have recently migrated our platform and your account requires a password reset before you can log in.</p>
+<p>Please click the button below to set a new password. This link is unique to your account and expires in 24 hours.</p>
+<p><a href="{{reset_link}}" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Reset My Password</a></p>
+<p>If you did not request this, you can safely ignore this email.</p>
+<p>Best regards,<br/>The OpenHR Team</p>`,
+  },
+  {
+    id: 'newsletter',
+    label: 'Newsletter',
+    subject: 'OpenHR Monthly Update — [Month Year]',
+    body: `<p>Dear {{name}},</p>
+<h2>What's New This Month</h2>
+<p>Here are the latest updates and improvements we've shipped:</p>
+<ul>
+  <li><strong>Feature:</strong> Describe new feature here.</li>
+  <li><strong>Fix:</strong> Describe fix here.</li>
+  <li><strong>Improvement:</strong> Describe improvement here.</li>
+</ul>
+<h2>Coming Soon</h2>
+<p>Share upcoming features or plans here.</p>
+<p>Thank you for using OpenHR. We're committed to making HR management effortless for your team.</p>
+<p>Best regards,<br/>The OpenHR Team</p>`,
+  },
+  {
+    id: 'maintenance',
+    label: 'System Maintenance',
+    subject: 'Scheduled Maintenance: OpenHR Will Be Unavailable on [Date]',
+    body: `<p>Dear {{name}},</p>
+<p>We want to give you advance notice of scheduled maintenance on the OpenHR platform.</p>
+<p><strong>Date:</strong> [Date]<br/>
+<strong>Time:</strong> [Start Time] – [End Time] ([Timezone])<br/>
+<strong>Expected downtime:</strong> [Duration]</p>
+<p>During this window the platform will be temporarily unavailable. Please plan accordingly and save any in-progress work before the maintenance window begins.</p>
+<p>We apologise for any inconvenience and appreciate your patience.</p>
+<p>Best regards,<br/>The OpenHR Team</p>`,
+  },
+  {
+    id: 'announcement',
+    label: 'General Announcement',
+    subject: 'Important Announcement from OpenHR',
+    body: `<p>Dear {{name}},</p>
+<p>We have an important update to share with you.</p>
+<p>[Write your announcement here.]</p>
+<p>If you have any questions, please reach out to us at <a href="mailto:support@openhrapp.com">support@openhrapp.com</a>.</p>
+<p>Best regards,<br/>The OpenHR Team</p>`,
+  },
+  {
+    id: 'welcome',
+    label: 'Welcome / Onboarding',
+    subject: 'Welcome to OpenHR, {{name}}!',
+    body: `<p>Dear {{name}},</p>
+<p>Welcome to <strong>OpenHR</strong> — your all-in-one HR management platform.</p>
+<p>Here's how to get started:</p>
+<ol>
+  <li><strong>Log in</strong> at <a href="https://app.openhrapp.com">app.openhrapp.com</a></li>
+  <li><strong>Complete your profile</strong> — add your details and photo</li>
+  <li><strong>Explore the dashboard</strong> — check attendance, leaves, and announcements</li>
+</ol>
+<p>If you need help, contact your HR admin or reach us at <a href="mailto:support@openhrapp.com">support@openhrapp.com</a>.</p>
+<p>Best regards,<br/>The OpenHR Team</p>`,
+  },
+];
 import RichTextEditor from '../blog/RichTextEditor';
 import {
   superAdminService,
@@ -35,6 +111,7 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
   const [subRolesScope, setSubRolesScope] = useState<RolesScope>('ADMINS');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [preview, setPreview] = useState<{ count: number; sampleEmails: string[] } | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -301,6 +378,41 @@ const BulkEmailManager: React.FC<BulkEmailManagerProps> = ({ onMessage }) => {
             <div className="flex items-center gap-2 text-slate-900">
               <Pencil size={18} />
               <h4 className="font-bold">Message</h4>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">Template</label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <select
+                    value={selectedTemplate}
+                    onChange={e => {
+                      const id = e.target.value;
+                      setSelectedTemplate(id);
+                      if (id) {
+                        const tpl = EMAIL_TEMPLATES.find(t => t.id === id);
+                        if (tpl) { setSubject(tpl.subject); setBody(tpl.body); }
+                      }
+                    }}
+                    className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-sm appearance-none"
+                  >
+                    <option value="">— Start from scratch —</option>
+                    {EMAIL_TEMPLATES.map(t => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {selectedTemplate && (
+                  <button
+                    onClick={() => { setSelectedTemplate(''); setSubject(''); setBody(''); }}
+                    className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                    title="Clear template"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Select a template to pre-fill subject and body. You can edit freely after. Use <code className="bg-slate-100 px-1 rounded">{"{{name}}"}</code> for the recipient's first name and <code className="bg-slate-100 px-1 rounded">{"{{reset_link}}"}</code> for a unique password reset link.</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1">Subject</label>

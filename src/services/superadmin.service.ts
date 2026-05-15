@@ -428,44 +428,29 @@ export const superAdminService = {
     if (!trimmedSubject) return { success: false, message: 'Subject is required', queued: 0, failed: 0, campaignId: '' };
     if (!htmlContent?.trim()) return { success: false, message: 'Body is required', queued: 0, failed: 0, campaignId: '' };
 
-    const recipients = await this.resolveBulkRecipients(filter);
-    if (recipients.length === 0) return { success: false, message: 'No recipients matched this audience', queued: 0, failed: 0, campaignId: '' };
-    if (recipients.length > MAX_BULK_RECIPIENTS) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return { success: false, message: 'Not authenticated', queued: 0, failed: 0, campaignId: '' };
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-bulk-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ filter, subject: trimmedSubject, htmlContent: sanitizeHtml(htmlContent) }),
+      });
+      const json = await res.json();
       return {
-        success: false,
-        message: `Recipient list (${recipients.length}) exceeds the per-campaign cap of ${MAX_BULK_RECIPIENTS}. Narrow the audience and split into multiple campaigns.`,
-        queued: 0, failed: 0, campaignId: '',
+        success: json.success ?? false,
+        message: json.message ?? 'Unknown error',
+        queued: json.sent ?? 0,
+        failed: json.failed ?? 0,
+        campaignId: json.campaignId ?? '',
       };
+    } catch (e: any) {
+      console.error('[SuperAdmin] sendBulkEmail failed:', e?.message || e);
+      return { success: false, message: e?.message || 'Failed to send bulk email', queued: 0, failed: 0, campaignId: '' };
     }
-
-    const safeHtml = sanitizeHtml(htmlContent);
-    const campaignId =
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const type = `${BULK_CAMPAIGN_PREFIX}${campaignId}`;
-
-    let queued = 0;
-    let failed = 0;
-    for (let i = 0; i < recipients.length; i += INSERT_BATCH_SIZE) {
-      const batch = recipients.slice(i, i + INSERT_BATCH_SIZE);
-      const rows = batch.map(r => ({
-        recipient_email: r.email,
-        subject: trimmedSubject,
-        html_content: safeHtml,
-        status: 'PENDING',
-        type,
-        organization_id: r.organization_id || null,
-      }));
-      const { error } = await supabase.from('reports_queue').insert(rows);
-      if (error) { failed += batch.length; console.error('[SuperAdmin] bulk insert batch failed:', error.message); }
-      else queued += batch.length;
-    }
-
-    const message = failed === 0
-      ? `Queued ${queued} email${queued === 1 ? '' : 's'}. Delivery happens in the background.`
-      : `Queued ${queued} of ${recipients.length} emails — ${failed} failed to enqueue. Check logs.`;
-    return { success: queued > 0, message, queued, failed, campaignId };
   },
 
   async getRecentBulkCampaigns(limit = 20): Promise<BulkCampaignSummary[]> {

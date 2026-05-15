@@ -15,6 +15,23 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-15',
+    title: 'Profile work email fix',
+    entries: [
+      { type: 'fix', description: 'Work Email field on My Profile now shows the user\'s email from their auth account. Previously it was blank because the profiles table has no email column — fixed by falling back to the auth session email when loading profile data.' },
+      { type: 'fix', description: 'Performance Review tab no longer shows a blank screen. Settings stored in the database as JSON strings were not being parsed on read, causing a crash when the review config was accessed. getSetting now parses string values before returning them.' },
+      { type: 'feature', description: 'Super admin bulk email compose now has a Templates dropdown with 5 pre-built templates: Password Reset Notice, Newsletter, System Maintenance, General Announcement, and Welcome/Onboarding. Selecting a template pre-fills the subject and body; both are fully editable after selection.' },
+      { type: 'fix', description: 'Super admin bulk email send now actually delivers emails. Previous implementation queued rows to reports_queue with empty recipient_email (emails live in auth.users, not profiles) and had no processor to send them — emails sat as PENDING forever. Replaced with a new send-bulk-email Edge Function that resolves real emails from auth.users via service role, sends immediately via Resend, and records SENT/FAILED status in reports_queue.' },
+    ],
+  },
+  {
+    date: '2026-05-14',
+    title: 'Forgot Password flow added',
+    entries: [
+      { type: 'feature', description: 'Added Forgot Password to the login page. Users can request a password reset email from an inline form. Supabase sends a magic link that lands back on the app and shows a set-new-password screen.' },
+    ],
+  },
+  {
     date: '2026-05-14',
     title: 'Supabase Migration: OrgSystem migrated from PocketBase',
     entries: [
