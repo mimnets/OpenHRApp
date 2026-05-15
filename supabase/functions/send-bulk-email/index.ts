@@ -33,8 +33,8 @@ function jsonResponse(status: number, body: unknown) {
 
 function personalise(template: string, name: string, resetLink: string): string {
   return template
-    .replace(/\{\{name\}\}/g, name || 'User')
-    .replace(/\{\{reset_link\}\}/g, resetLink || '#');
+    .replace(/\{\{name\}\}|%7B%7Bname%7D%7D/gi, name || 'User')
+    .replace(/\{\{reset_link\}\}|%7B%7Breset_link%7D%7D/gi, resetLink || '#');
 }
 
 Deno.serve(async (req: Request) => {
