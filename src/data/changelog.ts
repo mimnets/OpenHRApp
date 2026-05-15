@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-15',
+    title: 'Profile work email fix',
+    entries: [
+      { type: 'fix', description: 'Work Email field on My Profile now shows the user\'s email from their auth account. Previously it was blank because the profiles table has no email column — fixed by falling back to the auth session email when loading profile data.' },
+    ],
+  },
+  {
     date: '2026-05-14',
     title: 'Forgot Password flow added',
     entries: [

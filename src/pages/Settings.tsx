@@ -78,6 +78,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
           const manager = employees.find(e => e.id === myData.lineManagerId);
           setProfile({
             ...myData,
+            email: myData.email || user.email,
             managerName: manager ? manager.name : 'No Direct Manager'
           });
 
@@ -258,7 +259,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
                 <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Work Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-                  <input type="email" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
+                  <input type="email" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light" value={profile.email || user.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
                 </div>
               </div>
             </div>
