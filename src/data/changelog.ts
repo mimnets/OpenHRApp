@@ -20,6 +20,7 @@ export const changelog: ChangelogRelease[] = [
     entries: [
       { type: 'fix', description: 'Work Email field on My Profile now shows the user\'s email from their auth account. Previously it was blank because the profiles table has no email column — fixed by falling back to the auth session email when loading profile data.' },
       { type: 'fix', description: 'Performance Review tab no longer shows a blank screen. Settings stored in the database as JSON strings were not being parsed on read, causing a crash when the review config was accessed. getSetting now parses string values before returning them.' },
+      { type: 'fix', description: 'Super admin bulk email send no longer fails with 400 error. The insert was using html_content which does not exist in the reports_queue table — fixed to use the correct message column.' },
     ],
   },
   {

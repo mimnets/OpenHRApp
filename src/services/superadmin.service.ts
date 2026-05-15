@@ -452,7 +452,7 @@ export const superAdminService = {
       const rows = batch.map(r => ({
         recipient_email: r.email,
         subject: trimmedSubject,
-        html_content: safeHtml,
+        message: safeHtml,
         status: 'PENDING',
         type,
         organization_id: r.organization_id || null,
