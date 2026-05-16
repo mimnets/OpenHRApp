@@ -1,4 +1,4 @@
-import { pb } from './pocketbase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 interface ContactFormData {
   name: string;
@@ -14,27 +14,22 @@ interface ContactResponse {
 
 export const contactService = {
   async submitContactForm(data: ContactFormData): Promise<ContactResponse> {
-    if (!pb) {
+    if (!isSupabaseConfigured()) {
       return { success: false, message: 'Service not configured. Please try again later.' };
     }
 
     try {
-      const response = await pb.send('/api/openhr/contact', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: { 'Content-Type': 'application/json' },
+      const { error } = await supabase.from('contact_submissions').insert({
+        name: data.name,
+        email: data.email,
+        subject: data.subject,
+        message: data.message,
       });
-
-      return {
-        success: response.success ?? false,
-        message: response.message ?? 'Message sent successfully.',
-      };
+      if (error) throw error;
+      return { success: true, message: 'Message sent successfully.' };
     } catch (err: any) {
-      const message =
-        err?.response?.message ||
-        err?.message ||
-        'Failed to send message. Please try again later.';
-      return { success: false, message };
+      console.error('[ContactService] Failed to submit:', err?.message || err);
+      return { success: false, message: err?.message || 'Failed to send message. Please try again later.' };
     }
   },
 };

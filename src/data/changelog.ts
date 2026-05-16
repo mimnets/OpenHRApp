@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-16',
+    title: 'Service layer ported to Supabase',
+    entries: [
+      { type: 'improvement', description: 'sociallinks.service.ts, showcase.service.ts, and contact.service.ts migrated from PocketBase to Supabase. Showcase logo uploads now go to the showcase-logos Storage bucket. Contact form submissions are stored in a new contact_submissions table (readable only by super admin). PocketBase dependency removed from all three services.' },
+    ],
+  },
+  {
     date: '2026-05-15',
     title: 'Profile work email fix',
     entries: [
