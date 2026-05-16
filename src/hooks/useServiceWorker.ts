@@ -52,18 +52,24 @@ export function useServiceWorker() {
     };
   }, []);
 
-  // Check for updates when tab regains focus / device wakes
+  // Check for updates when tab regains focus / device wakes / network returns.
+  // iOS Safari doesn't always fire visibilitychange when a PWA comes back from
+  // background; the online event covers that case (and offline -> online
+  // transitions in general).
   useEffect(() => {
+    const checkForUpdate = () => {
+      navigator.serviceWorker?.getRegistration().then(r => r?.update()).catch((err) => {
+        console.error('Service worker update check failed:', err);
+      });
+    };
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        navigator.serviceWorker?.getRegistration().then(r => r?.update()).catch((err) => {
-          console.error('Service worker update check failed:', err);
-        });
-      }
+      if (document.visibilityState === 'visible') checkForUpdate();
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', checkForUpdate);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', checkForUpdate);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);

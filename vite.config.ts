@@ -40,43 +40,49 @@ export default defineConfig(({ mode }) => {
               /^\/save-password/,
             ],
             runtimeCaching: [
+              // Supabase Auth — never cache; tokens must always be live.
               {
-                urlPattern: ({ url }) => /\/api\/realtime/.test(url.pathname),
+                urlPattern: ({ url }) =>
+                  url.host.endsWith('.supabase.co') && /^\/auth\/v1\//.test(url.pathname),
                 handler: 'NetworkOnly',
               },
+              // Supabase Realtime websocket / SSE — never cache.
               {
-                urlPattern: ({ url }) => /\/api\/collections\/users\/auth-/.test(url.pathname),
+                urlPattern: ({ url }) =>
+                  url.host.endsWith('.supabase.co') && /^\/realtime\/v1\//.test(url.pathname),
                 handler: 'NetworkOnly',
               },
+              // Supabase Edge Functions — never cache (mutations + custom logic).
+              {
+                urlPattern: ({ url }) =>
+                  url.host.endsWith('.supabase.co') && /^\/functions\/v1\//.test(url.pathname),
+                handler: 'NetworkOnly',
+              },
+              // Supabase Storage (public buckets — avatars, org logos, blog covers).
               {
                 urlPattern: ({ url, request }) =>
-                  request.method === 'GET' && /\/api\/files\//.test(url.pathname),
+                  request.method === 'GET' &&
+                  url.host.endsWith('.supabase.co') &&
+                  /^\/storage\/v1\/object\/public\//.test(url.pathname),
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'pb-files',
+                  cacheName: 'supabase-storage-v1',
                   expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 },
                   cacheableResponse: { statuses: [200] },
                 },
               },
+              // Supabase REST (PostgREST). NetworkFirst with a generous timeout
+              // for iOS LTE; the cache is a short-lived fallback only.
               {
                 urlPattern: ({ url, request }) =>
                   request.method === 'GET' &&
-                  /\/api\/openhr\/(blog|tutorials)\//.test(url.pathname),
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'pb-public-content',
-                  expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-                  cacheableResponse: { statuses: [200] },
-                },
-              },
-              {
-                urlPattern: ({ url, request }) =>
-                  request.method === 'GET' && /\/api\//.test(url.pathname),
+                  url.host.endsWith('.supabase.co') &&
+                  /^\/rest\/v1\//.test(url.pathname),
                 handler: 'NetworkFirst',
                 options: {
-                  cacheName: 'api-cache',
-                  networkTimeoutSeconds: 3,
-                  expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 },
+                  cacheName: 'supabase-rest-v1',
+                  networkTimeoutSeconds: 5,
+                  expiration: { maxEntries: 200, maxAgeSeconds: 60 * 5 },
                   cacheableResponse: { statuses: [200] },
                 },
               },
