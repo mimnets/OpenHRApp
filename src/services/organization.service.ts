@@ -81,19 +81,29 @@ export const organizationService = {
 
   async prefetchMetadata() {
     if (!isSupabaseConfigured()) return;
+    // Two tiers to keep iOS LTE login responsive. Tier 1 is what the dashboard
+    // shell needs to render correctly (company name + role lists). Tier 2 is
+    // module-specific (Leave, Attendance, Team Directory) and is fired in the
+    // background so it doesn't block the first paint of the authenticated UI.
     try {
       await Promise.all([
         organizationService.getConfig(),
         organizationService.getDepartments(),
         organizationService.getDesignations(),
-        organizationService.getHolidays(),
-        organizationService.getTeams(),
-        organizationService.getLeavePolicy(),
-        shiftService.getShifts(),
       ]);
     } catch (e) {
-      console.warn('Metadata prefetch partial failure', e);
+      console.warn('Metadata prefetch (tier 1) partial failure', e);
     }
+    // Fire-and-forget — never blocks the caller, errors are logged only.
+    Promise.allSettled([
+      organizationService.getHolidays(),
+      organizationService.getTeams(),
+      organizationService.getLeavePolicy(),
+      shiftService.getShifts(),
+    ]).then(results => {
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length) console.warn('Metadata prefetch (tier 2) partial failure', failed);
+    });
   },
 
   getSetting,
