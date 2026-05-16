@@ -122,21 +122,79 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
     }
   };
 
+  // Full "nuclear" reset — destroys every client-side trace of the app so a
+  // post-migration stale cache (Workbox precache, Supabase auth IndexedDB,
+  // stale subscription ref, etc.) cannot survive into the next session.
+  // Steps run in best-effort order; any individual failure must not block the
+  // final reload.
   const handleSystemReset = async () => {
-    if(!confirm("Reset App Cache? This will reload the application and update icons.")) return;
-    
-    // Unregister Service Workers to force update
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for(let registration of registrations) {
-        await registration.unregister();
+    if (!confirm("Reset App Cache? This will sign you out and reload the app.")) return;
+    try {
+      // 1. Wipe Workbox / runtime caches (the SW unregister below does NOT
+      //    clear these — they live independently in CacheStorage).
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k).catch(() => false)));
       }
+      // 2. Unregister every service worker.
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(() => false)));
+      }
+      // 3. Drop every IndexedDB database (Supabase auth lives here on some
+      //    browsers; clearing it ensures a fully fresh session).
+      if ('indexedDB' in window && (indexedDB as any).databases) {
+        try {
+          const dbs: { name?: string }[] = await (indexedDB as any).databases();
+          await Promise.all(
+            dbs.map(db =>
+              db.name
+                ? new Promise<void>((res) => {
+                    const req = indexedDB.deleteDatabase(db.name!);
+                    req.onsuccess = req.onerror = req.onblocked = () => res();
+                  })
+                : Promise.resolve()
+            )
+          );
+        } catch { /* indexedDB.databases() not supported on Safari < 14 */ }
+      }
+      // 4. Wipe web storage.
+      try { localStorage.clear(); } catch { /* private mode */ }
+      try { sessionStorage.clear(); } catch { /* private mode */ }
+    } finally {
+      // 5. Hard reload with a cache-bust query so the HTML shell itself is
+      //    re-requested from the network.
+      window.location.replace(window.location.pathname + '?_=' + Date.now());
     }
-    // Clear storage
-    localStorage.clear();
-    sessionStorage.clear();
-    // Force reload
-    window.location.reload();
+  };
+
+  // Non-destructive sibling of the Reset button: ask the active service
+  // worker to check for a new build. If one is waiting, vite-plugin-pwa's
+  // controllerchange handler will reload the page automatically; otherwise
+  // the user gets a toast that they are already current.
+  const handleCheckForUpdates = async () => {
+    if (!('serviceWorker' in navigator)) {
+      showToast('Service workers not supported in this browser.', 'error');
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        showToast('App is not installed as a PWA.', 'info');
+        return;
+      }
+      await reg.update();
+      if (reg.waiting) {
+        showToast('Update found — reloading…', 'success');
+        // Ask the waiting SW to take over; controllerchange triggers reload.
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        showToast('You are on the latest version.', 'success');
+      }
+    } catch (err: any) {
+      console.error('[Login] Update check failed:', err);
+      showToast('Could not check for updates.', 'error');
+    }
   };
 
   const handleResendVerification = async () => {
@@ -200,19 +258,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
       document.body.appendChild(form);
 
-      // Double-rAF: ensures WKWebView has painted the form before we submit.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          form.submit();
-          // Complete login after form submission is dispatched
-          onComplete();
-          // Clean up after Safari has processed the submission
-          setTimeout(() => {
-            form.remove();
-            iframe.remove();
-          }, 3000);
-        });
-      });
+      // Hand control back to React immediately — the dashboard transition is
+      // now off the critical path. The form submission still runs (in the
+      // same tick) so Safari sees the keystrokes-on-form and offers to save
+      // credentials; we just don't gate the navigation on rAF anymore.
+      // Previously double-rAF blocked onComplete for 30–100ms on slow iOS
+      // devices.
+      try { form.submit(); } catch { /* iframe may absorb error */ }
+      onComplete();
+      setTimeout(() => {
+        try { form.remove(); } catch { /* already gone */ }
+        try { iframe.remove(); } catch { /* already gone */ }
+      }, 3000);
     } catch (_) {
       // If anything fails, still complete login
       onComplete();
@@ -497,9 +554,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
 
                    <button
                      type="button"
+                     onClick={handleCheckForUpdates}
+                     className="flex items-center gap-2 px-4 py-2 text-slate-400 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:text-primary transition-colors"
+                     title="Check for app updates without signing out"
+                   >
+                     <RefreshCw size={12} /> Updates
+                   </button>
+
+                   <div className="w-px h-3 bg-slate-200"></div>
+
+                   <button
+                     type="button"
                      onClick={handleSystemReset}
                      className="flex items-center gap-2 px-4 py-2 text-slate-400 rounded-xl text-[10px] font-semibold uppercase tracking-widest hover:text-rose-600 transition-colors"
-                     title="Clear Cache & Reload"
+                     title="Clear all app data and reload (destructive — signs you out)"
                    >
                      <RotateCcw size={12} /> Reset Cache
                    </button>

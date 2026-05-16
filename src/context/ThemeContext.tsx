@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AppTheme } from '../types';
-import { apiClient } from '../services/api.client';
+import { organizationService } from '../services/organization.service';
 
 const THEME_CACHE_KEY = 'openhr-global-theme';
 
@@ -61,11 +61,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(getCachedTheme);
   const [darkModePreference, setDarkModePrefState] = useState<DarkModePreference>('system');
   const [systemDark, setSystemDark] = useState(getSystemPrefersDark);
-  const realtimeActive = useRef(false);
-  // Record id of the `default_theme` settings row. Captured on first fetch so
-  // the realtime subscription can target that single record instead of the
-  // whole `settings` collection (which would deliver every unrelated write).
-  const [themeRecordId, setThemeRecordId] = useState<string | null>(null);
 
   const darkMode = darkModePreference === 'system' ? systemDark : darkModePreference === 'dark';
 
@@ -79,80 +74,40 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const fetchPlatformDefault = useCallback(async () => {
     try {
-      if (!apiClient.pb || !apiClient.isConfigured()) return;
-      const record = await apiClient.pb.collection('settings').getFirstListItem(
-        'key = "default_theme"',
-        { requestKey: 'platform_default_theme_' + Date.now() }
-      );
-      if (record?.id) {
-        setThemeRecordId((prev) => (prev === record.id ? prev : record.id));
-      }
-      if (record?.value) {
-        applyThemeById(record.value as string);
+      const themeId = await organizationService.getSetting('default_theme', null);
+      if (themeId && typeof themeId === 'string') {
+        applyThemeById(themeId);
       }
     } catch {
-      // Not found or not configured — keep cached or default Arctic Frost
+      // Backend unreachable — keep cached or default theme.
     }
   }, [applyThemeById]);
 
-  // Load saved preferences on mount
+  // Load dark-mode preference synchronously; defer the platform-default theme
+  // network fetch off the critical path. The localStorage-cached accent theme
+  // is already applied via initial state, so the UI renders correct colors
+  // immediately even when the backend is slow (iOS LTE first paint).
   useEffect(() => {
-    // Accent theme: localStorage cache was already applied via initial state.
-    // Now fetch from PocketBase to get the latest value.
-    fetchPlatformDefault();
     const savedDark = localStorage.getItem('openhr-dark-mode') as DarkModePreference | null;
     if (savedDark && ['light', 'dark', 'system'].includes(savedDark)) {
       setDarkModePrefState(savedDark);
     }
+
+    const ric =
+      (window as any).requestIdleCallback ||
+      ((cb: () => void) => setTimeout(cb, 200));
+    const handle = ric(() => { fetchPlatformDefault(); });
+    return () => {
+      const cic = (window as any).cancelIdleCallback;
+      if (cic) cic(handle); else clearTimeout(handle as any);
+    };
   }, [fetchPlatformDefault]);
 
-  // Subscribe to realtime updates for the default_theme settings record.
-  // Once we know its id, subscribe by id (scoped — receives only that row's
-  // events). Before the id is known (first boot, or no theme row exists yet),
-  // fall back to the collection-wide subscription so a theme set-for-the-
-  // first-time still propagates live. The effect re-runs when the id changes,
-  // tearing down the wildcard subscription and replacing it with the scoped
-  // one.
+  // Polling: re-fetch every 60s. (PB realtime sub removed during the Supabase
+  // migration; admin-changes-the-org-theme is rare enough that a 60s lag is
+  // acceptable, and visibilitychange below gives a faster signal on mobile.)
   useEffect(() => {
-    if (!apiClient.pb || !apiClient.isConfigured()) return;
-
-    let unsubscribe: (() => void) | undefined;
-
-    const subscribe = async () => {
-      try {
-        const target = themeRecordId || '*';
-        unsubscribe = await apiClient.pb!.collection('settings').subscribe(target, (e) => {
-          const record = e.record;
-          if (record.key === 'default_theme' && record.value) {
-            // If we didn't know the id yet, capture it so the next effect run
-            // upgrades us to a scoped subscription.
-            if (!themeRecordId && record.id) {
-              setThemeRecordId(record.id);
-            }
-            applyThemeById(record.value as string);
-          }
-        });
-        realtimeActive.current = true;
-      } catch {
-        realtimeActive.current = false;
-      }
-    };
-
-    subscribe();
-
-    return () => {
-      realtimeActive.current = false;
-      if (unsubscribe) unsubscribe();
-    };
-  }, [applyThemeById, themeRecordId]);
-
-  // Polling fallback: re-fetch every 60s if realtime subscription failed
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!realtimeActive.current) {
-        fetchPlatformDefault();
-      }
-    }, 60_000);
+    const interval = setInterval(() => { fetchPlatformDefault(); }, 60_000);
     return () => clearInterval(interval);
   }, [fetchPlatformDefault]);
 
