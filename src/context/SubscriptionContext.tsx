@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { SubscriptionStatus, SubscriptionInfo } from '../types';
-import { pb } from '../services/pocketbase';
+import { SubscriptionInfo } from '../types';
+import { organizationService } from '../services/organization.service';
 import { useAuth } from './AuthContext';
 
 interface SubscriptionContextType {
@@ -23,43 +23,31 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
   const lastKnownSubscription = useRef<SubscriptionInfo | null>(null);
 
   const refreshSubscription = useCallback(async () => {
-    if (!user || !pb?.authStore.isValid) {
+    if (!user) {
       setSubscription(null);
+      lastKnownSubscription.current = null;
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('[Subscription] Fetching subscription status...');
-      const response = await pb.send('/api/openhr/subscription-status', {
-        method: 'GET'
-      });
-      console.log('[Subscription] Response:', response);
-
-      const subscriptionData = {
-        status: response.status as SubscriptionStatus,
-        trialEndDate: response.trialEndDate,
-        daysRemaining: response.daysRemaining,
-        isSuperAdmin: response.isSuperAdmin,
-        isReadOnly: response.status === 'EXPIRED',
-        isBlocked: response.status === 'SUSPENDED',
-        showAds: response.showAds === true || response.status === 'AD_SUPPORTED'
-      };
-      console.log('[Subscription] Setting subscription:', subscriptionData);
-      setSubscription(subscriptionData);
-      lastKnownSubscription.current = subscriptionData;
+      const next = await organizationService.getSubscriptionStatus(user);
+      setSubscription(next);
+      lastKnownSubscription.current = next;
     } catch (error) {
-      console.error('[Subscription] Failed to fetch subscription status:', error);
-      // On error, use last known state or default to restricted mode
+      console.error('[Subscription] Failed to fetch status:', error);
+      // Network/transient error: keep the last successful value if we have one,
+      // otherwise default to a non-blocking ACTIVE state so a backend hiccup
+      // doesn't lock anyone out (suspended state must be a positive signal).
       if (lastKnownSubscription.current) {
         setSubscription(lastKnownSubscription.current);
       } else {
         setSubscription({
           status: 'ACTIVE',
           isSuperAdmin: false,
-          isReadOnly: true,
+          isReadOnly: false,
           isBlocked: false,
-          showAds: true
+          showAds: false,
         });
       }
     } finally {
@@ -67,31 +55,28 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, [user]);
 
-  // Initial fetch when user logs in
+  // Initial fetch on user change; clear cache when user logs out.
   useEffect(() => {
     if (user) {
       refreshSubscription();
     } else {
       setSubscription(null);
+      lastKnownSubscription.current = null;
       setIsLoading(false);
     }
   }, [user, refreshSubscription]);
 
-  // Set up periodic refresh to catch Super Admin changes
+  // Periodic refresh for non-super-admin users (catches status changes from
+  // Super Admin without requiring a relog).
   useEffect(() => {
     if (user && !subscription?.isSuperAdmin) {
-      // Clear any existing interval
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
-
-      // Set up new interval for non-Super Admin users
       refreshIntervalRef.current = setInterval(() => {
-        console.log('[Subscription] Periodic refresh...');
         refreshSubscription();
       }, REFRESH_INTERVAL);
 
-      // Cleanup on unmount or user change
       return () => {
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current);
@@ -102,7 +87,7 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [user, subscription?.isSuperAdmin, refreshSubscription]);
 
   const canPerformAction = useCallback((action: 'write' | 'read'): boolean => {
-    if (!subscription) return true; // Allow if not loaded yet
+    if (!subscription) return true; // Allow during initial load
     if (subscription.isSuperAdmin) return true;
     if (subscription.isBlocked) return false;
     if (action === 'read') return true;

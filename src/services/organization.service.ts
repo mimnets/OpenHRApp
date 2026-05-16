@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient, resolveOrgId } from './api.client';
-import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, CustomLeaveType, OrgNotificationConfig } from '../types';
+import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, CustomLeaveType, OrgNotificationConfig, SubscriptionInfo, SubscriptionStatus, User } from '../types';
 import { DEFAULT_CONFIG, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
 import { shiftService } from './shift.service';
 
@@ -362,6 +362,71 @@ export const organizationService = {
       if (error) throw error;
       return data?.value ?? {};
     } catch { return {}; }
+  },
+
+  /**
+   * Fetch subscription status directly from Supabase. Replaces the dead
+   * PocketBase `/api/openhr/subscription-status` endpoint.
+   * Super Admins (no org) get a synthetic ACTIVE response.
+   */
+  async getSubscriptionStatus(user: User | null): Promise<SubscriptionInfo | null> {
+    if (!user) return null;
+
+    // SUPER_ADMIN has no org context — always active, not blocked.
+    if (user.role === 'SUPER_ADMIN' || !user.organizationId) {
+      return {
+        status: 'ACTIVE',
+        isSuperAdmin: true,
+        isReadOnly: false,
+        isBlocked: false,
+        showAds: false,
+      };
+    }
+
+    if (!isSupabaseConfigured()) {
+      // Safe default: don't block users when backend is unreachable.
+      return {
+        status: 'ACTIVE',
+        isSuperAdmin: false,
+        isReadOnly: false,
+        isBlocked: false,
+        showAds: false,
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('subscription_status, trial_end_date')
+      .eq('id', user.organizationId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[OrgService] getSubscriptionStatus failed:', error.message);
+      throw error;
+    }
+
+    const status = (data?.subscription_status as SubscriptionStatus) || 'TRIAL';
+    const trialEndDate = data?.trial_end_date as string | undefined;
+
+    let daysRemaining: number | undefined;
+    if (status === 'TRIAL' && trialEndDate) {
+      const endDate = new Date(trialEndDate);
+      const now = new Date();
+      // Calendar-date math (ignore wall-clock time) to match the legacy PB endpoint.
+      const endDay = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+      const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      daysRemaining = Math.max(0, Math.round((endDay - today) / (1000 * 60 * 60 * 24)));
+    }
+
+    return {
+      status,
+      trialEndDate,
+      daysRemaining,
+      isSuperAdmin: false,
+      isReadOnly: status === 'EXPIRED',
+      isBlocked: status === 'SUSPENDED',
+      showAds: status === 'AD_SUPPORTED',
+    };
   },
 
   async getOrgBranding(): Promise<{ name: string; address: string; logoDataUrl: string | null }> {
