@@ -81,7 +81,7 @@ export default defineConfig(({ mode }) => {
                 handler: 'NetworkFirst',
                 options: {
                   cacheName: 'supabase-rest-v1',
-                  networkTimeoutSeconds: 5,
+                  networkTimeoutSeconds: 8,
                   expiration: { maxEntries: 200, maxAgeSeconds: 60 * 5 },
                   cacheableResponse: { statuses: [200] },
                 },

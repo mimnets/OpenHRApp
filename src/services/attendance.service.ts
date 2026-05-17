@@ -30,6 +30,7 @@ export interface GetAttendanceOptions {
   until?: string;
   employeeId?: string;
   maxRows?: number;
+  skipSelfieUrls?: boolean;
 }
 
 // ─── Async selfie upload ──────────────────────────────────────────────────────
@@ -200,6 +201,7 @@ export const attendanceService = {
     const until = options.until || '';
     const employeeId = options.employeeId || '';
     const maxRows = options.maxRows || 2000;
+    const skipSelfieUrls = options.skipSelfieUrls ?? false;
     const orgId = apiClient.getOrganizationId() || '';
     const cacheKey = `${since}|${until}|${employeeId}|${orgId}`;
 
@@ -228,8 +230,9 @@ export const attendanceService = {
 
         const result = (data ?? []).map(mapAttendance);
 
-        // Resolve signed URLs for selfies (private bucket — public URLs return 403)
-        const withSelfie = result.filter(r => r.selfie);
+        // Resolve signed URLs for selfies (private bucket — public URLs return 403).
+        // Skip when caller only needs counts/metadata (e.g. dashboard stats).
+        const withSelfie = !skipSelfieUrls ? result.filter(r => r.selfie) : [];
         if (withSelfie.length > 0) {
           const paths = withSelfie.map(r => r.selfie as string);
           const { data: signed } = await supabase.storage

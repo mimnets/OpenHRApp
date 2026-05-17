@@ -43,7 +43,7 @@ export const useDashboard = (user: any) => {
           hrService.getEmployees(),
           hrService.getLeaves(),
           hrService.getHolidays(),
-          hrService.getAttendance({ since: today, until: today, maxRows: 500 }),
+          hrService.getAttendance({ since: today, until: today, maxRows: 500, skipSelfieUrls: true }),
           hrService.getTeams(),
           hrService.getConfig(),
           hrService.getWorkflows(),
