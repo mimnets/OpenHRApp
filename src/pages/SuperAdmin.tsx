@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Users, Plus, Edit, Trash2, Eye, RefreshCw, X, Save,
   TrendingUp, Clock, AlertTriangle, CheckCircle2, UserCheck, Shield,
-  CreditCard, Monitor, HardDrive, FileText, Star, Share2, BookOpen, Palette, Bell, HelpCircle, Mail
+  CreditCard, Monitor, HardDrive, FileText, Star, Share2, BookOpen, Palette, Bell, HelpCircle, Mail, Send
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
 import { upgradeService } from '../services/upgrade.service';
@@ -17,6 +17,7 @@ import AppearanceManagement from '../components/superadmin/AppearanceManagement'
 import NotificationRetention from '../components/superadmin/NotificationRetention';
 import GuideLinksManagement from '../components/superadmin/GuideLinksManagement';
 import BulkEmailManager from '../components/superadmin/BulkEmailManager';
+import PushBroadcast from '../components/superadmin/PushBroadcast';
 
 interface SuperAdminProps {
   user: User;
@@ -24,7 +25,7 @@ interface SuperAdminProps {
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'users';
-type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'notifications' | 'appearance' | 'bulk-email' | 'blog' | 'tutorials' | 'guides' | 'showcase' | 'social';
+type TabMode = 'organizations' | 'requests' | 'ads' | 'storage' | 'notifications' | 'appearance' | 'bulk-email' | 'broadcast' | 'blog' | 'tutorials' | 'guides' | 'showcase' | 'social';
 
 const SuperAdmin: React.FC<SuperAdminProps> = () => {
   const [activeTab, setActiveTab] = useState<TabMode>('organizations');
@@ -293,7 +294,7 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
         {/* Row 1 — Platform Management */}
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Platform</p>
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 p-1 bg-slate-100 rounded-xl">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 sm:gap-2 p-1 bg-slate-100 rounded-xl">
             <button
               onClick={() => { setActiveTab('organizations'); setViewMode('list'); }}
               className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 relative ${
@@ -354,6 +355,14 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
               }`}
             >
               <Mail size={16} className="shrink-0" /> <span className="hidden sm:inline">Email</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('broadcast')}
+              className={`py-3 px-1 sm:px-4 rounded-lg font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1 sm:gap-2 ${
+                activeTab === 'broadcast' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Send size={16} className="shrink-0" /> <span className="hidden sm:inline">Push</span>
             </button>
           </div>
         </div>
@@ -507,6 +516,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
       {/* Bulk Email Tab */}
       {activeTab === 'bulk-email' && (
         <BulkEmailManager onMessage={setMessage} />
+      )}
+
+      {/* Push Broadcast Tab */}
+      {activeTab === 'broadcast' && (
+        <PushBroadcast onMessage={setMessage} />
       )}
 
       {/* Blog Management Tab */}

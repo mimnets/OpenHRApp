@@ -18,6 +18,7 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-05-17',
     title: 'Rush hour performance + iOS PWA fixes',
     entries: [
+      { type: 'feature', description: 'Super Admin push broadcast: new "Push" tab in the Super Admin dashboard sends Web Push notifications to subscribed users. Four target types supported — all users platform-wide, a specific organization, a role across the platform (ADMIN/HR/MANAGER/EMPLOYEE), or a single user by UUID. Recipient count preview before send, confirmation modal for cross-tenant ALL broadcasts, automatic cleanup of stale 410-Gone subscriptions, and a 20-row history feed showing delivered/failed/cleaned counts per broadcast. New broadcasts audit table records every send.' },
       { type: 'feature', description: 'PWA push notifications: employees receive a check-in reminder 15 minutes before their shift starts, and a missed check-in alert 30 minutes after shift start if not yet checked in. Works with app closed and phone locked (iOS 16.4+ with PWA added to Home Screen).' },
       { type: 'fix', description: 'Confirmation email now sent on first registration attempt — admin.createUser does not auto-send; explicit resend call added to register Edge Function' },
       { type: 'improvement', description: 'Checkout page is faster during rush hour: resolveShiftForEmployee now runs in parallel with getActiveAttendance + getConfig instead of sequentially after them, cutting the attendance page load by ~200–400ms.' },

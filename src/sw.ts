@@ -128,7 +128,7 @@ registerRoute(
 self.addEventListener('push', (event: PushEvent) => {
   if (!event.data) return;
 
-  let payload: { title?: string; body?: string; url?: string } = {};
+  let payload: { title?: string; body?: string; url?: string; icon?: string; tag?: string } = {};
   try {
     payload = event.data.json();
   } catch {
@@ -138,11 +138,11 @@ self.addEventListener('push', (event: PushEvent) => {
   const title = payload.title ?? 'OpenHR';
   const options: NotificationOptions = {
     body: payload.body ?? '',
-    icon: '/img/icon-192.png',
+    icon: payload.icon ?? '/img/icon-192.png',
     badge: '/img/icon-192.png',
-    tag: 'openhr-checkin',
+    tag: payload.tag ?? 'openhr-checkin',
     renotify: true,
-    data: { url: payload.url ?? '/attendance' },
+    data: { url: payload.url ?? '/dashboard' },
     vibrate: [200, 100, 200],
   };
 
@@ -151,7 +151,7 @@ self.addEventListener('push', (event: PushEvent) => {
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close();
-  const targetUrl = (event.notification.data?.url as string) ?? '/attendance';
+  const targetUrl = (event.notification.data?.url as string) ?? '/dashboard';
 
   event.waitUntil(
     self.clients
