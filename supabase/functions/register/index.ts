@@ -289,7 +289,7 @@ Deno.serve(async (req: Request) => {
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // sends verification email
+      email_confirm: false,
       user_metadata: { name: adminName },
     });
 
@@ -300,6 +300,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const userId = authData.user.id;
+
+    // admin.createUser does NOT auto-send confirmation email — trigger it explicitly
+    await supabase.auth.resend({ type: 'signup', email });
 
     // ── Create Profile ────────────────────────────────────────────────────
     const randId   = Math.floor(1000 + Math.random() * 9000);

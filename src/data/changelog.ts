@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-17',
+    title: 'Registration email fix',
+    entries: [
+      { type: 'fix', description: 'Confirmation email now sent on first registration attempt — admin.createUser does not auto-send; explicit resend call added to register Edge Function' },
+    ],
+  },
+  {
     date: '2026-05-16',
     title: 'Service layer ported to Supabase',
     entries: [
