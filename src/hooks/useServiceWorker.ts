@@ -2,14 +2,26 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const UPDATE_CHECK_INTERVAL = 60 * 1000; // 60 seconds
+const JUST_UPDATED_KEY = 'pwa-just-updated';
+const SUPPRESS_WINDOW_MS = 30 * 1000;
 
 export function useServiceWorker() {
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
-  const reloadingRef = useRef(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const justUpdatedAtRef = useRef<number | null>(null);
+
+  if (justUpdatedAtRef.current === null && typeof sessionStorage !== 'undefined') {
+    const stored = sessionStorage.getItem(JUST_UPDATED_KEY);
+    if (stored) {
+      justUpdatedAtRef.current = parseInt(stored, 10) || 0;
+      sessionStorage.removeItem(JUST_UPDATED_KEY);
+    } else {
+      justUpdatedAtRef.current = 0;
+    }
+  }
 
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefreshRaw, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
     updateServiceWorker,
   } = useRegisterSW({
@@ -39,11 +51,13 @@ export function useServiceWorker() {
     },
   });
 
-  // Reload when new SW takes control — fallback only when not already reloading
-  // from applyUpdate (which calls updateServiceWorker(true) → location.reload internally)
+  // Reload when new SW takes control. Dedupe via reloadedRef so we never
+  // reload twice (controllerchange + applyUpdate fallback timeout).
+  const reloadedRef = useRef(false);
   useEffect(() => {
     const handleControllerChange = () => {
-      if (reloadingRef.current) return;
+      if (reloadedRef.current) return;
+      reloadedRef.current = true;
       window.location.reload();
     };
     navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
@@ -75,15 +89,34 @@ export function useServiceWorker() {
   }, []);
 
   const applyUpdate = useCallback(() => {
-    reloadingRef.current = true;
     setIsUpdating(true);
+    try {
+      sessionStorage.setItem(JUST_UPDATED_KEY, String(Date.now()));
+    } catch {
+      // sessionStorage unavailable — non-fatal
+    }
     updateServiceWorker(true);
+    // Fallback: if controllerchange never fires within 3s, force reload
+    // so the spinner doesn't hang. Deduped via reloadedRef.
+    setTimeout(() => {
+      if (reloadedRef.current) return;
+      reloadedRef.current = true;
+      window.location.reload();
+    }, 3000);
   }, [updateServiceWorker]);
 
   const close = useCallback(() => {
     setNeedRefresh(false);
     setOfflineReady(false);
   }, [setNeedRefresh, setOfflineReady]);
+
+  // Suppress banner briefly after a just-completed update to break reload loops
+  // where a freshly activated SW immediately reports another update available.
+  const withinSuppressWindow =
+    justUpdatedAtRef.current !== null &&
+    justUpdatedAtRef.current > 0 &&
+    Date.now() - justUpdatedAtRef.current < SUPPRESS_WINDOW_MS;
+  const needRefresh = withinSuppressWindow ? false : needRefreshRaw;
 
   return { needRefresh, offlineReady, applyUpdate, isUpdating, close };
 }
