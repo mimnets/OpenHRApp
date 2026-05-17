@@ -113,7 +113,17 @@ export const authService = {
       // SECURITY: Clear password from memory immediately
       data.password = '';
 
-      if (error) return { success: false, error: error.message };
+      if (error) {
+        let message = error.message;
+        try {
+          // FunctionsHttpError wraps the real body — extract it
+          const body = await (error as any).context?.json?.();
+          if (body?.message) message = body.message;
+        } catch {}
+        console.error('[Auth] Registration 400 body:', message);
+        return { success: false, error: message };
+      }
+      if (result?.message && !result?.success) return { success: false, error: result.message };
       if (result?.error) return { success: false, error: result.error };
 
       return { success: true };
