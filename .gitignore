@@ -29,3 +29,18 @@ dist-ssr
 # Migration exports (contain PII)
 exports/
 scripts/migrate-from-pb/exports/
+
+# Local Claude Code & Agent files
+.agents/
+.claude/
+skills-lock.json
+Modelfile
+
+# Local planning files
+task_plan.md
+findings.md
+progress.md
+
+# Supabase local temp
+supabase/.temp/
+

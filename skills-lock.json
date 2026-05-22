@@ -1,10 +1,25 @@
 {
   "version": 1,
   "skills": {
+    "database-architect": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "f4540da3010d7322e83766266306bf617e6aba0ba226c588504f19245be9a0f3"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
+    "planning-with-files": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "computedHash": "979ffe9fe87851e7ce54d87e1c74660130fc102c0e4a0124a911cc152dc62e06"
+    },
+    "pwa-development": {
+      "source": "alinaqi/claude-bootstrap",
+      "sourceType": "github",
+      "computedHash": "356d9a26a8435778bb3bb906f5198814c48872ae87485ae97f4da3c10a0cfcc5"
     },
     "seo-audit": {
       "source": "coreyhaines31/marketingskills",
@@ -25,6 +40,11 @@
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    },
+    "web-quality-audit": {
+      "source": "addyosmani/web-quality-skills",
+      "sourceType": "github",
+      "computedHash": "1168be21aa9fe7bdc6e6e053ca05b6ca5a45675a527c103cdf77bc56ce8159af"
     }
   }
 }
