@@ -15,6 +15,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-05-22',
+    title: 'Push notification reliability improvements',
+    entries: [
+      { type: 'fix', description: 'Fixed service worker push handler to gracefully handle empty push events; added SKIP_WAITING message handler for manual updates.' },
+      { type: 'fix', description: 'Updated Edge Function admin-send-push to use JWK VAPID key format and removed payload encryption, improving delivery reliability.' },
+      { type: 'improvement', description: 'Cleanup: Removed legacy Ezoic and Ahrefs analytics scripts from index.html.' },
+    ],
+  },
+  {
     date: '2026-05-17',
     title: 'Rush hour performance + iOS PWA fixes',
     entries: [

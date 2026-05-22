@@ -8,6 +8,12 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 declare const self: ServiceWorkerGlobalScope;
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 clientsClaim();
 cleanupOutdatedCaches();
 
@@ -126,17 +132,19 @@ registerRoute(
 // ── Web Push handlers ────────────────────────────────────────────────────────
 
 self.addEventListener('push', (event: PushEvent) => {
-  if (!event.data) return;
-
   let payload: { title?: string; body?: string; url?: string; icon?: string; tag?: string } = {};
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: 'OpenHR', body: event.data.text() };
+
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { title: 'OpenHR', body: event.data.text() };
+    }
   }
+  // Empty push (no payload) — show generic notification
 
   const title = payload.title ?? 'OpenHR';
-  const options: NotificationOptions = {
+  const options = {
     body: payload.body ?? '',
     icon: payload.icon ?? '/img/icon-192.png',
     badge: '/img/icon-192.png',

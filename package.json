@@ -27,6 +27,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.460.0",
+    "nodemailer": "^8.0.7",
     "pocketbase": "0.25.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

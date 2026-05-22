@@ -11,6 +11,11 @@
 -- scripts/setup-cron-edge-functions.sql after deploying Edge Functions.
 -- ============================================================
 
+-- pg_cron: must be enabled in Supabase Dashboard → Database → Extensions → pg_cron
+-- before running this migration. The extension requires superuser and cannot be
+-- created inside a regular migration.
+-- create extension if not exists pg_cron;  ← run manually if not yet enabled
+
 -- pg_net: enables net.http_post() for calling Edge Functions from pg_cron
 create extension if not exists pg_net with schema extensions;
 

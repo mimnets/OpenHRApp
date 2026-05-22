@@ -47,7 +47,7 @@ async function sendWebPush(
   vapidPublicKey: string,
   vapidPrivateKey: string,
   vapidSubject: string,
-): Promise<boolean> {
+): Promise<{ ok: boolean; status: number }> {
   const audience = new URL(sub.endpoint).origin;
   const expiry = Math.floor(Date.now() / 1000) + 12 * 3600;
 
@@ -58,13 +58,27 @@ async function sendWebPush(
 
   const signingInput = `${header}.${claims}`;
 
-  const rawKey = Uint8Array.from(
-    atob(vapidPrivateKey.replace(/-/g, '+').replace(/_/g, '/')),
+  // Decode public key (65 bytes: 0x04 || X(32) || Y(32))
+  const pubBytes = Uint8Array.from(
+    atob(vapidPublicKey.replace(/-/g, '+').replace(/_/g, '/')),
     (c) => c.charCodeAt(0),
   );
+  const xBytes = pubBytes.slice(1, 33);
+  const yBytes = pubBytes.slice(33, 65);
+  const toB64Url = (b: Uint8Array) =>
+    btoa(String.fromCharCode(...b))
+      .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const jwk: JsonWebKey = {
+    kty: 'EC',
+    crv: 'P-256',
+    x: toB64Url(xBytes),
+    y: toB64Url(yBytes),
+    d: vapidPrivateKey.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_'),
+    ext: true,
+  };
   const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    rawKey,
+    'jwk',
+    jwk,
     { name: 'ECDSA', namedCurve: 'P-256' },
     false,
     ['sign'],
@@ -78,25 +92,29 @@ async function sendWebPush(
     .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 
   const jwt = `${signingInput}.${sig}`;
-  const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
+  // Note: sending without payload (no encryption). Browser shows generic SW push event with empty data.
+  // Service worker push handler must handle empty data case.
+  void payload;
 
   try {
     const response = await fetch(sub.endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `vapid t=${jwt},k=${vapidPublicKey}`,
-        'Content-Type': 'application/json',
         'TTL': '86400',
       },
-      body: payloadBytes,
     });
-    return response.ok || response.status === 201;
-  } catch {
-    return false;
+    const text = await response.text();
+    console.log(`[push-send] status=${response.status} endpoint=${sub.endpoint.slice(0, 60)} body=${text.slice(0, 200)}`);
+    return { ok: response.ok || response.status === 201, status: response.status };
+  } catch (e) {
+    console.error(`[push-send] throw`, e);
+    return { ok: false, status: 0 };
   }
 }
 
 Deno.serve(async (req: Request) => {
+  try {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -126,7 +144,7 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: profile } = await admin
     .from('profiles')
-    .select('id, role, full_name')
+    .select('id, role, name')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -230,13 +248,16 @@ Deno.serve(async (req: Request) => {
   let staleCleaned = 0;
 
   for (const sub of subs) {
-    const ok = await sendWebPush(sub, payload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-    if (ok) {
+    const result = await sendWebPush(sub, payload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+    if (result.ok) {
       deliveredCount++;
     } else {
       failedCount++;
-      await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-      staleCleaned++;
+      // Only delete subscription if push service says it's gone (404/410)
+      if (result.status === 404 || result.status === 410) {
+        await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+        staleCleaned++;
+      }
     }
   }
 
@@ -244,7 +265,7 @@ Deno.serve(async (req: Request) => {
     .from('broadcasts')
     .insert({
       sent_by: user.id,
-      sent_by_name: profile.full_name ?? null,
+      sent_by_name: profile.name ?? null,
       title: title!,
       body: msgBody!,
       url: url ?? null,
@@ -275,4 +296,11 @@ Deno.serve(async (req: Request) => {
     failedCount,
     staleCleaned,
   });
+  } catch (err) {
+    console.error('[admin-send-push] unhandled', err);
+    return jsonResponse(500, {
+      success: false,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
 });
