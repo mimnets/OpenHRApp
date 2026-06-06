@@ -20,7 +20,7 @@ function mapProfileToEmployee(r: any): Employee {
     shiftId: r.shift_id || undefined,
     organizationId: r.organization_id,
     name: r.name || 'No Name',
-    email: r.email || '',
+    email: r.email || r.work_email || '',
     role: (r.role || 'EMPLOYEE').toUpperCase(),
     department: r.department || 'Unassigned',
     designation: r.designation || 'Staff',

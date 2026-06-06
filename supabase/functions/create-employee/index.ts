@@ -83,6 +83,9 @@ Deno.serve(async (req: Request) => {
       return jsonError(400, 'Failed to create user: ' + createErr?.message);
     }
 
+    // admin.createUser does NOT auto-send verification email — trigger it explicitly
+    await adminClient.auth.resend({ type: 'signup', email });
+
     const userId = authData.user.id;
 
     // Upload avatar if provided

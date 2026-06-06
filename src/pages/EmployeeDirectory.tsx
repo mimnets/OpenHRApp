@@ -129,6 +129,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
         }
       }
       setEmployees(filteredData);
+      console.log('First employee email:', filteredData[0]?.email);
     } catch (err) {
       console.error("Error fetching employees:", err);
     } finally {
