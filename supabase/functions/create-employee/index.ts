@@ -86,6 +86,7 @@ Deno.serve(async (req: Request) => {
     // admin.createUser does NOT auto-send verification email — trigger it explicitly
     await adminClient.auth.resend({ type: 'signup', email });
 
+
     const userId = authData.user.id;
 
     // Upload avatar if provided

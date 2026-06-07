@@ -1,4 +1,3 @@
-
 import { authService } from './auth.service';
 import { employeeService } from './employee.service';
 import { attendanceService } from './attendance.service';
@@ -15,7 +14,7 @@ import { apiClient } from './api.client';
 export const hrService = {
   subscribe: apiClient.subscribe.bind(apiClient),
   notify: apiClient.notify.bind(apiClient),
-  
+
   // Auth
   login: authService.login,
   logout: authService.logout,
@@ -23,7 +22,7 @@ export const hrService = {
   registerOrganization: authService.registerOrganization,
   requestVerificationEmail: authService.requestVerificationEmail,
   confirmVerification: verificationService.verifyEmailToken,
-  
+
   // Employee
   getEmployees: employeeService.getEmployees,
   addEmployee: employeeService.addEmployee,

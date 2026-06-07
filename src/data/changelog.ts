@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'Admin verify & activate employee accounts',
     entries: [
       { type: 'feature', description: 'Admins can now manually verify and activate an employee account from the Employee Directory. A new Verify button (shown only on unverified accounts) confirms the user\'s email in auth and flips their verified flag via the new admin-verify-employee Edge Function, letting them log in immediately without clicking the email link. The function enforces ADMIN/HR/SUPER_ADMIN caller role and same-organization scope.' },
+      { type: 'fix', description: 'Fixed CORS preflight failure on the admin-verify-employee Edge Function by adding Access-Control-Allow-Methods header. Resolved merge conflicts that truncated EmployeeDirectory.tsx and left conflict markers in verification.service.ts, hrService.ts, employee.service.ts, types.ts, and create-employee.' },
     ],
   },
   {
