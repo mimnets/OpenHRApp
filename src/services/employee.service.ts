@@ -21,6 +21,7 @@ function mapProfileToEmployee(r: any): Employee {
     organizationId: r.organization_id,
     name: r.name || 'No Name',
     email: r.email || r.work_email || '',
+    email: r.email || '',
     role: (r.role || 'EMPLOYEE').toUpperCase(),
     department: r.department || 'Unassigned',
     designation: r.designation || 'Staff',

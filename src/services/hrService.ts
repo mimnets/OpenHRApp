@@ -31,6 +31,7 @@ export const hrService = {
   deleteEmployee: employeeService.deleteEmployee,
   activateUser: verificationService.adminActivateUser,
 
+  
   // Attendance
   getAttendance: attendanceService.getAttendance,
   getActiveAttendance: attendanceService.getActiveAttendance,
