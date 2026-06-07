@@ -313,6 +313,7 @@ Deno.serve(async (req: Request) => {
       id:              userId,
       organization_id: orgId,
       name:            adminName,
+      email,
       role:            'ADMIN',
       employee_id:     adminId,
       designation:     'System Admin',

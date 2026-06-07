@@ -110,6 +110,7 @@ Deno.serve(async (req: Request) => {
       id:              userId,
       organization_id: orgId,
       name,
+      email,
       role,
       employee_id:     employeeId || null,
       department:      department || null,
