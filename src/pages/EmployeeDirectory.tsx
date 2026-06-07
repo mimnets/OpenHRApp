@@ -10,6 +10,7 @@ import {
   Trash2,
   Save,
   ShieldCheck,
+  BadgeCheck,
   Mail,
   RefreshCw,
   AlertCircle,
@@ -286,6 +287,18 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
       } catch (err: any) {
         showToast(err.message, 'error');
       }
+    }
+  };
+
+  const handleActivate = async (emp: Employee) => {
+    if (!isAdmin) return;
+    if (!confirm(`Activate ${emp.name}'s account? This confirms their email so they can log in immediately.`)) return;
+    const result = await hrService.activateUser(emp.id);
+    if (result.success) {
+      showToast(`${emp.name} activated`, 'success');
+      await fetchEmployees();
+    } else {
+      showToast(result.message, 'error');
     }
   };
 
@@ -624,6 +637,9 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
                   </div>
                   {isAdmin && (
                     <div className="flex gap-0.5 flex-shrink-0 bg-slate-50/80 p-1 rounded-lg" onClick={(e) => e.stopPropagation()}>
+                      {!emp.verified && (
+                        <button onClick={() => handleActivate(emp)} title="Verify & activate account" className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all"><BadgeCheck size={14} /></button>
+                      )}
                       <button onClick={() => handleOpenEdit(emp)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-white rounded-md transition-all"><Edit size={14} /></button>
                       <button onClick={() => handleDelete(emp.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all"><Trash2 size={14} /></button>
                     </div>

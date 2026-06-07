@@ -33,6 +33,7 @@ function mapProfileToEmployee(r: any): Employee {
     employmentType: r.employment_type || 'PERMANENT',
     location: r.location || '',
     workType: r.work_type || 'OFFICE',
+    verified: !!r.verified,
   } as any;
 }
 

@@ -1,5 +1,10 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient } from './api.client';
+import { employeeService } from './employee.service';
+
+const SUPABASE_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : null;
 
 export const verificationService = {
   async checkVerified(email: string): Promise<boolean> {
@@ -66,6 +71,37 @@ export const verificationService = {
       return { success: true, message: 'User verified successfully' };
     } catch (err: any) {
       return { success: false, message: err?.message || 'Verification failed' };
+    }
+  },
+
+  // Fully activate an account: confirms the email in Supabase auth (so the user can
+  // log in without clicking the link) AND flips profiles.verified. Requires the
+  // service-role key, so it runs through the admin-verify-employee Edge Function.
+  async adminActivateUser(userId: string): Promise<{ success: boolean; message: string }> {
+    if (!isSupabaseConfigured() || !SUPABASE_FUNCTIONS_URL) {
+      return { success: false, message: 'Supabase not configured' };
+    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return { success: false, message: 'Not authenticated' };
+
+      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/admin-verify-employee`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return { success: false, message: json.message || 'Activation failed' };
+
+      employeeService.clearCache();
+      apiClient.notify();
+      return { success: true, message: 'Account activated' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Activation failed' };
     }
   },
 
