@@ -29,6 +29,8 @@ export const hrService = {
   addEmployee: employeeService.addEmployee,
   updateProfile: employeeService.updateProfile,
   deleteEmployee: employeeService.deleteEmployee,
+  activateUser: verificationService.adminActivateUser,
+
   
   // Attendance
   getAttendance: attendanceService.getAttendance,

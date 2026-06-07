@@ -116,6 +116,7 @@ export interface User {
   teamId?: string;
   shiftId?: string;
   organizationId?: string;
+  verified?: boolean;
 }
 
 export interface Employee extends User {

@@ -20,6 +20,7 @@ function mapProfileToEmployee(r: any): Employee {
     shiftId: r.shift_id || undefined,
     organizationId: r.organization_id,
     name: r.name || 'No Name',
+    email: r.email || r.work_email || '',
     email: r.email || '',
     role: (r.role || 'EMPLOYEE').toUpperCase(),
     department: r.department || 'Unassigned',
@@ -33,6 +34,7 @@ function mapProfileToEmployee(r: any): Employee {
     employmentType: r.employment_type || 'PERMANENT',
     location: r.location || '',
     workType: r.work_type || 'OFFICE',
+    verified: !!r.verified,
   } as any;
 }
 
