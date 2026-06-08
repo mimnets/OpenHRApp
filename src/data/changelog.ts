@@ -16,6 +16,15 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-06-08',
+    title: 'PocketBase fully removed — Supabase-only backend',
+    entries: [
+      { type: 'improvement', description: 'PocketBase SDK removed from the project. Removed the pocketbase npm package, esm.sh import map entry, and prebuild validation of PB hooks. All remaining PocketBase API calls (ad banners, middleware, sitemap/feed generators) migrated to Supabase. Created new public-ad-config Edge Function for unauthenticated ad banner support.' },
+      { type: 'improvement', description: 'AdBanner now queries Supabase settings table directly (ad_config_<slot> key). PublicAdBanner uses new public-ad-config Edge Function. Middleware (social crawler prerender) now fetches blog/tutorial metadata from Supabase REST API. Sitemap and RSS feed generators now use Supabase REST API.' },
+      { type: 'improvement', description: 'Cleaned up project: removed 145MB PocketBase database backup, duplicate/backup pb_hook files, old Claude_Prompt debug artifacts, PSD design files, .DS_Store files, and other unnecessary files. The pocketbase.ts service is now a stub for backward compatibility. database.ts updated to reflect Supabase-only backend.' },
+    ],
+  },
+  {
+    date: '2026-06-08',
     title: 'Fixed all cron jobs failing — pg_net extension upgrade',
     entries: [
       { type: 'feature', description: 'ADMIN and HR roles now see cross-organization attendance records and leave requests. apiClient caches the user role after login and getCurrentUser. Attendance fetching now paginates through results in 1000-row pages instead of a single limited query.' },

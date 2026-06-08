@@ -1,5 +1,4 @@
 
-import { pb, isPocketBaseConfigured } from './pocketbase';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { convertToWebP } from '../utils/imageConvert';
 
@@ -70,9 +69,7 @@ export async function resolveOrgId(): Promise<string | undefined> {
 }
 
 export const apiClient = {
-  pb,
   supabase,
-  isConfigured: isPocketBaseConfigured,
   isSupabaseConfigured,
 
   // Event Bus for global state updates

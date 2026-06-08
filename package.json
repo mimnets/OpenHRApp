@@ -5,12 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/validate-pb-hooks.cjs",
     "build": "vite build && node scripts/generate-sitemap.mjs && node scripts/generate-feed.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
     "feed": "node scripts/generate-feed.mjs",
     "preview": "vite preview",
-    "validate:hooks": "node scripts/validate-pb-hooks.cjs",
     "optimize-icons": "node scripts/optimize-icons.mjs",
     "migrate:export": "node scripts/migrate-from-pb/01-export.mjs",
     "migrate:import": "node scripts/migrate-from-pb/02-import.mjs",
@@ -28,7 +26,6 @@
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.460.0",
     "nodemailer": "^8.0.7",
-    "pocketbase": "0.25.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "recharts": "2.13.3"
