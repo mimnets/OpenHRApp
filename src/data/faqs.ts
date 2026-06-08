@@ -8,7 +8,7 @@ export const faqs = [
       },
       {
         q: 'Is OpenHRApp really free?',
-        a: 'Yes! OpenHRApp offers a free ad-supported plan for small teams. We also offer premium plans with additional features like advanced analytics, priority support, and no ads.',
+        a: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported. If you would like to remove ads for your organization, you can make a small donation to support the project.',
       },
     ],
   },
@@ -78,23 +78,23 @@ export const faqs = [
     ],
   },
   {
-    category: 'Pricing',
+    category: 'Pricing & Support',
     items: [
       {
-        q: 'What happens after my 14-day trial?',
-        a: 'After your trial ends, you can choose to continue with our free ad-supported plan or upgrade to a premium plan for additional features and ad-free experience.',
+        q: 'Is there a free trial or time limit?',
+        a: 'There is no trial period because OpenHRApp is permanently free. There are no time limits, no feature gates, and no employee caps. You can use it for as long as you want without paying anything.',
       },
       {
-        q: 'Can I upgrade or downgrade anytime?',
-        a: 'Yes. You can change your plan at any time from the Settings page. Upgrades take effect immediately, and downgrades apply at the next billing cycle.',
+        q: 'How do I remove ads from my organization?',
+        a: 'You can remove ads by making a donation to support the project through GitHub Sponsors. Any amount helps — once your sponsorship is confirmed, ads will be disabled for your organization. Contact us after sponsoring and we will enable the ad-free experience for your account.',
       },
       {
         q: 'What features should I look for in HR management software?',
-        a: 'A good HRMS should include attendance tracking, leave management, an employee directory, and reporting tools. OpenHRApp provides all of these plus performance reviews and GPS geofencing — all in one free, open-source platform.',
+        a: 'A good HRMS should include attendance tracking, leave management, an employee directory, and reporting tools. OpenHRApp provides all of these plus performance reviews and GPS geofencing — all for free in one open-source platform.',
       },
       {
         q: 'Can small businesses use OpenHRApp for free?',
-        a: 'Absolutely. The Free plan supports up to 10 employees with full access to attendance tracking, leave management, and employee directory features. It is ideal for startups and small businesses looking for a no-cost HR solution.',
+        a: 'Absolutely. OpenHRApp has no user limits, no employee caps, and no feature restrictions — small businesses and large enterprises get the same full-featured, free experience. It is ideal for organizations of any size looking for a no-cost HR solution.',
       },
     ],
   },
@@ -107,7 +107,7 @@ export const faqs = [
       },
       {
         q: 'Does OpenHRApp support multi-location attendance tracking?',
-        a: 'Yes. OpenHRApp supports GPS geofencing, allowing you to define office locations and verify that employees are checking in from authorized sites. The Enterprise plan includes advanced multi-location management for organizations with multiple branches.',
+        a: 'Yes. OpenHRApp supports GPS geofencing, allowing you to define office locations and verify that employees are checking in from authorized sites. Organizations with multiple branches can set up and manage location-specific attendance rules.',
       },
     ],
   },

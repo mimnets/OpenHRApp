@@ -1,139 +1,100 @@
 import React from 'react';
-import { Check, ArrowRight } from 'lucide-react';
+import { Heart, Coffee, Shield, Zap, Users, Calendar, MapPin, BarChart3, ClipboardCheck, Globe } from 'lucide-react';
 
 interface PricingSectionProps {
   onRegisterClick: () => void;
 }
 
-const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    description: 'Perfect for small teams getting started with HR management.',
-    features: [
-      'Up to 10 employees',
-      'Selfie-based attendance tracking',
-      'Leave management',
-      'Employee directory',
-      'Basic reports',
-      'PWA mobile app',
-      'Ad-supported',
-    ],
-    cta: 'Get Started Free',
-    featured: false,
-  },
-  {
-    name: 'Pro',
-    price: '$29',
-    period: '/month',
-    description: 'For growing organizations that need advanced HR features.',
-    features: [
-      'Up to 100 employees',
-      'Everything in Free',
-      'Advanced analytics & reports',
-      'Performance reviews',
-      'Custom leave policies',
-      'Priority email support',
-      'No ads',
-      'Data export',
-    ],
-    cta: 'Start Free Trial',
-    featured: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '$99',
-    period: '/month',
-    description: 'For large organizations with complex HR requirements.',
-    features: [
-      'Unlimited employees',
-      'Everything in Pro',
-      'Multi-location support',
-      'Custom integrations',
-      'Dedicated account manager',
-      'SSO / SAML',
-      'Audit logs',
-      'SLA guarantee',
-    ],
-    cta: 'Contact Sales',
-    featured: false,
-  },
+const features = [
+  { icon: MapPin, label: 'Selfie-based attendance with GPS' },
+  { icon: Calendar, label: 'Leave management & balances' },
+  { icon: Users, label: 'Employee directory & profiles' },
+  { icon: BarChart3, label: 'Reports & data export' },
+  { icon: ClipboardCheck, label: 'Performance reviews' },
+  { icon: Globe, label: 'PWA — works on any device' },
+  { icon: Shield, label: 'Open source — audit the code' },
+  { icon: Zap, label: 'No user or employee limits' },
 ];
 
 const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
   return (
     <section id="pricing" className="py-20 md:py-28 bg-white dark:bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-xs font-bold text-primary uppercase tracking-wide">Pricing</span>
+          <span className="text-xs font-bold text-primary uppercase tracking-wide">Free & Open Source</span>
           <h2 className="text-3xl sm:text-4xl font-semibold text-slate-900 dark:text-white mt-3 mb-4">
-            Plans for Teams of All Sizes
+            Completely Free. No Catch.
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-lg">
-            Start free and upgrade as you grow. All plans include a 14-day free trial of Pro features — no credit card required.
+            OpenHRApp is free and open-source software. Every feature is available to every organization — no paywalls, no user limits, no credit card required.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-2xl p-6 lg:p-8 flex flex-col ${
-                plan.featured
-                  ? 'bg-primary text-white ring-4 ring-primary/20 shadow-xl shadow-primary/10 scale-[1.02]'
-                  : 'bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700'
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
-                  Most Popular
-                </div>
-              )}
-              <div className="mb-6">
-                <h3 className={`text-lg font-bold mb-1 ${plan.featured ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                  {plan.name}
-                </h3>
-                <p className={`text-sm ${plan.featured ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'}`}>
-                  {plan.description}
-                </p>
+        {/* Main Card */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="bg-primary rounded-3xl p-8 md:p-12 text-center text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/3 translate-x-1/3" aria-hidden="true" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/3" aria-hidden="true" />
+
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 rounded-full mb-6">
+                <Heart size={14} className="text-rose-300" />
+                <span className="text-xs font-bold text-white/90">Community-Powered</span>
               </div>
+
               <div className="mb-6">
-                <span className={`text-4xl font-bold ${plan.featured ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                  {plan.price}
-                </span>
-                <span className={`text-sm font-medium ${plan.featured ? 'text-white/60' : 'text-slate-400'}`}>
-                  {plan.period}
-                </span>
+                <span className="text-5xl md:text-6xl font-bold">$0</span>
+                <span className="text-xl text-white/70 font-medium"> — forever</span>
               </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <Check
-                      size={16}
-                      className={`mt-0.5 flex-shrink-0 ${
-                        plan.featured ? 'text-white' : 'text-emerald-500'
-                      }`}
-                    />
-                    <span className={`text-sm font-medium ${plan.featured ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+
+              <p className="text-white/80 text-lg mb-8 max-w-md mx-auto">
+                All features included. No hidden fees. No premium tiers. Just free, open-source HR software for everyone.
+              </p>
+
               <button
                 onClick={onRegisterClick}
-                className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                  plan.featured
-                    ? 'bg-white text-primary hover:bg-slate-50 shadow-sm'
-                    : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100'
-                }`}
+                className="px-8 py-4 bg-white text-primary font-bold text-sm rounded-2xl hover:bg-slate-50 transition-colors shadow-lg inline-flex items-center gap-2"
               >
-                {plan.cta} <ArrowRight size={16} />
+                Get Started Free <Zap size={16} />
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
+          {features.map((f) => (
+            <div key={f.label} className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-xl p-4">
+              <f.icon size={18} className="text-primary flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{f.label}</span>
             </div>
           ))}
         </div>
+
+        {/* Donation Card */}
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-8 md:p-10 text-center">
+            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Coffee size={22} className="text-amber-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+              Support the Project
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-4">
+              OpenHRApp is independently maintained and funded by the community. If you'd like to remove ads from your organization, you can make a small donation to support development — any amount helps keep the project alive.
+            </p>
+            <a
+              href="https://github.com/sponsors/mimnets"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+            >
+              <Heart size={14} /> Sponsor on GitHub
+            </a>
+          </div>
+        </div>
+
       </div>
     </section>
   );

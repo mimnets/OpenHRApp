@@ -19,7 +19,7 @@ const CTASection: React.FC<CTASectionProps> = ({ onRegisterClick }) => {
               Ready to Transform Your HR?
             </h2>
             <p className="text-lg text-white/80 max-w-xl mx-auto mb-8">
-              Start your 14-day free trial today. No credit card required. Set up in minutes.
+              Get started today — completely free. No credit card, no time limits, no catches.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
@@ -30,7 +30,7 @@ const CTASection: React.FC<CTASectionProps> = ({ onRegisterClick }) => {
               </button>
             </div>
             <p className="text-sm text-white/60 mt-4">
-              Or continue with our free ad-supported plan
+              Free and open-source — forever
             </p>
           </div>
         </div>

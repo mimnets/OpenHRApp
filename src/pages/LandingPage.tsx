@@ -32,7 +32,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
 
     updatePageMeta(
       'OpenHRApp — Free Open-Source HR Management Software',
-      'OpenHRApp is a free, open-source HR platform with attendance tracking, leave management, and employee directory. Start your 14-day free trial — no credit card required.',
+      'OpenHRApp is a free, open-source HR platform with attendance tracking, leave management, and employee directory. Get started today — no credit card required, completely free forever.',
       'https://openhrapp.com/',
       'https://openhrapp.com/img/screenshot-wide.webp'
     );
@@ -77,7 +77,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
               name: 'Is OpenHRApp really free?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Yes! OpenHRApp offers a free ad-supported plan for small teams. We also offer premium plans with additional features like advanced analytics, priority support, and no ads.',
+                text: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported, and you can remove ads by making a small donation to support the project.',
               },
             },
             {

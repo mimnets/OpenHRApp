@@ -101,7 +101,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 mb-16">
             <div className="flex items-center gap-2 text-slate-400">
               <Clock size={16} className="text-emerald-500" />
-              <span className="text-xs font-semibold">14-day free trial</span>
+              <span className="text-xs font-semibold">Free forever</span>
             </div>
             <div className="flex items-center gap-2 text-slate-400">
               <CreditCard size={16} className="text-emerald-500" />
