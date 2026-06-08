@@ -50,7 +50,8 @@ export const leaveService = {
           .gte('applied_date', since)
           .order('applied_date', { ascending: false });
 
-        if (orgId) query = query.eq('organization_id', orgId);
+        if (orgId && apiClient.getAuthRole() !== 'ADMIN' && apiClient.getAuthRole() !== 'HR')
+          query = query.eq('organization_id', orgId);
 
         const { data, error } = await query;
         if (error) throw error;

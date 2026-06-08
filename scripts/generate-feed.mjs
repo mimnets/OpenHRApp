@@ -13,10 +13,17 @@ import fs from 'fs';
 import path from 'path';
 
 const SITE_URL = 'https://openhrapp.com';
-const PB_URL = 'https://pocketbase.mimnets.com';
+const SUPABASE_URL = 'https://cixryuwtdwbofabctrkk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeHJ5dXd0bHdib2ZhYmN0cmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTgzMjcsImV4cCI6MjA5NDEzNDMyN30.DIsKHuNmR6ivb2oAdukpDDV8XSlK9km1KJDQ0O8yUEE';
 const FEED_TITLE = 'OpenHR';
 const FEED_DESCRIPTION =
   'Articles, guides, and product updates from OpenHR — the open-source HR management system.';
+
+const SUPABASE_HEADERS = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Accept': 'application/json',
+};
 
 // Mirrors src/data/features.ts (FEATURES array). Kept here to avoid importing
 // .ts/JSX from a Node script. If you add or rename a feature in features.ts,
@@ -90,21 +97,31 @@ function parseDate(input) {
   return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-async function fetchAllPages(endpoint, recordsKey) {
+async function fetchAllRows(table) {
   const items = [];
-  let page = 1;
+  const limit = 1000;
+  let offset = 0;
   while (true) {
-    const res = await fetch(`${PB_URL}${endpoint}?page=${page}&limit=100`);
+    const params = new URLSearchParams({
+      select: 'slug,title,excerpt,author_name,published_at,created_at,category',
+      status: 'eq.published',
+      order: 'published_at.desc',
+      limit: String(limit),
+      offset: String(offset),
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: SUPABASE_HEADERS });
     if (!res.ok) {
-      console.warn(`  Warning: ${endpoint} returned ${res.status}`);
+      console.warn(`  Warning: ${table} returned ${res.status}`);
       break;
     }
-    const data = await res.json();
-    const records = data[recordsKey] || [];
-    if (records.length === 0) break;
+    const rangeHeader = res.headers.get('content-range');
+    const records = await res.json();
+    if (!records.length) break;
     items.push(...records);
-    if (page >= (data.totalPages || 1)) break;
-    page++;
+    const totalFromRange = rangeHeader ? parseInt(rangeHeader.split('/')[1], 10) : null;
+    if (totalFromRange !== null && items.length >= totalFromRange) break;
+    if (records.length < limit) break;
+    offset += limit;
   }
   return items;
 }
@@ -128,7 +145,7 @@ async function main() {
 
   let posts = [];
   try {
-    posts = await fetchAllPages('/api/openhr/blog/posts', 'posts');
+    posts = await fetchAllRows('blog_posts');
     console.log(`  Found ${posts.length} blog post(s)`);
   } catch (e) {
     console.warn('  Warning: Could not fetch blog posts:', e.message);
@@ -136,7 +153,7 @@ async function main() {
 
   let tutorials = [];
   try {
-    tutorials = await fetchAllPages('/api/openhr/tutorials/posts', 'tutorials');
+    tutorials = await fetchAllRows('tutorials');
     console.log(`  Found ${tutorials.length} tutorial(s)`);
   } catch (e) {
     console.warn('  Warning: Could not fetch tutorials:', e.message);

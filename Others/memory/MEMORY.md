@@ -1,0 +1,5 @@
+- [User prefers thorough audits](feedback_thorough-audits.md) — When asked to check for problems, do comprehensive audit + migration + cleanup + memory
+- [Attendance migration gaps — Tasyeea/Tanha](attendance-migration-gaps.md) — Records possibly missing from PB→Supabase migration; investigation ready when backup available
+- [Deep audit 2026-06-08](audit-2026-06-08.md) — Comprehensive audit findings, problems fixed, PB cleanup performed
+- [PB to Supabase migration status](pb-to-supabase-migration-status.md) — Complete migration status, what was ported, what remains
+- [Supabase project reference](supabase-reference.md) — Project URL, Edge Functions, cron jobs, migrations, storage buckets

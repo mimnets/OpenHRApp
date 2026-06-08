@@ -61,7 +61,14 @@
       "Bash(git rm:*)",
       "Bash(git checkout *)",
       "Bash(git reset:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git stash *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(npx vite *)",
+      "Bash(echo \"Server status: $\\(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(sqlite3 *)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

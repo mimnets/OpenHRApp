@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Secrets & credentials — NEVER commit
+.env
+.env.production
+.env.*.local
+*.pem
+*.key
+*_SECRET_KEY
+*_SERVICE_ROLE_KEY
+service-account*.json
+credentials*.json
+
 # Design source files
 *.psd
 
@@ -30,11 +41,14 @@ dist-ssr
 exports/
 scripts/migrate-from-pb/exports/
 
-# Local Claude Code & Agent files
-.agents/
-.claude/
+# Local Claude Code & Agent files (skills are tracked)
+.agents/*
+!.agents/skills/
+.claude/*
+!.claude/settings.json
+!.claude/settings.local.json
+!.claude/skills/
 skills-lock.json
-Modelfile
 
 # Local planning files
 task_plan.md
@@ -43,4 +57,3 @@ progress.md
 
 # Supabase local temp
 supabase/.temp/
-

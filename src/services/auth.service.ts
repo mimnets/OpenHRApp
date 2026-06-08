@@ -52,6 +52,7 @@ export const authService = {
 
     const appUser = profileToUser({ ...profile, email: authData.user.email });
     apiClient.setOrganizationId(profile.organization_id);
+    apiClient.setAuthRole(profile.role);
     return { user: appUser };
   },
 
@@ -148,6 +149,7 @@ export const authService = {
     if (!profile) return null;
     // Keep apiClient org ID warm for page-refresh case (login() not called)
     apiClient.setOrganizationId(profile.organization_id ?? undefined);
+    apiClient.setAuthRole(profile.role ?? undefined);
     return profileToUser({ ...profile, email: user.email });
   },
 };

@@ -1,54 +1,18 @@
-import PocketBase from 'pocketbase';
-import { getDatabaseUrl } from '../config/database';
+// PocketBase stub — migrated to Supabase (2026-05).
+// Kept for backward compatibility with remaining references to isPocketBaseConfigured / pb.
+// All backend operations now go through src/services/supabase.ts.
 
-/**
- * PocketBase Client Service
- * 
- * Initializes the PocketBase client using the configuration
- * defined in config/database.ts
- */
+export const pb = null;
 
-const getCleanUrl = (url: string) => {
-  if (!url) return '';
-  
-  // Normalize whitespace and remove trailing slashes
-  let cleaned = url.trim().replace(/\/+$/, '');
-  
-  // Strip trailing /api if added manually (SDK appends it)
-  cleaned = cleaned.replace(/\/api$/, '');
-
-  // Force HTTPS in production unless it's a local/development IP
-  if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
-    const isLocal = cleaned.includes('localhost') || cleaned.includes('127.0.0.1') || cleaned.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/);
-    cleaned = (isLocal ? 'http://' : 'https://') + cleaned;
-  }
-  
-  return cleaned;
+export const isPocketBaseConfigured = (): boolean => {
+  // Always return true — backend is Supabase which is always configured.
+  return true;
 };
 
-// Resolve Configuration from the config module
-const dbConfig = getDatabaseUrl();
-const finalUrl = getCleanUrl(dbConfig.url);
-
-// Initialize the PocketBase client
-export const pb = finalUrl ? new PocketBase(finalUrl) : null;
-
-if (pb) {
-  // CRITICAL: Disable autoCancellation to prevent concurrent requests from killing each other
-  pb.autoCancellation(false);
-}
-
-// In this strict mode, we always return true because the URL is hardcoded in config/database.ts
-export const isPocketBaseConfigured = () => {
-  return true; 
-};
-
-// Export the config getter for UI components that need to display it
 export const getPocketBaseConfig = () => {
-  return getDatabaseUrl();
+  return { url: '', source: 'SUPABASE' };
 };
 
-// This function is kept for compatibility but does nothing in Hardcoded mode
 export const updatePocketBaseConfig = (_newConfig: unknown, _shouldReload = true) => {
-  console.log("Configuration is managed by the build, not user settings.");
+  console.log('Backend is Supabase — config managed via environment variables.');
 };

@@ -1,7 +1,7 @@
 /**
  * Sitemap Generator
  *
- * Fetches published blog posts and tutorials from PocketBase,
+ * Fetches published blog posts and tutorials from Supabase,
  * then generates a complete sitemap.xml with all public pages.
  *
  * Usage: node scripts/generate-sitemap.mjs
@@ -9,7 +9,8 @@
  */
 
 const SITE_URL = 'https://openhrapp.com';
-const PB_URL = 'https://pocketbase.mimnets.com';
+const SUPABASE_URL = 'https://cixryuwtdwbofabctrkk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeHJ5dXd0bHdib2ZhYmN0cmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTgzMjcsImV4cCI6MjA5NDEzNDMyN30.DIsKHuNmR6ivb2oAdukpDDV8XSlK9km1KJDQ0O8yUEE';
 const TODAY = new Date().toISOString().split('T')[0];
 
 // Static pages with their changefreq and priority
@@ -30,21 +31,39 @@ const STATIC_PAGES = [
   { path: '/terms', changefreq: 'monthly', priority: '0.3' },
 ];
 
-async function fetchAllPages(endpoint) {
+const SUPABASE_HEADERS = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+};
+
+async function fetchAllRows(table, select = 'slug,updated_at,published_at') {
   const items = [];
-  let page = 1;
+  const limit = 1000;
+  let offset = 0;
   while (true) {
-    const res = await fetch(`${PB_URL}${endpoint}?page=${page}&limit=100`);
+    const params = new URLSearchParams({
+      select,
+      status: 'eq.published',
+      order: 'published_at.desc',
+      limit: String(limit),
+      offset: String(offset),
+    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+      headers: { ...SUPABASE_HEADERS, 'Accept': 'application/json' },
+    });
     if (!res.ok) {
-      console.warn(`  Warning: ${endpoint} returned ${res.status}`);
+      console.warn(`  Warning: ${table} returned ${res.status}`);
       break;
     }
-    const data = await res.json();
-    const records = data.posts || data.tutorials || [];
-    if (records.length === 0) break;
+    // Prefer header range for count; fall back to body length
+    const rangeHeader = res.headers.get('content-range');
+    const records = await res.json();
+    if (!records.length) break;
     items.push(...records);
-    if (page >= (data.totalPages || 1)) break;
-    page++;
+    const totalFromRange = rangeHeader ? parseInt(rangeHeader.split('/')[1], 10) : null;
+    if (totalFromRange !== null && items.length >= totalFromRange) break;
+    if (records.length < limit) break;
+    offset += limit;
   }
   return items;
 }
@@ -70,11 +89,11 @@ async function main() {
   // Fetch blog posts
   try {
     console.log('  Fetching blog posts...');
-    const posts = await fetchAllPages('/api/openhr/blog/posts');
+    const posts = await fetchAllRows('blog_posts');
     console.log(`  Found ${posts.length} blog post(s)`);
     for (const post of posts) {
       if (!post.slug) continue;
-      const lastmod = (post.updated || post.published_at || '').split(' ')[0] || null;
+      const lastmod = (post.updated_at || post.published_at || '').split('T')[0] || null;
       entries.push(
         buildUrlEntry(`${SITE_URL}/blog/${post.slug}`, lastmod, 'weekly', '0.6')
       );
@@ -86,11 +105,11 @@ async function main() {
   // Fetch tutorials
   try {
     console.log('  Fetching tutorials...');
-    const tutorials = await fetchAllPages('/api/openhr/tutorials/posts');
+    const tutorials = await fetchAllRows('tutorials');
     console.log(`  Found ${tutorials.length} tutorial(s)`);
     for (const tut of tutorials) {
       if (!tut.slug) continue;
-      const lastmod = (tut.updated || tut.published_at || '').split(' ')[0] || null;
+      const lastmod = (tut.updated_at || tut.published_at || '').split('T')[0] || null;
       entries.push(
         buildUrlEntry(`${SITE_URL}/how-to-use/${tut.slug}`, lastmod, 'weekly', '0.6')
       );

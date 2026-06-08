@@ -6,7 +6,7 @@
  * homepage meta from index.html for every URL, breaking link previews.
  *
  * For detected social bots on dynamic routes this middleware fetches the
- * real page metadata from PocketBase and returns a minimal HTML shell with
+ * real page metadata from Supabase and returns a minimal HTML shell with
  * the correct <title>, <meta>, Open Graph, and Twitter Card tags.
  *
  * All other requests (real users, Googlebot) are passed through unchanged
@@ -17,7 +17,8 @@ export const config = {
   matcher: ['/blog/:slug+', '/how-to-use/:slug+', '/features/:slug+'],
 };
 
-const PB_URL = 'https://pocketbase.mimnets.com';
+const SUPABASE_URL = 'https://cixryuwtdwbofabctrkk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeHJ5dXd0bHdib2ZhYmN0cmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTgzMjcsImV4cCI6MjA5NDEzNDMyN30.DIsKHuNmR6ivb2oAdukpDDV8XSlK9km1KJDQ0O8yUEE';
 const SITE_URL = 'https://openhrapp.com';
 const DEFAULT_IMAGE = `${SITE_URL}/img/screenshot-wide.webp`;
 const DEFAULT_DESCRIPTION = 'Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.';
@@ -115,15 +116,20 @@ async function resolveFeatureMeta(slug: string, pathname: string): Promise<PageM
 
 async function resolveBlogMeta(slug: string, pathname: string): Promise<PageMeta | null> {
   try {
-    const res = await fetch(`${PB_URL}/api/openhr/blog/posts/${encodeURIComponent(slug)}`, {
-      headers: { 'User-Agent': 'OpenHRApp-Prerender/1.0' },
+    const params = new URLSearchParams({ slug: `eq.${slug}`, select: 'title,excerpt,cover_image', limit: '1' });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/blog_posts?${params}`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'User-Agent': 'OpenHRApp-Prerender/1.0',
+      },
     });
     if (!res.ok) return null;
-    const data = await res.json() as { success?: boolean; post?: { title?: string; excerpt?: string; cover_image?: string; id?: string } };
-    if (!data.success || !data.post) return null;
-    const p = data.post;
-    const image = p.cover_image && p.id
-      ? `${PB_URL}/api/files/blog_posts/${p.id}/${p.cover_image}`
+    const rows = await res.json() as Array<{ title?: string; excerpt?: string; cover_image?: string }>;
+    if (!rows.length) return null;
+    const p = rows[0];
+    const image = p.cover_image
+      ? `${SUPABASE_URL}/storage/v1/object/public/content-images/${p.cover_image}`
       : DEFAULT_IMAGE;
     return {
       title: p.title ? `${p.title} | OpenHR Blog` : 'OpenHR Blog',
@@ -138,15 +144,20 @@ async function resolveBlogMeta(slug: string, pathname: string): Promise<PageMeta
 
 async function resolveTutorialMeta(slug: string, pathname: string): Promise<PageMeta | null> {
   try {
-    const res = await fetch(`${PB_URL}/api/openhr/tutorials/posts/${encodeURIComponent(slug)}`, {
-      headers: { 'User-Agent': 'OpenHRApp-Prerender/1.0' },
+    const params = new URLSearchParams({ slug: `eq.${slug}`, select: 'title,excerpt,cover_image', limit: '1' });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/tutorials?${params}`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'User-Agent': 'OpenHRApp-Prerender/1.0',
+      },
     });
     if (!res.ok) return null;
-    const data = await res.json() as { success?: boolean; tutorial?: { title?: string; excerpt?: string; cover_image?: string; id?: string } };
-    if (!data.success || !data.tutorial) return null;
-    const p = data.tutorial;
-    const image = p.cover_image && p.id
-      ? `${PB_URL}/api/files/tutorials/${p.id}/${p.cover_image}`
+    const rows = await res.json() as Array<{ title?: string; excerpt?: string; cover_image?: string }>;
+    if (!rows.length) return null;
+    const p = rows[0];
+    const image = p.cover_image
+      ? `${SUPABASE_URL}/storage/v1/object/public/content-images/${p.cover_image}`
       : DEFAULT_IMAGE;
     return {
       title: p.title ? `${p.title} | OpenHR Guides` : 'OpenHR Guides',

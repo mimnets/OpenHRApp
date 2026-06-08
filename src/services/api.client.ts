@@ -1,5 +1,4 @@
 
-import { pb, isPocketBaseConfigured } from './pocketbase';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { convertToWebP } from '../utils/imageConvert';
 
@@ -70,9 +69,7 @@ export async function resolveOrgId(): Promise<string | undefined> {
 }
 
 export const apiClient = {
-  pb,
   supabase,
-  isConfigured: isPocketBaseConfigured,
   isSupabaseConfigured,
 
   // Event Bus for global state updates
@@ -89,17 +86,22 @@ export const apiClient = {
   // Phase 2: reads from Supabase session cache (set by authService.login)
   // Falls back to PocketBase authStore during parallel-run migration window.
   _cachedOrgId: undefined as string | undefined,
+  _cachedRole: undefined as string | undefined,
 
   setOrganizationId(orgId: string | undefined) {
     (this as any)._cachedOrgId = orgId;
   },
 
   getOrganizationId(): string | undefined {
-    // Supabase-only after full cutover. PocketBase authStore fallback removed —
-    // it returned stale 15-char PB IDs that broke Supabase uuid filters.
-    // Cache is populated by authService.login / getCurrentUser, and async
-    // resolveOrgId() in api.client handles cold-cache page reloads.
     return (this as any)._cachedOrgId;
+  },
+
+  setAuthRole(role: string | undefined) {
+    (this as any)._cachedRole = role;
+  },
+
+  getAuthRole(): string | undefined {
+    return (this as any)._cachedRole;
   },
 
   // Helpers

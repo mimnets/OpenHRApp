@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSubscription } from '../../context/SubscriptionContext';
+import { supabase } from '../../services/supabase';
 import { apiClient } from '../../services/api.client';
 import { sanitizeHtml } from '../../utils/sanitize';
 
@@ -61,17 +62,19 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
       }
 
       try {
-        // Use the dedicated ad-config endpoint which bypasses org-based filtering
-        const response = await apiClient.pb?.send(`/api/openhr/ad-config/${slot}`, {
-          method: 'GET'
-        });
+        const orgId = apiClient.getOrganizationId();
+        const { data: setting } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', `ad_config_${slot}`)
+          .eq('organization_id', orgId)
+          .maybeSingle();
 
-        console.log('[AdBanner] API response for slot', slot, ':', response);
-
-        if (response && response.enabled) {
-          setAdConfig(response as AdConfig);
-        } else {
-          console.log('[AdBanner] Ad not enabled or no config:', response?.reason || 'enabled=false');
+        if (setting?.value) {
+          const config = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value;
+          if (config.enabled) {
+            setAdConfig(config as AdConfig);
+          }
         }
       } catch (e) {
         console.log('[AdBanner] Failed to load ad config:', e);

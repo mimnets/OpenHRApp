@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../../services/api.client';
 import { AdConfig, AdSlot } from './AdBanner';
 import { sanitizeHtml } from '../../utils/sanitize';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 interface PublicAdBannerProps {
   slot: AdSlot;
@@ -24,12 +26,14 @@ export const PublicAdBanner: React.FC<PublicAdBannerProps> = ({ slot, className 
   useEffect(() => {
     const loadAdConfig = async () => {
       try {
-        const response = await apiClient.pb?.send(`/api/openhr/public-ad-config/${slot}`, {
-          method: 'GET'
-        });
-
-        if (response && response.enabled) {
-          setAdConfig(response as AdConfig);
+        const res = await fetch(
+          `${SUPABASE_URL}/functions/v1/public-ad-config/${slot}`,
+          { headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.enabled) {
+          setAdConfig(data as AdConfig);
         }
       } catch (e) {
         // Ad config not found, silently fail

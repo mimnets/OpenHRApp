@@ -1,40 +1,36 @@
-
 /**
  * Database Connection Configuration
- * 
- * Centralized location for managing the PocketBase instance URL.
- * Change PRODUCTION_URL to point to your specific backend instance.
+ *
+ * Supabase is the backend (migrated from PocketBase, May 2026).
+ * The old PocketBase PRODUCTION_URL and config resolution are kept here
+ * only for backward compatibility — pocketbase.ts is now a stub.
+ *
+ * All active backend operations go through src/services/supabase.ts.
  */
 
-// 1. DEFINE YOUR PRODUCTION URL HERE: https://pocketbase.mimnets.com and https://pbase.vclbd.net
-export const PRODUCTION_URL = 'https://pocketbase.mimnets.com';
+// Legacy PocketBase URL — NOT the active backend.
+// Supabase URL is configured via VITE_SUPABASE_URL in .env.
+export const PRODUCTION_URL = '';
 
-// 2. Environment Variable Detection
+// Environment Variable Detection (Supabase)
 export const getEnvUrl = () => {
   const metaEnv = (import.meta as any).env;
   const procEnv = typeof process !== 'undefined' ? process.env : {};
 
   return (
-    metaEnv?.VITE_POCKETBASE_URL || 
-    metaEnv?.REACT_APP_POCKETBASE_URL || 
-    procEnv?.VITE_POCKETBASE_URL || 
-    procEnv?.REACT_APP_POCKETBASE_URL || 
+    metaEnv?.VITE_SUPABASE_URL ||
+    procEnv?.VITE_SUPABASE_URL ||
     ''
   );
 };
 
-// 3. Configuration Resolver
+// Configuration Resolver
 export const getDatabaseUrl = () => {
   const envUrl = getEnvUrl();
-  
-  // Priority 1: Environment Variable (CI/CD / Build Time)
+
   if (envUrl && envUrl.length > 5) {
     return { url: envUrl, source: 'ENV' };
   }
 
-  // Priority 2: Hardcoded Production URL
-  return {
-    url: PRODUCTION_URL,
-    source: 'HARDCODED'
-  };
+  return { url: '', source: 'MISSING' };
 };
