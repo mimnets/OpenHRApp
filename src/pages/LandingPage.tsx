@@ -8,7 +8,6 @@ import Footer from '../components/landing/Footer';
 import { PublicAdBanner } from '../components/ads';
 import { updatePageMeta, setJsonLd } from '../utils/seo';
 
-const TestimonialsSection = React.lazy(() => import('../components/landing/TestimonialsSection'));
 const ShowcaseSection = React.lazy(() => import('../components/landing/ShowcaseSection'));
 const FAQSection = React.lazy(() => import('../components/landing/FAQSection'));
 const ContactSection = React.lazy(() => import('../components/landing/ContactSection'));
@@ -49,13 +48,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
             '@type': 'Offer',
             price: '0',
             priceCurrency: 'USD',
-          },
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: '4.8',
-            reviewCount: '5',
-            bestRating: '5',
-            worstRating: '1',
           },
           description: 'Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.',
           url: 'https://openhrapp.com',
@@ -123,7 +115,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
         <HowItWorksSection />
         <Suspense fallback={<SectionSkeleton />}><PricingSection onRegisterClick={onRegisterClick} /></Suspense>
         <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-mid" /></div>
-        <Suspense fallback={<SectionSkeleton />}><TestimonialsSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><ShowcaseSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><FAQSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><ContactSection /></Suspense>
