@@ -214,21 +214,37 @@ export const attendanceService = {
         return [];
       }
       try {
-        let query = supabase
-          .from('attendance')
-          .select('*')
-          .order('date', { ascending: false })
-          .limit(maxRows);
+        const role = apiClient.getAuthRole();
+        const isCrossOrg = role === 'ADMIN' || role === 'HR';
+        console.log('[AttendanceService] Fetching — orgId:', orgId, 'role:', role, 'crossOrg:', isCrossOrg);
 
-        if (orgId)      query = query.eq('organization_id', orgId);
-        if (since)      query = query.gte('date', since);
-        if (until)      query = query.lte('date', until);
-        if (employeeId) query = query.eq('employee_id', employeeId);
+        // Paginate through Supabase (capped at 1000 rows per request)
+        const PAGE_SIZE = 1000;
+        const allData: any[] = [];
+        let offset = 0;
+        while (offset < maxRows) {
+          let query = supabase
+            .from('attendance')
+            .select('*')
+            .order('date', { ascending: false })
+            .range(offset, offset + PAGE_SIZE - 1);
 
-        const { data, error } = await query;
-        if (error) throw error;
+          if (orgId && !isCrossOrg) query = query.eq('organization_id', orgId);
+          if (since)      query = query.gte('date', since);
+          if (until)      query = query.lte('date', until);
+          if (employeeId) query = query.eq('employee_id', employeeId);
 
-        const result = (data ?? []).map(mapAttendance);
+          const { data, error } = await query;
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allData.push(...data);
+          offset += PAGE_SIZE;
+          if (data.length < PAGE_SIZE) break; // last page
+        }
+
+        const result = allData.map(mapAttendance);
+        const tasyeeaRecords = result.filter(r => r.employeeName?.toLowerCase().includes('tasyeea'));
+        console.log('[AttendanceService] Total records:', result.length, '(pages fetched:', Math.ceil(offset / PAGE_SIZE) + ')', '| Tasyeea records:', tasyeeaRecords.length);
 
         // Resolve signed URLs for selfies (private bucket — public URLs return 403).
         // Skip when caller only needs counts/metadata (e.g. dashboard stats).

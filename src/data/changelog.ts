@@ -18,6 +18,8 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-06-08',
     title: 'Fixed all cron jobs failing — pg_net extension upgrade',
     entries: [
+      { type: 'feature', description: 'ADMIN and HR roles now see cross-organization attendance records and leave requests. apiClient caches the user role after login and getCurrentUser. Attendance fetching now paginates through results in 1000-row pages instead of a single limited query.' },
+      { type: 'improvement', description: 'Added cross-org RLS migration (0014) for admin/hr to query and update attendance/leaves/profiles across organizations.' },
       { type: 'fix', description: 'All Supabase cron jobs calling Edge Functions (auto-close-sessions, auto-absent-check, daily-attendance-report, attendance-reminders, push-checkin-reminder, review-cycle-transition, auto-expire-trials) were failing every run with "function extensions.http_post does not exist". The pg_net extension was upgraded to 0.20.0 which moved HTTP functions from the extensions schema to the net schema. Updated all cron job definitions in scripts/setup-cron-schedules.sql and the live database to use net.http_post instead of extensions.http_post.' },
       { type: 'fix', description: 'Rescheduled all 7 failing cron jobs in the live database, restoring auto-close of forgotten check-outs, auto-absent marking, daily email reports, attendance push reminders, and review cycle transitions.' },
     ],
