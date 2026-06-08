@@ -26,7 +26,7 @@ select cron.schedule(
   'auto-close-sessions',
   '3-59/5 * * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-auto-close-sessions',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -44,7 +44,7 @@ select cron.schedule(
   'auto-expire-trials',
   '0 0 * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-expire-trials',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -62,7 +62,7 @@ select cron.schedule(
   'auto-absent-check',
   '* * * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-auto-absent',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -80,7 +80,7 @@ select cron.schedule(
   'daily-attendance-report',
   '0 23 * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-daily-report',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -98,7 +98,7 @@ select cron.schedule(
   'attendance-reminders',
   '3-59/5 * * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-attendance-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -116,7 +116,7 @@ select cron.schedule(
   'review-cycle-transition',
   '0 0 * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-review-transitions',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
@@ -134,7 +134,7 @@ select cron.schedule(
   'push-checkin-reminder',
   '* * * * *',
   $$
-  select extensions.http_post(
+  select net.http_post(
     url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-push-checkin-reminder',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',

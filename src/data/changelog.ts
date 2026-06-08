@@ -15,6 +15,14 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-06-08',
+    title: 'Fixed all cron jobs failing — pg_net extension upgrade',
+    entries: [
+      { type: 'fix', description: 'All Supabase cron jobs calling Edge Functions (auto-close-sessions, auto-absent-check, daily-attendance-report, attendance-reminders, push-checkin-reminder, review-cycle-transition, auto-expire-trials) were failing every run with "function extensions.http_post does not exist". The pg_net extension was upgraded to 0.20.0 which moved HTTP functions from the extensions schema to the net schema. Updated all cron job definitions in scripts/setup-cron-schedules.sql and the live database to use net.http_post instead of extensions.http_post.' },
+      { type: 'fix', description: 'Rescheduled all 7 failing cron jobs in the live database, restoring auto-close of forgotten check-outs, auto-absent marking, daily email reports, attendance push reminders, and review cycle transitions.' },
+    ],
+  },
+  {
     date: '2026-06-07',
     title: 'Admin verify & activate employee accounts',
     entries: [
