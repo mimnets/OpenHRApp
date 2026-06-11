@@ -15,9 +15,17 @@ interface Props {
   initialOpen?: boolean;
 }
 
+const DAY_NAME_MAP: Record<string, string> = {
+  MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday',
+  FRI: 'Friday', SAT: 'Saturday', SUN: 'Sunday',
+};
+
+const normalizeWorkingDays = (days: string[]): string[] =>
+  days.map(d => DAY_NAME_MAP[d.toUpperCase()] || d);
+
 const resolveWorkingDays = (config: AppConfig, employeeShift: Shift | null): string[] => {
-  if (employeeShift) return employeeShift.workingDays;
-  return config.workingDays || [];
+  const raw = employeeShift ? employeeShift.workingDays : (config.workingDays || []);
+  return normalizeWorkingDays(raw);
 };
 
 const EmployeeLeaveFlow: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen }) => {

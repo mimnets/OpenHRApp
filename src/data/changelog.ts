@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-06-11',
+    title: 'Leave application — 0-day calculation fix',
+    entries: [
+      { type: 'fix', description: 'Fixed leave applications always showing "Net leave duration is 0 days" for employees assigned to shifts whose working_days were stored as 3-letter abbreviations (MON, TUE) by the DB default. The leave form now normalizes both full-name and 3-letter working day formats before comparing against locale-formatted day names.' },
+    ],
+  },
+  {
     date: '2026-06-08',
     title: 'Landing page overhaul — SEO, accessibility, and UX improvements',
     entries: [
