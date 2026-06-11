@@ -179,7 +179,8 @@ Deno.serve(async (req: Request) => {
       const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
       const localDay = new Date(now.toLocaleString('en-US', { timeZone: timezone })).getDay();
       const todayName = dayNames[localDay];
-      if (!(shift.working_days as string[]).includes(todayName)) continue;
+      const dayAbbrs = (shift.working_days as string[]).map(d => d.slice(0, 3).toUpperCase());
+      if (!dayAbbrs.includes(todayName)) continue;
 
       // Get employees on this shift
       const { data: employees } = await admin
