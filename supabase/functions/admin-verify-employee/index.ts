@@ -67,12 +67,25 @@ Deno.serve(async (req: Request) => {
       return jsonError(403, 'Cannot verify an employee from another organization');
     }
 
-    // Confirm the email in auth — this is what actually lets the user log in.
-    const { error: confirmErr } = await adminClient.auth.admin.updateUserById(
-      userId,
-      { email_confirm: true },
+    // Confirm the email in auth via direct GoTrue Admin REST call.
+    // We avoid supabase-js auth.admin.updateUserById here because esm.sh
+    // resolution of @supabase/supabase-js@2 is unpinned and some resolved
+    // versions ship a GoTrueAdminApi that doesn't expose this method.
+    const confirmRes = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users/${userId}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email_confirm: true }),
+      },
     );
-    if (confirmErr) return jsonError(400, 'Failed to confirm email: ' + confirmErr.message);
+    if (!confirmRes.ok) {
+      const errBody = await confirmRes.text().catch(() => '');
+      return jsonError(400, `Failed to confirm email: ${confirmRes.status} ${errBody}`);
+    }
 
     // Flip the profile flag so the user drops off the unverified list.
     const { error: flagErr } = await adminClient
