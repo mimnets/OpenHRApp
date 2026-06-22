@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-06-22',
+    title: 'Admin verify employee — fix 500 error',
+    entries: [
+      { type: 'fix', description: 'Fixed admin-verify-employee Edge Function returning 500 due to renamed supabase-js method. Changed adminClient.auth.admin.updateUser() to updateUserById() to match the current supabase-js v2 API.' },
+    ],
+  },
+  {
     date: '2026-06-11',
     title: 'Leave application — 0-day calculation fix',
     entries: [

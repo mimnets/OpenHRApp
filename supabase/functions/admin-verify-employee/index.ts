@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Confirm the email in auth — this is what actually lets the user log in.
-    const { error: confirmErr } = await adminClient.auth.admin.updateUser(
+    const { error: confirmErr } = await adminClient.auth.admin.updateUserById(
       userId,
       { email_confirm: true },
     );
