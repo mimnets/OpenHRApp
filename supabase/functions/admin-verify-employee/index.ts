@@ -76,6 +76,7 @@ Deno.serve(async (req: Request) => {
       {
         method: 'PUT',
         headers: {
+          apikey: serviceRoleKey,
           Authorization: `Bearer ${serviceRoleKey}`,
           'Content-Type': 'application/json',
         },
