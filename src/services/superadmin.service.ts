@@ -265,7 +265,6 @@ export const superAdminService = {
       if (data.role) update.role = data.role;
       if (data.department) update.department = data.department;
       if (data.designation) update.designation = data.designation;
-      if (data.status) update.status = data.status;
       if (typeof (data as any).verified === 'boolean') update.verified = (data as any).verified;
 
       const { error } = await supabase.from('profiles').update(update).eq('id', userId);

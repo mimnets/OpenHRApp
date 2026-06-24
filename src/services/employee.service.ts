@@ -125,7 +125,6 @@ export const employeeService = {
     if (updates.employeeId !== undefined)  payload.employee_id = updates.employeeId;
     if (updates.mobile !== undefined)      payload.mobile = updates.mobile;
     if (updates.joiningDate !== undefined) payload.joining_date = updates.joiningDate;
-    if (updates.status !== undefined)      payload.status = updates.status;
     if (updates.employmentType !== undefined) payload.employment_type = updates.employmentType;
     if (updates.workType !== undefined)    payload.work_type = updates.workType;
     if (updates.salary !== undefined)      payload.salary = updates.salary;

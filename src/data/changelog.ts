@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-06-24',
+    title: 'Admin user update — missing status column fix',
+    entries: [
+      { type: 'fix', description: 'Fixed admin unable to update user profiles — "Could not find the \'status\' column of \'profiles\' in the schema cache". The profiles table never had a status column, but both employee.service.ts and superadmin.service.ts were writing to it. Removed the dead status writes and cleaned up the unused status field from the admin form state.' },
+    ],
+  },
+  {
     date: '2026-06-22',
     title: 'Admin verify employee — fix 500 error',
     entries: [
