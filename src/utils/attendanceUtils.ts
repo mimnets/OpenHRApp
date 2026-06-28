@@ -287,6 +287,9 @@ export const calculateEmployeeSummaries = (params: {
         if (holidaySet.has(dateStr)) continue;
 
         // Resolve working days for this employee on this date (normalized to full names)
+        const override = shiftOverrides.find(
+          o => o.employeeId === emp.id && dateStr >= o.startDate && dateStr <= o.endDate
+        );
         let workingDays: string[];
         if (override) {
           const oShift = shifts.find(s => s.id === override.shiftId);
