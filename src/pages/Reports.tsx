@@ -229,6 +229,13 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           return true;
         });
 
+        // Normalize 3-letter day abbreviations (DB default) to full names
+        const DAY_MAP: Record<string, string> = {
+          MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday',
+          FRI: 'Friday', SAT: 'Saturday', SUN: 'Sunday',
+        };
+        const normDays = (days: string[]) => days.map(d => DAY_MAP[d.toUpperCase()] || d);
+
         // Helper to resolve shift working days for an employee on a given date
         const getWorkingDays = (emp: Employee, dateStr: string): string[] => {
           // Check overrides first
@@ -237,16 +244,16 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
           );
           if (override) {
             const oShift = shifts.find(s => s.id === override.shiftId);
-            if (oShift) return oShift.workingDays;
+            if (oShift) return normDays(oShift.workingDays);
           }
           // Employee assignment
           if (emp.shiftId) {
             const aShift = shifts.find(s => s.id === emp.shiftId);
-            if (aShift) return aShift.workingDays;
+            if (aShift) return normDays(aShift.workingDays);
           }
           // Default shift
-          if (defaultShift) return defaultShift.workingDays;
-          // Global fallback
+          if (defaultShift) return normDays(defaultShift.workingDays);
+          // Global fallback (already full names from appConfig)
           return globalWorkingDays;
         };
 
