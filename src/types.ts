@@ -416,6 +416,21 @@ export interface AttendanceSummary {
   attendancePercentage: number;
 }
 
+// Per-employee summary row for the Employee Summary Report
+export interface EmployeeAttendanceSummary {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  designation: string;
+  totalWorkingDays: number;
+  presentDays: number;
+  absentDays: number;
+  lateDays: number;
+  leaveDays: number;
+  halfDays: number;
+  attendancePercentage: number;
+}
+
 export interface LeaveSummary {
   typeBreakdown: Record<string, number>;
   totalLeaveDays: number;

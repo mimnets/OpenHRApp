@@ -2,13 +2,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileText, Calendar, Clock, RefreshCw, User as UserIcon, Search, FileSpreadsheet, FileDown, MapPin,
-  Activity, AlertCircle, HelpCircle, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square, Layout
+  Activity, AlertCircle, HelpCircle, CheckCircle2, CheckCircle, Settings2, Mail, CheckSquare, Square, Layout,
+  TrendingUp, CalendarDays, Users, PieChart
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { emailService } from '../services/emailService';
 import { organizationService } from '../services/organization.service';
-import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday, Shift } from '../types';
-import { consolidateAttendance } from '../utils/attendanceUtils';
+import { User, Employee, Attendance, LeaveRequest, AppConfig, Holiday, Shift, EmployeeAttendanceSummary } from '../types';
+import { consolidateAttendance, getDateRangeFromPreset, calculateEmployeeSummaries } from '../utils/attendanceUtils';
 import HelpButton from '../components/onboarding/HelpButton';
 import { useToast } from '../context/ToastContext';
 
@@ -30,8 +31,9 @@ interface ReportsProps {
 
 const Reports: React.FC<ReportsProps> = ({ user }) => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'GENERATOR' | 'CONFIG'>('GENERATOR');
+  const [activeTab, setActiveTab] = useState<'SUMMARY' | 'GENERATOR' | 'CONFIG'>('SUMMARY');
   const [reportType, setReportType] = useState('ATTENDANCE');
+  const [periodPreset, setPeriodPreset] = useState<string>('THIS_MONTH');
   
   // Data States
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -159,9 +161,31 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   }, [user.id]);
 
   const toggleDept = (dept: string) => {
-    setSelectedDepts(prev => 
+    setSelectedDepts(prev =>
       prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
     );
+  };
+
+  // Sync date range when period preset changes
+  useEffect(() => {
+    if (periodPreset === 'CUSTOM') return;
+    const range = getDateRangeFromPreset(periodPreset);
+    setStartDate(range.startDate);
+    setEndDate(range.endDate);
+  }, [periodPreset]);
+
+  const handlePresetClick = (preset: string) => {
+    setPeriodPreset(preset);
+    if (preset !== 'CUSTOM') {
+      const range = getDateRangeFromPreset(preset);
+      setStartDate(range.startDate);
+      setEndDate(range.endDate);
+    }
+  };
+
+  const handleDateChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(e.target.value);
+    setPeriodPreset('CUSTOM');
   };
 
   const reportData = useMemo(() => {
@@ -278,6 +302,43 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         return dateB.localeCompare(dateA);
     });
   }, [reportType, startDate, endDate, selectedDepts, employeeFilter, attendance, employees, leaves, appConfig, holidays]);
+
+  // Compute per-employee summary for the Summary tab
+  const employeeSummaries = useMemo<EmployeeAttendanceSummary[]>(() => {
+    if (!appConfig || employees.length === 0) return [];
+
+    // Consolidate filtered attendance (same logic as reportData for consistency)
+    const filteredAttendance = attendance.filter(item => {
+      if (item.date < startDate || item.date > endDate) return false;
+      const emp = employees.find(e => e.id === item.employeeId);
+      if (!emp) return false;
+      if (selectedDepts.length > 0 && !selectedDepts.includes(emp.department)) return false;
+      if (employeeFilter !== 'All Employees' && item.employeeId !== employeeFilter) return false;
+      return true;
+    });
+
+    const consolidated = consolidateAttendance(filteredAttendance);
+
+    // Approved leaves in range
+    const approvedLeaves = leaves.filter(l => {
+      if (l.status !== 'APPROVED') return false;
+      return l.startDate <= endDate && l.endDate >= startDate;
+    });
+
+    return calculateEmployeeSummaries({
+      employees,
+      consolidatedAttendance: consolidated,
+      approvedLeaves,
+      shifts,
+      shiftOverrides,
+      appConfig,
+      holidays,
+      startDate,
+      endDate,
+      selectedDepts,
+      employeeFilter,
+    });
+  }, [attendance, leaves, employees, shifts, shiftOverrides, appConfig, holidays, startDate, endDate, selectedDepts, employeeFilter]);
 
   const getCleanReportData = () => {
     return reportData.map((row: any) => {
@@ -431,6 +492,177 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
     }
   };
 
+  // --- Summary Tab Exports ---
+
+  const downloadSummaryCSV = () => {
+    if (employeeSummaries.length === 0) { showToast("No summary data to export.", "warning"); return; }
+    setIsGenerating(true);
+    setTimeout(() => {
+      const headers = ['Employee ID', 'Name', 'Department', 'Designation', 'Working Days', 'Present', 'Absent', 'Late', 'Leave', 'Half Days', 'Attendance %'];
+      const rows = employeeSummaries.map(s => [
+        s.employeeId, s.employeeName, s.department, s.designation,
+        s.totalWorkingDays, s.presentDays, s.absentDays, s.lateDays,
+        s.leaveDays, s.halfDays, `${s.attendancePercentage}%`
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+      const csvContent = 'data:text/csv;charset=utf-8,﻿' + headers.join(',') + '\n' + rows.join('\n');
+      const link = document.createElement('a');
+      link.setAttribute('href', encodeURI(csvContent));
+      link.setAttribute('download', `OpenHR_Employee_Summary_${startDate}_to_${endDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setIsGenerating(false);
+    }, 500);
+  };
+
+  const downloadSummaryPDF = async () => {
+    if (employeeSummaries.length === 0) { showToast("No summary data to export.", "warning"); return; }
+    setIsGeneratingPDF(true);
+    try {
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      if (autoTableModule.applyPlugin) autoTableModule.applyPlugin(jsPDF);
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // --- Header (reuse same pattern) ---
+      let cursorY = 15;
+      const logoSize = 20;
+      let textStartX = 14;
+
+      if (orgInfo.logoDataUrl) {
+        try {
+          const logoDims = await getScaledLogoDims(orgInfo.logoDataUrl, logoSize);
+          doc.addImage(orgInfo.logoDataUrl, 'PNG', 14, cursorY - 5, logoDims.w, logoDims.h);
+          textStartX = 14 + logoDims.w + 6;
+        } catch { /* skip logo on error */ }
+      }
+
+      if (orgInfo.name) {
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(orgInfo.name, textStartX, cursorY + 2);
+      }
+      if (orgInfo.address) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(orgInfo.address, textStartX, cursorY + 9);
+      }
+
+      cursorY += Math.max(logoSize, 14) + 6;
+
+      // --- Title & Period ---
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('Employee Attendance Summary', 14, cursorY);
+      cursorY += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Period: ${startDate} to ${endDate}  •  ${employeeSummaries.length} Employees`, 14, cursorY);
+      cursorY += 10;
+
+      // --- Summary Stats ---
+      const totalPresent = employeeSummaries.reduce((s, e) => s + e.presentDays, 0);
+      const totalAbsent = employeeSummaries.reduce((s, e) => s + e.absentDays, 0);
+      const totalLate = employeeSummaries.reduce((s, e) => s + e.lateDays, 0);
+      const totalLeave = employeeSummaries.reduce((s, e) => s + e.leaveDays, 0);
+      const avgAttendance = employeeSummaries.length > 0
+        ? Math.round(employeeSummaries.reduce((s, e) => s + e.attendancePercentage, 0) / employeeSummaries.length)
+        : 0;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('Summary', 14, cursorY);
+      cursorY += 5;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text(
+        `Total Present: ${totalPresent}    Absent: ${totalAbsent}    Late: ${totalLate}    Leave: ${totalLeave}    Avg. Attendance: ${avgAttendance}%`,
+        14, cursorY
+      );
+      cursorY += 8;
+
+      // --- Table ---
+      const tableHeaders = ['#', 'Employee', 'Dept', 'Work Days', 'Present', 'Absent', 'Late', 'Leave', 'Half', '%'];
+      const tableRows = employeeSummaries.map((s, i) => [
+        i + 1, s.employeeName, s.department, s.totalWorkingDays,
+        s.presentDays, s.absentDays, s.lateDays, s.leaveDays, s.halfDays, `${s.attendancePercentage}%`
+      ]);
+
+      (doc as any).autoTable({
+        startY: cursorY,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+        bodyStyles: { fontSize: 7, textColor: [30, 41, 59] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { left: 14, right: 14 },
+        styles: { cellPadding: 2, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 18, halign: 'center' },
+          4: { cellWidth: 16, halign: 'center' },
+          5: { cellWidth: 16, halign: 'center' },
+          6: { cellWidth: 16, halign: 'center' },
+          7: { cellWidth: 16, halign: 'center' },
+          8: { cellWidth: 14, halign: 'center' },
+          9: { cellWidth: 14, halign: 'center' },
+        },
+      });
+
+      // --- Footer ---
+      const totalPages = (doc as any).internal.getNumberOfPages();
+      const now = new Date().toLocaleString();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Generated by OpenHR on ${now}`, 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+      }
+
+      doc.save(`OpenHR_Employee_Summary_${startDate}_to_${endDate}.pdf`);
+    } catch (err: any) {
+      console.error("Summary PDF generation failed:", err);
+      showToast("Failed to generate PDF: " + (err?.message || err), "error");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleEmailSummaryReport = async () => {
+    if (employeeSummaries.length === 0) { showToast("No summary data to email.", "warning"); return; }
+    setIsEmailing(true);
+    try {
+      const rawTarget = customRecipients;
+      if (!rawTarget) throw new Error("Please enter at least one recipient email address.");
+      const targets = rawTarget.split(',').map(t => t.trim()).filter(t => t.includes('@'));
+      if (targets.length === 0) throw new Error("No valid email addresses found.");
+
+      const periodLabel = periodPreset.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const dateRange = `${startDate} to ${endDate}`;
+
+      for (const target of targets) {
+        await emailService.sendEmployeeSummaryReport(target, employeeSummaries, periodLabel, dateRange);
+      }
+      showToast(`Summary report queued for ${targets.length} recipient(s).`, "success");
+      setTimeout(fetchLogs, 1000);
+    } catch (err: any) { showToast(err.message || "Email relay failed.", "error"); }
+    finally { setIsEmailing(false); }
+  };
+
   const handleEmailSummary = async () => {
     if (reportData.length === 0) { showToast("There is no data in the current report to email.", "warning"); return; }
     setIsEmailing(true);
@@ -466,17 +698,189 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2"><h1 className="text-3xl font-bold text-slate-900 tracking-tight">Audit & Reports</h1><HelpButton helpPointId="reports.generator" /></div>
-          <p className="text-slate-500 font-medium text-sm">Consolidated data extraction (First-In / Last-Out)</p>
+          <p className="text-slate-500 font-medium text-sm">Employee attendance summary & raw data extraction</p>
         </div>
         <div className="flex p-1 bg-white border border-slate-100 rounded-3xl shadow-sm">
-          <button onClick={() => setActiveTab('GENERATOR')} className={`px-6 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'GENERATOR' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Generator</button>
-          <button onClick={() => setActiveTab('CONFIG')} className={`px-6 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'CONFIG' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Columns</button>
+          <button onClick={() => setActiveTab('SUMMARY')} className={`px-5 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'SUMMARY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Summary</button>
+          <button onClick={() => setActiveTab('GENERATOR')} className={`px-5 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'GENERATOR' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Raw Data</button>
+          <button onClick={() => setActiveTab('CONFIG')} className={`px-5 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'CONFIG' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Columns</button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2">
-          {activeTab === 'GENERATOR' ? (
+          {activeTab === 'SUMMARY' ? (
+            /* ===== SUMMARY TAB ===== */
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-8 animate-in slide-in-from-left-4 duration-500">
+              {/* Period Presets */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Period</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'THIS_WEEK', label: 'This Week', icon: CalendarDays },
+                    { key: 'THIS_MONTH', label: 'This Month', icon: Calendar },
+                    { key: 'THIS_YEAR', label: 'This Year', icon: TrendingUp },
+                    { key: 'LAST_MONTH', label: 'Last Month', icon: Calendar },
+                    { key: 'LAST_YEAR', label: 'Last Year', icon: TrendingUp },
+                  ].map(p => (
+                    <button
+                      key={p.key}
+                      onClick={() => handlePresetClick(p.key)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border ${
+                        periodPreset === p.key
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                          : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200 hover:text-indigo-600'
+                      }`}
+                    >
+                      <p.icon size={14} />
+                      {p.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handlePresetClick('CUSTOM')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border ${
+                      periodPreset === 'CUSTOM'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                        : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200 hover:text-indigo-600'
+                    }`}
+                  >
+                    <CalendarDays size={14} />
+                    Custom
+                  </button>
+                </div>
+                {periodPreset === 'CUSTOM' && (
+                  <div className="flex gap-2 pt-2">
+                    <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">From</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={handleDateChange(setStartDate)} /></div>
+                    <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">To</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={handleDateChange(setEndDate)} /></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Department Filter (reused) */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Departments ({selectedDepts.length}/{dbDepartments.length})</p>
+                  <div className="flex gap-4">
+                    <button onClick={() => setSelectedDepts(dbDepartments)} className="text-[9px] font-semibold uppercase text-indigo-600 hover:underline">Select All</button>
+                    <button onClick={() => setSelectedDepts([])} className="text-[9px] font-semibold uppercase text-rose-500 hover:underline">Clear All</button>
+                  </div>
+                </div>
+                <div className="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-slate-50 rounded-3xl py-4 bg-slate-50/30">
+                  {dbDepartments.map(dept => {
+                    const isSelected = selectedDepts.includes(dept);
+                    return (
+                      <button key={dept} onClick={() => toggleDept(dept)} className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-primary/30 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}>
+                        <div className={`p-1 rounded-md ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>{isSelected ? <CheckSquare size={14} /> : <Square size={14} />}</div>
+                        <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>{dept}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Employee Scoping */}
+              <div className="space-y-1">
+                <label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Employee Scoping</label>
+                <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}>
+                  <option value="All Employees">All Active Employees</option>
+                  {employees.filter(e => { if (selectedDepts.length === 0) return true; return selectedDepts.includes(e.department || ''); }).map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
+                </select>
+              </div>
+
+              {/* Recipient & Email */}
+              <div className="space-y-1">
+                <label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Recipient(s)</label>
+                <input type="text" placeholder="email1@example.com, email2@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={customRecipients} onChange={e => setCustomRecipients(e.target.value)}/>
+              </div>
+
+              {/* Employee Summary Table */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">
+                    Employee Summary ({employeeSummaries.length} employees)
+                  </p>
+                </div>
+                {employeeSummaries.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100">
+                    <Users size={40} className="mx-auto text-slate-300 mb-3" />
+                    <p className="text-sm font-semibold text-slate-400">No employee data for this period</p>
+                    <p className="text-xs text-slate-400 mt-1">Try adjusting the date range or department filters.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-slate-900 text-white">
+                          <th className="px-3 py-3 text-left text-[9px] font-semibold uppercase tracking-widest">#</th>
+                          <th className="px-3 py-3 text-left text-[9px] font-semibold uppercase tracking-widest">Employee</th>
+                          <th className="px-3 py-3 text-left text-[9px] font-semibold uppercase tracking-widest">Dept</th>
+                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">Work Days</th>
+                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
+                            <span className="text-emerald-400">Present</span>
+                          </th>
+                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
+                            <span className="text-rose-400">Absent</span>
+                          </th>
+                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
+                            <span className="text-amber-400">Late</span>
+                          </th>
+                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
+                            <span className="text-blue-400">Leave</span>
+                          </th>
+                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
+                            <span className="text-indigo-300">%</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {employeeSummaries.map((s, i) => (
+                          <tr key={s.employeeId} className={`${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-indigo-50/30 transition-colors`}>
+                            <td className="px-3 py-2.5 text-[10px] font-medium text-slate-400">{i + 1}</td>
+                            <td className="px-3 py-2.5">
+                              <p className="text-[10px] font-semibold text-slate-900">{s.employeeName}</p>
+                              <p className="text-[9px] text-slate-400">{s.designation}</p>
+                            </td>
+                            <td className="px-3 py-2.5 text-[10px] text-slate-600 font-medium">{s.department}</td>
+                            <td className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-700">{s.totalWorkingDays}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">{s.presentDays}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold ${s.absentDays > 0 ? 'bg-rose-50 text-rose-700' : 'text-slate-300'}`}>{s.absentDays}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold ${s.lateDays > 0 ? 'bg-amber-50 text-amber-700' : 'text-slate-300'}`}>{s.lateDays}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold ${s.leaveDays > 0 ? 'bg-blue-50 text-blue-700' : 'text-slate-300'}`}>{s.leaveDays}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                s.attendancePercentage >= 90 ? 'bg-emerald-50 text-emerald-700' :
+                                s.attendancePercentage >= 75 ? 'bg-amber-50 text-amber-700' :
+                                'bg-rose-50 text-rose-700'
+                              }`}>{s.attendancePercentage}%</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Export & Email Buttons */}
+              <div className="pt-6 border-t border-slate-50 space-y-3">
+                <div className="flex gap-3">
+                  <button onClick={downloadSummaryCSV} disabled={isGenerating || employeeSummaries.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-primary text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} CSV Summary</button>
+                  <button onClick={downloadSummaryPDF} disabled={isGeneratingPDF || employeeSummaries.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-slate-900 text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="animate-spin" size={16} /> : <FileDown size={16} />} PDF Summary</button>
+                </div>
+                <button onClick={handleEmailSummaryReport} disabled={isEmailing || employeeSummaries.length === 0} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50">{isEmailing ? <RefreshCw className="animate-spin" size={16} /> : <Mail size={16} />} Email Summary Report</button>
+              </div>
+            </div>
+          ) : activeTab === 'GENERATOR' ? (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-12 animate-in slide-in-from-left-4 duration-500">
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
@@ -517,8 +921,8 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">3. Refining Parameters</p>
                     <div className="space-y-3">
                       <div className="flex gap-2">
-                        <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">From</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
-                        <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">To</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={e => setEndDate(e.target.value)} /></div>
+                        <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">From</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={handleDateChange(setStartDate)} /></div>
+                        <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">To</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={handleDateChange(setEndDate)} /></div>
                       </div>
                       <div className="space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Employee Scoping</label><select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}><option value="All Employees">All Individual Employees</option>{employees.filter(e => { if (selectedDepts.length === 0) return true; return selectedDepts.includes(e.department || ''); }).map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}</select></div>
                       <div className="space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Recipient(s)</label><input type="text" placeholder="email1@example.com, email2@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={customRecipients} onChange={e => setCustomRecipients(e.target.value)}/></div>
@@ -544,10 +948,44 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
         <div className="bg-[#0f172a] rounded-2xl p-8 text-white shadow-xl space-y-8 flex flex-col sticky top-24 h-fit animate-in zoom-in duration-700">
            <div className="flex-1 space-y-8">
              <div className="flex items-center justify-between"><h3 className="text-xl font-semibold flex items-center gap-3"><Search className="text-indigo-400" /> Live Preview</h3><div className="p-2 bg-white/10 rounded-xl cursor-pointer hover:bg-white/20 transition-all" onClick={fetchLogs} title="Refresh Email Status"><RefreshCw size={16} /></div></div>
-             <div className="p-8 bg-white/5 rounded-xl border border-white/10 text-center space-y-6"><div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Records to Export</p><p className="text-6xl font-semibold text-white">{reportData.length}</p></div><div className="h-px bg-white/10 w-1/2 mx-auto"></div><div className="space-y-1"><p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Departments Scoped</p><div className="flex flex-wrap justify-center gap-1.5 px-2">{selectedDepts.length === dbDepartments.length ? (<span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">Entire Organization</span>) : selectedDepts.length === 0 ? (<span className="text-[9px] font-bold text-rose-400">No Selection</span>) : (selectedDepts.slice(0, 3).map(d => (<span key={d} className="text-[8px] font-semibold text-white bg-white/10 px-2 py-0.5 rounded-full uppercase truncate max-w-[80px]">{d}</span>)))}{selectedDepts.length > 3 && (<span className="text-[8px] font-semibold text-white bg-indigo-500/20 px-2 py-0.5 rounded-full uppercase">+{selectedDepts.length - 3} More</span>)}</div></div></div>
+             <div className="p-8 bg-white/5 rounded-xl border border-white/10 text-center space-y-6">
+              {activeTab === 'SUMMARY' ? (
+                <>
+                  <div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Employees</p><p className="text-6xl font-semibold text-white">{employeeSummaries.length}</p></div>
+                  <div className="grid grid-cols-2 gap-2 text-left">
+                    {[
+                      { label: 'Present', count: employeeSummaries.reduce((s, e) => s + e.presentDays, 0), color: 'text-emerald-400' },
+                      { label: 'Absent', count: employeeSummaries.reduce((s, e) => s + e.absentDays, 0), color: 'text-rose-400' },
+                      { label: 'Late', count: employeeSummaries.reduce((s, e) => s + e.lateDays, 0), color: 'text-amber-400' },
+                      { label: 'Leave', count: employeeSummaries.reduce((s, e) => s + e.leaveDays, 0), color: 'text-blue-400' },
+                    ].map(stat => (
+                      <div key={stat.label} className="bg-white/5 rounded-xl p-3 text-center">
+                        <p className={`text-lg font-bold ${stat.color}`}>{stat.count}</p>
+                        <p className="text-[9px] uppercase tracking-wider text-slate-400">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="h-px bg-white/10 w-1/2 mx-auto"></div>
+                  <div>
+                    <p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Avg. Attendance</p>
+                    <p className="text-3xl font-bold text-white">
+                      {employeeSummaries.length > 0
+                        ? `${Math.round(employeeSummaries.reduce((s, e) => s + e.attendancePercentage, 0) / employeeSummaries.length)}%`
+                        : '—'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Records to Export</p><p className="text-6xl font-semibold text-white">{reportData.length}</p></div>
+                  <div className="h-px bg-white/10 w-1/2 mx-auto"></div>
+                  <div className="space-y-1"><p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Departments Scoped</p><div className="flex flex-wrap justify-center gap-1.5 px-2">{selectedDepts.length === dbDepartments.length ? (<span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">Entire Organization</span>) : selectedDepts.length === 0 ? (<span className="text-[9px] font-bold text-rose-400">No Selection</span>) : (selectedDepts.slice(0, 3).map(d => (<span key={d} className="text-[8px] font-semibold text-white bg-white/10 px-2 py-0.5 rounded-full uppercase truncate max-w-[80px]">{d}</span>)))}{selectedDepts.length > 3 && (<span className="text-[8px] font-semibold text-white bg-indigo-500/20 px-2 py-0.5 rounded-full uppercase">+{selectedDepts.length - 3} More</span>)}</div></div>
+                </>
+              )}
+             </div>
              <div className="space-y-4"><div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500"><Activity size={14} className="text-indigo-400" /> Recent Email Activity</div><div className="bg-slate-900 border border-white/10 rounded-3xl p-2 max-h-48 overflow-y-auto no-scrollbar space-y-1">{emailLogs.length === 0 ? (<p className="text-center text-[9px] font-semibold text-slate-600 uppercase py-4">No recent activity</p>) : (emailLogs.map(log => (<div key={log.id} className="p-3 bg-white/5 rounded-2xl flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-[9px] font-bold text-white truncate">{log.recipient_email}</p><p className="text-[8px] font-medium text-slate-500 truncate">{log.subject}</p></div><div className={`px-2 py-0.5 rounded-full text-[8px] font-semibold uppercase ${log.status === 'SENT' ? 'bg-emerald-500/20 text-emerald-400' : log.status === 'FAILED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{log.status}</div></div>)))}</div>{emailLogs.some(l => l.status === 'FAILED') && (<div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex gap-2"><AlertCircle size={14} className="text-rose-400 flex-shrink-0" /><p className="text-[9px] font-medium text-rose-300 leading-tight">Some emails failed. Verify SMTP settings in Admin Panel &gt; Settings &gt; Mail.</p></div>)}{isHookMissing && (<div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2"><HelpCircle size={14} className="text-amber-400 flex-shrink-0" /><div className="space-y-1"><p className="text-[9px] font-bold text-amber-300 leading-tight uppercase">Backend Hook Not Detected</p><p className="text-[8px] font-medium text-amber-400/80 leading-tight">Emails are stuck in PENDING. Ensure <code>main.pb.js</code> is in your PocketBase <code>pb_hooks</code> folder.</p></div></div>)}</div>
            </div>
-           <div className="p-6 bg-indigo-500/10 rounded-xl border border-indigo-500/20"><p className="text-[9px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p><div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase"><p>Format: CSV / PDF</p><p>Mode: First & Last Punch</p><p>Columns: {Object.values(enabledColumns).filter(Boolean).length} Active</p></div></div>
+           <div className="p-6 bg-indigo-500/10 rounded-xl border border-indigo-500/20"><p className="text-[9px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p><div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase"><p>Format: CSV / PDF</p>{activeTab === 'SUMMARY' ? <p>Mode: Per-Employee Summary</p> : <><p>Mode: First & Last Punch</p><p>Columns: {Object.values(enabledColumns).filter(Boolean).length} Active</p></>}</div></div>
         </div>
       </div>
     </div>

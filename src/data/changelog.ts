@@ -15,6 +15,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-06-28',
+    title: 'Employee attendance summary report',
+    entries: [
+      { type: 'feature', description: 'Added Employee Summary Report — per-employee attendance breakdown (Present, Absent, Late, Leave, %) with weekly, monthly, and yearly period presets. Exportable as CSV and PDF, organized by employee with department grouping.' },
+      { type: 'improvement', description: 'Reports page now defaults to the Summary tab. Raw data exports moved to the Raw Data tab with backward-compatible functionality. Live preview sidebar shows summary stats (total present/absent/late/leave, avg attendance %) when on Summary tab.' },
+      { type: 'improvement', description: 'Period presets (This Week, This Month, This Year, Last Month, Last Year) added for quick date range selection. Custom date range still available. Changing dates manually auto-switches to Custom mode.' },
+    ],
+  },
+  {
     date: '2026-06-24',
     title: 'Admin user update — missing status column fix',
     entries: [
