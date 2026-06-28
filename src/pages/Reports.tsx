@@ -31,7 +31,6 @@ interface ReportsProps {
 
 const Reports: React.FC<ReportsProps> = ({ user }) => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'SUMMARY' | 'GENERATOR' | 'CONFIG'>('SUMMARY');
   const [reportType, setReportType] = useState('ATTENDANCE');
   const [periodPreset, setPeriodPreset] = useState<string>('THIS_MONTH');
   
@@ -698,89 +697,74 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2"><h1 className="text-3xl font-bold text-slate-900 tracking-tight">Audit & Reports</h1><HelpButton helpPointId="reports.generator" /></div>
-          <p className="text-slate-500 font-medium text-sm">Employee attendance summary & raw data extraction</p>
-        </div>
-        <div className="flex p-1 bg-white border border-slate-100 rounded-3xl shadow-sm">
-          <button onClick={() => setActiveTab('SUMMARY')} className={`px-5 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'SUMMARY' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Summary</button>
-          <button onClick={() => setActiveTab('GENERATOR')} className={`px-5 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'GENERATOR' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Raw Data</button>
-          <button onClick={() => setActiveTab('CONFIG')} className={`px-5 py-2 rounded-2xl text-[10px] font-semibold uppercase tracking-widest transition-all ${activeTab === 'CONFIG' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Columns</button>
+          <p className="text-slate-500 font-medium text-sm">Employee attendance summary & detailed record extraction</p>
         </div>
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div className="xl:col-span-2">
-          {activeTab === 'SUMMARY' ? (
-            /* ===== SUMMARY TAB ===== */
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-8 animate-in slide-in-from-left-4 duration-500">
-              {/* Period Presets */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Period</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: 'THIS_WEEK', label: 'This Week', icon: CalendarDays },
-                    { key: 'THIS_MONTH', label: 'This Month', icon: Calendar },
-                    { key: 'THIS_YEAR', label: 'This Year', icon: TrendingUp },
-                    { key: 'LAST_MONTH', label: 'Last Month', icon: Calendar },
-                    { key: 'LAST_YEAR', label: 'Last Year', icon: TrendingUp },
-                  ].map(p => (
-                    <button
-                      key={p.key}
-                      onClick={() => handlePresetClick(p.key)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border ${
-                        periodPreset === p.key
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                          : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200 hover:text-indigo-600'
-                      }`}
-                    >
-                      <p.icon size={14} />
-                      {p.label}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => handlePresetClick('CUSTOM')}
+        <div className="xl:col-span-2 space-y-8">
+
+          {/* ===== SHARED FILTERS ===== */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-8">
+            {/* Period Presets */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Period</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'THIS_WEEK', label: 'This Week', icon: CalendarDays },
+                  { key: 'THIS_MONTH', label: 'This Month', icon: Calendar },
+                  { key: 'THIS_YEAR', label: 'This Year', icon: TrendingUp },
+                  { key: 'LAST_MONTH', label: 'Last Month', icon: Calendar },
+                  { key: 'LAST_YEAR', label: 'Last Year', icon: TrendingUp },
+                ].map(p => (
+                  <button key={p.key} onClick={() => handlePresetClick(p.key)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border ${
-                      periodPreset === 'CUSTOM'
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                        : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200 hover:text-indigo-600'
-                    }`}
-                  >
-                    <CalendarDays size={14} />
-                    Custom
+                      periodPreset === p.key ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200 hover:text-indigo-600'
+                    }`}>
+                    <p.icon size={14} />{p.label}
                   </button>
-                </div>
-                {periodPreset === 'CUSTOM' && (
-                  <div className="flex gap-2 pt-2">
-                    <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">From</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={handleDateChange(setStartDate)} /></div>
-                    <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">To</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={handleDateChange(setEndDate)} /></div>
-                  </div>
-                )}
+                ))}
+                <button onClick={() => handlePresetClick('CUSTOM')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border ${
+                    periodPreset === 'CUSTOM' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-indigo-200 hover:text-indigo-600'
+                  }`}>
+                  <CalendarDays size={14} />Custom
+                </button>
               </div>
-
-              {/* Department Filter (reused) */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Departments ({selectedDepts.length}/{dbDepartments.length})</p>
-                  <div className="flex gap-4">
-                    <button onClick={() => setSelectedDepts(dbDepartments)} className="text-[9px] font-semibold uppercase text-indigo-600 hover:underline">Select All</button>
-                    <button onClick={() => setSelectedDepts([])} className="text-[9px] font-semibold uppercase text-rose-500 hover:underline">Clear All</button>
-                  </div>
+              {periodPreset === 'CUSTOM' && (
+                <div className="flex gap-2 pt-2">
+                  <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">From</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={handleDateChange(setStartDate)} /></div>
+                  <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">To</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={handleDateChange(setEndDate)} /></div>
                 </div>
-                <div className="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-slate-50 rounded-3xl py-4 bg-slate-50/30">
-                  {dbDepartments.map(dept => {
-                    const isSelected = selectedDepts.includes(dept);
-                    return (
-                      <button key={dept} onClick={() => toggleDept(dept)} className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-primary/30 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}>
-                        <div className={`p-1 rounded-md ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>{isSelected ? <CheckSquare size={14} /> : <Square size={14} />}</div>
-                        <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>{dept}</span>
-                      </button>
-                    );
-                  })}
+              )}
+            </div>
+
+            {/* Department Filter */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Departments ({selectedDepts.length}/{dbDepartments.length})</p>
+                <div className="flex gap-4">
+                  <button onClick={() => setSelectedDepts(dbDepartments)} className="text-[9px] font-semibold uppercase text-indigo-600 hover:underline">Select All</button>
+                  <button onClick={() => setSelectedDepts([])} className="text-[9px] font-semibold uppercase text-rose-500 hover:underline">Clear All</button>
                 </div>
               </div>
+              <div className="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-slate-50 rounded-3xl py-4 bg-slate-50/30">
+                {dbDepartments.map(dept => {
+                  const isSelected = selectedDepts.includes(dept);
+                  return (
+                    <button key={dept} onClick={() => toggleDept(dept)} className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-primary/30 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}>
+                      <div className={`p-1 rounded-md ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>{isSelected ? <CheckSquare size={14} /> : <Square size={14} />}</div>
+                      <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>{dept}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-              {/* Employee Scoping */}
+            {/* Employee Scoping + Recipient */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Employee Scoping</label>
                 <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}>
@@ -788,162 +772,156 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                   {employees.filter(e => { if (selectedDepts.length === 0) return true; return selectedDepts.includes(e.department || ''); }).map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}
                 </select>
               </div>
-
-              {/* Recipient & Email */}
               <div className="space-y-1">
                 <label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Recipient(s)</label>
                 <input type="text" placeholder="email1@example.com, email2@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={customRecipients} onChange={e => setCustomRecipients(e.target.value)}/>
               </div>
+            </div>
+          </div>
 
-              {/* Summary Stats Card (compact — no inline table for scalability) */}
-              <div className="space-y-3">
-                <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">
-                  Report Summary ({employeeSummaries.length} employees)
-                </p>
-                {employeeSummaries.length === 0 ? (
-                  <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100">
-                    <Users size={40} className="mx-auto text-slate-300 mb-3" />
-                    <p className="text-sm font-semibold text-slate-400">No employee data for this period</p>
-                    <p className="text-xs text-slate-400 mt-1">Try adjusting the date range or department filters.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    {[
-                      { label: 'Employees', value: employeeSummaries.length, color: 'bg-indigo-50 text-indigo-700 border-indigo-100', icon: Users },
-                      { label: 'Total Present', value: employeeSummaries.reduce((s: any, e: any) => s + e.presentDays, 0), color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
-                      { label: 'Total Absent', value: employeeSummaries.reduce((s: any, e: any) => s + e.absentDays, 0), color: 'bg-rose-50 text-rose-700 border-rose-100', icon: AlertCircle },
-                      { label: 'Total Late', value: employeeSummaries.reduce((s: any, e: any) => s + e.lateDays, 0), color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
-                      { label: 'Total Leave', value: employeeSummaries.reduce((s: any, e: any) => s + e.leaveDays, 0), color: 'bg-blue-50 text-blue-700 border-blue-100', icon: FileText },
-                      { label: 'Avg. Att.', value: employeeSummaries.length > 0 ? `${Math.round(employeeSummaries.reduce((s: any, e: any) => s + e.attendancePercentage, 0) / employeeSummaries.length)}%` : '—', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: PieChart },
-                    ].map((stat: any) => (
-                      <div key={stat.label} className={`${stat.color} rounded-2xl p-4 border text-center`}>
-                        <stat.icon size={18} className="mx-auto mb-1.5 opacity-60" />
-                        <p className="text-2xl font-bold">{stat.value}</p>
-                        <p className="text-[8px] font-semibold uppercase tracking-wider mt-0.5">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="text-[9px] text-slate-400 text-center pt-1">
-                  Per-employee breakdown is included in the CSV / PDF export and email report below.
-                </p>
-              </div>
-
-              {/* Export & Email Buttons */}
-              <div className="pt-6 border-t border-slate-50 space-y-3">
-                <div className="flex gap-3">
-                  <button onClick={downloadSummaryCSV} disabled={isGenerating || employeeSummaries.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-primary text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} CSV Summary</button>
-                  <button onClick={downloadSummaryPDF} disabled={isGeneratingPDF || employeeSummaries.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-slate-900 text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="animate-spin" size={16} /> : <FileDown size={16} />} PDF Summary</button>
-                </div>
-                <button onClick={handleEmailSummaryReport} disabled={isEmailing || employeeSummaries.length === 0} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50">{isEmailing ? <RefreshCw className="animate-spin" size={16} /> : <Mail size={16} />} Email Summary Report</button>
+          {/* ===== SECTION 1: EMPLOYEE SUMMARY ===== */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-indigo-100 rounded-xl"><PieChart size={20} className="text-indigo-600" /></div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Employee Summary Report</h2>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Per-employee attendance breakdown</p>
               </div>
             </div>
-          ) : activeTab === 'GENERATOR' ? (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-12 animate-in slide-in-from-left-4 duration-500">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">1. Target Departments ({selectedDepts.length}/{dbDepartments.length})</p>
-                  <div className="flex gap-4">
-                    <button onClick={() => setSelectedDepts(dbDepartments)} className="text-[9px] font-semibold uppercase text-indigo-600 hover:underline">Select All</button>
-                    <button onClick={() => setSelectedDepts([])} className="text-[9px] font-semibold uppercase text-rose-500 hover:underline">Clear All</button>
-                  </div>
-                </div>
-                 <div className="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-1 border border-slate-50 rounded-3xl py-4 bg-slate-50/30">
-                    {dbDepartments.map(dept => {
-                      const isSelected = selectedDepts.includes(dept);
-                      return (
-                        <button key={dept} onClick={() => toggleDept(dept)} className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all text-left ${isSelected ? 'bg-white border-primary/30 shadow-sm' : 'bg-transparent border-transparent opacity-60'}`}>
-                          <div className={`p-1 rounded-md ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}>{isSelected ? <CheckSquare size={14} /> : <Square size={14} />}</div>
-                          <span className={`text-[11px] font-bold truncate ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}>{dept}</span>
-                        </button>
-                      );
-                    })}
-                 </div>
+
+            {/* Stat Cards */}
+            {employeeSummaries.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100">
+                <Users size={40} className="mx-auto text-slate-300 mb-3" />
+                <p className="text-sm font-semibold text-slate-400">No employee data for this period</p>
+                <p className="text-xs text-slate-400 mt-1">Try adjusting the date range or department filters.</p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
-                <div className="space-y-6">
-                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest px-1">2. Report Type</p>
-                  <div className="space-y-3">
-                    {['ATTENDANCE', 'ABSENT', 'LATE', 'LEAVE'].map((id) => (
-                      <button key={id} onClick={() => setReportType(id)} className={`w-full flex items-center gap-4 p-5 rounded-xl border transition-all ${reportType === id ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
-                        <div className={`p-2.5 rounded-xl ${reportType === id ? 'bg-white/10' : 'bg-indigo-500 text-white'}`}><FileText size={20} /></div>
-                        <span className="font-semibold text-xs uppercase tracking-tight">{id} Report</span>
-                      </button>
-                    ))}
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {[
+                  { label: 'Employees', value: employeeSummaries.length, color: 'bg-indigo-50 text-indigo-700 border-indigo-100', icon: Users },
+                  { label: 'Total Present', value: employeeSummaries.reduce((s: any, e: any) => s + e.presentDays, 0), color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
+                  { label: 'Total Absent', value: employeeSummaries.reduce((s: any, e: any) => s + e.absentDays, 0), color: 'bg-rose-50 text-rose-700 border-rose-100', icon: AlertCircle },
+                  { label: 'Total Late', value: employeeSummaries.reduce((s: any, e: any) => s + e.lateDays, 0), color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
+                  { label: 'Total Leave', value: employeeSummaries.reduce((s: any, e: any) => s + e.leaveDays, 0), color: 'bg-blue-50 text-blue-700 border-blue-100', icon: FileText },
+                  { label: 'Avg. Att.', value: employeeSummaries.length > 0 ? `${Math.round(employeeSummaries.reduce((s: any, e: any) => s + e.attendancePercentage, 0) / employeeSummaries.length)}%` : '—', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: PieChart },
+                ].map((stat: any) => (
+                  <div key={stat.label} className={`${stat.color} rounded-2xl p-4 border text-center`}>
+                    <stat.icon size={18} className="mx-auto mb-1.5 opacity-60" />
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-[8px] font-semibold uppercase tracking-wider mt-0.5">{stat.label}</p>
                   </div>
-                </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[9px] text-slate-400 text-center">
+              Per-employee breakdown is included in the CSV / PDF export and email report.
+            </p>
 
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">3. Refining Parameters</p>
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">From</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={startDate} onChange={handleDateChange(setStartDate)} /></div>
-                        <div className="flex-1 min-w-0 space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">To</label><input type="date" className="w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold outline-none" value={endDate} onChange={handleDateChange(setEndDate)} /></div>
-                      </div>
-                      <div className="space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Employee Scoping</label><select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}><option value="All Employees">All Individual Employees</option>{employees.filter(e => { if (selectedDepts.length === 0) return true; return selectedDepts.includes(e.department || ''); }).map(e => <option key={e.id} value={e.id}>{e.name} ({e.employeeId})</option>)}</select></div>
-                      <div className="space-y-1"><label className="text-[8px] font-semibold text-slate-400 uppercase tracking-[0.2em] px-1">Recipient(s)</label><input type="text" placeholder="email1@example.com, email2@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={customRecipients} onChange={e => setCustomRecipients(e.target.value)}/></div>
+            {/* Summary Export Buttons */}
+            <div className="pt-4 border-t border-slate-50 space-y-3">
+              <div className="flex gap-3">
+                <button onClick={downloadSummaryCSV} disabled={isGenerating || employeeSummaries.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-primary text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} CSV Summary</button>
+                <button onClick={downloadSummaryPDF} disabled={isGeneratingPDF || employeeSummaries.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-slate-900 text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="animate-spin" size={16} /> : <FileDown size={16} />} PDF Summary</button>
+              </div>
+              <button onClick={handleEmailSummaryReport} disabled={isEmailing || employeeSummaries.length === 0} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50">{isEmailing ? <RefreshCw className="animate-spin" size={16} /> : <Mail size={16} />} Email Summary Report</button>
+            </div>
+          </div>
+
+          {/* ===== SECTION 2: DETAIL RECORDS ===== */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-slate-100 rounded-xl"><FileText size={20} className="text-slate-700" /></div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Detail Records Report</h2>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Individual attendance & leave records</p>
+              </div>
+            </div>
+
+            {/* Report Type */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">Report Type</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {['ATTENDANCE', 'ABSENT', 'LATE', 'LEAVE'].map((id) => (
+                  <button key={id} onClick={() => setReportType(id)} className={`flex items-center gap-2 p-4 rounded-xl border transition-all ${reportType === id ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
+                    <div className={`p-2 rounded-lg ${reportType === id ? 'bg-white/10' : 'bg-indigo-500 text-white'}`}><FileText size={14} /></div>
+                    <span className="font-semibold text-[10px] uppercase tracking-tight">{id}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Configure Columns (collapsible) */}
+            <details className="group">
+              <summary className="flex items-center gap-2 cursor-pointer text-[10px] font-semibold uppercase text-slate-400 tracking-widest hover:text-slate-600 transition-colors">
+                <Settings2 size={14} />
+                Configure Export Columns ({Object.values(enabledColumns).filter(Boolean).length} active)
+                <span className="ml-auto text-[9px] text-slate-300 group-open:hidden">Click to expand</span>
+              </summary>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-50">
+                {columnOptions.map((col) => (
+                  <button key={col.key} onClick={() => setEnabledColumns(p => ({...p, [col.key]: !p[col.key]}))} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${enabledColumns[col.key] ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${enabledColumns[col.key] ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}><col.icon size={14} /></div>
+                      <span className="text-[10px] font-semibold uppercase tracking-tight">{col.label}</span>
                     </div>
-                  </div>
-                  <div className="pt-4"><button onClick={handleEmailSummary} disabled={isEmailing || reportData.length === 0} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50">{isEmailing ? <RefreshCw className="animate-spin" size={16}/> : <Mail size={16}/>} Email Scoped Summary</button></div>
-                </div>
+                    {enabledColumns[col.key] && <CheckCircle size={16} className="text-primary" />}
+                  </button>
+                ))}
               </div>
+            </details>
 
-              <div className="pt-10 border-t border-slate-50 flex gap-3">
-                <button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="flex-1 flex items-center justify-center gap-3 py-6 bg-primary text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />} CSV Export</button>
-                <button onClick={downloadPDF} disabled={isGeneratingPDF || reportData.length === 0} className="flex-1 flex items-center justify-center gap-3 py-6 bg-slate-900 text-white rounded-xl font-semibold text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="animate-spin" size={18} /> : <FileDown size={18} />} PDF Export</button>
+            {/* Detail Export Buttons */}
+            <div className="pt-4 border-t border-slate-50 space-y-3">
+              <div className="flex gap-3">
+                <button onClick={downloadCSV} disabled={isGenerating || reportData.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-primary text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-primary-hover transition-all active:scale-95 disabled:opacity-50">{isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} CSV Export</button>
+                <button onClick={downloadPDF} disabled={isGeneratingPDF || reportData.length === 0} className="flex-1 flex items-center justify-center gap-3 py-4 bg-slate-900 text-white rounded-xl font-semibold text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="animate-spin" size={16} /> : <FileDown size={16} />} PDF Export</button>
               </div>
+              <button onClick={handleEmailSummary} disabled={isEmailing || reportData.length === 0} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50">{isEmailing ? <RefreshCw className="animate-spin" size={16} /> : <Mail size={16} />} Email Detail Report</button>
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 md:p-12 animate-in slide-in-from-right-4 duration-500">
-              <h3 className="text-lg font-semibold text-slate-900 mb-8 flex items-center gap-3"><Settings2 className="text-primary" /> Export Configuration</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{columnOptions.map((col) => (<button key={col.key} onClick={() => setEnabledColumns(p => ({...p, [col.key]: !p[col.key]}))} className={`flex items-center justify-between p-5 rounded-3xl border transition-all ${enabledColumns[col.key] ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 border-slate-100 opacity-60'}`}><div className="flex items-center gap-3"><div className={`p-2 rounded-lg ${enabledColumns[col.key] ? 'bg-primary text-white' : 'bg-slate-200 text-slate-400'}`}><col.icon size={16} /></div><span className="text-[10px] font-semibold uppercase tracking-tight">{col.label}</span></div>{enabledColumns[col.key] && <CheckCircle size={18} className="text-primary" />}</button>))}</div>
-            </div>
-          )}
+          </div>
+
         </div>
 
+        {/* ===== LIVE PREVIEW SIDEBAR (always summary) ===== */}
         <div className="bg-[#0f172a] rounded-2xl p-8 text-white shadow-xl space-y-8 flex flex-col sticky top-24 h-fit animate-in zoom-in duration-700">
            <div className="flex-1 space-y-8">
              <div className="flex items-center justify-between"><h3 className="text-xl font-semibold flex items-center gap-3"><Search className="text-indigo-400" /> Live Preview</h3><div className="p-2 bg-white/10 rounded-xl cursor-pointer hover:bg-white/20 transition-all" onClick={fetchLogs} title="Refresh Email Status"><RefreshCw size={16} /></div></div>
              <div className="p-8 bg-white/5 rounded-xl border border-white/10 text-center space-y-6">
-              {activeTab === 'SUMMARY' ? (
-                <>
-                  <div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Employees</p><p className="text-6xl font-semibold text-white">{employeeSummaries.length}</p></div>
-                  <div className="grid grid-cols-2 gap-2 text-left">
-                    {[
-                      { label: 'Present', count: employeeSummaries.reduce((s, e) => s + e.presentDays, 0), color: 'text-emerald-400' },
-                      { label: 'Absent', count: employeeSummaries.reduce((s, e) => s + e.absentDays, 0), color: 'text-rose-400' },
-                      { label: 'Late', count: employeeSummaries.reduce((s, e) => s + e.lateDays, 0), color: 'text-amber-400' },
-                      { label: 'Leave', count: employeeSummaries.reduce((s, e) => s + e.leaveDays, 0), color: 'text-blue-400' },
-                    ].map(stat => (
-                      <div key={stat.label} className="bg-white/5 rounded-xl p-3 text-center">
-                        <p className={`text-lg font-bold ${stat.color}`}>{stat.count}</p>
-                        <p className="text-[9px] uppercase tracking-wider text-slate-400">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="h-px bg-white/10 w-1/2 mx-auto"></div>
-                  <div>
-                    <p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Avg. Attendance</p>
-                    <p className="text-3xl font-bold text-white">
-                      {employeeSummaries.length > 0
-                        ? `${Math.round(employeeSummaries.reduce((s, e) => s + e.attendancePercentage, 0) / employeeSummaries.length)}%`
-                        : '—'}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Records to Export</p><p className="text-6xl font-semibold text-white">{reportData.length}</p></div>
-                  <div className="h-px bg-white/10 w-1/2 mx-auto"></div>
-                  <div className="space-y-1"><p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Departments Scoped</p><div className="flex flex-wrap justify-center gap-1.5 px-2">{selectedDepts.length === dbDepartments.length ? (<span className="text-[9px] font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">Entire Organization</span>) : selectedDepts.length === 0 ? (<span className="text-[9px] font-bold text-rose-400">No Selection</span>) : (selectedDepts.slice(0, 3).map(d => (<span key={d} className="text-[8px] font-semibold text-white bg-white/10 px-2 py-0.5 rounded-full uppercase truncate max-w-[80px]">{d}</span>)))}{selectedDepts.length > 3 && (<span className="text-[8px] font-semibold text-white bg-indigo-500/20 px-2 py-0.5 rounded-full uppercase">+{selectedDepts.length - 3} More</span>)}</div></div>
-                </>
-              )}
+               <div><p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] mb-1">Employees</p><p className="text-6xl font-semibold text-white">{employeeSummaries.length}</p></div>
+               <div className="grid grid-cols-2 gap-2">
+                 {[
+                   { label: 'Present', count: employeeSummaries.reduce((s, e) => s + e.presentDays, 0), color: 'text-emerald-400' },
+                   { label: 'Absent', count: employeeSummaries.reduce((s, e) => s + e.absentDays, 0), color: 'text-rose-400' },
+                   { label: 'Late', count: employeeSummaries.reduce((s, e) => s + e.lateDays, 0), color: 'text-amber-400' },
+                   { label: 'Leave', count: employeeSummaries.reduce((s, e) => s + e.leaveDays, 0), color: 'text-blue-400' },
+                 ].map(stat => (
+                   <div key={stat.label} className="bg-white/5 rounded-xl p-3 text-center">
+                     <p className={`text-lg font-bold ${stat.color}`}>{stat.count}</p>
+                     <p className="text-[9px] uppercase tracking-wider text-slate-400">{stat.label}</p>
+                   </div>
+                 ))}
+               </div>
+               <div className="h-px bg-white/10 w-1/2 mx-auto"></div>
+               <div>
+                 <p className="text-[8px] font-semibold text-indigo-400 uppercase tracking-widest mb-1">Avg. Attendance</p>
+                 <p className="text-3xl font-bold text-white">
+                   {employeeSummaries.length > 0
+                     ? `${Math.round(employeeSummaries.reduce((s, e) => s + e.attendancePercentage, 0) / employeeSummaries.length)}%`
+                     : '—'}
+                 </p>
+               </div>
              </div>
-             <div className="space-y-4"><div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500"><Activity size={14} className="text-indigo-400" /> Recent Email Activity</div><div className="bg-slate-900 border border-white/10 rounded-3xl p-2 max-h-48 overflow-y-auto no-scrollbar space-y-1">{emailLogs.length === 0 ? (<p className="text-center text-[9px] font-semibold text-slate-600 uppercase py-4">No recent activity</p>) : (emailLogs.map(log => (<div key={log.id} className="p-3 bg-white/5 rounded-2xl flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-[9px] font-bold text-white truncate">{log.recipient_email}</p><p className="text-[8px] font-medium text-slate-500 truncate">{log.subject}</p></div><div className={`px-2 py-0.5 rounded-full text-[8px] font-semibold uppercase ${log.status === 'SENT' ? 'bg-emerald-500/20 text-emerald-400' : log.status === 'FAILED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{log.status}</div></div>)))}</div>{emailLogs.some(l => l.status === 'FAILED') && (<div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex gap-2"><AlertCircle size={14} className="text-rose-400 flex-shrink-0" /><p className="text-[9px] font-medium text-rose-300 leading-tight">Some emails failed. Verify SMTP settings in Admin Panel &gt; Settings &gt; Mail.</p></div>)}{isHookMissing && (<div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2"><HelpCircle size={14} className="text-amber-400 flex-shrink-0" /><div className="space-y-1"><p className="text-[9px] font-bold text-amber-300 leading-tight uppercase">Backend Hook Not Detected</p><p className="text-[8px] font-medium text-amber-400/80 leading-tight">Emails are stuck in PENDING. Ensure <code>main.pb.js</code> is in your PocketBase <code>pb_hooks</code> folder.</p></div></div>)}</div>
+             <div className="space-y-4">
+               <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500"><Activity size={14} className="text-indigo-400" /> Recent Email Activity</div>
+               <div className="bg-slate-900 border border-white/10 rounded-3xl p-2 max-h-48 overflow-y-auto no-scrollbar space-y-1">
+                 {emailLogs.length === 0 ? (<p className="text-center text-[9px] font-semibold text-slate-600 uppercase py-4">No recent activity</p>) : (emailLogs.map(log => (<div key={log.id} className="p-3 bg-white/5 rounded-2xl flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-[9px] font-bold text-white truncate">{log.recipient_email}</p><p className="text-[8px] font-medium text-slate-500 truncate">{log.subject}</p></div><div className={`px-2 py-0.5 rounded-full text-[8px] font-semibold uppercase ${log.status === 'SENT' ? 'bg-emerald-500/20 text-emerald-400' : log.status === 'FAILED' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{log.status}</div></div>)))}
+               </div>
+               {emailLogs.some(l => l.status === 'FAILED') && (<div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex gap-2"><AlertCircle size={14} className="text-rose-400 flex-shrink-0" /><p className="text-[9px] font-medium text-rose-300 leading-tight">Some emails failed. Verify SMTP settings in Admin Panel &gt; Settings &gt; Mail.</p></div>)}
+               {isHookMissing && (<div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-2"><HelpCircle size={14} className="text-amber-400 flex-shrink-0" /><div className="space-y-1"><p className="text-[9px] font-bold text-amber-300 leading-tight uppercase">Backend Hook Not Detected</p><p className="text-[8px] font-medium text-amber-400/80 leading-tight">Emails are stuck in PENDING. Ensure <code>main.pb.js</code> is in your PocketBase <code>pb_hooks</code> folder.</p></div></div>)}
+             </div>
            </div>
-           <div className="p-6 bg-indigo-500/10 rounded-xl border border-indigo-500/20"><p className="text-[9px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p><div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase"><p>Format: CSV / PDF</p>{activeTab === 'SUMMARY' ? <p>Mode: Per-Employee Summary</p> : <><p>Mode: First & Last Punch</p><p>Columns: {Object.values(enabledColumns).filter(Boolean).length} Active</p></>}</div></div>
+           <div className="p-6 bg-indigo-500/10 rounded-xl border border-indigo-500/20"><p className="text-[9px] font-semibold text-indigo-300 uppercase tracking-[0.3em] mb-2">Technical Info</p><div className="space-y-1 text-[10px] font-bold text-slate-300 uppercase"><p>Format: CSV / PDF</p><p>Mode: Per-Employee Summary + Detail Records</p></div></div>
         </div>
       </div>
     </div>
