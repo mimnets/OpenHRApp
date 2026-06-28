@@ -795,13 +795,11 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                 <input type="text" placeholder="email1@example.com, email2@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-xs outline-none" value={customRecipients} onChange={e => setCustomRecipients(e.target.value)}/>
               </div>
 
-              {/* Employee Summary Table */}
+              {/* Summary Stats Card (compact — no inline table for scalability) */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">
-                    Employee Summary ({employeeSummaries.length} employees)
-                  </p>
-                </div>
+                <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-widest">
+                  Report Summary ({employeeSummaries.length} employees)
+                </p>
                 {employeeSummaries.length === 0 ? (
                   <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100">
                     <Users size={40} className="mx-auto text-slate-300 mb-3" />
@@ -809,66 +807,26 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                     <p className="text-xs text-slate-400 mt-1">Try adjusting the date range or department filters.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-slate-900 text-white">
-                          <th className="px-3 py-3 text-left text-[9px] font-semibold uppercase tracking-widest">#</th>
-                          <th className="px-3 py-3 text-left text-[9px] font-semibold uppercase tracking-widest">Employee</th>
-                          <th className="px-3 py-3 text-left text-[9px] font-semibold uppercase tracking-widest">Dept</th>
-                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">Work Days</th>
-                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
-                            <span className="text-emerald-400">Present</span>
-                          </th>
-                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
-                            <span className="text-rose-400">Absent</span>
-                          </th>
-                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
-                            <span className="text-amber-400">Late</span>
-                          </th>
-                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
-                            <span className="text-blue-400">Leave</span>
-                          </th>
-                          <th className="px-3 py-3 text-center text-[9px] font-semibold uppercase tracking-widest">
-                            <span className="text-indigo-300">%</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {employeeSummaries.map((s, i) => (
-                          <tr key={s.employeeId} className={`${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-indigo-50/30 transition-colors`}>
-                            <td className="px-3 py-2.5 text-[10px] font-medium text-slate-400">{i + 1}</td>
-                            <td className="px-3 py-2.5">
-                              <p className="text-[10px] font-semibold text-slate-900">{s.employeeName}</p>
-                              <p className="text-[9px] text-slate-400">{s.designation}</p>
-                            </td>
-                            <td className="px-3 py-2.5 text-[10px] text-slate-600 font-medium">{s.department}</td>
-                            <td className="px-3 py-2.5 text-center text-[10px] font-bold text-slate-700">{s.totalWorkingDays}</td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">{s.presentDays}</span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold ${s.absentDays > 0 ? 'bg-rose-50 text-rose-700' : 'text-slate-300'}`}>{s.absentDays}</span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold ${s.lateDays > 0 ? 'bg-amber-50 text-amber-700' : 'text-slate-300'}`}>{s.lateDays}</span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold ${s.leaveDays > 0 ? 'bg-blue-50 text-blue-700' : 'text-slate-300'}`}>{s.leaveDays}</span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                s.attendancePercentage >= 90 ? 'bg-emerald-50 text-emerald-700' :
-                                s.attendancePercentage >= 75 ? 'bg-amber-50 text-amber-700' :
-                                'bg-rose-50 text-rose-700'
-                              }`}>{s.attendancePercentage}%</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    {[
+                      { label: 'Employees', value: employeeSummaries.length, color: 'bg-indigo-50 text-indigo-700 border-indigo-100', icon: Users },
+                      { label: 'Total Present', value: employeeSummaries.reduce((s: any, e: any) => s + e.presentDays, 0), color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle2 },
+                      { label: 'Total Absent', value: employeeSummaries.reduce((s: any, e: any) => s + e.absentDays, 0), color: 'bg-rose-50 text-rose-700 border-rose-100', icon: AlertCircle },
+                      { label: 'Total Late', value: employeeSummaries.reduce((s: any, e: any) => s + e.lateDays, 0), color: 'bg-amber-50 text-amber-700 border-amber-100', icon: Clock },
+                      { label: 'Total Leave', value: employeeSummaries.reduce((s: any, e: any) => s + e.leaveDays, 0), color: 'bg-blue-50 text-blue-700 border-blue-100', icon: FileText },
+                      { label: 'Avg. Att.', value: employeeSummaries.length > 0 ? `${Math.round(employeeSummaries.reduce((s: any, e: any) => s + e.attendancePercentage, 0) / employeeSummaries.length)}%` : '—', color: 'bg-slate-100 text-slate-700 border-slate-200', icon: PieChart },
+                    ].map((stat: any) => (
+                      <div key={stat.label} className={`${stat.color} rounded-2xl p-4 border text-center`}>
+                        <stat.icon size={18} className="mx-auto mb-1.5 opacity-60" />
+                        <p className="text-2xl font-bold">{stat.value}</p>
+                        <p className="text-[8px] font-semibold uppercase tracking-wider mt-0.5">{stat.label}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
+                <p className="text-[9px] text-slate-400 text-center pt-1">
+                  Per-employee breakdown is included in the CSV / PDF export and email report below.
+                </p>
               </div>
 
               {/* Export & Email Buttons */}

@@ -131,6 +131,19 @@ export const getDateRangeFromPreset = (
 };
 
 /**
+ * Normalizes shift working days from 3-letter abbreviations (DB default) to full names.
+ * DB stores working_days as array['MON','TUE','WED','THU','FRI'] by default.
+ * toLocaleDateString('en-US', { weekday: 'long' }) returns 'Monday', 'Tuesday', etc.
+ */
+const DAY_NAME_MAP: Record<string, string> = {
+  MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday',
+  FRI: 'Friday', SAT: 'Saturday', SUN: 'Sunday',
+};
+
+const normalizeWorkingDays = (days: string[]): string[] =>
+  days.map(d => DAY_NAME_MAP[d.toUpperCase()] || d);
+
+/**
  * Counts working days for a specific employee in the given period.
  * Respects employee's assigned shift → override → default shift → global config.
  * Excludes holidays.
@@ -144,10 +157,10 @@ export const getWorkingDaysInPeriod = (
   appConfig: AppConfig,
   holidays: Holiday[]
 ): number => {
-  const globalWorkingDays = appConfig.workingDays || [];
+  const globalWorkingDays = normalizeWorkingDays(appConfig.workingDays || []);
   const defaultShift = shifts.find(s => s.isDefault);
 
-  // Build a map of dateStr → workingDays for quick lookup (memoize per date)
+  // Build a map of dateStr → normalized workingDays for quick lookup
   const resolveWorkingDays = (dateStr: string): string[] => {
     // Check overrides first
     const override = shiftOverrides.find(
@@ -155,15 +168,15 @@ export const getWorkingDaysInPeriod = (
     );
     if (override) {
       const oShift = shifts.find(s => s.id === override.shiftId);
-      if (oShift) return oShift.workingDays;
+      if (oShift) return normalizeWorkingDays(oShift.workingDays);
     }
     // Employee assignment
     if (emp.shiftId) {
       const aShift = shifts.find(s => s.id === emp.shiftId);
-      if (aShift) return aShift.workingDays;
+      if (aShift) return normalizeWorkingDays(aShift.workingDays);
     }
     // Default shift
-    if (defaultShift) return defaultShift.workingDays;
+    if (defaultShift) return normalizeWorkingDays(defaultShift.workingDays);
     // Global fallback
     return globalWorkingDays;
   };
@@ -273,20 +286,17 @@ export const calculateEmployeeSummaries = (params: {
         const dayName = dt.toLocaleDateString('en-US', { weekday: 'long' });
         if (holidaySet.has(dateStr)) continue;
 
-        // Resolve working days for this employee on this date
-        const override = shiftOverrides.find(
-          o => o.employeeId === emp.id && dateStr >= o.startDate && dateStr <= o.endDate
-        );
+        // Resolve working days for this employee on this date (normalized to full names)
         let workingDays: string[];
         if (override) {
           const oShift = shifts.find(s => s.id === override.shiftId);
-          workingDays = oShift ? oShift.workingDays : [];
+          workingDays = oShift ? normalizeWorkingDays(oShift.workingDays) : [];
         } else if (emp.shiftId) {
           const aShift = shifts.find(s => s.id === emp.shiftId);
-          workingDays = aShift ? aShift.workingDays : [];
+          workingDays = aShift ? normalizeWorkingDays(aShift.workingDays) : [];
         } else {
           const defShift = shifts.find(s => s.isDefault);
-          workingDays = defShift ? defShift.workingDays : (appConfig.workingDays || []);
+          workingDays = defShift ? normalizeWorkingDays(defShift.workingDays) : normalizeWorkingDays(appConfig.workingDays || []);
         }
 
         if (workingDays.includes(dayName)) {
