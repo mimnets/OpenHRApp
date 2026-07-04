@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-04',
+    title: 'Attendance Audit — admin selfie visibility fix',
+    entries: [
+      { type: 'fix', description: 'Fixed admin unable to see employee selfies in Attendance Audit. The createSignedUrls call was silently failing because (a) all selfie paths were sent in a single request exceeding Supabase Storage\'s 1 000-path limit, and (b) the returned error was never checked. Now batches into chunks of 500 with proper error logging so signed URLs are resolved reliably for any record count.' },
+    ],
+  },
+  {
     date: '2026-06-28',
     title: 'Employee attendance summary report',
     entries: [
