@@ -5,7 +5,6 @@ import NotificationBell from '../components/notifications/NotificationBell';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { SubscriptionBanner } from '../components/subscription';
-import { AdBanner } from '../components/ads';
 
 
 interface MainLayoutProps {
@@ -113,10 +112,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, currentPath, onNaviga
             {children}
           </div>
 
-          {/* Footer Ad Banner (for AD_SUPPORTED orgs) */}
-          <div className="max-w-4xl mx-auto mt-8 mb-20 md:mb-0 flex justify-center">
-            <AdBanner slot="footer" className="rounded-xl overflow-hidden" />
-          </div>
         </div>
 
         {/* Bottom Navigation (Mobile) */}

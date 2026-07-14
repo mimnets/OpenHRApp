@@ -4,7 +4,6 @@ import { ShieldCheck, Plus, Users } from 'lucide-react';
 import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
-import { AdBanner } from '../ads';
 import { AnnouncementWidget } from './AnnouncementWidget';
 
 interface Props {
@@ -32,11 +31,6 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
         upcomingHoliday={data.upcomingHoliday} 
         isLoading={isLoading} 
       />
-
-      {/* Dashboard Ad Banner (for AD_SUPPORTED orgs) */}
-      <div className="flex justify-center">
-        <AdBanner slot="dashboard" className="rounded-xl overflow-hidden" />
-      </div>
 
       {!isLoading && (
         <>

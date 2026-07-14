@@ -155,6 +155,38 @@ export const notificationService = {
     else apiClient.notify();
   },
 
+  /** Create a notification for every SUPER_ADMIN user via the
+   *  security-definer RPC (bypasses profiles RLS). */
+  async notifySuperAdmins(data: {
+    type: NotificationType;
+    title: string;
+    message?: string;
+    priority?: NotificationPriority;
+    referenceId?: string;
+    referenceType?: string;
+    actionUrl?: string;
+  }): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { error } = await supabase.rpc('notify_super_admins', {
+        p_type: data.type,
+        p_title: data.title,
+        p_message: data.message || null,
+        p_priority: data.priority || 'NORMAL',
+        p_reference_type: data.referenceType || null,
+        p_reference_id: data.referenceId || null,
+        p_action_url: data.actionUrl || null,
+      });
+      if (error) {
+        console.error('[NotificationService] notifySuperAdmins RPC failed:', error.message);
+      } else {
+        apiClient.notify();
+      }
+    } catch (e: any) {
+      console.error('[NotificationService] notifySuperAdmins failed:', e?.message || e);
+    }
+  },
+
   async getAllNotifications(): Promise<AppNotification[]> {
     if (!isSupabaseConfigured()) return [];
     try {

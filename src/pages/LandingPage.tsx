@@ -4,8 +4,8 @@ import HeroSection from '../components/landing/HeroSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import HowItWorksSection from '../components/landing/HowItWorksSection';
 import PricingSection from '../components/landing/PricingSection';
+import TestimonialsSection from '../components/landing/TestimonialsSection';
 import Footer from '../components/landing/Footer';
-import { PublicAdBanner } from '../components/ads';
 import { updatePageMeta, setJsonLd } from '../utils/seo';
 
 const ShowcaseSection = React.lazy(() => import('../components/landing/ShowcaseSection'));
@@ -110,11 +110,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
       <Navbar onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
       <main id="main-content">
         <HeroSection onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
-        <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-hero" /></div>
+        <TestimonialsSection />
         <FeaturesSection />
         <HowItWorksSection />
         <Suspense fallback={<SectionSkeleton />}><PricingSection onRegisterClick={onRegisterClick} /></Suspense>
-        <div className="py-4 flex justify-center"><PublicAdBanner slot="landing-mid" /></div>
         <Suspense fallback={<SectionSkeleton />}><ShowcaseSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><FAQSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><ContactSection /></Suspense>

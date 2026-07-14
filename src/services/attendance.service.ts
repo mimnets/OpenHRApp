@@ -248,17 +248,46 @@ export const attendanceService = {
 
         // Resolve signed URLs for selfies (private bucket — public URLs return 403).
         // Skip when caller only needs counts/metadata (e.g. dashboard stats).
+        // Batch paths into chunks of 500 — Supabase Storage caps createSignedUrls
+        // at 1 000 paths per request; exceeding that returns an error which the
+        // old code silently ignored, leaving raw storage paths that <img> can't render.
+        const SIGN_CHUNK_SIZE = 500;
         const withSelfie = !skipSelfieUrls ? result.filter(r => r.selfie) : [];
         if (withSelfie.length > 0) {
           const paths = withSelfie.map(r => r.selfie as string);
-          const { data: signed } = await supabase.storage
-            .from(SELFIE_BUCKET)
-            .createSignedUrls(paths, 3600);
-          if (signed) {
-            const urlMap = new Map(signed.map(s => [s.path, s.signedUrl]));
+          const urlMap = new Map<string, string>();
+          let signFailures = 0;
+
+          for (let i = 0; i < paths.length; i += SIGN_CHUNK_SIZE) {
+            const chunk = paths.slice(i, i + SIGN_CHUNK_SIZE);
+            try {
+              const { data: signed, error: signErr } = await supabase.storage
+                .from(SELFIE_BUCKET)
+                .createSignedUrls(chunk, 3600);
+              if (signErr) {
+                signFailures++;
+                console.warn('[AttendanceService] createSignedUrls chunk failed:',
+                  signErr.message || signErr, `(chunk ${Math.floor(i / SIGN_CHUNK_SIZE) + 1}, ${chunk.length} paths)`);
+                continue;
+              }
+              if (signed) {
+                for (const s of signed) urlMap.set(s.path, s.signedUrl);
+              }
+            } catch (e: any) {
+              signFailures++;
+              console.warn('[AttendanceService] createSignedUrls chunk threw:',
+                e?.message || e, `(chunk ${Math.floor(i / SIGN_CHUNK_SIZE) + 1}, ${chunk.length} paths)`);
+            }
+          }
+
+          if (urlMap.size > 0) {
             result.forEach(r => {
               if (r.selfie) r.selfie = urlMap.get(r.selfie) ?? r.selfie;
             });
+          }
+          if (signFailures > 0) {
+            console.warn('[AttendanceService] Selfie sign failures:',
+              signFailures, 'chunk(s) —', urlMap.size, 'of', paths.length, 'paths signed');
           }
         }
 

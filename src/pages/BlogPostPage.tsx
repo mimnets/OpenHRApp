@@ -194,10 +194,18 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
                   />
 
-                  {/* Ad - Blog Post Content */}
-                  <div className="mt-8 flex justify-center">
-                    <PublicAdBanner slot="blog-post-content" />
-                  </div>
+                  {/* Ad - Blog Post Content (only for substantial posts 2000+ words) */}
+                  {(() => {
+                    const wordCount = post.content ? post.content.split(/\s+/).filter(Boolean).length : 0;
+                    if (wordCount >= 2000) {
+                      return (
+                        <div className="mt-8 flex justify-center">
+                          <PublicAdBanner slot="blog-post-content" />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* Back to blog */}
                   <div className="mt-12 pt-8 border-t border-slate-200">

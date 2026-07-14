@@ -1,7 +1,153 @@
 import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from './supabase';
 import { apiClient } from './api.client';
+import { notificationService } from './notification.service';
 import { UpgradeRequest, DonationTier } from '../types';
 import { convertFileToWebP } from '../utils/imageConvert';
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+async function getOrgName(orgId: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from('organizations')
+      .select('name')
+      .eq('id', orgId)
+      .maybeSingle();
+    return data?.name || 'Unknown';
+  } catch {
+    return 'Unknown';
+  }
+}
+
+async function notifySuperAdminsAboutRequest(
+  orgId: string,
+  requestType: string,
+  requestId?: string,
+): Promise<void> {
+  try {
+    const orgName = await getOrgName(orgId);
+    const typeLabel = requestType === 'DONATION'
+      ? 'Donation'
+      : requestType === 'TRIAL_EXTENSION'
+        ? 'Trial Extension'
+        : 'Ad-Supported';
+    const title = `New ${typeLabel} request from ${orgName}`;
+    const message = requestType === 'AD_SUPPORTED'
+      ? `${orgName} has switched to ad-supported mode.`
+      : `${orgName} submitted a ${typeLabel.toLowerCase()} request.`;
+
+    await notificationService.notifySuperAdmins({
+      type: 'UPGRADE_REQUEST',
+      title,
+      message,
+      priority: 'NORMAL',
+      referenceType: 'upgrade_request',
+      referenceId: requestId || orgId,
+      actionUrl: 'super-admin',
+    });
+
+    // Also send email to super admins (non-blocking)
+    sendEmailToSuperAdmins(orgName, typeLabel, orgId);
+  } catch (e: any) {
+    console.error('[UpgradeService] Failed to notify super admins:', e?.message || e);
+  }
+}
+
+async function notifyOrgAdminsAboutDecision(
+  orgId: string,
+  requestType: string,
+  action: 'APPROVED' | 'REJECTED',
+): Promise<void> {
+  try {
+    // Find ADMIN/HR users in the requesting organization
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('organization_id', orgId)
+      .in('role', ['ADMIN', 'HR']);
+
+    if (!admins || admins.length === 0) return;
+
+    const typeLabel = requestType === 'DONATION'
+      ? 'Donation'
+      : requestType === 'TRIAL_EXTENSION'
+        ? 'Trial Extension'
+        : 'Ad-Supported';
+    const title = action === 'APPROVED'
+      ? `${typeLabel} request approved`
+      : `${typeLabel} request rejected`;
+    const message = action === 'APPROVED'
+      ? `Your ${typeLabel.toLowerCase()} request has been approved.`
+      : `Your ${typeLabel.toLowerCase()} request has been rejected.`;
+
+    await notificationService.createBulkNotifications(
+      admins.map(a => ({
+        userId: a.id,
+        type: 'SYSTEM' as const,
+        title,
+        message,
+        priority: 'NORMAL' as const,
+      })),
+    );
+
+    // Also send email to org admins (non-blocking)
+    sendEmailToOrgAdmins(orgId, typeLabel, action);
+  } catch (e: any) {
+    console.error('[UpgradeService] Failed to notify org admins:', e?.message || e);
+  }
+}
+
+// ── Email dispatch helpers (call the notify-admins-email edge function) ────────
+
+async function sendEmailToSuperAdmins(
+  orgName: string,
+  typeLabel: string,
+  orgId: string,
+): Promise<void> {
+  try {
+    const subject = `New ${typeLabel} request from ${orgName}`;
+    const html = `
+      <h2>New ${typeLabel} Request</h2>
+      <p><strong>${orgName}</strong> has submitted a ${typeLabel.toLowerCase()} request.</p>
+      <p style="margin-top:16px">
+        <a href="https://app.openhr.app" style="color:#4f46e5">Open Super Admin Dashboard</a>
+      </p>
+    `;
+    await supabase.functions.invoke('notify-admins-email', {
+      body: { target: 'SUPER_ADMINS', subject, html },
+    });
+  } catch (e: any) {
+    console.error('[UpgradeService] Email to super admins failed:', e?.message || e);
+  }
+}
+
+async function sendEmailToOrgAdmins(
+  orgId: string,
+  typeLabel: string,
+  action: 'APPROVED' | 'REJECTED',
+): Promise<void> {
+  try {
+    const subject = action === 'APPROVED'
+      ? `${typeLabel} request approved`
+      : `${typeLabel} request rejected`;
+    const html = action === 'APPROVED'
+      ? `
+        <h2>${typeLabel} Request Approved</h2>
+        <p>Your ${typeLabel.toLowerCase()} request has been <strong>approved</strong>.</p>
+        <p>Your organization's subscription status has been updated accordingly.</p>
+      `
+      : `
+        <h2>${typeLabel} Request Rejected</h2>
+        <p>Your ${typeLabel.toLowerCase()} request has been <strong>rejected</strong>.</p>
+        <p>Please contact support if you have any questions.</p>
+      `;
+    await supabase.functions.invoke('notify-admins-email', {
+      body: { target: 'ORG_ADMINS', orgId, subject, html },
+    });
+  } catch (e: any) {
+    console.error('[UpgradeService] Email to org admins failed:', e?.message || e);
+  }
+}
 
 export const upgradeService = {
   async submitDonationRequest(data: {
@@ -34,6 +180,10 @@ export const upgradeService = {
         donation_screenshot: screenshotPath,
       }).select('id').single();
       if (error) throw error;
+
+      // Notify super admins about the new donation request (non-blocking)
+      notifySuperAdminsAboutRequest(orgId, 'DONATION', record.id);
+
       return { success: true, message: 'Request submitted successfully', requestId: record.id };
     } catch (e: any) {
       console.error('[UpgradeService] Failed to submit donation request:', e);
@@ -58,6 +208,10 @@ export const upgradeService = {
         extension_days: data.extensionDays,
       }).select('id').single();
       if (error) throw error;
+
+      // Notify super admins about the new extension request (non-blocking)
+      notifySuperAdminsAboutRequest(orgId, 'TRIAL_EXTENSION', record.id);
+
       return { success: true, message: 'Extension request submitted', requestId: record.id };
     } catch (e: any) {
       console.error('[UpgradeService] Failed to submit extension request:', e);
@@ -75,6 +229,10 @@ export const upgradeService = {
         .update({ subscription_status: 'AD_SUPPORTED', trial_end_date: null })
         .eq('id', orgId);
       if (error) throw error;
+
+      // Notify super admins about the ad-supported switch (non-blocking)
+      notifySuperAdminsAboutRequest(orgId, 'AD_SUPPORTED');
+
       apiClient.notify();
       return { success: true, message: 'Ad-supported mode activated' };
     } catch (e: any) {
@@ -201,6 +359,9 @@ export const upgradeService = {
           await supabase.from('organizations').update(orgUpdate).eq('id', req.organization_id);
         }
       }
+
+      // Notify the requesting org's admins about the decision (non-blocking)
+      notifyOrgAdminsAboutDecision(req.organization_id, req.request_type, action);
 
       apiClient.notify();
       return { success: true, message: action === 'APPROVED' ? 'Request approved' : 'Request rejected' };

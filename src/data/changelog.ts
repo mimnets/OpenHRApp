@@ -15,6 +15,32 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-14',
+    title: 'AdSense compliance overhaul, Supabase README & open-source self-hosting guide',
+    entries: [
+      { type: 'fix', description: 'Removed AdBanner components from all authenticated/functional pages (Sidebar, MainLayout footer, AdminDashboard, ManagerDashboard, EmployeeDashboard) to comply with Google AdSense policy prohibiting ads on screens without publisher content.' },
+      { type: 'fix', description: 'Removed PublicAdBanner slots from LandingPage (landing-hero and landing-mid). Marketing pages are not considered sufficient publisher content for AdSense. Replaced with TestimonialsSection for richer social-proof content.' },
+      { type: 'feature', description: 'Added About page at /about with company story, mission, values, open-source callout, and stats. Includes full SEO meta tags and JSON-LD structured data.' },
+      { type: 'fix', description: 'Fixed broken "About" links in BlogFooter and TutorialsFooter — now correctly navigate to /about instead of the homepage. Added About link to LandingPage Footer.' },
+      { type: 'improvement', description: 'BlogPostPage now conditionally renders the in-content ad slot only for posts with 2,000+ words, reducing ad density on shorter articles for better content-to-ad ratio.' },
+      { type: 'improvement', description: 'Cleaned up ads.txt to remove unused ad network entries (Ezoic, MediaGrid, Sonobi, RiseCodes, Cadent, Yahoo, secondary Google). Kept only the primary AdSense publisher ID.' },
+      { type: 'feature', description: 'Created 16 seed blog post markdown files in seed-data/blog-posts/ covering HR management, OpenHR feature guides, industry insights, and company content — each 800-1,500+ words.' },
+      { type: 'fix', description: 'Super admins now receive in-app bell notifications for new organization registrations and upgrade requests (donations, trial extensions, ad-supported switches). Previously no notification was sent for upgrade requests, and registration notifications had no icon in the dropdown.' },
+      { type: 'fix', description: 'Org admins now receive in-app bell notifications when their upgrade requests are approved or rejected by a super admin.' },
+      { type: 'feature', description: 'Added Supabase real-time subscription to the notification bell — server-created notifications (e.g. from edge functions) now appear immediately without a page refresh.' },
+      { type: 'improvement', description: 'Added notify_super_admins PostgreSQL function (SECURITY DEFINER) in migration 0015, so client code can create notifications for super admins without bypassing RLS.' },
+      { type: 'improvement', description: 'Complete README rewrite for Supabase — replaced all PocketBase references with full Supabase setup instructions including cloud quick-start, self-hosted Docker guide, environment variable reference, architecture diagram, Edge Functions catalog, cron job table, storage bucket docs, and database table reference.' },
+      { type: 'feature', description: 'Added .env.example file with documented VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and VITE_VAPID_PUBLIC_KEY variables so new users can clone and configure the project without hunting through source code.' },
+    ],
+  },
+  {
+    date: '2026-07-04',
+    title: 'Attendance Audit — admin selfie visibility fix',
+    entries: [
+      { type: 'fix', description: 'Fixed admin unable to see employee selfies in Attendance Audit. The createSignedUrls call was silently failing because (a) all selfie paths were sent in a single request exceeding Supabase Storage\'s 1 000-path limit, and (b) the returned error was never checked. Now batches into chunks of 500 with proper error logging so signed URLs are resolved reliably for any record count.' },
+    ],
+  },
+  {
     date: '2026-06-28',
     title: 'Employee attendance summary report',
     entries: [
