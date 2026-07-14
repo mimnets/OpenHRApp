@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Megaphone, CalendarDays, Clock, ClipboardCheck, Info, CheckCheck, Settings, ArrowLeft } from 'lucide-react';
+import { Bell, Megaphone, CalendarDays, Clock, ClipboardCheck, Info, CheckCheck, Settings, ArrowLeft, Building2, ArrowUpCircle } from 'lucide-react';
 import { useNotifications } from '../../hooks/notifications/useNotifications';
 import { AppNotification, NotificationType, EmailDigestFrequency } from '../../types';
 
@@ -14,6 +14,8 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
   ATTENDANCE: <Clock size={16} className="text-amber-500" />,
   REVIEW: <ClipboardCheck size={16} className="text-purple-500" />,
   SYSTEM: <Info size={16} className="text-slate-500" />,
+  NEW_REGISTRATION: <Building2 size={16} className="text-emerald-500" />,
+  UPGRADE_REQUEST: <ArrowUpCircle size={16} className="text-orange-500" />,
 };
 
 const TYPE_LABELS: Record<NotificationType, string> = {
@@ -22,6 +24,8 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   ATTENDANCE: 'Attendance',
   REVIEW: 'Reviews',
   SYSTEM: 'System',
+  NEW_REGISTRATION: 'New Registration',
+  UPGRADE_REQUEST: 'Upgrade Request',
 };
 
 const DIGEST_OPTIONS: { value: EmailDigestFrequency; label: string }[] = [

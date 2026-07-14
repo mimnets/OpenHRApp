@@ -318,7 +318,7 @@ export interface Announcement {
 }
 
 // Notification Types
-export type NotificationType = 'ANNOUNCEMENT' | 'LEAVE' | 'ATTENDANCE' | 'REVIEW' | 'SYSTEM';
+export type NotificationType = 'ANNOUNCEMENT' | 'LEAVE' | 'ATTENDANCE' | 'REVIEW' | 'SYSTEM' | 'NEW_REGISTRATION' | 'UPGRADE_REQUEST';
 export type NotificationPriority = 'NORMAL' | 'URGENT';
 
 export interface AppNotification {

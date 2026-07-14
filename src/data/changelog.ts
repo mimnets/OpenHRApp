@@ -25,6 +25,10 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'BlogPostPage now conditionally renders the in-content ad slot only for posts with 2,000+ words, reducing ad density on shorter articles for better content-to-ad ratio.' },
       { type: 'improvement', description: 'Cleaned up ads.txt to remove unused ad network entries (Ezoic, MediaGrid, Sonobi, RiseCodes, Cadent, Yahoo, secondary Google). Kept only the primary AdSense publisher ID.' },
       { type: 'feature', description: 'Created 16 seed blog post markdown files in seed-data/blog-posts/ covering HR management, OpenHR feature guides, industry insights, and company content — each 800-1,500+ words.' },
+      { type: 'fix', description: 'Super admins now receive in-app bell notifications for new organization registrations and upgrade requests (donations, trial extensions, ad-supported switches). Previously no notification was sent for upgrade requests, and registration notifications had no icon in the dropdown.' },
+      { type: 'fix', description: 'Org admins now receive in-app bell notifications when their upgrade requests are approved or rejected by a super admin.' },
+      { type: 'feature', description: 'Added Supabase real-time subscription to the notification bell — server-created notifications (e.g. from edge functions) now appear immediately without a page refresh.' },
+      { type: 'improvement', description: 'Added notify_super_admins PostgreSQL function (SECURITY DEFINER) in migration 0015, so client code can create notifications for super admins without bypassing RLS.' },
     ],
   },
   {

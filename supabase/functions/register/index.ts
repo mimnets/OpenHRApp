@@ -197,6 +197,77 @@ function getHolidays(code: string): Array<{ id: string; date: string; name: stri
   return data[code] ?? [];
 }
 
+// ── Email helper ─────────────────────────────────────────────────────────────
+async function sendSuperAdminRegistrationEmail(
+  supabase: ReturnType<typeof createClient>,
+  superAdmins: Array<{ id: string }>,
+  orgName: string,
+  adminName: string,
+  email: string,
+  country: string,
+  trialEndDate: Date,
+): Promise<void> {
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendKey) {
+    console.warn('[REGISTER] RESEND_API_KEY not set — skipping email notification');
+    return;
+  }
+
+  const FROM_EMAIL = 'OpenHR <noreply@openhrapp.com>';
+
+  // Map profile IDs to auth.user emails (same pattern as cron-expire-trials)
+  const userIds = superAdmins.map(sa => sa.id);
+  const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  const emailMap = new Map<string, string>();
+  if (authUsers?.users) {
+    for (const u of authUsers.users) {
+      if (u.email && userIds.includes(u.id)) {
+        emailMap.set(u.id, u.email);
+      }
+    }
+  }
+
+  const trialDateStr = trialEndDate.toISOString().split('T')[0];
+  const subject = `New org registered: ${orgName}`;
+  const html = `
+    <h2>New Organization Registration</h2>
+    <p>A new organization has registered on OpenHR:</p>
+    <table style="border-collapse:collapse;width:100%;max-width:500px">
+      <tr><td style="padding:6px 12px;font-weight:bold">Organization</td><td>${orgName}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold">Admin</td><td>${adminName}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold">Email</td><td>${email}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold">Country</td><td>${country}</td></tr>
+      <tr><td style="padding:6px 12px;font-weight:bold">Trial Ends</td><td>${trialDateStr}</td></tr>
+    </table>
+    <p style="margin-top:16px">
+      <a href="https://app.openhr.app" style="color:#4f46e5">Open Super Admin Dashboard</a>
+    </p>
+  `;
+
+  for (const [userId, toEmail] of emailMap) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: [toEmail],
+          subject,
+          html,
+        }),
+      });
+      if (!res.ok) {
+        console.error(`[REGISTER] Email to super admin ${userId} failed: ${res.status} ${await res.text()}`);
+      }
+    } catch (e) {
+      console.error(`[REGISTER] Email to super admin ${userId} error:`, e);
+    }
+  }
+}
+
 // ── Main handler ────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -384,6 +455,15 @@ Deno.serve(async (req: Request) => {
           action_url:     'super-admin',
         }));
         await supabase.from('notifications').insert(notifications);
+
+        // Also send email to super admins (non-fatal)
+        try {
+          await sendSuperAdminRegistrationEmail(
+            supabase, superAdmins, orgName, adminName, email, country, trialEndDate,
+          );
+        } catch (emailErr) {
+          console.warn('[REGISTER] Super admin email failed (non-fatal):', emailErr);
+        }
       }
     } catch (notifErr) {
       console.warn('[REGISTER] Super admin notification failed (non-fatal):', notifErr);
