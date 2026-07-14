@@ -15,6 +15,19 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-14',
+    title: 'AdSense compliance overhaul — removed ads from non-content pages, added About page and blog content',
+    entries: [
+      { type: 'fix', description: 'Removed AdBanner components from all authenticated/functional pages (Sidebar, MainLayout footer, AdminDashboard, ManagerDashboard, EmployeeDashboard) to comply with Google AdSense policy prohibiting ads on screens without publisher content.' },
+      { type: 'fix', description: 'Removed PublicAdBanner slots from LandingPage (landing-hero and landing-mid). Marketing pages are not considered sufficient publisher content for AdSense. Replaced with TestimonialsSection for richer social-proof content.' },
+      { type: 'feature', description: 'Added About page at /about with company story, mission, values, open-source callout, and stats. Includes full SEO meta tags and JSON-LD structured data.' },
+      { type: 'fix', description: 'Fixed broken "About" links in BlogFooter and TutorialsFooter — now correctly navigate to /about instead of the homepage. Added About link to LandingPage Footer.' },
+      { type: 'improvement', description: 'BlogPostPage now conditionally renders the in-content ad slot only for posts with 2,000+ words, reducing ad density on shorter articles for better content-to-ad ratio.' },
+      { type: 'improvement', description: 'Cleaned up ads.txt to remove unused ad network entries (Ezoic, MediaGrid, Sonobi, RiseCodes, Cadent, Yahoo, secondary Google). Kept only the primary AdSense publisher ID.' },
+      { type: 'feature', description: 'Created 16 seed blog post markdown files in seed-data/blog-posts/ covering HR management, OpenHR feature guides, industry insights, and company content — each 800-1,500+ words.' },
+    ],
+  },
+  {
     date: '2026-07-04',
     title: 'Attendance Audit — admin selfie visibility fix',
     entries: [

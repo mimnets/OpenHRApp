@@ -17,7 +17,6 @@ import {
   Megaphone,
   Bell,
 } from 'lucide-react';
-import { AdBanner } from './ads';
 import HelpButton from './onboarding/HelpButton';
 
 interface SidebarProps {
@@ -100,11 +99,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
             </button>
           </div>
         ))}
-
-        {/* Ad Banner (for AD_SUPPORTED orgs) */}
-        <div className="px-2 pt-4 pb-2 justify-center hidden md:flex">
-          <AdBanner slot="sidebar" className="rounded-xl overflow-hidden" />
-        </div>
 
         {/* Sign Out */}
         <div className="pt-4 pb-2 space-y-4">

@@ -4,7 +4,6 @@ import { ShieldCheck, Plus, Users, List, CalendarDays, Network, BarChart3, Setti
 import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
-import { AdBanner } from '../ads';
 import { AnnouncementWidget } from './AnnouncementWidget';
 import SetupChecklist from '../onboarding/SetupChecklist';
 
@@ -99,11 +98,6 @@ export const AdminDashboard: React.FC<Props> = ({ data, isLoading, onNavigate })
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Dashboard Ad Banner (for AD_SUPPORTED orgs) */}
-      <div className="flex justify-center">
-        <AdBanner slot="dashboard" className="rounded-xl overflow-hidden" />
       </div>
 
       {!isLoading && (

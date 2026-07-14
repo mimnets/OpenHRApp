@@ -48,6 +48,7 @@ const Footer: React.FC = () => {
     {
       title: 'Company',
       links: [
+        { label: 'About', href: '/about', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/about'); } },
         { label: 'Contact', href: '#contact', onClick: (e: React.MouseEvent) => { e.preventDefault(); scrollTo('contact'); } },
         { label: 'Privacy Policy', href: '/privacy', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/privacy'); } },
         { label: 'Terms of Service', href: '/terms', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/terms'); } },
