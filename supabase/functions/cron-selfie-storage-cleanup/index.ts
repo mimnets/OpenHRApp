@@ -24,8 +24,18 @@ function jsonResponse(status: number, body: unknown) {
 Deno.serve(async (req: Request) => {
   // ── Auth guard ────────────────────────────────────────────────────────────
   const cronSecret = Deno.env.get('CRON_SECRET');
-  const authHeader = req.headers.get('Authorization');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const authHeader = req.headers.get('Authorization') || '';
+
+  // Three valid ways to authenticate:
+  // 1. pg_net internal call: Authorization: Bearer <CRON_SECRET> (bypasses Kong)
+  // 2. External call with service_role key: Authorization: Bearer <service_role_key>
+  // 3. External call with x-cron-secret header (when passing anon key to Kong)
+  const cronHeader = req.headers.get('x-cron-secret');
+  const isCronSecret = cronSecret && (authHeader === `Bearer ${cronSecret}` || cronHeader === cronSecret);
+  const isServiceRole = serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`;
+
+  if (!isCronSecret && !isServiceRole) {
     return jsonResponse(401, { success: false, message: 'Unauthorized' });
   }
 
