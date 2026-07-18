@@ -8,7 +8,7 @@ export const faqs = [
       },
       {
         q: 'Is OpenHRApp really free?',
-        a: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported. If you would like to remove ads for your organization, you can make a small donation to support the project.',
+        a: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported. If you'd like to support the project, you can make a small donation through Buy Me a Coffee.',
       },
     ],
   },
@@ -85,8 +85,8 @@ export const faqs = [
         a: 'There is no trial period because OpenHRApp is permanently free. There are no time limits, no feature gates, and no employee caps. You can use it for as long as you want without paying anything.',
       },
       {
-        q: 'How do I remove ads from my organization?',
-        a: 'You can remove ads by making a donation to support the project through Buy Me a Coffee. Any amount helps — once your donation is confirmed, ads will be disabled for your organization. Contact us after donating and we will enable the ad-free experience for your account.',
+        q: 'How can I support the project?',
+        a: 'You can support OpenHRApp by making a donation through Buy Me a Coffee. Any amount helps — your contribution directly funds ongoing development and hosting costs. As a thank-you, donors receive an ad-free experience for their organization. Contact us after donating and we will enable it for your account.',
       },
       {
         q: 'What features should I look for in HR management software?',
