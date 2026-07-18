@@ -69,7 +69,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
               name: 'Is OpenHRApp really free?',
               acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported, and you can remove ads by making a small donation to support the project.',
+                text: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported. If you'd like to support the project, you can make a small donation through Buy Me a Coffee.',
               },
             },
             {
