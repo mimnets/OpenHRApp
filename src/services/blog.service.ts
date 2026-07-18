@@ -129,12 +129,15 @@ export const blogService = {
       let coverPath: string | null = null;
 
       if (data.coverImage) {
-        const webpCover = await convertFileToWebP(data.coverImage);
+        const webpCover = await convertFileToWebP(data.coverImage, 0.8, 1920);
         const path = `blog-covers/${Date.now()}.webp`;
         const { error: uploadError } = await supabase.storage
           .from('content-images')
-          .upload(path, webpCover, { upsert: true });
-        if (uploadError) throw uploadError;
+          .upload(path, webpCover, { contentType: 'image/webp', upsert: true });
+        if (uploadError) {
+          console.error('[BlogService] Cover image upload failed:', uploadError);
+          throw uploadError;
+        }
         coverPath = path;
       }
 
@@ -150,11 +153,15 @@ export const blogService = {
       if (data.status === 'PUBLISHED') record.published_at = new Date().toISOString();
 
       const { error } = await supabase.from('blog_posts').insert(record);
-      if (error) throw error;
+      if (error) {
+        console.error('[BlogService] Insert failed:', error);
+        throw error;
+      }
 
       apiClient.notify();
       return { success: true, message: 'Blog post created successfully' };
     } catch (e: any) {
+      console.error('[BlogService] createPost error:', e?.message || e);
       return { success: false, message: e?.message || 'Failed to create blog post' };
     }
   },
@@ -167,7 +174,7 @@ export const blogService = {
     coverImage?: File | null;
     status?: 'DRAFT' | 'PUBLISHED';
     authorName?: string;
-    publishedAt?: string;
+    publishedAt?: string | null;
   }): Promise<{ success: boolean; message: string }> {
     if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
@@ -178,24 +185,34 @@ export const blogService = {
       if (data.excerpt !== undefined) record.excerpt = data.excerpt;
       if (data.status !== undefined) record.status = data.status;
       if (data.authorName !== undefined) record.author_name = data.authorName;
-      if (data.publishedAt !== undefined) record.published_at = data.publishedAt;
+      if (data.publishedAt !== undefined) {
+        // null → clear the timestamp (unpublish); string → set it
+        record.published_at = data.publishedAt;
+      }
 
       if (data.coverImage) {
-        const webpCover = await convertFileToWebP(data.coverImage);
+        const webpCover = await convertFileToWebP(data.coverImage, 0.8, 1920);
         const path = `blog-covers/${Date.now()}.webp`;
         const { error: uploadError } = await supabase.storage
           .from('content-images')
-          .upload(path, webpCover, { upsert: true });
-        if (uploadError) throw uploadError;
+          .upload(path, webpCover, { contentType: 'image/webp', upsert: true });
+        if (uploadError) {
+          console.error('[BlogService] Cover image upload failed:', uploadError);
+          throw uploadError;
+        }
         record.cover_image = path;
       }
 
       const { error } = await supabase.from('blog_posts').update(record).eq('id', id);
-      if (error) throw error;
+      if (error) {
+        console.error('[BlogService] Update failed:', error);
+        throw error;
+      }
 
       apiClient.notify();
       return { success: true, message: 'Blog post updated successfully' };
     } catch (e: any) {
+      console.error('[BlogService] updatePost error:', e?.message || e);
       return { success: false, message: e?.message || 'Failed to update blog post' };
     }
   },
