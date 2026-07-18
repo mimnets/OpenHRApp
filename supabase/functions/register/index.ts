@@ -199,8 +199,7 @@ function getHolidays(code: string): Array<{ id: string; date: string; name: stri
 
 // ── Email helper ─────────────────────────────────────────────────────────────
 async function sendSuperAdminRegistrationEmail(
-  supabase: ReturnType<typeof createClient>,
-  superAdmins: Array<{ id: string }>,
+  superAdmins: Array<{ id: string; email: string | null }>,
   orgName: string,
   adminName: string,
   email: string,
@@ -215,17 +214,15 @@ async function sendSuperAdminRegistrationEmail(
 
   const FROM_EMAIL = 'OpenHR <noreply@openhrapp.com>';
 
-  // Map profile IDs to auth.user emails (same pattern as cron-expire-trials)
-  const userIds = superAdmins.map(sa => sa.id);
-  const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  const emailMap = new Map<string, string>();
-  if (authUsers?.users) {
-    for (const u of authUsers.users) {
-      if (u.email && userIds.includes(u.id)) {
-        emailMap.set(u.id, u.email);
-      }
-    }
+  // Filter to super admins who have an email in their profile.
+  // We use profiles.email directly (backfilled by migration 0013 + handle_new_user trigger)
+  // instead of the expensive+paginated auth.admin.listUsers() round-trip.
+  const withEmail = superAdmins.filter(sa => sa.email);
+  if (withEmail.length === 0) {
+    console.warn('[REGISTER] No super admins with email in profiles — skipping email notification');
+    return;
   }
+  console.log(`[REGISTER] Sending registration email to ${withEmail.length} super admin(s)`);
 
   const trialDateStr = trialEndDate.toISOString().split('T')[0];
   const subject = `New org registered: ${orgName}`;
@@ -244,7 +241,7 @@ async function sendSuperAdminRegistrationEmail(
     </p>
   `;
 
-  for (const [userId, toEmail] of emailMap) {
+  for (const sa of withEmail) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -254,16 +251,18 @@ async function sendSuperAdminRegistrationEmail(
         },
         body: JSON.stringify({
           from: FROM_EMAIL,
-          to: [toEmail],
+          to: [sa.email],
           subject,
           html,
         }),
       });
       if (!res.ok) {
-        console.error(`[REGISTER] Email to super admin ${userId} failed: ${res.status} ${await res.text()}`);
+        console.error(`[REGISTER] Email to super admin ${sa.id} (${sa.email}) failed: ${res.status} ${await res.text()}`);
+      } else {
+        console.log(`[REGISTER] Email sent to super admin ${sa.id} (${sa.email})`);
       }
     } catch (e) {
-      console.error(`[REGISTER] Email to super admin ${userId} error:`, e);
+      console.error(`[REGISTER] Email to super admin ${sa.id} error:`, e);
     }
   }
 }
@@ -440,26 +439,27 @@ Deno.serve(async (req: Request) => {
     try {
       const { data: superAdmins } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('role', 'SUPER_ADMIN');
 
       if (superAdmins && superAdmins.length > 0) {
         const notifications = superAdmins.map(sa => ({
-          user_id:        sa.id,
-          type:           'NEW_REGISTRATION',
-          title:          `New org registered: ${orgName}`,
-          message:        `Admin: ${adminName} (${email}) | Country: ${country} | Trial ends: ${trialEndDate.toISOString().split('T')[0]}`,
-          priority:       'HIGH',
-          reference_type: 'organization',
-          reference_id:   orgId,
-          action_url:     'super-admin',
+          user_id:         sa.id,
+          organization_id: orgId,
+          type:            'NEW_REGISTRATION',
+          title:           `New org registered: ${orgName}`,
+          message:         `Admin: ${adminName} (${email}) | Country: ${country} | Trial ends: ${trialEndDate.toISOString().split('T')[0]}`,
+          priority:        'HIGH',
+          reference_type:  'organization',
+          reference_id:    orgId,
+          action_url:      'super-admin',
         }));
         await supabase.from('notifications').insert(notifications);
 
         // Also send email to super admins (non-fatal)
         try {
           await sendSuperAdminRegistrationEmail(
-            supabase, superAdmins, orgName, adminName, email, country, trialEndDate,
+            superAdmins, orgName, adminName, email, country, trialEndDate,
           );
         } catch (emailErr) {
           console.warn('[REGISTER] Super admin email failed (non-fatal):', emailErr);

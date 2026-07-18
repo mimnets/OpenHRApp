@@ -97,7 +97,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ onMessage }) => {
   };
 
   const handleManualCleanup = async () => {
-    if (!confirm(`This will permanently delete all selfie images older than ${retentionDays} days.\n\nThis action cannot be undone. Continue?`)) {
+    if (!confirm(`This will permanently delete all selfie images older than ${retentionDays} days from both storage and database.\n\nThis action cannot be undone. Continue?`)) {
       return;
     }
 
@@ -107,36 +107,89 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ onMessage }) => {
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
       const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
-      // Fetch records with selfies older than retention period
+      // Fetch records with selfies older than retention period — include the selfie path
       const { data: records, error: fetchError } = await supabase
         .from('attendance')
-        .select('id')
+        .select('id, selfie')
         .lt('date', cutoffStr)
         .not('selfie', 'is', null);
 
       if (fetchError) throw fetchError;
 
-      let cleaned = 0;
+      let dbCleaned = 0;
+      let storageDeleted = 0;
       let errors = 0;
 
       if (records && records.length > 0) {
-        for (const record of records) {
-          try {
-            const { error } = await supabase
-              .from('attendance')
-              .update({ selfie: null })
-              .eq('id', record.id);
-            if (error) throw error;
-            cleaned++;
-          } catch (e) {
-            errors++;
+        // ── Step 1: Delete actual files from Supabase Storage ──────────
+        const selfiePaths: string[] = [];
+        for (const r of records) {
+          if (r.selfie && typeof r.selfie === 'string' && r.selfie.trim()) {
+            selfiePaths.push(r.selfie.trim());
+          }
+        }
+
+        if (selfiePaths.length > 0) {
+          // Delete in chunks of 500 (Supabase Storage remove() limit)
+          for (let i = 0; i < selfiePaths.length; i += 500) {
+            const chunk = selfiePaths.slice(i, i + 500);
+            try {
+              const { data: delResult, error: delError } = await supabase.storage
+                .from('selfies')
+                .remove(chunk);
+
+              if (delError) {
+                console.error('[Storage] Storage delete error:', delError.message);
+                errors += chunk.length;
+              } else if (delResult) {
+                storageDeleted += delResult.filter((d: any) => d.error == null).length;
+                errors += delResult.filter((d: any) => d.error != null).length;
+              }
+            } catch (e: any) {
+              console.error('[Storage] Storage delete exception:', e?.message || e);
+              errors += chunk.length;
+            }
+          }
+        }
+
+        // ── Step 2: Null the selfie column in the database ────────────
+        const recordIds = records.map(r => r.id);
+
+        // Use .in() for batch DB update
+        try {
+          const { error: batchError } = await supabase
+            .from('attendance')
+            .update({ selfie: null })
+            .in('id', recordIds);
+          if (batchError) throw batchError;
+          dbCleaned = recordIds.length;
+        } catch (e: any) {
+          console.error('[Storage] DB batch update error:', e?.message || e);
+          // Fall back to individual updates
+          for (const recordId of recordIds) {
+            try {
+              const { error } = await supabase
+                .from('attendance')
+                .update({ selfie: null })
+                .eq('id', recordId);
+              if (error) throw error;
+              dbCleaned++;
+            } catch (e2) {
+              errors++;
+            }
           }
         }
       }
 
+      const msgParts: string[] = [];
+      if (storageDeleted > 0) msgParts.push(`${storageDeleted} storage files deleted`);
+      if (dbCleaned > 0) msgParts.push(`${dbCleaned} database records cleaned`);
+      if (errors > 0) msgParts.push(`${errors} errors`);
+      if (msgParts.length === 0) msgParts.push('No records to clean');
+
       onMessage({
-        type: 'success',
-        text: `Cleanup complete! Cleaned ${cleaned} records${errors > 0 ? `, ${errors} errors` : ''}`,
+        type: errors > 0 && (storageDeleted + dbCleaned) === 0 ? 'error' : 'success',
+        text: `Cleanup complete! ${msgParts.join(', ')}.`,
       });
       await loadStats();
     } catch (e: any) {

@@ -71,18 +71,18 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Resolve target profiles ──────────────────────────────────────────
-    let profiles: Array<{ id: string }> = [];
+    let profiles: Array<{ id: string; email: string | null }> = [];
 
     if (target === 'SUPER_ADMINS') {
       const { data } = await adminClient
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('role', 'SUPER_ADMIN');
       profiles = data ?? [];
     } else if (target === 'ORG_ADMINS') {
       const { data } = await adminClient
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('organization_id', orgId)
         .in('role', ['ADMIN', 'HR']);
       profiles = data ?? [];
@@ -98,23 +98,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // ── Map profile IDs to auth.user emails ──────────────────────────────
-    const profileIds = profiles.map(p => p.id);
-    const { data: authUsers } = await adminClient.auth.admin.listUsers({ perPage: 10000 });
-    const emailMap = new Map<string, string>();
-    if (authUsers?.users) {
-      for (const u of authUsers.users) {
-        if (u.email && profileIds.includes(u.id)) {
-          emailMap.set(u.id, u.email);
-        }
-      }
-    }
-
     // ── Send emails ──────────────────────────────────────────────────────
     let sent = 0;
     let failed = 0;
 
-    for (const [userId, toEmail] of emailMap) {
+    for (const profile of profiles) {
+      if (!profile.email) {
+        console.warn(`[NotifyAdminsEmail] Profile ${profile.id} has no email — skipping`);
+        continue;
+      }
       try {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -124,7 +116,7 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify({
             from: FROM_EMAIL,
-            to: [toEmail],
+            to: [profile.email],
             subject,
             html,
           }),
@@ -133,11 +125,11 @@ Deno.serve(async (req: Request) => {
           sent++;
         } else {
           failed++;
-          console.error(`[NotifyAdminsEmail] Failed for ${userId}: ${res.status} ${await res.text()}`);
+          console.error(`[NotifyAdminsEmail] Failed for ${profile.id}: ${res.status} ${await res.text()}`);
         }
       } catch (e) {
         failed++;
-        console.error(`[NotifyAdminsEmail] Error for ${userId}:`, e);
+        console.error(`[NotifyAdminsEmail] Error for ${profile.id}:`, e);
       }
     }
 

@@ -68,20 +68,19 @@ Deno.serve(async (req: Request) => {
     // Email org admins.
     const { data: admins } = await admin
       .from('profiles')
-      .select('id, name')
+      .select('id, name, email')
       .eq('organization_id', org.id)
       .eq('role', 'ADMIN');
 
-    const { data: authUsers } = await admin.auth.admin.listUsers();
-    const authMap = new Map(authUsers?.users?.map((u) => [u.id, u.email]) ?? []);
-
     for (const adm of admins ?? []) {
-      const email = authMap.get(adm.id);
-      if (!email) continue;
+      if (!adm.email) {
+        console.warn(`[cron-expire-trials] Admin ${adm.id} has no email in profiles — skipping`);
+        continue;
+      }
 
       await sendEmail(
         resendKey,
-        email,
+        adm.email,
         `OpenHR Trial Expired — ${org.name}`,
         `<h2>Your OpenHR Trial Has Expired</h2>
          <p>Dear ${adm.name || 'Admin'},</p>
@@ -130,12 +129,9 @@ Deno.serve(async (req: Request) => {
 
       const { data: admins } = await admin
         .from('profiles')
-        .select('id, name')
+        .select('id, name, email')
         .eq('organization_id', org.id)
         .eq('role', 'ADMIN');
-
-      const { data: authUsers } = await admin.auth.admin.listUsers();
-      const authMap = new Map(authUsers?.users?.map((u) => [u.id, u.email]) ?? []);
 
       const isUrgent = daysLeft <= 3;
       const dayLabel = daysLeft === 1 ? 'day' : 'days';
@@ -144,12 +140,14 @@ Deno.serve(async (req: Request) => {
         : `Your OpenHR Trial Expires in ${daysLeft} ${dayLabel} — ${org.name}`;
 
       for (const adm of admins ?? []) {
-        const email = authMap.get(adm.id);
-        if (!email) continue;
+        if (!adm.email) {
+          console.warn(`[cron-expire-trials] Admin ${adm.id} has no email in profiles — skipping reminder`);
+          continue;
+        }
 
         await sendEmail(
           resendKey,
-          email,
+          adm.email,
           subject,
           `<h2>Trial Expiration Reminder</h2>
            <p>Dear ${adm.name || 'Admin'},</p>
