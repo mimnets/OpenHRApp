@@ -82,7 +82,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
               Support the Project
             </h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto mb-4">
-              OpenHRApp is independently maintained and funded by the community. If you'd like to remove ads from your organization, you can make a small donation to support development — any amount helps keep the project alive.
+              OpenHRApp is independently maintained and funded by the community. If you'd like to support ongoing development, you can make a small donation — any amount helps keep the project alive.
             </p>
             <a
               href="https://buymeacoffee.com/openhrapp"
