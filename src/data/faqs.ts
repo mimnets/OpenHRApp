@@ -86,7 +86,7 @@ export const faqs = [
       },
       {
         q: 'How do I remove ads from my organization?',
-        a: 'You can remove ads by making a donation to support the project through GitHub Sponsors. Any amount helps — once your sponsorship is confirmed, ads will be disabled for your organization. Contact us after sponsoring and we will enable the ad-free experience for your account.',
+        a: 'You can remove ads by making a donation to support the project through Buy Me a Coffee. Any amount helps — once your donation is confirmed, ads will be disabled for your organization. Contact us after donating and we will enable the ad-free experience for your account.',
       },
       {
         q: 'What features should I look for in HR management software?',

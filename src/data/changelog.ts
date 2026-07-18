@@ -27,6 +27,8 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'Fixed contact form returning "Could not find the table public.contact_submissions in the schema cache" error. Migration 0010 was present in the codebase but likely never applied — reworked with proper helper-function-based rate limiting and honeypot column.' },
       { type: 'security', description: 'Added multi-layer anti-spam to contact form: (1) CSS-hidden honeypot field that bots fill but humans never see, (2) rate-limiting RLS policy via check_contact_rate_limit() helper (max 3/hr, 10/day per email), (3) client-side timing check rejecting submissions under 2 seconds, (4) URL/link detection blocking messages containing https?://, (5) input sanitization stripping HTML tags, (6) max-length validation on all fields.' },
       { type: 'improvement', description: 'Contact service now validates and sanitizes all inputs server-side: strips HTML tags, lowercases email, enforces max lengths (name 100, email 254, subject 200, message 5000), and blocks submissions with URLs in the message body to prevent phishing.' },
+      { type: 'improvement', description: 'Updated Buy Me a Coffee donation link on the Upgrade page from buymeacoffee.com/openhr to buymeacoffee.com/openhrapp.' },
+      { type: 'improvement', description: 'Replaced "Sponsor on GitHub" button in the landing page pricing section with a "Buy Me a Coffee" button linking to buymeacoffee.com/openhrapp. Updated FAQ to reference Buy Me a Coffee instead of GitHub Sponsors.' },
     ],
   },
   {

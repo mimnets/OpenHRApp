@@ -260,7 +260,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                   <ExternalLink size={14} />
                 </a>
                 <a
-                  href="https://www.buymeacoffee.com/openhr"
+                  href="https://buymeacoffee.com/openhrapp"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-5 py-3 bg-[#FFDD00] text-slate-900 rounded-xl font-bold hover:opacity-90 transition-all"

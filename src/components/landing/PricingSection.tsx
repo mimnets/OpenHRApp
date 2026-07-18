@@ -85,12 +85,12 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
               OpenHRApp is independently maintained and funded by the community. If you'd like to remove ads from your organization, you can make a small donation to support development — any amount helps keep the project alive.
             </p>
             <a
-              href="https://github.com/sponsors/mimnets"
+              href="https://buymeacoffee.com/openhrapp"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FFDD00] text-slate-900 rounded-xl font-bold text-sm hover:opacity-90 transition-all"
             >
-              <Heart size={14} /> Sponsor on GitHub
+              <Coffee size={14} /> Buy Me a Coffee
             </a>
           </div>
         </div>
