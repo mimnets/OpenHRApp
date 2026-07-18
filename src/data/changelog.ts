@@ -15,6 +15,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-18',
+    title: 'Blog publishing fixes — cover image uploads & unpublish bug',
+    entries: [
+      { type: 'fix', description: 'Fixed blog post cover image upload failing silently. Storage uploads now explicitly set contentType: \'image/webp\' (matching inline-image uploads in superadmin.service.ts) and downsize covers to max 1920px before upload to prevent oversized files.' },
+      { type: 'fix', description: 'Fixed "invalid input syntax for type timestamp with time zone" error when unpublishing a blog post. The handleTogglePublish handler was sending an empty string for published_at instead of null. updatePost now correctly sets the column to null to clear the publish timestamp.' },
+      { type: 'improvement', description: 'Added console.error logging to all blogService createPost/updatePost error paths (cover image upload, DB insert/update, top-level catch) so failures are diagnosable from the browser console.' },
+      { type: 'improvement', description: 'convertFileToWebP now accepts an optional maxDimension parameter (forwarded to convertToWebP) so callers can downsize images before upload without a separate resize step.' },
+    ],
+  },
+  {
     date: '2026-07-14',
     title: 'AdSense compliance overhaul, Supabase README & open-source self-hosting guide',
     entries: [

@@ -175,7 +175,7 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
     const newStatus = post.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
     const result = await blogService.updatePost(post.id, {
       status: newStatus,
-      publishedAt: newStatus === 'PUBLISHED' ? new Date().toISOString() : '',
+      publishedAt: newStatus === 'PUBLISHED' ? new Date().toISOString() : null,
     });
     if (result.success) {
       onMessage({ type: 'success', text: `Post ${newStatus === 'PUBLISHED' ? 'published' : 'unpublished'} successfully` });

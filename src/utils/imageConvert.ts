@@ -61,10 +61,10 @@ export async function convertToWebP(
 /**
  * Convert a File to WebP, preserving a .webp filename for FormData uploads.
  */
-export async function convertFileToWebP(file: File, quality = 0.8): Promise<File> {
+export async function convertFileToWebP(file: File, quality = 0.8, maxDimension?: number): Promise<File> {
   if (!file.type.startsWith('image/')) return file;
 
-  const webpBlob = await convertToWebP(file, quality);
+  const webpBlob = await convertToWebP(file, quality, maxDimension);
 
   // If conversion didn't produce webp, return original
   if (webpBlob.type !== 'image/webp') return file;
