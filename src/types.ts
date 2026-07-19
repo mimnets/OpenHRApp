@@ -224,6 +224,7 @@ export interface BlogPost {
   status: 'DRAFT' | 'PUBLISHED';
   authorId: string;
   authorName: string;
+  category: string;
   publishedAt: string;
   created: string;
   updated: string;

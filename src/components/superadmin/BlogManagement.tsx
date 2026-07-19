@@ -36,6 +36,8 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
     content: '',
     status: 'DRAFT' as 'DRAFT' | 'PUBLISHED',
     authorName: '',
+    category: '',
+    publishedAt: '',
     coverImage: null as File | null,
   });
 
@@ -60,6 +62,8 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
       content: '',
       status: 'DRAFT',
       authorName: '',
+      category: '',
+      publishedAt: '',
       coverImage: null,
     });
     setCoverPreview(null);
@@ -81,6 +85,8 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
       content: post.content,
       status: post.status,
       authorName: post.authorName,
+      category: post.category || '',
+      publishedAt: post.publishedAt || '',
       coverImage: null,
     });
     setCoverPreview(post.coverImage || null);
@@ -126,6 +132,8 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
         coverImage: formData.coverImage,
         status: formData.status,
         authorName: formData.authorName,
+        category: formData.category,
+        publishedAt: formData.publishedAt || undefined,
       });
       if (result.success) {
         onMessage({ type: 'success', text: result.message });
@@ -144,6 +152,8 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
         coverImage: formData.coverImage,
         status: formData.status,
         authorName: formData.authorName,
+        category: formData.category,
+        publishedAt: formData.publishedAt || undefined,
       });
       if (result.success) {
         onMessage({ type: 'success', text: result.message });
@@ -236,7 +246,12 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
                             </div>
                           )}
                           <div>
-                            <p className="font-bold text-slate-900">{post.title}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900">{post.title}</p>
+                              {post.category && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">{post.category}</span>
+                              )}
+                            </div>
                             <p className="text-xs text-slate-400">/{post.slug}</p>
                           </div>
                         </div>
@@ -392,6 +407,33 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-primary text-slate-900"
               placeholder="Author name..."
             />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Category</label>
+            <input
+              type="text"
+              value={formData.category}
+              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-primary text-slate-900"
+              placeholder="e.g. Guides, Company, HR Best Practices..."
+            />
+          </div>
+
+          {/* Published Date */}
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Published Date</label>
+            <input
+              type="datetime-local"
+              value={formData.publishedAt ? formData.publishedAt.slice(0, 16) : ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData(prev => ({ ...prev, publishedAt: val ? new Date(val).toISOString() : '' }));
+              }}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-primary text-slate-900"
+            />
+            <p className="text-xs text-slate-400 mt-1">Leave empty to auto-set when published. Set a past date to backdate posts.</p>
           </div>
 
           {/* Excerpt */}

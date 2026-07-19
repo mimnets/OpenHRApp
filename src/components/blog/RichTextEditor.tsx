@@ -3,11 +3,11 @@ import {
   Bold, Italic, Underline, Strikethrough,
   Heading1, Heading2, Heading3,
   List, ListOrdered, Quote,
-  Link, ImageIcon, Code,
+  Link, Code,
   AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Minus, Type,
   Lock, Unlock, Link2, Unlink,
-  Upload, Loader2,
+  Upload, Loader2, ClipboardPaste,
 } from 'lucide-react';
 import { superAdminService } from '../../services/superadmin.service';
 import { sanitizeHtml } from '../../utils/sanitize';
@@ -35,7 +35,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   const [linkEditing, setLinkEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const linkToolbarRef = useRef<HTMLDivElement>(null);
+  const mdTextareaRef = useRef<HTMLTextAreaElement>(null);
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number; aspect: number; handle: string } | null>(null);
+  const [showMdModal, setShowMdModal] = useState(false);
+  const [mdText, setMdText] = useState('');
 
   // Sync external value to editor on mount or when value changes externally
   useEffect(() => {
@@ -81,6 +84,140 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
       handleInput();
     }
   }, [handleInput]);
+
+  // ---------------------------------------------------------------------------
+  // Markdown → HTML converter (handles the most common blog authoring patterns)
+  // ---------------------------------------------------------------------------
+  const mdToHtml = useCallback((md: string): string => {
+    // Normalize line endings
+    const normalized = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = normalized.split('\n');
+    const out: string[] = [];
+    let i = 0;
+
+    const isEmpty = (l: string) => /^\s*$/.test(l);
+    const isHeading = (l: string) => /^#{1,3}\s/.test(l);
+    const isHr = (l: string) => /^---\s*$/.test(l) || /^\*\s*\*\s*\*\s*$/.test(l) || /^___\s*$/.test(l);
+    const isBullet = (l: string) => /^-\s/.test(l);
+    const isOrdered = (l: string) => /^\d+\.\s/.test(l);
+    const isBlockquote = (l: string) => /^>\s?/.test(l);
+
+    // Inline formatting (order matters: images before links, bold before italic)
+    const inline = (text: string): string => {
+      return text
+        .replace(/!\[([^\]]*)\]\(([^)\s]+(?:\s+"[^"]*")?)\)/g, '<img src="$2" alt="$1">')
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    };
+
+    const consumeParagraph = () => {
+      const paraLines: string[] = [];
+      while (i < lines.length) {
+        const l = lines[i];
+        if (isEmpty(l) || isHeading(l) || isHr(l) || isBullet(l) || isOrdered(l) || isBlockquote(l)) break;
+        paraLines.push(l);
+        i++;
+      }
+      if (paraLines.length > 0) {
+        out.push(`<p>${inline(paraLines.join(' '))}</p>`);
+      }
+    };
+
+    const consumeList = (bulletTest: RegExp, tag: 'ul' | 'ol') => {
+      const items: string[] = [];
+      while (i < lines.length && bulletTest.test(lines[i])) {
+        const itemText = lines[i].replace(bulletTest, '');
+        items.push(`<li>${inline(itemText)}</li>`);
+        i++;
+      }
+      if (items.length > 0) {
+        out.push(`<${tag}>`);
+        items.forEach(item => out.push(`  ${item}`));
+        out.push(`</${tag}>`);
+      }
+    };
+
+    const consumeBlockquote = () => {
+      const quoteLines: string[] = [];
+      while (i < lines.length && isBlockquote(lines[i])) {
+        quoteLines.push(lines[i].replace(/^>\s?/, ''));
+        i++;
+      }
+      if (quoteLines.length > 0) {
+        out.push(`<blockquote><p>${inline(quoteLines.join(' '))}</p></blockquote>`);
+      }
+    };
+
+    // Strip YAML frontmatter if present (the user may paste the entire .md file)
+    let startIdx = 0;
+    if (normalized.startsWith('---')) {
+      const endFront = normalized.indexOf('\n---\n', 4);
+      if (endFront !== -1) {
+        startIdx = endFront + 5; // skip past the closing ---
+        const skipped = normalized.substring(0, startIdx).split('\n').length - 1;
+        i = skipped;
+      }
+    }
+    // Always skip the first # Heading 1 — the blog post page already renders
+    // post.title as an <h1>, so including another one in content harms SEO.
+    while (i < lines.length && isEmpty(lines[i])) i++;
+    if (i < lines.length && /^#\s/.test(lines[i])) i++;
+    // Skip blank line after the skipped heading
+    if (i < lines.length && isEmpty(lines[i])) i++;
+
+    while (i < lines.length) {
+      const l = lines[i];
+      if (isEmpty(l)) { i++; continue; }
+      if (isHeading(l)) {
+        const m = l.match(/^(#{1,3})\s+(.+)/);
+        if (m) out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
+        i++;
+      } else if (isHr(l)) {
+        out.push('<hr>');
+        i++;
+      } else if (isBullet(l)) {
+        consumeList(/^-\s/, 'ul');
+      } else if (isOrdered(l)) {
+        consumeList(/^\d+\.\s/, 'ol');
+      } else if (isBlockquote(l)) {
+        consumeBlockquote();
+      } else {
+        consumeParagraph();
+      }
+    }
+    return out.join('\n');
+  }, []);
+
+  // Open the "Paste Markdown" modal
+  const openMdModal = useCallback(() => {
+    setMdText('');
+    setShowMdModal(true);
+    // Focus the textarea after render
+    setTimeout(() => mdTextareaRef.current?.focus(), 50);
+  }, []);
+
+  // Convert the pasted markdown and insert as HTML
+  const insertMarkdown = useCallback(() => {
+    if (!mdText.trim()) return;
+    const html = sanitizeHtml(mdToHtml(mdText));
+    editorRef.current?.focus();
+    document.execCommand('insertHTML', false, html);
+    setShowMdModal(false);
+    setMdText('');
+    handleInput();
+  }, [mdText, mdToHtml, handleInput]);
+
+  // Close modal on Escape
+  const handleMdKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setShowMdModal(false);
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      insertMarkdown();
+    }
+  }, [insertMarkdown]);
 
   const deselectImage = useCallback(() => setSelectedImage(null), []);
 
@@ -498,6 +635,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         }} title="Inline Code">
           <Code size={15} />
         </ToolbarButton>
+
+        <Divider />
+
+        <ToolbarButton onClick={openMdModal} title="Paste Markdown">
+          <ClipboardPaste size={15} />
+        </ToolbarButton>
       </div>
 
       {/* Editor Area */}
@@ -733,6 +876,77 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
           );
         })()}
       </div>
+
+      {/* Paste Markdown Modal */}
+      {showMdModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowMdModal(false); }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Paste Markdown</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Paste your markdown content — it will be converted to formatted HTML. Ctrl+Enter to insert.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMdModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Textarea */}
+            <div className="flex-1 px-6 py-4">
+              <textarea
+                ref={mdTextareaRef}
+                value={mdText}
+                onChange={(e) => setMdText(e.target.value)}
+                onKeyDown={handleMdKeyDown}
+                placeholder={`Paste your markdown here...
+
+# Heading 1
+## Heading 2
+**bold text** and *italic text*
+- bullet list item
+1. numbered list item
+[link text](https://example.com)
+> blockquote`}
+                className="w-full h-[320px] resize-none border border-slate-200 rounded-xl p-4 text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary leading-relaxed"
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
+              <span className="text-xs text-slate-400">
+                Tip: You can paste entire .md files including YAML frontmatter — it will be stripped automatically.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMdModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={insertMarkdown}
+                  disabled={!mdText.trim()}
+                  className="px-5 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Insert as HTML
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

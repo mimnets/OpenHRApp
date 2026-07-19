@@ -35,6 +35,7 @@ export const blogService = {
         status: 'PUBLISHED' as const,
         authorId: '',
         authorName: r.author_name || '',
+        category: r.category || '',
         publishedAt: r.published_at || '',
         created: r.created || '',
         updated: r.updated || '',
@@ -77,6 +78,7 @@ export const blogService = {
         status: 'PUBLISHED',
         authorId: '',
         authorName: r.author_name || '',
+        category: r.category || '',
         publishedAt: r.published_at || '',
         created: r.created || '',
         updated: r.updated || '',
@@ -108,6 +110,7 @@ export const blogService = {
         status: r.status || 'DRAFT',
         authorId: '',
         authorName: r.author_name || '',
+        category: r.category || '',
         publishedAt: r.published_at || '',
         created: r.created || '',
         updated: r.updated || '',
@@ -127,6 +130,8 @@ export const blogService = {
     coverImage?: File | null;
     status: 'DRAFT' | 'PUBLISHED';
     authorName: string;
+    category?: string;
+    publishedAt?: string;
   }): Promise<{ success: boolean; message: string }> {
     if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
     try {
@@ -152,10 +157,15 @@ export const blogService = {
         excerpt: data.excerpt,
         status: data.status,
         author_name: data.authorName,
+        category: data.category || null,
         reading_time: getReadingMinutes(data.content),
       };
       if (coverPath) record.cover_image = coverPath;
-      if (data.status === 'PUBLISHED') record.published_at = new Date().toISOString();
+      if (data.publishedAt) {
+        record.published_at = data.publishedAt;
+      } else if (data.status === 'PUBLISHED') {
+        record.published_at = new Date().toISOString();
+      }
 
       const { error } = await supabase.from('blog_posts').insert(record);
       if (error) {
@@ -179,6 +189,7 @@ export const blogService = {
     coverImage?: File | null;
     status?: 'DRAFT' | 'PUBLISHED';
     authorName?: string;
+    category?: string;
     publishedAt?: string | null;
   }): Promise<{ success: boolean; message: string }> {
     if (!isSupabaseConfigured()) return { success: false, message: 'Supabase not configured' };
@@ -193,6 +204,7 @@ export const blogService = {
       if (data.excerpt !== undefined) record.excerpt = data.excerpt;
       if (data.status !== undefined) record.status = data.status;
       if (data.authorName !== undefined) record.author_name = data.authorName;
+      if (data.category !== undefined) record.category = data.category || null;
       if (data.publishedAt !== undefined) {
         // null → clear the timestamp (unpublish); string → set it
         record.published_at = data.publishedAt;
