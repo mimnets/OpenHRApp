@@ -58,12 +58,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const plain = e.clipboardData.getData('text/plain');
-    const content = html || plain;
-    if (content) {
-      const clean = html
-        ? sanitizeHtml(html)
-        : plain.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-      document.execCommand('insertHTML', false, clean);
+
+    if (html) {
+      // Browser-style paste with HTML formatting — sanitize and insert
+      document.execCommand('insertHTML', false, sanitizeHtml(html));
+      handleInput();
+    } else if (plain) {
+      // Detect if plain text is actually HTML source (e.g. copy-pasted from a text editor)
+      const looksLikeHtml = /<(p|h[1-6]|ol|ul|li|img|a\b|strong|em|div|span|br|blockquote|hr|code|pre|table|tr|td|th|thead|tbody)[\s/>]/i.test(plain);
+      if (looksLikeHtml) {
+        // Insert as HTML directly (sanitized)
+        document.execCommand('insertHTML', false, sanitizeHtml(plain));
+      } else {
+        // Regular plain text — escape HTML entities and convert newlines to <br>
+        const escaped = plain
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>');
+        document.execCommand('insertHTML', false, escaped);
+      }
       handleInput();
     }
   }, [handleInput]);

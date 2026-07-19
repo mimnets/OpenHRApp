@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'Security: remove hardcoded secrets, blog reading time fix, gstack setup',
     entries: [
       { type: 'security', description: 'Removed hardcoded CRON_SECRET bearer token from supabase/migrations/0016_schedule_selfie_storage_cleanup.sql (replaced with <CRON_SECRET> placeholder). Rotated the exposed secret. Removed hardcoded Supabase project URL and anon key from middleware.ts, scripts/generate-feed.mjs, scripts/generate-sitemap.mjs, scripts/setup-cron-schedules.sql, and three Others/memory/ reference files — all now read from VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.' },
+      { type: 'fix', description: 'Fixed RichTextEditor paste handler escaping HTML tags when copying HTML source from a text editor. The paste handler now detects plain text that looks like HTML (tags like p, h1-h6, ol, ul, li, img, etc.) and inserts it as real HTML instead of escaping angle brackets to &lt; and &gt;.' },
     ],
   },
   {
