@@ -109,6 +109,12 @@ A proper HR management system helps prevent these mistakes by:
 
 HR compliance does not have to be overwhelming. The key is building systems that make compliance the default — not something you have to remember to do manually. With the right tools and processes in place, you can focus on running your business, confident that your HR foundation is solid.
 
+**Further Reading**
+
+- [The Complete Guide to Employee Attendance Tracking](/blog/employee-attendance-tracking-guide) — Accurate time records are your primary evidence in wage-and-hour disputes and audits.
+- [Leave Management Best Practices for Growing Teams](/blog/leave-management-best-practices) — Design leave policies that keep you compliant as you scale.
+- [Employee Privacy in the Age of Workplace Surveillance](/blog/employee-privacy-workplace-surveillance) — Data privacy and security best practices for HR systems.
+
 ---
 
 *OpenHRApp helps you stay compliant with automated attendance tracking, role-based access control, and comprehensive audit trails — all completely free. [Get started today](https://openhrapp.com).*

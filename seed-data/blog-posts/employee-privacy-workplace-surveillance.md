@@ -126,6 +126,11 @@ Privacy-respecting HR practices are not just ethically right — they are good f
 
 The goal of HR technology should be to support and empower employees, not to surveil them. Attendance verification, identity confirmation, and location tracking all serve legitimate business needs — when implemented with purpose, proportionality, and transparency. The best HR platforms make verification painless and privacy-respecting, not intrusive and anxiety-inducing. As you evaluate HR tools, make privacy practices a primary selection criterion — not an afterthought.
 
+**Further Reading**
+
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — See how OpenHR balances identity verification with privacy (GPS at check-in only, no continuous tracking).
+- [Remote Work and HR: Adapting Your Policies for a Distributed Workforce](/blog/remote-work-hr-policies) — Privacy considerations for distributed teams, including data security for remote workers.
+
 ---
 
 *OpenHRApp is designed with employee privacy in mind: selfie verification at check-in only, GPS captured only at the moment of check-in, no continuous tracking, and role-based access controls. [Learn more](https://openhrapp.com).*

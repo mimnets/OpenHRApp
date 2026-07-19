@@ -134,6 +134,11 @@ When an employee is serving their notice period, leave requests may follow diffe
 
 OpenHR's leave management system handles the entire leave lifecycle — from one-click employee applications to automated balance tracking to comprehensive HR reporting. It adapts to your organization's policies, not the other way around. And like everything in OpenHR, it is completely free.
 
+**Further Reading**
+
+- [Leave Management Best Practices for Growing Teams](/blog/leave-management-best-practices) — Design leave policies that scale: accruals, carry-over, team calendars, and multi-department rules.
+- [Getting Started with OpenHR: A Step-by-Step Setup Guide](/blog/getting-started-with-openhr) — Configure your organization's leave types, workflows, and policies from scratch.
+
 ---
 
 *Set up your leave policies in OpenHRApp today. Free, no limits, no per-user fees. [Get started](https://openhrapp.com).*

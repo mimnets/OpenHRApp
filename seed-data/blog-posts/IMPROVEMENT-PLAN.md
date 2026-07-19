@@ -1,8 +1,8 @@
 # Blog Content SEO & UX Improvement Plan
 
-> **Created:** 2026-07-14 | **Status:** Not started
+> **Created:** 2026-07-14 | **Updated:** 2026-07-19 | **Status:** Phase 1.1 complete
 >
-> This plan is based on a full audit of all 16 blog posts and the IMAGE-GUIDE.md.
+> This plan is based on a full audit of all 17 blog posts and the IMAGE-GUIDE.md.
 
 ---
 
@@ -14,16 +14,18 @@ The content itself is **well-written and genuinely useful** — clear, practical
 
 ## Phase 1: Quick Wins (SEO Foundation) — ~2-3 hours
 
-### 1.1 — Add Internal Links to All 16 Posts
+### 1.1 — Add Internal Links to All 17 Posts ✅ COMPLETED (2026-07-19)
 **Impact:** Very High | **Effort:** 1 hour
 
-Create a cross-linking map. Each post should link to 2-4 other relevant posts using descriptive anchor text (not "click here"). Examples:
-- `choosing-hr-software-small-business.md` → link to `getting-started-with-openhr.md`, `openhr-vs-commercial-hrms-comparison.md`
-- `how-selfie-attendance-works.md` → link to `employee-attendance-tracking-guide.md`, `remote-work-hr-policies.md`
-- `managing-leave-with-openhr.md` → link to `leave-management-best-practices.md`
-- `day-in-life-hr-teams-openhr.md` → link to all feature-specific guides mentioned
+Internal links have been added to all 17 blog posts using a combination of:
+- **Inline contextual links** within body text (carry more SEO weight)
+- **"Further Reading" sections** at the end of each post (before the CTA)
 
-**Internal Link Map (recommended):**
+Each post links to 2–5 other relevant posts using descriptive anchor text. Additionally:
+- Dead placeholder links (`#`) in `getting-started-with-openhr.md` were replaced with real links
+- `complete-guide-openhrapp.md` (added after the original plan) received links to 5 feature guides plus backlinks from related posts
+
+**Internal Link Map (implemented):**
 
 | From | Link To |
 |------|---------|
@@ -43,6 +45,9 @@ Create a cross-linking map. Each post should link to 2-4 other relevant posts us
 | day-in-life-hr-teams-openhr | getting-started-with-openhr, managing-leave-with-openhr, how-selfie-attendance-works, openhr-performance-review-guide, openhr-reports-analytics-guide |
 | why-we-built-openhr | rise-of-open-source-hr-software, openhr-vs-commercial-hrms-comparison |
 | openhr-vs-commercial-hrms-comparison | choosing-hr-software-small-business, rise-of-open-source-hr-software |
+| complete-guide-openhrapp | getting-started-with-openhr, how-selfie-attendance-works, managing-leave-with-openhr, openhr-performance-review-guide, openhr-reports-analytics-guide |
+
+**Backlinks added to complete-guide-openhrapp from:** getting-started-with-openhr, day-in-life-hr-teams-openhr
 
 ### 1.2 — Add FAQ Sections to Key Posts
 **Impact:** High | **Effort:** 1 hour

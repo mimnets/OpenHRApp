@@ -144,6 +144,13 @@ If you are moving from paper or spreadsheets to a digital system, follow these s
 
 Attendance tracking does not need to be complicated or expensive. Modern smartphone-based systems eliminate the need for dedicated hardware, provide reliable identity verification, and give managers real-time visibility — all at no cost. The key is choosing a system that is easy for employees to use, provides the verification and reporting you need, and integrates naturally with your other HR processes.
 
+> **See how OpenHR does it:** Our [deep dive into selfie-based attendance](/blog/how-selfie-attendance-works) covers the complete check-in flow, GPS verification, and how photo capture eliminates buddy punching — all without dedicated hardware.
+
+**Further Reading**
+
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — The technical details behind photo + GPS check-in.
+- [Remote Work and HR: Adapting Your Policies for a Distributed Workforce](/blog/remote-work-hr-policies) — How attendance tracking changes when your team is distributed.
+
 ---
 
 *OpenHRApp provides selfie-based attendance tracking with GPS verification, shift support, and real-time dashboards — completely free. [Start tracking attendance today](https://openhrapp.com).*

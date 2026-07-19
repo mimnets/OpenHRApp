@@ -114,7 +114,15 @@ The time savings are significant, but the real transformation is qualitative: no
 
 ## Conclusion
 
-HR automation is not about replacing HR professionals — it is about freeing them from the administrative burden that consumes their time and prevents them from doing strategic, high-impact work. Whether it is attendance tracking that runs itself, leave balances that calculate automatically, or performance reviews with built-in reminders and deadlines, the right HR platform gives you back hours every week.
+HR automation is not about replacing HR professionals — it is about freeing them from the administrative burden that consumes their time and prevents them from doing strategic, high-impact work. Whether it is [attendance tracking that runs itself](/blog/how-selfie-attendance-works), [leave balances that calculate automatically](/blog/managing-leave-with-openhr), or [performance reviews with built-in reminders and deadlines](/blog/openhr-performance-review-guide), the right HR platform gives you back hours every week.
+
+**Further Reading**
+
+- [Getting Started with OpenHR: A Step-by-Step Setup Guide](/blog/getting-started-with-openhr) — Set up your organization from scratch in under an hour.
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — A deep dive into the attendance system Priya relies on every morning.
+- [Managing Employee Leave with OpenHR](/blog/managing-leave-with-openhr) — How leave applications, approvals, and balance tracking work.
+- [A Guide to OpenHR's Performance Review Module](/blog/openhr-performance-review-guide) — Set up and run review cycles like Priya did.
+- [OpenHR Reports and Analytics](/blog/openhr-reports-analytics-guide) — Generate the reports that save hours of manual compilation.
 
 ---
 

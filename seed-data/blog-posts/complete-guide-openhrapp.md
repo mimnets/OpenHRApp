@@ -245,6 +245,14 @@ A: Your data stays in your Supabase project — you keep full access. Export any
 
 OpenHR does four things and tries to do them well: [attendance tracking](https://openhrapp.com/features/attendance-tracking) with real verification, [leave management](https://openhrapp.com/features/leave-management) with flexible approval workflows, [performance reviews](https://openhrapp.com/features/performance-reviews) backed by actual data, and an [employee directory](https://openhrapp.com/features/employee-directory) with proper access control. It doesn't try to be a Swiss Army knife for every HR function imaginable.
 
+If you are ready to dive deeper into specific areas, we have dedicated guides for each major feature:
+
+- [Getting Started with OpenHR: A Step-by-Step Setup Guide](/blog/getting-started-with-openhr) — Walk through organization setup, employee provisioning, and policy configuration.
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — Deep dive into the check-in flow, GPS verification, audit trails, and troubleshooting.
+- [Managing Employee Leave with OpenHR](/blog/managing-leave-with-openhr) — Leave applications, multi-level approvals, balance tracking, and team calendars.
+- [A Guide to OpenHR's Performance Review Module](/blog/openhr-performance-review-guide) — Competency frameworks, multi-stage evaluations, and integrated attendance data.
+- [OpenHR Reports and Analytics](/blog/openhr-reports-analytics-guide) — Attendance summaries, leave analytics, interactive charts, and CSV exports.
+
 You can also check out all [OpenHR features](https://openhrapp.com/features) to see everything in one place before committing.
 
 *OpenHR is open source under the MIT License. Code, issues, and contributions live on [GitHub](https://github.com/mimnets/OpenHRApp).*

@@ -144,6 +144,12 @@ To configure attendance for your team:
 
 Selfie-based attendance tracking gives you biometric-level identity verification without any dedicated hardware. It eliminates buddy punching, provides location verification, and creates a complete audit trail — all from the smartphone your employees already carry. Combined with flexible shift support and automatic absence detection, it is a complete attendance management solution that costs nothing to use.
 
+**Further Reading**
+
+- [The Complete Guide to Employee Attendance Tracking](/blog/employee-attendance-tracking-guide) — Compare selfie-based check-in against paper, biometric, RFID, and spreadsheet methods.
+- [Employee Privacy in the Age of Workplace Surveillance](/blog/employee-privacy-workplace-surveillance) — How OpenHR balances identity verification with employee privacy.
+- [Remote Work and HR: Adapting Your Policies for a Distributed Workforce](/blog/remote-work-hr-policies) — How selfie + GPS attendance works for distributed and hybrid teams.
+
 ---
 
 *OpenHRApp's attendance system is completely free, with no limits on employees, check-ins, or storage. [Start tracking attendance today](https://openhrapp.com).*

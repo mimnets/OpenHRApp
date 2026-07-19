@@ -131,7 +131,7 @@ For each employee, you will provide:
 
 - **Full Name**
 - **Email Address** — This will be their login. They will receive an invitation/welcome email.
-- **Role** — Choose from: Admin, HR, Manager, Team Lead, or Employee. See the [Role-Based Access Control guide](#) for details on what each role can access.
+- **Role** — Choose from: Admin, HR, Manager, Team Lead, or Employee. Each role has carefully scoped data access — managers see only their team, employees see only their own data, and HR/Admin have organization-wide access.
 - **Department** — Select from the departments you created earlier.
 - **Designation** — Their job title.
 - **Line Manager** — Who they report to. This determines who approves their leave and reviews their performance.
@@ -165,7 +165,7 @@ Before announcing OpenHR to your entire organization, take these final verificat
 Once everything is verified, it is time to roll out OpenHR to your organization:
 
 1. Send an announcement email introducing OpenHR, explaining why you chose it, and what employees should do first.
-2. Share the [Quick Start Guide for Employees](#) (or create your own short guide).
+2. Share our [Complete Guide to OpenHRApp](/blog/complete-guide-openhrapp) with employees (or create your own short guide).
 3. Set a go-live date when everyone should start using OpenHR for attendance and leave.
 4. Offer a brief training session or record a short walkthrough video.
 5. Make yourself available for questions during the first week.
@@ -179,6 +179,15 @@ Now that your organization is set up, explore these next steps:
 - **Configure Shifts** — If you operate multiple shifts (e.g., Office and Factory), set up shift definitions with different start/end times.
 - **Explore Reports** — Run attendance summaries, leave utilization reports, and export data for payroll.
 - **Install the PWA** — On mobile devices, install OpenHR as a Progressive Web App for a native app-like experience with offline support.
+
+---
+
+**Further Reading**
+
+- [Managing Employee Leave with OpenHR](/blog/managing-leave-with-openhr) — Configure leave types, approval workflows, and balance tracking.
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — Set up shifts, test check-in/check-out, and understand the audit trail.
+- [A Guide to OpenHR's Performance Review Module](/blog/openhr-performance-review-guide) — Create your first review cycle with custom competencies.
+- [The Complete Guide to OpenHRApp](/blog/complete-guide-openhrapp) — A comprehensive walkthrough of every feature, setup, and daily workflow.
 
 ---
 

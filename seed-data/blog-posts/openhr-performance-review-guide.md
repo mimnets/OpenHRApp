@@ -157,6 +157,11 @@ Evaluates a new hire at the end of their probation period (typically 3–6 month
 
 OpenHR's performance review module provides everything you need to run fair, consistent, and data-driven evaluations — from customizable competencies to multi-stage workflows to integrated attendance and leave data. Whether you are a small team running your first review cycle or a growing organization scaling your performance management process, the tools are ready.
 
+**Further Reading**
+
+- [Building a Performance Review Process That Actually Works](/blog/building-effective-performance-review-process) — General best practices for designing review cycles, competencies, and rating scales.
+- [OpenHR Reports and Analytics: Making Data-Driven HR Decisions](/blog/openhr-reports-analytics-guide) — Pull attendance and leave data into reviews and track performance trends over time.
+
 ---
 
 *Set up your first performance review cycle in OpenHRApp today — completely free. [Start here](https://openhrapp.com).*

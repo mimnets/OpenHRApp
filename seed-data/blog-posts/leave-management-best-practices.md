@@ -131,6 +131,12 @@ Integration eliminates the most common source of payroll errors: mismatched data
 
 Effective leave management is about designing policies that are clear, fair, and easy to administer — then using technology to enforce them consistently. Start with a well-documented policy. Configure your HR system to handle accruals, approvals, and balance calculations automatically. Give employees self-service access to their balances and leave history. And review your policies annually — what worked for 10 employees may need adjustment at 50.
 
+> **See it in practice:** Our [guide to managing leave with OpenHR](/blog/managing-leave-with-openhr) covers the complete leave lifecycle — employee applications, manager approvals, HR policy configuration, and team calendar visibility.
+
+**Further Reading**
+
+- [Managing Employee Leave with OpenHR](/blog/managing-leave-with-openhr) — A practical walkthrough of leave applications, approvals, and policy configuration in OpenHR.
+
 ---
 
 *OpenHRApp provides a complete leave management system with custom leave types, automatic balance tracking, configurable workflows, and team calendars — all free. [Start managing leave effectively](https://openhrapp.com).*
