@@ -16,9 +16,14 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-07-19',
-    title: 'Fix Vercel build — unescaped apostrophes in single-quoted strings',
+    title: 'Blog reading time fix, gstack setup, complete-guide blog post',
     entries: [
       { type: 'fix', description: 'Escaped apostrophe in "you\'d" inside single-quoted strings in LandingPage.tsx JSON-LD FAQ schema and faqs.ts FAQ data, which caused Vite/Rollup to fail the production build with "Expected } but found d".' },
+      { type: 'fix', description: 'Fixed all blog listing cards showing "1 min read". Added reading_time column to blog_posts table (migration 0017) with backfill for existing posts. Blog service now computes readingTime via getReadingMinutes() at create/update time by stripping HTML tags and counting words at 200 wpm. BlogPage and BlogPostPage now display the stored readingTime instead of computing from empty content in list queries.' },
+      { type: 'improvement', description: 'BlogPostPage now shows "Updated on <date>" when a post has been modified more than 24 hours after initial publication, using the existing updated column in blog_posts.' },
+      { type: 'fix', description: 'Fixed tsconfig.json ignoreDeprecations value from invalid "6.0" string to boolean true, which blocked tsc --noEmit.' },
+      { type: 'improvement', description: 'Added gstack as project-level dependency with setup script (scripts/setup-gstack.ps1), registered 55 skills in Others/CLAUDE.md, and set /browse as the required web browsing method.' },
+      { type: 'improvement', description: 'Added complete-guide-openhrapp.html blog post — full rewrite of the OpenHR complete guide with PocketBase→Supabase content updates, clean HTML format, 3 inline image placeholders, FAQ section, and updated git URLs.' },
     ],
   },
   {

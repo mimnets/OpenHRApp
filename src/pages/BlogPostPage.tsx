@@ -183,9 +183,23 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
                         : new Date(post.created).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Clock size={16} /> {getReadingTime(post.content)}
+                      <Clock size={16} /> {post.readingTime ? `${post.readingTime} min read` : getReadingTime(post.content)}
                     </span>
                   </div>
+
+                  {post.updated && post.publishedAt && (() => {
+                    const pubDate = new Date(post.publishedAt).getTime();
+                    const updDate = new Date(post.updated).getTime();
+                    const dayMs = 24 * 60 * 60 * 1000;
+                    if (updDate - pubDate > dayMs) {
+                      return (
+                        <p className="text-xs text-slate-400 mb-6 -mt-6">
+                          Updated on {new Date(post.updated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {post.excerpt && (
                     <p className="text-lg text-slate-600 italic mb-8 border-l-4 border-primary pl-4">

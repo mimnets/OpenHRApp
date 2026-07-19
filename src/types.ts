@@ -227,6 +227,7 @@ export interface BlogPost {
   publishedAt: string;
   created: string;
   updated: string;
+  readingTime: number;
 }
 
 export interface Tutorial {

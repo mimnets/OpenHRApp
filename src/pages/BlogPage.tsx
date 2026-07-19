@@ -262,7 +262,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
                                 : new Date(post.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                             <span className="flex items-center gap-1">
-                              <Clock size={12} /> {getReadingTime(post.content)}
+                              <Clock size={12} /> {post.readingTime ? `${post.readingTime} min read` : getReadingTime(post.content)}
                             </span>
                           </div>
                         </div>
