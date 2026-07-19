@@ -21,7 +21,7 @@ export function dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
 const RETRY_DELAYS_MS = [250, 750, 2000];
 
 const shouldRetry = (err: any): boolean => {
-  // PocketBase auto-cancellation — honor the caller's intent, don't retry.
+  // Auto-cancellation — honor the caller's intent, don't retry.
   if (err?.isAbort) return false;
   const status = err?.status ?? err?.response?.status;
   // No status → fetch-level failure (network drop, DNS, CORS preflight). Retry.
@@ -83,8 +83,7 @@ export const apiClient = {
   },
 
   // Helper to get current Organization ID
-  // Phase 2: reads from Supabase session cache (set by authService.login)
-  // Falls back to PocketBase authStore during parallel-run migration window.
+  // Reads from Supabase session cache (set by authService.login).
   _cachedOrgId: undefined as string | undefined,
   _cachedRole: undefined as string | undefined,
 

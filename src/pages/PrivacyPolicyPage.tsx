@@ -127,7 +127,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
             <section>
               <h2 className="text-xl font-bold text-slate-900 mb-3">5. Data Storage and Security</h2>
               <p className="text-slate-600 leading-relaxed">
-                Your data is stored securely using PocketBase as our backend database. We implement appropriate technical and
+                Your data is stored securely using Supabase as our backend database. We implement appropriate technical and
                 organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
                 However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
               </p>

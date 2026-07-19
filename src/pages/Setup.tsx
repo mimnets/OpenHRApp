@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Database, Server, Activity, RefreshCw, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
-import { updatePocketBaseConfig } from '../services/pocketbase';
+// Supabase migration (May 2026): This page is dead — isSupabaseConfigured() is always true.
+// Keep for reference; PocketBase config function no longer needed.
 import { hrService } from '../services/hrService';
 
 interface SetupProps {
@@ -32,7 +33,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
   };
 
   const handleSave = () => {
-    updatePocketBaseConfig({ url, source: 'UI' });
+    // Dead code: Supabase is configured via environment variables (May 2026)
     onComplete();
   };
 

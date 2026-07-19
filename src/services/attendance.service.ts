@@ -300,7 +300,7 @@ export const attendanceService = {
     });
   },
 
-  // FROZEN: delegates to workdaySessionManager which still uses PocketBase.
+  // FROZEN: delegates to workdaySessionManager.
   // Do not change this delegation without the plan-approval gate in CLAUDE.md.
   async getActiveAttendance(employeeId: string): Promise<Attendance | undefined> {
     const { active } = await workdaySessionManager.reconcileOpenSessions(employeeId);
