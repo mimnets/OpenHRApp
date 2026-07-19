@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { hrService } from '../services/hrService';
-import { isPocketBaseConfigured } from '../services/pocketbase';
+import { isSupabaseConfigured } from '../services/supabase';
 import { sessionManager } from '../services/session/sessionManager';
 import { RefreshStatus } from '../services/session/sessionManager.types';
 
@@ -21,13 +21,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 /**
  * AuthContext is now a thin UI layer. All session/auth lifecycle decisions
  * live in `src/services/session/sessionManager.ts` (FROZEN MODULE). Do not
- * reintroduce pb.authStore.clear() here — route through sessionManager.
+ * reintroduce supabase.auth.signOut() here — route through sessionManager.
  */
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [refreshStatus, setRefreshStatus] = useState<RefreshStatus>({ kind: 'idle' });
   const [isLoading, setIsLoading] = useState(true);
-  const [isConfigured, setIsConfigured] = useState(isPocketBaseConfigured());
+  const [isConfigured, setIsConfigured] = useState(isSupabaseConfigured());
 
   useEffect(() => {
     let mounted = true;

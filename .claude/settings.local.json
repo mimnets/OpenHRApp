@@ -68,7 +68,13 @@
       "Bash(echo \"Server status: $\\(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/\\)\")",
       "Bash(python3 -c ' *)",
       "Bash(sqlite3 *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "PowerShell(git add *)",
+      "PowerShell(git push *)",
+      "Bash(Select-Object -First 50)",
+      "PowerShell(npx tsc --noEmit --pretty 2>&1 | Select-Object -First 80)",
+      "Bash(npx supabase *)",
+      "Bash(git show *)"
     ]
   }
 }

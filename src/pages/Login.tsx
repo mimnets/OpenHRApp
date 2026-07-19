@@ -19,7 +19,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, AlertCircle, RefreshCw, Eye, EyeOff, Download, X, Share, MoreVertical, RotateCcw, Building2, Send, Home, CheckCircle2 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { authService } from '../services/auth.service';
-import { isPocketBaseConfigured } from '../services/pocketbase';
+import { isSupabaseConfigured } from '../services/supabase';
 import { useToast } from '../context/ToastContext';
 
 interface LoginProps {
@@ -72,7 +72,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onBackTo
   const [isInstalled, setIsInstalled] = useState(false);
   const [canPrompt, setCanPrompt] = useState(false);
   
-  const isConfigured = isPocketBaseConfigured();
+  const isConfigured = isSupabaseConfigured();
 
   useEffect(() => {
     // 1. Detect platform

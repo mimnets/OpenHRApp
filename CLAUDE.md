@@ -13,8 +13,6 @@ Frozen files:
 - `src/services/session/sessionManager.ts` and `sessionManager.types.ts`
 - `src/services/workday/workdaySessionManager.ts` and `workdaySessionManager.types.ts`
 - `src/context/AuthContext.tsx` (must remain a thin UI delegation layer)
-- `Others/pb_hooks/cron.pb.js` — especially the `auto_close_sessions` block
-- `scripts/validate-pb-hooks.cjs`
 
 ## Git Workflow — MUST FOLLOW
 

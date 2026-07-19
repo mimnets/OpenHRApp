@@ -12,13 +12,13 @@ npm run build    # Production build
 npm run preview  # Serve production build locally
 ```
 
-Backend: PocketBase server must be running. Deploy ALL `.pb.js` files from `Others/pb_hooks/` to PocketBase's `pb_hooks/` folder (see PocketBase Hooks section below).
+Backend: Supabase project must be running. Edge Functions are deployed via `supabase functions deploy`. Database schema is managed through migrations in `supabase/migrations/`.
 
 ---
 
 ## Architecture Overview
 
-OpenHR is a React 19 + TypeScript HR management system using PocketBase as the backend. It runs as a **PWA on web** (installable on desktop, iOS, and Android via the browser).
+OpenHR is a React 19 + TypeScript HR management system using Supabase as the backend. It runs as a **PWA on web** (installable on desktop, iOS, and Android via the browser).
 
 Key characteristics:
 - **No React Router** — Uses local state routing in `App.tsx` via `currentPath` state
@@ -30,7 +30,7 @@ Key characteristics:
 ### Data Flow Pattern
 
 ```
-Pages/Components → Hooks → hrService (facade) → Domain Services → apiClient → PocketBase SDK
+Pages/Components → Hooks → hrService (facade) → Domain Services → apiClient → Supabase SDK (via `src/services/supabase.ts`)
 ```
 
 ### Directory Structure
@@ -54,7 +54,7 @@ src/
 │   ├── subscription/    # Subscription banner, guard, suspended page
 │   ├── superadmin/      # Super admin panels (ads, appearance, blog, storage, etc.)
 │   └── tutorials/       # Tutorial navbar + footer
-├── config/              # database.ts (PocketBase URL resolution)
+├── config/              # database.ts (Supabase URL resolution)
 ├── context/             # AuthContext, ThemeContext, SubscriptionContext
 ├── data/                # countries.ts (country list)
 ├── hooks/               # Data fetching hooks by feature
@@ -66,7 +66,7 @@ src/
 │   └── review/          # usePerformanceReview
 ├── layouts/             # MainLayout (sidebar + header + content)
 ├── pages/               # Full-page components (route targets)
-├── services/            # Domain services (all PocketBase API interactions)
+├── services/            # Domain services (all Supabase API interactions)
 └── utils/               # attendanceUtils, imageConvert, sanitize
 ```
 
@@ -168,28 +168,28 @@ handleNavigate('leave', { autoOpen: true })               // Auto-open leave for
 
 ### All Services
 
-| Service | File | Purpose | PocketBase Collections |
-|---------|------|---------|----------------------|
-| `apiClient` | `api.client.ts` | PocketBase wrapper + event bus + WebP FormData | All (via pb instance) |
-| `authService` | `auth.service.ts` | Login, logout, registration, password reset, verification | `users` |
-| `employeeService` | `employee.service.ts` | Employee CRUD, profile updates, avatar upload | `users` |
-| `employeeService` | `employeeService.ts` | Leave application wrapper (calls hrService) | `users`, `leaves` |
-| `attendanceService` | `attendance.service.ts` | Punch in/out, session auto-close, late notifications | `attendance`, `users` |
-| `leaveService` | `leave.service.ts` | Leave CRUD, workflow routing, balance calculation | `leaves`, `users` |
-| `organizationService` | `organization.service.ts` | Config, departments, holidays, teams, workflows, policies | `settings`, `teams`, `organizations` |
-| `shiftService` | `shift.service.ts` | Shift CRUD, override management, resolution logic | `shifts` |
-| `reviewService` | `review.service.ts` | Review cycles, self-assessment, manager review, HR finalize | `review_cycles`, `performance_reviews`, `attendance`, `leaves` |
-| `announcementService` | `announcement.service.ts` | Announcement CRUD + bulk notification broadcast | `announcements`, `notifications` |
-| `notificationService` | `notification.service.ts` | Notification CRUD, preferences, bulk create | `notifications`, `settings` |
-| `superAdminService` | `superadmin.service.ts` | Org management, user management, platform stats | `organizations`, `users`, `settings`, `teams`, `attendance`, `leaves` |
-| `upgradeService` | `upgrade.service.ts` | Donation, trial extension, ad-supported requests | `upgrade_requests` |
-| `blogService` | `blog.service.ts` | Blog post CRUD (public + admin) | `blog_posts` |
-| `tutorialService` | `tutorial.service.ts` | Tutorial CRUD (public + admin) | `tutorials` |
-| `showcaseService` | `showcase.service.ts` | Showcase org management | `showcase_organizations` |
-| `socialLinksService` | `sociallinks.service.ts` | Social media links management | `social_links` |
-| `contactService` | `contact.service.ts` | Contact form submission | Custom endpoint |
-| `verificationService` | `verification.service.ts` | Email verification, test email, manual verify | Custom endpoints |
-| `emailService` | `emailService.ts` | Daily attendance summary email formatting | `reports_queue` |
+| Service | File | Purpose |
+|---------|------|---------|
+| `apiClient` | `api.client.ts` | Supabase wrapper + event bus + WebP FormData |
+| `authService` | `auth.service.ts` | Login, logout, registration, password reset, verification |
+| `employeeService` | `employee.service.ts` | Employee CRUD, profile updates, avatar upload |
+| `employeeService` | `employeeService.ts` | Leave application wrapper (calls hrService) |
+| `attendanceService` | `attendance.service.ts` | Punch in/out, session auto-close, late notifications |
+| `leaveService` | `leave.service.ts` | Leave CRUD, workflow routing, balance calculation |
+| `organizationService` | `organization.service.ts` | Config, departments, holidays, teams, workflows, policies |
+| `shiftService` | `shift.service.ts` | Shift CRUD, override management, resolution logic |
+| `reviewService` | `review.service.ts` | Review cycles, self-assessment, manager review, HR finalize |
+| `announcementService` | `announcement.service.ts` | Announcement CRUD + bulk notification broadcast |
+| `notificationService` | `notification.service.ts` | Notification CRUD, preferences, bulk create |
+| `superAdminService` | `superadmin.service.ts` | Org management, user management, platform stats |
+| `upgradeService` | `upgrade.service.ts` | Donation, trial extension, ad-supported requests |
+| `blogService` | `blog.service.ts` | Blog post CRUD (public + admin) |
+| `tutorialService` | `tutorial.service.ts` | Tutorial CRUD (public + admin) |
+| `showcaseService` | `showcase.service.ts` | Showcase org management |
+| `socialLinksService` | `sociallinks.service.ts` | Social media links management |
+| `contactService` | `contact.service.ts` | Contact form submission |
+| `verificationService` | `verification.service.ts` | Email verification, test email, manual verify |
+| `emailService` | `emailService.ts` | Daily attendance summary email formatting |
 
 ### Key Business Logic
 
@@ -286,47 +286,6 @@ handleNavigate('leave', { autoOpen: true })               // Auto-open leave for
 
 ---
 
-## PocketBase Collections — COMPLETE REFERENCE
-
-| Collection | Purpose | Key Fields |
-|------------|---------|------------|
-| `users` | Employee/user accounts | email, name, role, department, designation, organization_id, line_manager_id, team_id, shift_id, avatar, verified |
-| `organizations` | Multi-tenant orgs | name, country, address, logo, subscription_status, trial_end_date, ad_consent |
-| `attendance` | Daily attendance records | employee_id, employee_name, date, check_in, check_out, status, location, selfie, duty_type, remarks, organization_id |
-| `leaves` | Leave requests | employee_id, employee_name, line_manager_id, type, start_date, end_date, total_days, reason, status, manager_remarks, approver_remarks, organization_id |
-| `shifts` | Work shift definitions | name, start_time, end_time, late_grace_period, earliest_check_in, auto_session_close_time, working_days, is_default, organization_id |
-| `teams` | Team records | name, leader_id, department, organization_id |
-| `settings` | Key-value org settings | key, value (JSON), organization_id |
-| `announcements` | Organization announcements | title, content, author_id, author_name, priority, target_roles, expires_at, organization_id |
-| `notifications` | User notifications | user_id, type, title, message, is_read, priority, reference_id, reference_type, action_url, organization_id |
-| `review_cycles` | Performance review cycles | name, cycle_type, start_date, end_date, review_start_date, review_end_date, active_competencies, is_active, status, organization_id |
-| `performance_reviews` | Individual reviews | employee_id, cycle_id, line_manager_id, status, self_ratings, manager_ratings, attendance_summary, leave_summary, hr_final_remarks, hr_overall_rating, organization_id |
-| `blog_posts` | Blog articles | title, slug, content, excerpt, cover_image, author_name, status, published_at |
-| `tutorials` | Tutorial content | title, slug, content, excerpt, cover_image, category, parent_id, display_order, status, published_at |
-| `showcase_organizations` | Featured orgs | name, logo, website_url, description, is_active, display_order |
-| `social_links` | Social media links | platform, url, is_active, display_order |
-| `upgrade_requests` | Upgrade/donation requests | organization_id, request_type, status, donation_tier, donation_amount, donation_reference, extension_days |
-| `reports_queue` | Email queue | recipient_email, subject, html_content, status, sent_at, error_message |
-
-### Settings Collection Keys
-
-| Key | Value Type | Purpose |
-|-----|-----------|---------|
-| `app_config` | JSON (AppConfig) | Company name, timezone, currency, working days, office hours, grace periods |
-| `departments` | JSON (string[]) | Department list |
-| `designations` | JSON (string[]) | Designation list |
-| `holidays` | JSON (Holiday[]) | Holiday calendar |
-| `leave_policy` | JSON ({defaults, overrides}) | Leave quota per type + per-employee overrides |
-| `leave_workflows` | JSON (LeaveWorkflow[]) | Department → approver role mapping |
-| `leave_types` | JSON (CustomLeaveType[]) | Custom leave type definitions |
-| `review_config` | JSON (OrgReviewConfig) | Competencies, rating scales |
-| `notification_config` | JSON | Enabled notification types, digest settings |
-| `notification_prefs_{userId}` | JSON | Per-user notification preferences |
-| `ad_config_{slot}` | JSON | Ad slot configuration |
-| `platform_theme` | JSON | Platform default theme (Super Admin) |
-
----
-
 ## Subscription System
 
 Statuses: `TRIAL`, `ACTIVE`, `EXPIRED`, `SUSPENDED`, `AD_SUPPORTED`
@@ -342,131 +301,8 @@ Statuses: `TRIAL`, `ACTIVE`, `EXPIRED`, `SUSPENDED`, `AD_SUPPORTED`
 Key files:
 - `src/context/SubscriptionContext.tsx` — State, `canPerformAction()`, 2-min refresh
 - `src/components/subscription/` — SubscriptionGuard, SubscriptionBanner, SuspendedPage
-- `Others/pb_hooks/cron.pb.js` — Auto-expiration + trial reminders (7d, 3d, 1d)
-- `Others/pb_hooks/main.pb.js` — `/api/openhr/subscription-status` endpoint
-
----
-
-## PocketBase Hooks — MUST FOLLOW
-
-### Deployment
-ALL files in `Others/pb_hooks/` (except files prefixed with `bk` or `bk_`) must be deployed to the PocketBase server's `pb_hooks/` directory. Missing any file will silently disable that feature.
-
-**Required files on server:**
-
-| File | Purpose | Hooks/Endpoints |
-|------|---------|-----------------|
-| `main.pb.js` | Core system | Registration, auth, subscription, blog, tutorials, contact, ads, WebP validation, email queue, **leave notifications (email + bell)** |
-| `leave_notifications.pb.js` | DEPRECATED backup — leave hooks now in main.pb.js | DO NOT deploy alongside main.pb.js |
-| `attendance_notifications.pb.js` | Attendance emails + bells | Late check-in alerts, checkout reminders, holiday alerts, auto-absent notifications |
-| `review_notifications.pb.js` | Review emails + bells | Cycle open/close, self-assessment reminders, status change notifications |
-| `cron.pb.js` | Scheduled jobs | Trial expiration, auto-absent, daily attendance report, selfie cleanup, notification cleanup |
-| `setup_collections.pb.js` | DB setup | Creates/updates upgrade_requests + organizations fields |
-
-### Custom API Endpoints (main.pb.js)
-
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| POST | `/api/openhr/register` | Public | Organization registration |
-| GET | `/api/openhr/subscription-status` | Auth | Check subscription status |
-| POST | `/api/openhr/test-email` | Public | Test email configuration |
-| POST | `/api/openhr/admin-verify-user` | ADMIN | Manually verify employee |
-| GET | `/api/openhr/unverified-users` | ADMIN | List unverified users |
-| POST | `/api/openhr/accept-ads` | Auth | Accept ad-supported mode |
-| POST | `/api/openhr/process-upgrade-request` | SUPER_ADMIN | Process upgrade request |
-| GET | `/api/openhr/ad-config/{slot}` | Auth | Get ad config for slot |
-| GET | `/api/openhr/public-ad-config/{slot}` | Public | Get public ad config (whitelisted slots) |
-| POST | `/api/openhr/contact` | Public | Contact form submission |
-| GET | `/api/openhr/blog/posts` | Public | List published blog posts |
-| GET | `/api/openhr/blog/posts/{slug}` | Public | Get blog post by slug |
-| GET | `/api/openhr/tutorials/posts` | Public | List published tutorials |
-| GET | `/api/openhr/tutorials/posts/{slug}` | Public | Get tutorial by slug |
-| GET | `/api/openhr/notification-stats` | SUPER_ADMIN | Platform notification counts |
-| POST | `/api/openhr/purge-all-notifications` | SUPER_ADMIN | Delete all notifications |
-
-### Cron Jobs (cron.pb.js)
-
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `auto_expire_trials` | Daily midnight | Expire trials + send reminders (7d, 3d, 1d) |
-| `auto_absent_check` | Every minute | Mark absent employees at `autoAbsentTime` |
-| `daily_attendance_report` | Daily 11 PM | Email + bell attendance summary to admins |
-| `selfie_cleanup` | Daily 2 AM | Clear old selfie files (30-day retention) |
-| `notification_cleanup` | Daily 3 AM | Delete old notifications (30-day retention) |
-
-### Cron Jobs (attendance_notifications.pb.js)
-
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `attendance_reminders` | Every 5 min | Checkout reminders, holiday alerts |
-
-### Cron Jobs (review_notifications.pb.js)
-
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `review_cycle_transition` | Daily midnight | Auto-open/close cycles, deadline reminders |
-
-### Email + Notification Matrix
-
-**Leave Events:**
-
-| Event | Employee | Manager | Admin/HR |
-|-------|----------|---------|----------|
-| Created (pending) | Email + Bell: "Submitted" | Email + Bell: "Action Required" | Email + Bell: "New Request" |
-| Created (direct APPROVED) | Email + Bell: "Approved" | Email + Bell: "FYI Approved" | Email + Bell: "Approved" |
-| Manager Approved → PENDING_HR | Email + Bell: "Manager Approved" | — | Email + Bell: "HR Review Required" |
-| Final APPROVED | Email + Bell: "Fully Approved" | Email + Bell: "Final Approved" | Email + Bell: "Fully Approved" |
-| REJECTED | Email + Bell: "Rejected" | Email + Bell: "Rejected" | Email + Bell: "Rejected" |
-
-**Attendance Events:**
-
-| Event | Employee | Manager | Admin/HR |
-|-------|----------|---------|----------|
-| Late check-in | — | Email + Bell: "Late Alert" | Bell: "Late Alert" |
-| Auto-absent | Email + Bell: "Marked Absent" | Bell: "Employee Absent" | — |
-| Checkout reminder | Email + Bell: "Checkout Reminder" | — | — |
-| Daily report | — | — | Email + Bell: "Daily Summary" |
-
-**Review Events:**
-
-| Event | Employee | Manager | Admin/HR |
-|-------|----------|---------|----------|
-| Cycle opened | Bell: "Review Cycle Open" | Email + Bell: "Action Required" | Email + Bell: "Cycle Open" |
-| Cycle closed | Email + Bell (if DRAFT) | — | Email + Bell: "Cycle Closed" |
-| Self-assessment submitted | — | Email + Bell: "Review Submitted" | Email + Bell: "FYI" |
-| Manager reviewed | Email + Bell: "Review Complete" | — | Email + Bell: "Action Required" |
-| HR finalized | Email + Bell: "Review Completed" | Email + Bell: "Finalized" | — |
-| Deadline reminders (3d, 1d) | Email + Bell (if DRAFT) | Email + Bell (if pending) | Bell: "Deadline" |
-
-### Hook Coding Standards — MUST FOLLOW
-
-1. **Always wrap hook registrations in try-catch** — prevents one failed hook from crashing the entire file:
-   ```js
-   try {
-       onRecordAfterCreateSuccess((e) => { ... }, "collection_name");
-   } catch(e) {
-       console.log("[HOOKS] Could not register hook: " + e.toString());
-   }
-   ```
-2. **Each `.pb.js` file runs in its own isolated JS scope** — you CANNOT call functions defined in other `.pb.js` files. Always inline shared logic.
-3. **Use `getString()` to read record fields** — never use `.email()` or direct property access on PocketBase records.
-4. **Always add console.log at file load** — e.g., `console.log("[HOOKS] Loading Feature X...")` at the top and `console.log("[HOOKS] Feature X loaded successfully.")` at the bottom.
-5. **Update hooks must check if the relevant field actually changed** before sending notifications:
-   ```js
-   var oldStatus = e.record.original().getString("status");
-   if (oldStatus === newStatus) return;
-   ```
-6. **Sender config must be inlined** in every file (not shared):
-   ```js
-   const meta = $app.settings().meta || {};
-   const sender = { address: meta.senderAddress || "noreply@openhr.app", name: meta.senderName || "OpenHR System" };
-   ```
-7. **Never delete or remove notification hooks** without explicit approval — they are critical for user communication.
-8. **Never remove email notification logic** — each status transition must send appropriate emails to all relevant parties.
-9. **Always include `line_manager_id`** when creating leave records — required for manager notifications.
-10. **`createNotification()` helper must be inlined** in each hook file that needs it (with the same field structure).
-
----
+- `supabase/functions/cron-expire-trials/` — Auto-expiration + trial reminders (7d, 3d, 1d)
+- `supabase/functions/` — `/api/openhr/subscription-status` endpoint
 
 ## Types (`src/types.ts`) — COMPLETE REFERENCE
 
@@ -529,7 +365,7 @@ Rules:
 - All images must be auto-converted to WebP before upload
 - Never delete or modify existing notification/email logic without explicit approval
 - Always include `organization_id` in new records for multi-tenant isolation
-- snake_case for PocketBase fields, camelCase for TypeScript properties
+- snake_case for database fields, camelCase for TypeScript properties
 - Services handle the conversion between the two naming conventions
 
 ---
@@ -539,7 +375,7 @@ Rules:
 | File | Purpose |
 |------|---------|
 | `vite.config.ts` | Port 3000, path alias `@/` → `./src/`, PWA plugin |
-| `src/config/database.ts` | PocketBase URL from env or hardcoded fallback |
+| `src/config/database.ts` | Supabase URL from env or hardcoded fallback |
 | `src/constants.tsx` | All default config values, departments, locations, holidays, competencies |
 | `vercel.json` | Vercel deployment config |
 | `tsconfig.json` | TypeScript configuration |
@@ -555,21 +391,18 @@ Rules:
 | `src/components/Sidebar.tsx` | Role-filtered sidebar menu |
 | `src/types.ts` | All TypeScript entity interfaces |
 | `src/constants.tsx` | All default configuration values |
-| `src/config/database.ts` | PocketBase URL resolution |
+| `src/config/database.ts` | Supabase URL resolution |
 | `src/context/AuthContext.tsx` | Authentication state management |
 | `src/context/SubscriptionContext.tsx` | Subscription state + access control |
 | `src/context/ThemeContext.tsx` | Theme management (13+ themes, dark mode) |
 | `src/services/hrService.ts` | Unified service facade |
-| `src/services/api.client.ts` | PocketBase client + event bus |
+| `src/services/api.client.ts` | Supabase client + event bus |
 | `src/hooks/attendance/useCamera.ts` | Camera hook (live stream + file-input fallback) |
 | `src/hooks/attendance/useGeoLocation.ts` | Location hook (browser geolocation + OSM geocoding) |
 | `src/components/ErrorBoundary.tsx` | Error boundary for native features |
-| `Others/pb_hooks/main.pb.js` | Core PocketBase hooks + 16 API endpoints |
-| `Others/pb_hooks/leave_notifications.pb.js` | DEPRECATED — leave hooks now in main.pb.js (standalone backup only) |
-| `Others/pb_hooks/attendance_notifications.pb.js` | Attendance notifications + cron reminders |
-| `Others/pb_hooks/review_notifications.pb.js` | Performance review notifications + cycle transitions |
-| `Others/pb_hooks/cron.pb.js` | 5 scheduled cron jobs |
-| `Others/pb_hooks/setup_collections.pb.js` | Collection schema setup |
+| `src/services/supabase.ts` | Supabase client SDK + auth + storage helpers |
+| `supabase/functions/` | Edge Functions (auth, cron jobs, notifications, admin operations) |
+| `supabase/migrations/` | Database schema migrations |
 
 ---
 
@@ -589,9 +422,9 @@ Always push immediately after committing. Never leave unpushed commits.
 - [ ] Camera and location tested on real iOS Safari + Android Chrome (and PWA standalone) — not just desktop
 - [ ] Permission-denied UI shows readable messages
 - [ ] Lighthouse PWA score > 90
-- [ ] No hardcoded credentials, API keys, or PocketBase URLs
+- [ ] No hardcoded credentials, API keys, or Supabase URLs
 - [ ] All notification hooks intact (leave, attendance, review)
-- [ ] All `.pb.js` files deployed to server's `pb_hooks/` directory
+- [ ] Edge Functions deployed via `supabase functions deploy`
 
 ---
 
@@ -604,9 +437,8 @@ Always push immediately after committing. Never leave unpushed commits.
 #   3. Open the tunnel URL on the phone — getUserMedia / geolocation
 #      require HTTPS (or localhost) to work.
 
-# Check PocketBase hook loading
-# Look for: [HOOKS] Loading ... and [HOOKS] ... loaded successfully
-# in PocketBase server logs
+# Check Supabase Edge Function logs
+# Use: supabase functions logs --project-ref <ref>
 ```
 
 ---
@@ -637,13 +469,10 @@ change and requires ALL of the following, no exceptions:
 - `src/services/workday/workdaySessionManager.types.ts`
 - `src/context/AuthContext.tsx` — delegation layer only, do not move
   session logic back into it
-- `Others/pb_hooks/cron.pb.js` — in particular the
-  `cronAdd("auto_close_sessions", ...)` block (every minute)
-- `scripts/validate-pb-hooks.cjs`
 
 ### Invariants (a violation is a bug)
 
-- **Only `sessionManager.ts` may call `pb.authStore.clear()`**. The one
+- **Only `sessionManager.ts` may call `supabase.auth.signOut()`**. The one
   tolerated exception is `auth.service.ts`: the post-login unverified-account
   clear (which runs before the user is considered logged in). Every other
   call site is a regression and must route through
@@ -661,10 +490,10 @@ change and requires ALL of the following, no exceptions:
 - **`getActiveAttendance` MUST delegate to
   `workdaySessionManager.reconcileOpenSessions`** — do not add a parallel
   implementation that reads attendance and decides closure rules.
-- **The `auto_close_sessions` cron block in `cron.pb.js` MUST exist** and
-  its job id MUST remain `auto_close_sessions`. The `validate-pb-hooks.cjs`
-  script enforces this at build time (`npm run build` fails if it's
-  missing).
+- **The `cron-auto-close-sessions` Edge Function MUST be deployed** and
+  the pg_cron schedule that invokes it MUST remain active. This is the
+  server-side counterpart to the client-side fallback in
+  `workdaySessionManager.ts`.
 - **`workdaySessionManager` MUST NOT close today's session**. Same-day
   max-time closure is owned by the server cron; a client-side same-day
   close would race the cron and double-close.
@@ -673,7 +502,6 @@ change and requires ALL of the following, no exceptions:
 
 Before shipping any change touching frozen files:
 
-- [ ] `npm run validate:hooks` passes (also runs automatically as `prebuild`).
 - [ ] Manually verified: login does NOT log out on flaky network — set
       DevTools → Network → Offline for ~60 s, return to Online, session
       must survive; a "Reconnecting…" UI banner is acceptable but a
@@ -685,8 +513,8 @@ Before shipping any change touching frozen files:
       record must be updated with `check_out` populated and remarks
       appended; a one-time toast must appear. The UI must NOT show an
       "active session" card for yesterday.
-- [ ] Confirmed `cron.pb.js` is deployed and the server log shows
-      `[CRON] Auto-closed N session(s)` entries on the expected cadence.
+- [ ] Confirmed `cron-auto-close-sessions` Edge Function is deployed and
+      the function log shows successful runs on the expected cadence.
 - [ ] Commit message documents which frozen file was touched and the
       manual verification performed.
 
