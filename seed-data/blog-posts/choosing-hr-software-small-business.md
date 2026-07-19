@@ -63,7 +63,7 @@ Open-source HR platforms flip this model entirely. The software is free. There i
 
 ## Why Open-Source HR Software Is Worth Considering
 
-Open-source HR tools like OpenHRApp offer distinct advantages for small businesses:
+Open-source HR tools like OpenHRApp offer distinct advantages for small businesses (for a detailed comparison, see our [side-by-side look at OpenHR vs. commercial HRMS platforms](/blog/openhr-vs-commercial-hrms-comparison)):
 
 1. **No vendor lock-in** — Your data is yours. You can export it anytime in standard formats. If you outgrow the platform, you are not trapped.
 2. **Transparency** — The code is public. You can inspect it for security issues, or have a developer customize it to your exact needs.
@@ -96,6 +96,13 @@ If you are moving from spreadsheets (or another system) to a new HR platform, fo
 The right HR software saves time, reduces errors, and gives you back hours every week. For most small businesses, the best choice is a platform that handles attendance, leave, and employee records well — without locking you into expensive per-user pricing. Open-source options like OpenHRApp make it possible to get enterprise-grade HR tools completely free.
 
 Take your time evaluating options. Test with real data. Ask hard questions about pricing and data portability. And remember: the goal is not to buy the most feature-packed software. It is to buy the software that makes your HR processes easier, faster, and more reliable.
+
+---
+
+**Further Reading**
+
+- [Getting Started with OpenHR: A Step-by-Step Setup Guide](/blog/getting-started-with-openhr) — Set up your organization, add employees, and go live in under an hour.
+- [OpenHR vs Commercial HRMS: An Honest Look](/blog/openhr-vs-commercial-hrms-comparison) — Feature-by-feature comparison and total cost analysis.
 
 ---
 

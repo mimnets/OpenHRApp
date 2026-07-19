@@ -103,6 +103,11 @@ The best way to get involved:
 
 To Rafiq — and to every small business owner, HR manager, and team lead who has ever stared at a spreadsheet at 10 PM, manually reconciling attendance records: we built this for you. You should not need a Fortune 500 budget to have decent HR tools. You should not need to choose between overpaying for software and drowning in administrative work. There is a better way. And it is free.
 
+**Further Reading**
+
+- [The Rise of Open-Source HR Software: Why It's the Future](/blog/rise-of-open-source-hr-software) — The broader open-source HR movement and why organizations of all sizes are switching.
+- [OpenHR vs Commercial HRMS: An Honest Look](/blog/openhr-vs-commercial-hrms-comparison) — How OpenHRApp stacks up against paid alternatives on features, cost, and support.
+
 ---
 
 *OpenHRApp is free, open-source, and ready when you are. [Get started in minutes](https://openhrapp.com).*

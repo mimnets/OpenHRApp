@@ -123,9 +123,17 @@ A good HR platform handles the administrative overhead so you can focus on the a
 - **Progress tracking** — HR can see at a glance which reviews are in draft, submitted, or completed.
 - **Reminder notifications** — Automatic emails nudge employees and managers as deadlines approach.
 
+> **See it in action:** Our [guide to OpenHR's Performance Review module](/blog/openhr-performance-review-guide) walks through setting up review cycles, configuring competencies, and running multi-stage evaluations with the platform.
+
 ## Conclusion
 
 Performance reviews do not have to be an annual dread-fest. When designed thoughtfully — with clear competencies, consistent scales, multiple perspectives, and integrated data — they become a valuable tool for developing your people and aligning your organization. Pair them with continuous, informal feedback throughout the year, and you have a performance management system that actually works.
+
+---
+
+**Further Reading**
+
+- [A Guide to OpenHR's Performance Review Module](/blog/openhr-performance-review-guide) — Step-by-step instructions for setting up and running review cycles in OpenHR.
 
 ---
 

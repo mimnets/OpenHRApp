@@ -107,6 +107,12 @@ Remote employees access HR systems from home networks, coffee shop Wi-Fi, and co
 
 Remote work does not require reinventing HR — but it does require adapting policies that were designed for a co-located workforce. Focus on outcomes over activity. Configure leave policies per jurisdiction. Mitigate visibility bias in performance reviews. Invest in cloud-based, mobile-friendly HR tools. And most importantly, build a culture of trust — because the best remote teams are built on mutual respect, not surveillance.
 
+**Further Reading**
+
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — Photo + GPS check-in that works for remote and distributed teams without continuous tracking.
+- [Employee Privacy in the Age of Workplace Surveillance](/blog/employee-privacy-workplace-surveillance) — How to adopt HR technology responsibly — verification, not surveillance.
+- [Leave Management Best Practices for Growing Teams](/blog/leave-management-best-practices) — Multi-jurisdiction leave policies, team calendars, and scaling leave across distributed teams.
+
 ---
 
 *OpenHRApp is built for remote and distributed teams — cloud-based, works as a PWA on any device, with selfie-based check-in and GPS verification. Completely free. [Get started](https://openhrapp.com).*

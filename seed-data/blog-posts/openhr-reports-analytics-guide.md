@@ -114,6 +114,11 @@ Reports are only as good as the data they are built on. OpenHR ensures data accu
 
 HR data contains valuable insights about your workforce — if you can access and understand it. OpenHR's reporting module transforms attendance and leave data into clear, actionable reports with one-click CSV export. Whether you need a daily attendance check, monthly payroll input, or quarterly strategic analysis, the data is ready when you are.
 
+**Further Reading**
+
+- [Managing Employee Leave with OpenHR](/blog/managing-leave-with-openhr) — See how leave data flows from employee applications into the reports and analytics covered here.
+- [How Selfie-Based Attendance Works in OpenHR](/blog/how-selfie-attendance-works) — Understand the attendance data pipeline — from check-in to the summary reports that feed payroll.
+
 ---
 
 *Explore OpenHR's reporting and analytics — completely free. [Get started](https://openhrapp.com).*

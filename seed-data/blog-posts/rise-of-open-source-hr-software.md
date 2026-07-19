@@ -89,6 +89,11 @@ Proprietary HR software may still be the right choice if:
 
 The rise of open-source HR software is not just about saving money — it is about a fundamentally better model for building and distributing software. Transparent development, community-driven priorities, no vendor lock-in, and the freedom to customize. As open-source HR platforms continue to mature, the question is shifting from "Why would I use open-source HR software?" to "Why would I pay thousands of dollars per year for something I can get for free?"
 
+**Further Reading**
+
+- [OpenHR vs Commercial HRMS: An Honest Look](/blog/openhr-vs-commercial-hrms-comparison) — Feature-by-feature comparison, total cost analysis, and guidance on when to choose each option.
+- [Why We Built OpenHR: The Story Behind the Open-Source HR Platform](/blog/why-we-built-openhr) — The origin story, the problems we set out to solve, and our vision for the future of HR technology.
+
 ---
 
 *OpenHRApp is a free, open-source HR management platform. No per-user fees, no time limits, no catch. [Start today](https://openhrapp.com).*
