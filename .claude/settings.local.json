@@ -74,7 +74,9 @@
       "Bash(Select-Object -First 50)",
       "PowerShell(npx tsc --noEmit --pretty 2>&1 | Select-Object -First 80)",
       "Bash(npx supabase *)",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(Select-Object -First 30)",
+      "PowerShell(npx tsc --noEmit --pretty 2>&1 | Select-Object -First 30)"
     ]
   }
 }

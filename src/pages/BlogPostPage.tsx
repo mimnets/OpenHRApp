@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
 import { blogService } from '../services/blog.service';
 import { BlogPost } from '../types';
 import { PublicAdBanner } from '../components/ads';
@@ -7,6 +7,7 @@ import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
 import { sanitizeHtml } from '../utils/sanitize';
+import { getReadingTime } from '../utils/readingTime';
 import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 
 const BlogPostSkeleton = () => (
@@ -180,6 +181,9 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
                       {post.publishedAt
                         ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
                         : new Date(post.created).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock size={16} /> {getReadingTime(post.content)}
                     </span>
                   </div>
 

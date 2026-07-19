@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User } from 'lucide-react';
+import { Calendar, Clock, User } from 'lucide-react';
 import { blogService } from '../services/blog.service';
 import { BlogPost } from '../types';
 import { PublicAdBanner } from '../components/ads';
@@ -7,6 +7,7 @@ import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
 import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
+import { getReadingTime } from '../utils/readingTime';
 
 const BlogCardSkeleton = () => (
   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-pulse">
@@ -259,6 +260,9 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
                               {post.publishedAt
                                 ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                                 : new Date(post.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} /> {getReadingTime(post.content)}
                             </span>
                           </div>
                         </div>
