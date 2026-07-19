@@ -232,6 +232,22 @@ All images across the blog should share a consistent visual language:
 
 ---
 
+### 17. complete-guide-openhrapp.md
+
+**Cover Image:**
+> Prompt: A comprehensive illustration of an HR management dashboard showing interconnected modules: a camera icon for selfie attendance, a calendar for leave management, a star for performance reviews, users for employee directory, and charts for reports — all orbiting a central hub in a clean, modern SaaS style. Blue, teal, and warm amber accents. The composition conveys "all-in-one HR platform." Minimal, uncluttered, professional. 1.91:1 aspect ratio for social sharing.
+
+**Inline Image 1 — After "What Does OpenHRApp Actually Do? A Walkthrough of Every Feature":**
+> Prompt: An isometric illustration of an HR dashboard overview screen showing key widgets: an attendance stats card with Present/Late/Absent numbers and colored badges, a pending leave requests list with status indicators, and an employee directory quick-search bar. The dashboard is clean and modern with a blue sidebar. The screen floats slightly above a desk surface with subtle shadows. SaaS product showcase style, no human figures needed.
+
+**Inline Image 2 — After "Step 1: Set Up Supabase":**
+> Prompt: A split-screen illustration: left side shows a terminal window with Supabase CLI commands being executed with green success confirmation output; right side shows a browser window with the Supabase project dashboard displaying database schema and API settings. The two sides are connected by a subtle dotted line. Developer-tool aesthetic with dark terminal background and clean browser UI. Modern, tech-forward style.
+
+**Inline Image 3 — Before "What It Costs":**
+> Prompt: A clean calendar and scheduling interface illustration showing a month view with color-coded shift blocks (morning shift in blue, night shift in purple), holiday markers in gold, and a few override badges on specific dates. Below the calendar area, a "Shift Details" card displays start time, end time, grace period, and earliest check-in configuration fields. Clean HR scheduling UI aesthetic. Professional, well-organized dashboard style.
+
+---
+
 ### 16. openhr-vs-commercial-hrms-comparison.md
 
 **Cover Image:**
@@ -268,9 +284,10 @@ All images across the blog should share a consistent visual language:
 | 14 | day-in-life-hr-teams-openhr | ✓ | ✓ | ✓ | — |
 | 15 | why-we-built-openhr | ✓ | ✓ | ✓ | — |
 | 16 | openhr-vs-commercial-hrms-comparison | ✓ | ✓ | ✓ | ✓ |
-| **Total** | | **16** | **16** | **16** | **3** |
+| 17 | complete-guide-openhrapp | ✓ | ✓ | ✓ | ✓ |
+| **Total** | | **17** | **17** | **17** | **4** |
 
-**Grand total: 51 images** (16 cover + 35 inline)
+**Grand total: 55 images** (17 cover + 38 inline)
 
 ---
 
