@@ -16,6 +16,13 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-07-19',
+    title: 'Leave email notifications, blog reading time fix, gstack setup',
+    entries: [
+      { type: 'feature', description: 'Added leave application email notifications for the full approval lifecycle. New notify-leave-email Edge Function sends templated HTML emails via Resend (noreply@openhrapp.com) on: leave submitted (employee confirmation + manager action-required + HR FYI), manager approved/rejected (employee update + HR action-required/FYI), and HR final approved/rejected (employee confirmation + manager FYI + HR record). Leave service invokes the Edge Function as fire-and-forget after saveLeaveRequest() and updateLeaveStatus() so email delivery never blocks the UI.' },
+    ],
+  },
+  {
+    date: '2026-07-19',
     title: 'Blog reading time fix, gstack setup, complete-guide blog post',
     entries: [
       { type: 'fix', description: 'Escaped apostrophe in "you\'d" inside single-quoted strings in LandingPage.tsx JSON-LD FAQ schema and faqs.ts FAQ data, which caused Vite/Rollup to fail the production build with "Expected } but found d".' },
