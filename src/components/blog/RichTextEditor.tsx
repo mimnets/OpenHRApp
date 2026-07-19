@@ -9,6 +9,7 @@ import {
   Lock, Unlock, Link2, Unlink,
   Upload, Loader2, ClipboardPaste,
 } from 'lucide-react';
+import { marked } from 'marked';
 import { superAdminService } from '../../services/superadmin.service';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { useToast } from '../../context/ToastContext';
@@ -86,108 +87,33 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   }, [handleInput]);
 
   // ---------------------------------------------------------------------------
-  // Markdown → HTML converter (handles the most common blog authoring patterns)
+  // Markdown → HTML converter (uses marked — same library GitHub uses)
   // ---------------------------------------------------------------------------
   const mdToHtml = useCallback((md: string): string => {
     // Normalize line endings
-    const normalized = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const lines = normalized.split('\n');
-    const out: string[] = [];
-    let i = 0;
-
-    const isEmpty = (l: string) => /^\s*$/.test(l);
-    const isHeading = (l: string) => /^#{1,3}\s/.test(l);
-    const isHr = (l: string) => /^---\s*$/.test(l) || /^\*\s*\*\s*\*\s*$/.test(l) || /^___\s*$/.test(l);
-    const isBullet = (l: string) => /^-\s/.test(l);
-    const isOrdered = (l: string) => /^\d+\.\s/.test(l);
-    const isBlockquote = (l: string) => /^>\s?/.test(l);
-
-    // Inline formatting (order matters: images before links, bold before italic)
-    const inline = (text: string): string => {
-      return text
-        .replace(/!\[([^\]]*)\]\(([^)\s]+(?:\s+"[^"]*")?)\)/g, '<img src="$2" alt="$1">')
-        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>')
-        .replace(/`([^`\n]+)`/g, '<code>$1</code>');
-    };
-
-    const consumeParagraph = () => {
-      const paraLines: string[] = [];
-      while (i < lines.length) {
-        const l = lines[i];
-        if (isEmpty(l) || isHeading(l) || isHr(l) || isBullet(l) || isOrdered(l) || isBlockquote(l)) break;
-        paraLines.push(l);
-        i++;
-      }
-      if (paraLines.length > 0) {
-        out.push(`<p>${inline(paraLines.join(' '))}</p>`);
-      }
-    };
-
-    const consumeList = (bulletTest: RegExp, tag: 'ul' | 'ol') => {
-      const items: string[] = [];
-      while (i < lines.length && bulletTest.test(lines[i])) {
-        const itemText = lines[i].replace(bulletTest, '');
-        items.push(`<li>${inline(itemText)}</li>`);
-        i++;
-      }
-      if (items.length > 0) {
-        out.push(`<${tag}>`);
-        items.forEach(item => out.push(`  ${item}`));
-        out.push(`</${tag}>`);
-      }
-    };
-
-    const consumeBlockquote = () => {
-      const quoteLines: string[] = [];
-      while (i < lines.length && isBlockquote(lines[i])) {
-        quoteLines.push(lines[i].replace(/^>\s?/, ''));
-        i++;
-      }
-      if (quoteLines.length > 0) {
-        out.push(`<blockquote><p>${inline(quoteLines.join(' '))}</p></blockquote>`);
-      }
-    };
+    let normalized = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     // Strip YAML frontmatter if present (the user may paste the entire .md file)
-    let startIdx = 0;
     if (normalized.startsWith('---')) {
       const endFront = normalized.indexOf('\n---\n', 4);
       if (endFront !== -1) {
-        startIdx = endFront + 5; // skip past the closing ---
-        const skipped = normalized.substring(0, startIdx).split('\n').length - 1;
-        i = skipped;
+        normalized = normalized.substring(endFront + 5);
       }
     }
-    // Always skip the first # Heading 1 — the blog post page already renders
-    // post.title as an <h1>, so including another one in content harms SEO.
-    while (i < lines.length && isEmpty(lines[i])) i++;
-    if (i < lines.length && /^#\s/.test(lines[i])) i++;
-    // Skip blank line after the skipped heading
-    if (i < lines.length && isEmpty(lines[i])) i++;
 
-    while (i < lines.length) {
-      const l = lines[i];
-      if (isEmpty(l)) { i++; continue; }
-      if (isHeading(l)) {
-        const m = l.match(/^(#{1,3})\s+(.+)/);
-        if (m) out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
-        i++;
-      } else if (isHr(l)) {
-        out.push('<hr>');
-        i++;
-      } else if (isBullet(l)) {
-        consumeList(/^-\s/, 'ul');
-      } else if (isOrdered(l)) {
-        consumeList(/^\d+\.\s/, 'ol');
-      } else if (isBlockquote(l)) {
-        consumeBlockquote();
-      } else {
-        consumeParagraph();
-      }
+    // Skip the first # Heading 1 — the blog post page already renders
+    // post.title as an <h1>, so including another one in content harms SEO.
+    normalized = normalized.trimStart();
+    if (/^#\s/.test(normalized)) {
+      const firstNewline = normalized.indexOf('\n');
+      normalized = firstNewline !== -1 ? normalized.substring(firstNewline + 1).trimStart() : '';
     }
-    return out.join('\n');
+
+    if (!normalized) return '';
+
+    // Convert using marked (GitHub-flavored markdown with breaks on newlines)
+    const html = marked.parse(normalized, { breaks: true, gfm: true }) as string;
+    return html;
   }, []);
 
   // Open the "Paste Markdown" modal
