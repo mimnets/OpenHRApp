@@ -1,0 +1,168 @@
+<h2>The Check-In Flow</h2>
+
+<p>When an employee arrives at work, here is what happens step by step:</p>
+
+<ol>
+<li><strong>Open the app</strong> — On any device (phone, tablet, or laptop), the employee navigates to the Attendance page.</li>
+<li><strong>Choose the duty type</strong> — Depending on your organization's configuration, the employee selects their work type: Office (standard check-in) or Factory (shift-based check-in).</li>
+<li><strong>Camera activates</strong> — The app requests access to the device's camera. On first use, the browser will ask for camera permission. The employee grants permission once, and the camera activates automatically on future check-ins.</li>
+<li><strong>Take the selfie</strong> — The employee positions their face in the frame and captures the photo. The photo is automatically converted to WebP format for efficient storage.</li>
+<li><strong>GPS capture</strong> — Simultaneously, the app captures the device's GPS coordinates (with the employee's permission). This records where the check-in occurred.</li>
+<li><strong>Timestamp</strong> — The exact date and time are recorded server-side to prevent manipulation.</li>
+<li><strong>Check-in complete</strong> — The employee sees a confirmation that they are checked in, and the record is stored in the attendance database.</li>
+</ol>
+
+<p>The entire flow takes about 5–10 seconds from opening the app to completing the check-in.</p>
+
+<img src="how-selfie-attendance-works-inline-1.webp" alt="A four-step horizontal flow diagram showing the check-in process: opening the app on a phone, the camera activating, taking a selfie with a face guide frame, and a green checkmark confirming completion" width="800">
+
+<h2>Check-Out Flow</h2>
+
+<p>At the end of the workday (or shift), the employee returns to the Attendance page and taps Check Out. The system:</p>
+
+<ol>
+<li>Captures another selfie for identity verification.</li>
+<li>Records the checkout timestamp.</li>
+<li>Calculates the total work duration.</li>
+<li>Closes the attendance session.</li>
+</ol>
+
+<p>If an employee forgets to check out, OpenHR's auto-close mechanism kicks in. At a configured time (e.g., 10 PM), any open attendance sessions are automatically closed with a system note, and the employee is notified.</p>
+
+<h2>Identity Verification: How It Prevents Buddy Punching</h2>
+
+<p>Buddy punching — when a colleague checks in for an absent employee — is one of the most common forms of time theft. Selfie verification makes it virtually impossible because:</p>
+
+<ul>
+<li><strong>Every check-in requires a photo.</strong> The photo is captured live through the camera — it cannot be uploaded from the device gallery in standard mode. This ensures the photo is taken at the moment of check-in.</li>
+<li><strong>Photos are stored with each attendance record.</strong> Managers and HR can visually verify who checked in. If John's attendance record shows a photo of Sarah, it is immediately obvious.</li>
+<li><strong>No shared credentials.</strong> Unlike PIN codes or swipe cards, a selfie cannot be shared or lent to a colleague.</li>
+</ul>
+
+<h3>Privacy Safeguards</h3>
+
+<p>Selfie verification is not facial recognition. OpenHR does not process or analyze facial features. The photo is stored as evidence for manual verification by authorized personnel only. Specifically:</p>
+
+<ul>
+<li>Photos are only visible to managers and HR/Admin — not to other employees.</li>
+<li>Photos are stored securely alongside attendance records with the same access controls.</li>
+<li>No biometric data is extracted or stored. The photo is simply an image file.</li>
+</ul>
+
+<h2>GPS Location Verification</h2>
+
+<p>Every check-in captures the device's GPS coordinates. This serves multiple purposes:</p>
+
+<ul>
+<li><strong>On-site verification</strong> — Confirms that office-based employees are checking in from the office location, not from home.</li>
+<li><strong>Field worker tracking</strong> — Verifies that field workers are at their assigned job sites or client locations.</li>
+<li><strong>Remote work monitoring</strong> — Shows where remote employees are working from on any given day.</li>
+</ul>
+
+<p>The GPS data is displayed in the attendance logs as coordinates and, where available, as a reverse-geocoded address (e.g., "123 Main Street, Dhaka"). Managers can view check-in locations on a map for visual verification.</p>
+
+<blockquote><strong>Important:</strong> GPS is only captured at the moment of check-in (and check-out, if configured). OpenHR does not track employee location continuously throughout the day. The purpose is verification, not surveillance.</blockquote>
+
+<h2>Attendance Modes: Office vs. Factory</h2>
+
+<p>OpenHR supports two distinct attendance modes to accommodate different work environments:</p>
+
+<h3>Office Mode</h3>
+
+<p>Designed for standard office environments with regular business hours. Key characteristics:</p>
+
+<ul>
+<li>Employees check in once at the start of the day and check out once at the end.</li>
+<li>Lateness is calculated against the employee's assigned shift start time (minus any grace period).</li>
+<li>Work duration is calculated from check-in to check-out.</li>
+<li>Ideal for knowledge workers, administrative staff, and management.</li>
+</ul>
+
+<h3>Factory Mode</h3>
+
+<p>Designed for manufacturing, production, and shift-based environments. Key characteristics:</p>
+
+<ul>
+<li>Supports multiple shifts throughout the day (morning, afternoon, night).</li>
+<li>Employees check in at the start of their shift and check out at the end.</li>
+<li>Overtime is calculated automatically for work beyond the scheduled shift end.</li>
+<li>Supports split shifts and rotating schedules.</li>
+<li>Ideal for factory workers, warehouse staff, and operations teams.</li>
+</ul>
+
+<p>Admins can configure which modes are available to their organization and assign specific modes per employee or per department.</p>
+
+<h2>The Audit Trail</h2>
+
+<p>Every attendance event creates an auditable record containing:</p>
+
+<ul>
+<li>Employee ID and name</li>
+<li>Date and time of check-in (server-verified)</li>
+<li>Date and time of check-out (if applicable)</li>
+<li>Selfie photo</li>
+<li>GPS coordinates</li>
+<li>Duty type (Office or Factory)</li>
+<li>Status (Present, Late, Absent, etc.)</li>
+<li>Any remarks or overrides</li>
+</ul>
+
+<p>This data is stored in a structured database and can be exported to CSV for payroll processing, compliance audits, or further analysis. All records are immutable — once an attendance session is closed, it cannot be silently edited. Manual adjustments by admins are logged with the admin's identity, timestamp, and reason.</p>
+
+<img src="how-selfie-attendance-works-inline-2.webp" alt="A split smartphone screen showing the camera viewfinder with a face in the frame guide and GPS coordinates displayed below, connected to a map pin confirming the check-in location on a stylized map" width="800">
+
+<h2>Troubleshooting Common Issues</h2>
+
+<h3>Camera Not Working</h3>
+
+<p>If the camera fails to activate:</p>
+
+<ul>
+<li>Ensure the browser has camera permission. Check the browser's site settings.</li>
+<li>On iOS, make sure you are using Safari (PWA mode) — some third-party browsers have limited camera access.</li>
+<li>Try the gallery upload fallback: in environments where live camera access is blocked, OpenHR allows uploading a recently taken photo as an alternative (this is configurable by the admin).</li>
+</ul>
+
+<h3>GPS Not Available</h3>
+
+<p>If GPS cannot be determined:</p>
+
+<ul>
+<li>Ensure location services are enabled on the device.</li>
+<li>Grant location permission to the browser when prompted.</li>
+<li>On desktop, GPS may be less accurate or unavailable. Desktop check-ins will record the best available location (often based on IP geolocation) and flag the record accordingly.</li>
+</ul>
+
+<h3>"Already Checked In" Error</h3>
+
+<p>This occurs when an employee tries to check in twice without checking out in between. The employee should check out first before starting a new session. If the previous check-out was missed, an admin can manually close the previous session.</p>
+
+<h2>Setting Up Attendance for Your Organization</h2>
+
+<p>To configure attendance for your team:</p>
+
+<ol>
+<li><strong>Configure shifts</strong> — Go to Organization > Shifts. Define your shifts with start/end times, grace periods, and working days.</li>
+<li><strong>Assign shifts to employees</strong> — In the Employee Directory, assign each employee to their appropriate shift.</li>
+<li><strong>Configure auto-close time</strong> — Go to Organization > System and set the auto-session-close time. This should be after the latest possible shift end time.</li>
+<li><strong>Set up holidays</strong> — Go to Organization > Holidays and add your holiday calendar. Employees will not be marked absent on holidays.</li>
+<li><strong>Test with a pilot group</strong> — Have a small group of employees test the check-in/check-out flow before rolling out to the entire organization.</li>
+</ol>
+
+<h2>Conclusion</h2>
+
+<p>Selfie-based attendance tracking gives you biometric-level identity verification without any dedicated hardware. It eliminates buddy punching, provides location verification, and creates a complete audit trail — all from the smartphone your employees already carry. Combined with flexible shift support and automatic absence detection, it is a complete attendance management solution that costs nothing to use.</p>
+
+<h2>Frequently Asked Questions</h2>
+
+<h3>Is this facial recognition or just a photo?</h3>
+
+<p>Photo-based verification only. No AI face matching or biometric analysis. Each selfie is manually reviewable by HR for audit purposes.</p>
+
+<h3>What if the camera doesn't work?</h3>
+
+<p>The app will show a clear error message with troubleshooting steps. Check browser permissions, ensure HTTPS is enabled, or try the Android APK for native camera access.</p>
+
+<h3>Can employees use a photo from their gallery?</h3>
+
+<p>No. The app requires live camera capture at check-in. Gallery upload is blocked to prevent buddy punching.</p>

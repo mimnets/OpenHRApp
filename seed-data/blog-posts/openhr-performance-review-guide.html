@@ -1,0 +1,177 @@
+<p>OpenHR's performance review module enables structured, multi-stage evaluations with customizable competencies and rating scales. Whether you are running annual appraisals, quarterly check-ins, or probation reviews, this guide walks you through the complete process.</p>
+
+<h2>Overview of the Review Lifecycle</h2>
+
+<p>A performance review in OpenHR follows a defined lifecycle:</p>
+
+<ol>
+<li><strong>Draft</strong> — The review cycle is created but not yet active.</li>
+<li><strong>Self-Assessment</strong> — Employees rate themselves on each competency and provide written reflections.</li>
+<li><strong>Manager Review</strong> — The direct manager evaluates the employee, provides feedback, and assigns ratings.</li>
+<li><strong>HR Finalization</strong> — HR reviews all evaluations, calibrates ratings across the organization, and finalizes the reviews.</li>
+</ol>
+
+<p>At each stage, automatic email notifications keep everyone informed of deadlines and pending actions.</p>
+
+<h2>Step 1: Configure Your Organization's Review Settings</h2>
+
+<p>Before creating your first review cycle, configure the organization-wide review settings. Go to <strong>Organization > Structure</strong> (or the dedicated Review Config section).</p>
+
+<h3>Competencies</h3>
+
+<p>Define the competencies that will be evaluated across all review cycles. Competencies are the skills, behaviors, and values you want to assess. Each competency has:</p>
+
+<ul>
+<li><strong>Name</strong> — A short, descriptive label (e.g., "Collaboration," "Technical Expertise," "Problem-Solving").</li>
+<li><strong>Description</strong> — A clear explanation of what the competency means in your organizational context. This description is visible to both employees and managers during the review.</li>
+</ul>
+
+<p>OpenHR comes with six default competencies — Agility, Collaboration, Customer Focus, Developing Others, Global Mindset, and Innovation Mindset — but you can customize these completely. Add, remove, or rename competencies to match what matters to your organization.</p>
+
+<blockquote><strong>Tip:</strong> Keep your competency list to 5–8 items. Too many competencies make reviews tedious and unfocused.</blockquote>
+
+<h3>Rating Scale</h3>
+
+<p>Configure the rating scale that will be used across all competencies. The default is a 5-point scale:</p>
+
+<ol>
+<li>Needs Improvement</li>
+<li>Developing</li>
+<li>Meets Expectations</li>
+<li>Exceeds Expectations</li>
+<li>Outstanding</li>
+</ol>
+
+<p>You can customize the number of levels (3-point, 4-point, 7-point) and the label for each level.</p>
+
+<h2>Step 2: Create a Review Cycle</h2>
+
+<p>Go to the <strong>Performance Review</strong> section from the sidebar and create a new review cycle. You will need to define:</p>
+
+<ul>
+<li><strong>Cycle Name</strong> — A descriptive name (e.g., "2026 Annual Review," "Q3 2026 Quarterly Check-In").</li>
+<li><strong>Cycle Type</strong> — Choose from Annual, Semi-Annual, Quarterly, or Probation.</li>
+<li><strong>Cycle Period</strong> — The date range the review covers (e.g., January 1 – December 31, 2026). This determines which attendance and leave data is pulled into the review.</li>
+<li><strong>Review Period</strong> — The window during which reviews are completed (e.g., January 1–31, 2027). Deadlines for self-assessment and manager review are set within this period.</li>
+<li><strong>Selected Competencies</strong> — Choose which competencies from your configured list apply to this cycle. Different cycles can evaluate different competencies.</li>
+<li><strong>Active Status</strong> — Toggle whether the cycle is active. Employees can only see and participate in active cycles.</li>
+</ul>
+
+<p>Once created, the cycle automatically notifies employees and managers that a new review period has begun.</p>
+
+<img src="openhr-performance-review-guide-inline-1.webp" alt="A UI mockup of a Create Review Cycle form showing fields for Cycle Name, a Type dropdown, a date range picker, competency checkboxes, and an Active toggle switch in a clean modern SaaS interface with rounded corners" width="800">
+
+<h2>Step 3: Self-Assessment (Employee)</h2>
+
+<p>When a review cycle is active, employees see their pending self-assessment on their Performance Review page.</p>
+
+<p>The self-assessment form displays:</p>
+
+<ul>
+<li>Each competency with its description.</li>
+<li>The rating scale for reference.</li>
+<li>A text area for written self-reflection.</li>
+</ul>
+
+<p>For each competency, employees rate themselves and provide written comments. The self-assessment gives employees a voice in the evaluation process and highlights gaps between self-perception and manager perception.</p>
+
+<p><strong>Best practices for employees:</strong></p>
+
+<ul>
+<li>Be honest. Over-rating yourself undermines credibility; under-rating yourself does not help your case.</li>
+<li>Provide specific examples. Instead of "I collaborate well," write "I led the cross-functional project with Engineering and Marketing to launch the Q3 feature on schedule."</li>
+<li>Use the self-assessment as an opportunity to highlight accomplishments your manager may not be aware of.</li>
+</ul>
+
+<p>After submitting, the self-assessment is locked (no further edits) and the manager is notified that their review is ready.</p>
+
+<h2>Step 4: Manager Evaluation</h2>
+
+<p>Managers see all pending reviews for their direct reports. The manager evaluation screen shows:</p>
+
+<ul>
+<li>The employee's self-assessment (ratings and comments) — side by side with the manager's evaluation form.</li>
+<li>Attendance summary for the review period — total days present, absent, and late.</li>
+<li>Leave summary for the review period — total days taken by type.</li>
+</ul>
+
+<p>For each competency, the manager provides:</p>
+
+<ul>
+<li><strong>Rating</strong> — Their independent assessment of the employee's performance.</li>
+<li><strong>Written feedback</strong> — Specific observations, examples, and guidance.</li>
+</ul>
+
+<p>The side-by-side layout is intentional: it makes gaps between self-assessment and manager evaluation immediately visible, which often leads to the most productive conversations.</p>
+
+<img src="openhr-performance-review-guide-inline-2.webp" alt="A split-screen UI illustration showing the employee's self-assessment ratings as colored bars on the left panel and the manager's evaluation form with rating dropdowns and a text area for feedback on the right panel, designed for easy side-by-side comparison" width="800">
+
+<p><strong>Best practices for managers:</strong></p>
+
+<ul>
+<li>Base ratings on evidence, not impressions. Refer to specific projects, outcomes, and behaviors observed during the review period.</li>
+<li>For any rating below "Meets Expectations," provide concrete, actionable guidance on what improvement looks like.</li>
+<li>Do not save critical feedback for the review — it should have been discussed throughout the year. The review summarizes and documents.</li>
+<li>Submit the review before the deadline. Late reviews signal to employees that their development is not a priority.</li>
+</ul>
+
+<p>After the manager submits their evaluation, the review moves to HR for finalization.</p>
+
+<h2>Step 5: HR Finalization</h2>
+
+<p>HR sees all reviews that have completed the manager evaluation stage. The HR finalization screen provides:</p>
+
+<ul>
+<li>A summary view of all reviews in the cycle, organized by department.</li>
+<li>Rating distributions — are certain managers systematically rating higher or lower than others?</li>
+<li>The ability to add final remarks and an overall rating that may differ from the manager's ratings (for calibration purposes).</li>
+</ul>
+
+<p>HR's role in finalization is to ensure consistency and fairness across the organization. If one manager has rated all their reports as "Outstanding" while another manager in the same department has a more balanced distribution, HR may adjust ratings after discussion with the managers.</p>
+
+<p>After HR finalizes a review, the employee is notified and can view their completed evaluation.</p>
+
+<h2>Viewing Review History</h2>
+
+<p>Both employees and managers can view historical reviews at any time. The review history shows:</p>
+
+<ul>
+<li>All completed reviews for the employee, organized by cycle.</li>
+<li>Ratings trends over time — is performance improving, stable, or declining?</li>
+<li>Written feedback from previous cycles, providing context for current evaluations.</li>
+</ul>
+
+<p>This longitudinal view is particularly valuable during promotion discussions, succession planning, and identifying high-potential employees.</p>
+
+<h2>Use Cases for Different Review Types</h2>
+
+<h3>Annual Performance Review</h3>
+
+<p>The traditional year-end appraisal. Best for organizations with stable roles and clear, long-term performance expectations. Covers the full calendar or fiscal year.</p>
+
+<h3>Semi-Annual Review</h3>
+
+<p>Two reviews per year (mid-year and year-end). Provides more frequent feedback and allows for mid-year course correction. Reduces the "recency bias" problem of annual reviews.</p>
+
+<h3>Quarterly Check-In</h3>
+
+<p>Four lightweight reviews per year. Best for fast-paced organizations where goals and priorities shift frequently. Each quarterly review should be shorter than an annual review — focus on 3–5 key competencies.</p>
+
+<h3>Probation Review</h3>
+
+<p>Evaluates a new hire at the end of their probation period (typically 3–6 months). Focuses on onboarding progress, cultural fit, and initial performance. The probation review determines whether employment is confirmed.</p>
+
+<h2>Tips for a Successful Review Cycle</h2>
+
+<ol>
+<li><strong>Announce the cycle early</strong> — Give employees at least 2 weeks notice before the self-assessment deadline.</li>
+<li><strong>Set realistic deadlines</strong> — Allow at least 1–2 weeks for self-assessment and 1–2 weeks for manager evaluation.</li>
+<li><strong>Train managers</strong> — Run a brief session on how to rate consistently, provide constructive feedback, and handle difficult conversations.</li>
+<li><strong>Monitor progress</strong> — HR should check completion rates regularly and send reminders to anyone who is behind.</li>
+<li><strong>Calibrate before finalizing</strong> — Hold a calibration meeting with managers to align rating standards before HR finalization.</li>
+<li><strong>Follow up</strong> — After reviews are completed, schedule development conversations. The review is the starting point, not the end.</li>
+</ol>
+
+<h2>Conclusion</h2>
+
+<p>OpenHR's performance review module provides everything you need to run fair, consistent, and data-driven evaluations — from customizable competencies to multi-stage workflows to integrated attendance and leave data. Whether you are a small team running your first review cycle or a growing organization scaling your performance management process, the tools are ready.</p>

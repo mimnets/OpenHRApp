@@ -57,3 +57,4 @@ progress.md
 
 # Supabase local temp
 supabase/.temp/
+.gstack/
