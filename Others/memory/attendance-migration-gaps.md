@@ -37,5 +37,5 @@ Tasyeea + Tanha both stopped on May 10 — same day. Suspicious.
 5. Re-run `05-incremental-attendance.mjs` if gaps found
 
 ## Supabase project
-- Ref: `cixryuwtlwbofabctrkk`
+- Ref: `<your-project-ref>`
 - DB query: `supabase db query --linked "<sql>"`

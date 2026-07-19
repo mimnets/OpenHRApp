@@ -14,8 +14,8 @@
 --     '0 2 * * *',
 --     $$
 --       select net.http_post(
---         url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-selfie-storage-cleanup',
---         headers := '{"Authorization": "Bearer bc92f38b0e052df26421259d5953b11695a5f2d11fc1e88614767cd6773f4817", "Content-Type": "application/json"}'::jsonb,
+--         url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-selfie-storage-cleanup',
+--         headers := '{"Authorization": "Bearer <CRON_SECRET>", "Content-Type": "application/json"}'::jsonb,
 --         body := '{}'::jsonb
 --       );
 --     $$

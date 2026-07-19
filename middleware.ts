@@ -17,8 +17,8 @@ export const config = {
   matcher: ['/blog/:slug+', '/how-to-use/:slug+', '/features/:slug+'],
 };
 
-const SUPABASE_URL = 'https://cixryuwtdwbofabctrkk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeHJ5dXd0bHdib2ZhYmN0cmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTgzMjcsImV4cCI6MjA5NDEzNDMyN30.DIsKHuNmR6ivb2oAdukpDDV8XSlK9km1KJDQ0O8yUEE';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 const SITE_URL = 'https://openhrapp.com';
 const DEFAULT_IMAGE = `${SITE_URL}/img/screenshot-wide.webp`;
 const DEFAULT_DESCRIPTION = 'Free, open-source HR management system with attendance tracking, leave management, employee directory, and compliance tools.';

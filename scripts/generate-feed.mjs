@@ -13,8 +13,13 @@ import fs from 'fs';
 import path from 'path';
 
 const SITE_URL = 'https://openhrapp.com';
-const SUPABASE_URL = 'https://cixryuwtdwbofabctrkk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeHJ5dXd0bHdib2ZhYmN0cmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTgzMjcsImV4cCI6MjA5NDEzNDMyN30.DIsKHuNmR6ivb2oAdukpDDV8XSlK9km1KJDQ0O8yUEE';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('Missing required env vars: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set.');
+  process.exit(0); // Don't fail the build, just skip feed generation
+}
 const FEED_TITLE = 'OpenHR';
 const FEED_DESCRIPTION =
   'Articles, guides, and product updates from OpenHR — the open-source HR management system.';
