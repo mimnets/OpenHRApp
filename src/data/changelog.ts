@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-19',
+    title: 'Fix Vercel build — unescaped apostrophes in single-quoted strings',
+    entries: [
+      { type: 'fix', description: 'Escaped apostrophe in "you\'d" inside single-quoted strings in LandingPage.tsx JSON-LD FAQ schema and faqs.ts FAQ data, which caused Vite/Rollup to fail the production build with "Expected } but found d".' },
+    ],
+  },
+  {
     date: '2026-07-18',
     title: 'Blog publishing fixes — cover image uploads & unpublish bug',
     entries: [
