@@ -7,9 +7,8 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Minus, Type,
   Lock, Unlock, Link2, Unlink,
-  Upload, Loader2, ClipboardPaste,
+  Upload, Loader2,
 } from 'lucide-react';
-import { marked } from 'marked';
 import { superAdminService } from '../../services/superadmin.service';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { useToast } from '../../context/ToastContext';
@@ -36,10 +35,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   const [linkEditing, setLinkEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const linkToolbarRef = useRef<HTMLDivElement>(null);
-  const mdTextareaRef = useRef<HTMLTextAreaElement>(null);
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number; aspect: number; handle: string } | null>(null);
-  const [showMdModal, setShowMdModal] = useState(false);
-  const [mdText, setMdText] = useState('');
 
   // Sync external value to editor on mount or when value changes externally
   useEffect(() => {
@@ -58,20 +54,40 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
     }
   }, [onChange]);
 
+  // Strip GitHub heading anchors (the 🔗 icon links) from pasted HTML.
+  // GitHub wraps headings with <a class="anchor" aria-hidden="true" href="#...">
+  // containing an SVG icon. We remove these so only the heading text remains.
+  const stripGitHubAnchors = useCallback((html: string): string => {
+    // Parse HTML into a temporary DOM, strip anchors, serialize back
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // Remove GitHub-style heading anchors
+    doc.body.querySelectorAll('a.anchor, a[aria-hidden="true"]').forEach(a => a.remove());
+    // Remove GitHub hover-link SVGs inside headings (the # link icon)
+    doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
+      heading.querySelectorAll('a[href^="#"]').forEach(a => {
+        // Only remove if it looks like a heading self-link (contains SVG or is empty-ish)
+        if (a.querySelector('svg') || !a.textContent?.trim()) {
+          a.remove();
+        }
+      });
+    });
+    return doc.body.innerHTML;
+  }, []);
+
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const plain = e.clipboardData.getData('text/plain');
 
     if (html) {
-      // Browser-style paste with HTML formatting — sanitize and insert
-      document.execCommand('insertHTML', false, sanitizeHtml(html));
+      // Browser-style paste with HTML formatting — strip GitHub anchors, sanitize, insert
+      const cleaned = stripGitHubAnchors(html);
+      document.execCommand('insertHTML', false, sanitizeHtml(cleaned));
       handleInput();
     } else if (plain) {
       // Detect if plain text is actually HTML source (e.g. copy-pasted from a text editor)
       const looksLikeHtml = /<(p|h[1-6]|ol|ul|li|img|a\b|strong|em|div|span|br|blockquote|hr|code|pre|table|tr|td|th|thead|tbody)[\s/>]/i.test(plain);
       if (looksLikeHtml) {
-        // Insert as HTML directly (sanitized)
         document.execCommand('insertHTML', false, sanitizeHtml(plain));
       } else {
         // Regular plain text — escape HTML entities and convert newlines to <br>
@@ -84,66 +100,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
       }
       handleInput();
     }
-  }, [handleInput]);
-
-  // ---------------------------------------------------------------------------
-  // Markdown → HTML converter (uses marked — same library GitHub uses)
-  // ---------------------------------------------------------------------------
-  const mdToHtml = useCallback((md: string): string => {
-    // Normalize line endings
-    let normalized = md.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-    // Strip YAML frontmatter if present (the user may paste the entire .md file)
-    if (normalized.startsWith('---')) {
-      const endFront = normalized.indexOf('\n---\n', 4);
-      if (endFront !== -1) {
-        normalized = normalized.substring(endFront + 5);
-      }
-    }
-
-    // Skip the first # Heading 1 — the blog post page already renders
-    // post.title as an <h1>, so including another one in content harms SEO.
-    normalized = normalized.trimStart();
-    if (/^#\s/.test(normalized)) {
-      const firstNewline = normalized.indexOf('\n');
-      normalized = firstNewline !== -1 ? normalized.substring(firstNewline + 1).trimStart() : '';
-    }
-
-    if (!normalized) return '';
-
-    // Convert using marked (GitHub-flavored markdown with breaks on newlines)
-    const html = marked.parse(normalized, { breaks: true, gfm: true }) as string;
-    return html;
-  }, []);
-
-  // Open the "Paste Markdown" modal
-  const openMdModal = useCallback(() => {
-    setMdText('');
-    setShowMdModal(true);
-    // Focus the textarea after render
-    setTimeout(() => mdTextareaRef.current?.focus(), 50);
-  }, []);
-
-  // Convert the pasted markdown and insert as HTML
-  const insertMarkdown = useCallback(() => {
-    if (!mdText.trim()) return;
-    const html = sanitizeHtml(mdToHtml(mdText));
-    editorRef.current?.focus();
-    document.execCommand('insertHTML', false, html);
-    setShowMdModal(false);
-    setMdText('');
-    handleInput();
-  }, [mdText, mdToHtml, handleInput]);
-
-  // Close modal on Escape
-  const handleMdKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setShowMdModal(false);
-    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      insertMarkdown();
-    }
-  }, [insertMarkdown]);
+  }, [handleInput, stripGitHubAnchors]);
 
   const deselectImage = useCallback(() => setSelectedImage(null), []);
 
@@ -561,12 +518,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         }} title="Inline Code">
           <Code size={15} />
         </ToolbarButton>
-
-        <Divider />
-
-        <ToolbarButton onClick={openMdModal} title="Paste Markdown">
-          <ClipboardPaste size={15} />
-        </ToolbarButton>
       </div>
 
       {/* Editor Area */}
@@ -803,76 +754,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         })()}
       </div>
 
-      {/* Paste Markdown Modal */}
-      {showMdModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowMdModal(false); }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Paste Markdown</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Paste your markdown content — it will be converted to formatted HTML. Ctrl+Enter to insert.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowMdModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Textarea */}
-            <div className="flex-1 px-6 py-4">
-              <textarea
-                ref={mdTextareaRef}
-                value={mdText}
-                onChange={(e) => setMdText(e.target.value)}
-                onKeyDown={handleMdKeyDown}
-                placeholder={`Paste your markdown here...
-
-# Heading 1
-## Heading 2
-**bold text** and *italic text*
-- bullet list item
-1. numbered list item
-[link text](https://example.com)
-> blockquote`}
-                className="w-full h-[320px] resize-none border border-slate-200 rounded-xl p-4 text-sm font-mono text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary leading-relaxed"
-              />
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
-              <span className="text-xs text-slate-400">
-                Tip: You can paste entire .md files including YAML frontmatter — it will be stripped automatically.
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowMdModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={insertMarkdown}
-                  disabled={!mdText.trim()}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Insert as HTML
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
