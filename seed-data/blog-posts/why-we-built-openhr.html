@@ -1,0 +1,104 @@
+<p>Every software project starts with a moment of frustration. For OpenHRApp, that moment came when a small business owner — let's call him Rafiq — showed us his "HR system": a folder of spreadsheets, a notebook of leave requests, and a WhatsApp group where employees messaged their sick days.</p>
+
+<p>Rafiq managed 35 employees across two locations. He needed attendance tracking, leave management, and employee records — basic HR functionality. But when he looked at commercial HR software, the pricing was absurd: $12 per employee per month. For 35 people, that was $5,040 per year. His business could not justify it. So he made do with spreadsheets and chat messages, spending hours every week on manual data entry and reconciliation.</p>
+
+<p>Rafiq's story is not unique. It is the reality for millions of small and medium businesses around the world. And it was the spark that ignited OpenHRApp.</p>
+
+<h2>The Problem We Set Out to Solve</h2>
+
+<p>The HR software market is broken in a fundamental way: the organizations that need help the most — small businesses, startups, non-profits, and growing teams in emerging markets — are priced out of the tools that could help them. The per-user pricing model that dominates the industry creates a cruel paradox: the more employees you hire, the more you pay for HR software. Growing your business means growing your software bill.</p>
+
+<p>We saw three specific problems we wanted to solve:</p>
+
+<ol>
+<li><strong>Cost.</strong> HR software should not cost thousands of dollars per year for basic functionality. Attendance tracking, leave management, and employee directories are not premium features — they are essential infrastructure that every organization needs.</li>
+<li><strong>Complexity.</strong> Enterprise HR platforms are powerful but overwhelming. They require weeks of implementation, dedicated administrators, and extensive training. Small businesses need software that works out of the box — not a platform that requires a consulting engagement to configure.</li>
+<li><strong>Vendor lock-in.</strong> Proprietary HR platforms make it difficult to export your data and migrate to another system. Your employee records, attendance history, and leave data are locked into formats designed to make leaving expensive and painful.</li>
+</ol>
+
+<img src="why-we-built-openhr-inline-1.webp" alt="A simple three-panel illustration showing the three core problems OpenHRApp set out to solve: a price tag with a prohibitively high number crossed out, a complex maze simplified into a straight line, and a padlock opening to reveal an open door" width="800">
+
+<h2>The Decision to Go Open Source</h2>
+
+<p>We could have built OpenHRApp as a freemium SaaS product — free for small teams, paid for larger ones. It is a common and perfectly valid business model. But we chose open source for a reason that goes deeper than pricing:</p>
+
+<p><strong>HR data is some of the most sensitive data an organization holds.</strong> Employee personal information, attendance records, leave history, performance reviews, salary data — this is not data you should entrust to a black box. Organizations deserve to know exactly how their HR data is stored, processed, and protected. The only way to provide that transparency is to make the code public.</p>
+
+<p>Open source also aligned with our belief that HR tools should be community-driven. The people who use HR software every day — HR managers, team leads, and employees — know best what features are needed. A proprietary vendor guesses what users want based on sales conversations and market research. An open-source project lets users directly influence the roadmap through feature requests, bug reports, and code contributions.</p>
+
+<h2>What We Built</h2>
+
+<p>We started with the essentials — the features that every organization needs from day one:</p>
+
+<ul>
+<li><strong>Attendance tracking</strong> with selfie-based identity verification and GPS location capture. No hardware required — just the camera on any smartphone.</li>
+<li><strong>Leave management</strong> with custom leave types, automatic balance calculations, and configurable approval workflows.</li>
+<li><strong>Employee directory</strong> with departments, designations, teams, and role-based access controls.</li>
+<li><strong>Reports and analytics</strong> with one-click CSV export for payroll and compliance.</li>
+</ul>
+
+<p>As the community grew, so did the platform:</p>
+
+<ul>
+<li><strong>Performance reviews</strong> with multi-stage evaluations, customizable competencies, and rating scales.</li>
+<li><strong>Shift management</strong> for organizations with multiple shifts, factory workers, and flexible schedules.</li>
+<li><strong>Notifications</strong> — email and in-app alerts for leave requests, approvals, attendance issues, and announcements.</li>
+<li><strong>Progressive Web App (PWA)</strong> — installable on any device, works offline, no app store required.</li>
+</ul>
+
+<p>Everything was built on a foundation of multi-tenant architecture, role-based access control, and data portability — because these are not "enterprise features." They are basic requirements for any organization handling sensitive employee data.</p>
+
+<h2>The Challenges Along the Way</h2>
+
+<p>Building an open-source product that competes with well-funded proprietary alternatives is not easy. Some of the challenges we faced:</p>
+
+<ul>
+<li><strong>Balancing simplicity and flexibility.</strong> HR processes vary widely across organizations. We needed a system that worked out of the box for a 10-person startup while being configurable enough for a 200-person company with complex leave policies and multiple shifts. The solution was sensible defaults with optional configuration — everything works immediately, but you can customize as needed.</li>
+<li><strong>Building for mobile-first.</strong> Many of our users access OpenHRApp primarily on phones — factory workers checking in, field staff applying for leave, managers approving requests on the go. The PWA architecture was essential, but getting camera access, GPS, and offline support right across iOS, Android, and desktop browsers was a significant engineering effort.</li>
+<li><strong>Maintaining quality without a QA team.</strong> In a proprietary company, a dedicated QA team tests every release. In an open-source project, the community is the QA team. We invested heavily in making the software resilient — clear error messages, automatic data validation, and graceful degradation when features are not available (e.g., camera access denied on certain browsers).</li>
+<li><strong>Sustainability.</strong> How do you keep building and improving a free product without a revenue model? Our approach: optional ads (which organizations can remove with a small donation), community contributions, and the conviction that building something valuable for the world is worth doing regardless.</li>
+</ul>
+
+<h2>What Makes Us Different</h2>
+
+<p>There are other HR platforms — both proprietary and open-source. Here is what we believe sets OpenHRApp apart:</p>
+
+<p><strong>Actually free.</strong> Not "free for up to 5 users." Not "free, but reports are a paid add-on." Free. Every feature. Unlimited employees. No time limits. No credit card required.</p>
+
+<p><strong>Privacy-respecting.</strong> Selfie verification at check-in, not facial recognition. GPS captured at check-in, not continuous tracking. Data minimization by design.</p>
+
+<p><strong>Community-shaped.</strong> Our roadmap is public. Feature requests are voted on by the community. Anyone can contribute code, documentation, or translations.</p>
+
+<p><strong>No lock-in.</strong> Export your data in standard formats at any time. Self-host if you prefer. The software is yours as much as it is ours.</p>
+
+<img src="why-we-built-openhr-inline-2.webp" alt="An illustration of a winding roadmap path leading toward a glowing horizon with milestone flags along the way featuring icons for a globe representing multi-language support, a puzzle piece for integrations, a chart for analytics, and a storefront for a community marketplace" width="800">
+
+<h2>The Road Ahead</h2>
+
+<p>OpenHRApp is still in its early chapters. Some of what we are working on:</p>
+
+<ul>
+<li><strong>Expanded integrations</strong> — Payroll system connectors, calendar sync, and API access for custom integrations.</li>
+<li><strong>Multi-language support</strong> — Making the platform accessible to organizations around the world in their local language.</li>
+<li><strong>Advanced analytics</strong> — Deeper workforce insights, predictive analytics for attrition risk, and customizable dashboards.</li>
+<li><strong>Community marketplace</strong> — A place for community-contributed extensions, themes, and integrations.</li>
+</ul>
+
+<p>But our core commitment will not change: essential HR tools should be free, transparent, and accessible to every organization — regardless of size, budget, or location.</p>
+
+<h2>Join Us</h2>
+
+<p>OpenHRApp is not just software. It is a community of HR professionals, developers, and organization leaders who believe that HR technology should be open, fair, and accessible. Whether you use the platform, contribute code, report bugs, suggest features, or simply tell a colleague about us — you are part of that community.</p>
+
+<p>The best way to get involved:</p>
+
+<ul>
+<li><strong>Use it:</strong> Sign up at <a href="https://openhrapp.com">openhrapp.com</a> and set up your organization. It takes 30 minutes and costs nothing.</li>
+<li><strong>Contribute:</strong> Check out our <a href="https://github.com/mimnets/openhrapp">GitHub repository</a>. Good first issues are tagged for new contributors.</li>
+<li><strong>Share feedback:</strong> Tell us what is working, what is not, and what you wish existed. Every feature in OpenHRApp started as a user request.</li>
+<li><strong>Spread the word:</strong> If you know a small business owner struggling with spreadsheets, tell them there is a better way — and it is free.</li>
+</ul>
+
+<h2>A Final Word</h2>
+
+<p>To Rafiq — and to every small business owner, HR manager, and team lead who has ever stared at a spreadsheet at 10 PM, manually reconciling attendance records: we built this for you. You should not need a Fortune 500 budget to have decent HR tools. You should not need to choose between overpaying for software and drowning in administrative work. There is a better way. And it is free.</p>

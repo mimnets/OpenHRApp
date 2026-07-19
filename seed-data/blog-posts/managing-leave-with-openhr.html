@@ -1,0 +1,154 @@
+<p>OpenHR's leave management system handles the entire lifecycle — from application to approval to balance tracking — with minimal administrative overhead. This guide walks through how each role uses the leave system and how to configure it for your organization.</p>
+
+<h2>For Employees: Applying for Leave</h2>
+
+<p>The leave application process is designed to take less than a minute. Here is how it works:</p>
+
+<ol>
+<li>Navigate to <strong>Leave</strong> from the sidebar.</li>
+<li>You will see your leave dashboard, which displays your current balances for each leave type, your recent leave history, and the team calendar.</li>
+<li>Click <strong>Apply for Leave</strong> to open the application form.</li>
+<li>Fill in:
+<ul>
+<li><strong>Leave Type</strong> — Select from the types your organization has configured (Annual, Sick, Casual, etc.).</li>
+<li><strong>Dates</strong> — Choose your start and end dates using the date picker. The system automatically calculates the total number of days, excluding weekends and holidays.</li>
+<li><strong>Half-Day Option</strong> — If you only need a half day, toggle this option and select morning or afternoon.</li>
+<li><strong>Reason</strong> — Optional but recommended. A brief note helps your manager understand the context.</li>
+</ul>
+</li>
+<li>Submit the application.</li>
+</ol>
+
+<p>You will receive an email confirmation that your application has been submitted. You can track the status of all your applications from the Leave page.</p>
+
+<img src="managing-leave-with-openhr-inline-1.webp" alt="A step-by-step UI flow showing the leave application process with four stages: selecting a leave type from a dropdown, picking dates on a mini calendar, adding an optional reason in a text field, and clicking the blue Submit button" width="800">
+
+<h3>Checking Your Leave Balance</h3>
+
+<p>Your leave dashboard shows, for each leave type:</p>
+
+<ul>
+<li><strong>Total allowance</strong> — Your annual entitlement.</li>
+<li><strong>Used days</strong> — How many days you have taken this year.</li>
+<li><strong>Remaining days</strong> — How many days you still have available.</li>
+</ul>
+
+<p>This updates in real time — when a leave request is approved, your balance is deducted automatically.</p>
+
+<h3>Canceling a Leave Request</h3>
+
+<p>If your plans change, you can cancel a pending or approved leave request from the Leave page. Canceling an approved request restores the days to your balance and removes the absence from the team calendar.</p>
+
+<h2>For Managers: Approving or Rejecting Leave</h2>
+
+<p>Managers receive an email notification when a team member submits a leave request. The email includes the employee's name, leave type, dates, and reason — everything needed to make a decision in seconds.</p>
+
+<p>From the Leave page, managers can:</p>
+
+<ol>
+<li><strong>View pending requests</strong> — All leave requests awaiting your approval are listed at the top.</li>
+<li><strong>Check team availability</strong> — The team calendar shows who else is on leave during the requested dates. This helps you identify potential coverage gaps before approving or rejecting.</li>
+<li><strong>Approve or reject</strong> — One click to approve, or reject with an optional remark explaining why (e.g., "Two other team members are already on leave that week. Could you reschedule to the following week?").</li>
+</ol>
+
+<p>The employee is notified immediately of your decision.</p>
+
+<h3>Best Practices for Managers</h3>
+
+<ul>
+<li><strong>Respond within 24 hours.</strong> Employees often need to make plans around leave approvals. A quick response shows respect for their time.</li>
+<li><strong>Use rejection remarks constructively.</strong> If you must reject a request, explain why clearly and suggest alternatives if possible.</li>
+<li><strong>Check the calendar before approving.</strong> A brief glance at team availability prevents the awkward situation of discovering a coverage gap after approving.</li>
+</ul>
+
+<h2>For HR/Admin: Configuring Leave Policies</h2>
+
+<p>HR administrators have full control over the leave system. All configuration is done from the <strong>Organization</strong> page.</p>
+
+<h3>Setting Up Leave Types</h3>
+
+<p>Go to Organization > Leaves. Here you can:</p>
+
+<ul>
+<li><strong>Add, edit, or remove leave types</strong> — Customize the list to match your organization's actual policies.</li>
+<li><strong>Configure annual allowances</strong> — Set the default number of days per year for each leave type.</li>
+<li><strong>Enable or disable balance tracking</strong> — Some leave types (like Maternity Leave or Bereavement Leave) may not need a tracked balance — they are granted as needed.</li>
+<li><strong>Set carry-over rules</strong> — For leave types with tracked balances, specify whether unused days carry over to the next year, and if so, the maximum number of days that can be carried over.</li>
+</ul>
+
+<h3>Managing Leave Workflows</h3>
+
+<p>Go to Organization > Workflow to configure how leave requests are routed:</p>
+
+<ul>
+<li><strong>Department-level settings</strong> — For each department, specify the approver role: Manager (the employee's direct manager approves) or HR/Admin (skip the manager, go directly to HR).</li>
+<li><strong>Manager bypass</strong> — If an employee does not have a line manager assigned, their requests automatically go to HR/Admin.</li>
+<li><strong>Auto-approval</strong> — For certain leave types (like Casual Leave under 2 days), you can configure auto-approval to skip the manual review entirely.</li>
+</ul>
+
+<h3>Leave Balance Overrides</h3>
+
+<p>If individual employees have different leave allowances (e.g., a senior executive with extra annual leave, or a part-time employee with prorated leave), you can set per-employee overrides. These override the default allowance for the selected leave types.</p>
+
+<h3>Leave Reports</h3>
+
+<p>HR can generate leave reports from the Reports page:</p>
+
+<ul>
+<li><strong>Leave utilization by employee</strong> — How many days each employee has taken, organized by leave type.</li>
+<li><strong>Leave utilization by department</strong> — Which departments are using the most leave? Are there patterns of high leave usage that might indicate workload or morale issues?</li>
+<li><strong>Leave balance summary</strong> — Remaining balances for all employees, useful for year-end planning.</li>
+<li><strong>Export to CSV</strong> — All reports can be exported for payroll processing or further analysis.</li>
+</ul>
+
+<img src="managing-leave-with-openhr-inline-2.webp" alt="A team calendar illustration showing a month view with colored bars across date ranges for different team members, each bar displaying an employee name but no leave type to preserve privacy, with a manager avatar nearby showing an Approved badge" width="800">
+
+<h2>The Team Calendar</h2>
+
+<p>The team calendar provides a visual overview of who is on leave and when. Each approved leave appears as a colored bar spanning the leave dates. The calendar shows:</p>
+
+<ul>
+<li>Employee name (but not leave type or reason — maintaining privacy).</li>
+<li>Date range of the absence.</li>
+<li>Color coding by leave type (optional, configurable).</li>
+</ul>
+
+<p>Managers and HR see the calendar for their team or the entire organization. Employees see their own approved leave and, optionally, their team members' leave dates.</p>
+
+<p>The calendar is particularly useful for:</p>
+
+<ul>
+<li>Spotting coverage gaps before they happen.</li>
+<li>Planning project timelines around team availability.</li>
+<li>Identifying patterns (e.g., multiple people in the same team taking leave during the same week every month).</li>
+</ul>
+
+<h2>Handling Special Leave Scenarios</h2>
+
+<h3>Leave Spanning Weekends and Holidays</h3>
+
+<p>When an employee selects a date range, OpenHR automatically calculates the number of working days — excluding weekends and holidays. For example, if an employee takes Monday through the following Monday (8 calendar days) and the weekend falls in between, only 6 working days are deducted from their balance.</p>
+
+<h3>Half-Day Leave</h3>
+
+<p>Employees can request half-day leave (morning or afternoon). This is handled as 0.5 days for balance calculations. Half-day leave is useful for medical appointments, school events, or other short-duration personal needs.</p>
+
+<h3>Multi-Level Approvals</h3>
+
+<p>For organizations that require both manager and HR approval, the workflow is sequential:</p>
+
+<ol>
+<li>Employee submits → Manager reviews.</li>
+<li>Manager approves → HR reviews.</li>
+<li>HR approves → Leave is confirmed.</li>
+</ol>
+
+<p>At each step, all relevant parties are notified by email.</p>
+
+<h3>Leave During Notice Period</h3>
+
+<p>When an employee is serving their notice period, leave requests may follow different rules (e.g., requiring HR approval regardless of the standard workflow). OpenHR supports role-based routing rules that can be configured to handle this scenario.</p>
+
+<h2>Conclusion</h2>
+
+<p>OpenHR's leave management system handles the entire leave lifecycle — from one-click employee applications to automated balance tracking to comprehensive HR reporting. It adapts to your organization's policies, not the other way around. And like everything in OpenHR, it is completely free.</p>
