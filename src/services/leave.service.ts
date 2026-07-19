@@ -114,10 +114,17 @@ export const leaveService = {
       organization_id: orgId,
     };
 
-    const { error } = await supabase.from('leaves').insert(payload);
+    const { data: inserted, error } = await supabase.from('leaves').insert(payload).select('id').single();
     if (error) throw new Error(`Failed to create record: ${error.message}`);
     leaveService.clearCache();
     apiClient.notify();
+
+    // Fire-and-forget email notification — don't block the UI on email delivery
+    if (inserted?.id) {
+      supabase.functions.invoke('notify-leave-email', {
+        body: { leaveId: inserted.id, orgId, action: 'SUBMITTED' },
+      }).catch(e => console.warn('[LeaveService] Email notification failed (non-fatal):', e?.message || e));
+    }
   },
 
   async updateLeaveStatus(id: string, status: string, remarks: string, role: string) {
@@ -135,6 +142,22 @@ export const leaveService = {
     if (error) throw new Error('Access Denied');
     leaveService.clearCache();
     apiClient.notify();
+
+    // Determine email notification action
+    let emailAction: string | null = null;
+    if (role === 'MANAGER') {
+      emailAction = status === 'APPROVED' ? 'MANAGER_APPROVED' : 'MANAGER_REJECTED';
+    } else if (role === 'ADMIN' || role === 'HR') {
+      emailAction = status === 'APPROVED' ? 'HR_APPROVED' : 'HR_REJECTED';
+    }
+
+    // Fire-and-forget email notification
+    if (emailAction) {
+      const orgId = apiClient.getOrganizationId();
+      supabase.functions.invoke('notify-leave-email', {
+        body: { leaveId: id.trim(), orgId, action: emailAction },
+      }).catch(e => console.warn('[LeaveService] Email notification failed (non-fatal):', e?.message || e));
+    }
   },
 
   async adminCreateLeave(data: {

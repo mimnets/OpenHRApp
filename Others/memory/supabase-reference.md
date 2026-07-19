@@ -5,7 +5,7 @@ type: reference
 originSessionId: f9fb8799-c860-4f92-88f7-d834cf191da5
 ---
 ## Project Details
-- **Project URL**: https://cixryuwtdwbofabctrkk.supabase.co
+- **Project URL**: https://<your-project-ref>.supabase.co
 - **Anon key**: In `.env` (VITE_SUPABASE_ANON_KEY)
 
 ## Edge Functions (15 deployed + 1 pending)

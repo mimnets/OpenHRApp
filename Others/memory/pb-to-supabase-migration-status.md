@@ -39,7 +39,7 @@ Cron jobs → pg_cron:
 ## Database
 
 ### Supabase project
-- URL: https://cixryuwtdwbofabctrkk.supabase.co
+- URL: https://<your-project-ref>.supabase.co
 - Anon key in .env (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
 - 14 migrations in supabase/migrations/
 - 15 Edge Functions in supabase/functions/

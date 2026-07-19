@@ -8,7 +8,7 @@
 --   3. Same CRON_SECRET set as pg parameter (see below).
 --   4. pg_net extension enabled (migration 0009_cron_setup.sql applied).
 --
--- Replace <PROJECT_REF> with your Supabase project ref (cixryuwtlwbofabctrkk).
+-- Replace <PROJECT_REF> with your Supabase project ref (<PROJECT_REF>).
 -- Replace <CRON_SECRET> with the same value set via `supabase secrets set`.
 --
 -- Run via: psql $DATABASE_URL -f scripts/setup-cron-schedules.sql
@@ -27,7 +27,7 @@ select cron.schedule(
   '3-59/5 * * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-auto-close-sessions',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-auto-close-sessions',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -45,7 +45,7 @@ select cron.schedule(
   '0 0 * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-expire-trials',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-expire-trials',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -63,7 +63,7 @@ select cron.schedule(
   '* * * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-auto-absent',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-auto-absent',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -81,7 +81,7 @@ select cron.schedule(
   '0 23 * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-daily-report',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-daily-report',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -99,7 +99,7 @@ select cron.schedule(
   '3-59/5 * * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-attendance-reminders',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-attendance-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -117,7 +117,7 @@ select cron.schedule(
   '0 0 * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-review-transitions',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-review-transitions',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -135,7 +135,7 @@ select cron.schedule(
   '* * * * *',
   $$
   select net.http_post(
-    url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-push-checkin-reminder',
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/cron-push-checkin-reminder',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
