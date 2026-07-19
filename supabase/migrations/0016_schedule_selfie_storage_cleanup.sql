@@ -1,36 +1,26 @@
 -- ============================================================
--- OpenHR — Schedule Selfie Storage Cleanup Edge Function
+-- OpenHR — pg_net Extension for Selfie Storage Cleanup
 -- 0016_schedule_selfie_storage_cleanup.sql
 --
--- Schedules the cron-selfie-storage-cleanup Edge Function to
--- run daily at 2 AM UTC via pg_cron + pg_net.
+-- Enables pg_net so the cron-selfie-storage-cleanup Edge Function
+-- can be called via net.http_post() from pg_cron.
 --
--- PREREQUISITES (before running this migration):
---   1. Deploy the Edge Function:
---        supabase functions deploy cron-selfie-storage-cleanup
---   2. Set the CRON_SECRET secret:
---        supabase secrets set CRON_SECRET=<your-secret>
---   3. Replace <YOUR_PROJECT_REF> below with your actual Supabase
---      project ref (find it in Dashboard → Project Settings → General).
---   4. Replace <YOUR_CRON_SECRET> below with the same secret value
---      you set in step 2.
+-- The cron schedule itself must be created via Supabase SQL Editor
+-- (not through a migration), as the Supabase platform restricts
+-- cron.schedule() during db push. Run this manually:
+--
+--   select cron.schedule(
+--     'selfie-storage-cleanup',
+--     '0 2 * * *',
+--     $$
+--       select net.http_post(
+--         url := 'https://cixryuwtlwbofabctrkk.supabase.co/functions/v1/cron-selfie-storage-cleanup',
+--         headers := '{"Authorization": "Bearer bc92f38b0e052df26421259d5953b11695a5f2d11fc1e88614767cd6773f4817", "Content-Type": "application/json"}'::jsonb,
+--         body := '{}'::jsonb
+--       );
+--     $$
+--   );
 -- ============================================================
 
 -- pg_net: enables net.http_post() for calling Edge Functions from pg_cron
 create extension if not exists pg_net with schema extensions;
-
--- Remove existing schedule if re-running (idempotent)
-select cron.unschedule('selfie-storage-cleanup');
-
--- Schedule: daily at 2 AM UTC
-select cron.schedule(
-  'selfie-storage-cleanup',
-  '0 2 * * *',
-  $$
-    select net.http_post(
-      url := 'https://<YOUR_PROJECT_REF>.supabase.co/functions/v1/cron-selfie-storage-cleanup',
-      headers := '{"Authorization": "Bearer <YOUR_CRON_SECRET>", "Content-Type": "application/json"}'::jsonb,
-      body := '{}'::jsonb
-    );
-  $$
-);

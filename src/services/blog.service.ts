@@ -2,6 +2,7 @@
 import { apiClient } from './api.client';
 import { BlogPost } from '../types';
 import { convertFileToWebP } from '../utils/imageConvert';
+import { getReadingMinutes } from '../utils/readingTime';
 import { supabase, isSupabaseConfigured, getSupabaseStorageUrl } from './supabase';
 
 export const blogService = {
@@ -37,6 +38,7 @@ export const blogService = {
         publishedAt: r.published_at || '',
         created: r.created || '',
         updated: r.updated || '',
+        readingTime: r.reading_time ?? 1,
       }));
 
       const totalPosts = count ?? posts.length;
@@ -78,6 +80,7 @@ export const blogService = {
         publishedAt: r.published_at || '',
         created: r.created || '',
         updated: r.updated || '',
+        readingTime: r.reading_time ?? 1,
       };
     } catch (e: any) {
       console.error('[BlogService] Failed to fetch post by slug:', e?.message || e);
@@ -108,6 +111,7 @@ export const blogService = {
         publishedAt: r.published_at || '',
         created: r.created || '',
         updated: r.updated || '',
+        readingTime: r.reading_time ?? 1,
       }));
     } catch (e: any) {
       console.error('[BlogService] Failed to fetch all posts:', e?.message || e);
@@ -148,6 +152,7 @@ export const blogService = {
         excerpt: data.excerpt,
         status: data.status,
         author_name: data.authorName,
+        reading_time: getReadingMinutes(data.content),
       };
       if (coverPath) record.cover_image = coverPath;
       if (data.status === 'PUBLISHED') record.published_at = new Date().toISOString();
@@ -181,7 +186,10 @@ export const blogService = {
       const record: Record<string, any> = {};
       if (data.title !== undefined) record.title = data.title;
       if (data.slug !== undefined) record.slug = data.slug;
-      if (data.content !== undefined) record.content = data.content;
+      if (data.content !== undefined) {
+        record.content = data.content;
+        record.reading_time = getReadingMinutes(data.content);
+      }
       if (data.excerpt !== undefined) record.excerpt = data.excerpt;
       if (data.status !== undefined) record.status = data.status;
       if (data.authorName !== undefined) record.author_name = data.authorName;
