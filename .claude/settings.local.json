@@ -83,7 +83,11 @@
       "Bash(git remote *)",
       "PowerShell(Get-Content *)",
       "Bash(git clone *)",
-      "Bash(./setup)"
+      "Bash(./setup)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Monir\\\\Documents\\\\OpenHRApp\" -Depth 1 -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(powershell *)",
+      "Skill(browse)"
     ]
   }
 }
