@@ -264,6 +264,22 @@ All images across the blog should share a consistent visual language:
 
 ---
 
+### 18. the-ultimate-no-install-hrms.md
+
+**Cover Image:**
+> Prompt: A clean illustration of a smartphone floating above an open palm, with the OpenHR app interface visible on screen showing a check-in button, GPS pin, and camera icon. Behind the phone, subtle connection lines radiate outward with small icons: a shield (no app store), a cloud (managed), a server rack (self-hosted), and a dollar sign with a cross through it (free). The composition conveys "powerful HR tool, no download needed." Blue (#4a6fa5) primary with teal and warm amber accents. Modern SaaS marketing style, clean and minimal. 1.91:1 aspect ratio for social sharing.
+
+**Inline Image 1 — After "Why No Install Actually Matters":**
+> Prompt: A split-device illustration showing PWA installation on two phones side by side: Left — Android phone with Chrome browser open, a UI tooltip points to the three-dot menu with "Install App" highlighted in blue. Right — iPhone with Safari browser open, a tooltip points to the Share icon with "Add to Home Screen" highlighted. Below each phone, the resulting home screen is shown with an OpenHR app icon sitting among other app icons. Clean, instructional tech-illustration style. Light background, modern and helpful — not corporate. 16:9 aspect ratio.
+
+**Inline Image 2 — After "Daily Attendance Reports":**
+> Prompt: A modern smartphone mockup showing the OpenHR check-in screen in a single clean view: the top half shows a selfie camera frame with a face guide overlay and a capture button, the bottom half shows a mini map with a blue GPS pin at the office location and coordinates displayed (e.g., 23.8103, 90.4125). A green "Checked In" badge with timestamp is visible. The phone floats slightly above a subtle desk surface with soft shadows. App UI aesthetic — clean white backgrounds, blue (#4a6fa5) primary buttons, green confirmation elements. No text other than natural UI labels. 16:9 aspect ratio.
+
+**Inline Image 3 — After "Two Ways to Get Started":**
+> Prompt: A clean side-by-side comparison illustration: Left panel — "Self-Hosted" path with a dark terminal window showing `git clone` and `npm run dev` commands, a server rack icon below, and a green "Full Control" badge. Right panel — "Managed" path with a cloud icon, a browser window showing a login screen, and a blue "No Setup" badge. The two panels are separated by a subtle "OR" divider in the center. Clean, modern infographic style. Blue and teal palette with warm amber accent on the divider. Professional and scannable. 16:9 aspect ratio.
+
+---
+
 ## Quick Reference: Image Checklist
 
 | # | Post | Cover | Inline 1 | Inline 2 | Inline 3 |
@@ -285,9 +301,10 @@ All images across the blog should share a consistent visual language:
 | 15 | why-we-built-openhr | ✓ | ✓ | ✓ | — |
 | 16 | openhr-vs-commercial-hrms-comparison | ✓ | ✓ | ✓ | ✓ |
 | 17 | complete-guide-openhrapp | ✓ | ✓ | ✓ | ✓ |
-| **Total** | | **17** | **17** | **17** | **4** |
+| 18 | the-ultimate-no-install-hrms | ✓ | ✓ | ✓ | ✓ |
+| **Total** | | **18** | **18** | **18** | **5** |
 
-**Grand total: 55 images** (17 cover + 38 inline)
+**Grand total: 59 images** (18 cover + 41 inline)
 
 ---
 

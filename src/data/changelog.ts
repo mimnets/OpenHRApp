@@ -16,10 +16,11 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-07-20',
-    title: 'Dark mode visibility & mobile responsiveness fixes for blog/guides',
+    title: 'Dark mode & mobile fixes, new blog post, image guide updated',
     entries: [
       { type: 'fix', description: 'Fixed blog post and guide content being invisible in dark mode. Added dark:prose-invert to prose containers in BlogPostPage, TutorialPage, and RichTextEditor. Added comprehensive dark mode CSS overrides for tables, code blocks, blockquotes, images, figs, and inline-styled elements from the WYSIWYG editor within prose content.' },
       { type: 'fix', description: 'Fixed guide and blog content overflowing viewport on mobile devices. Added responsive CSS for tables (horizontal scroll on narrow screens), images (max-width: 100%%), pre/code blocks (overflow-x: auto), and iframes. Added word-break protection for long unbreakable text. Added overflow-x-hidden to article containers.' },
+      { type: 'feature', description: 'Added new blog post: The Ultimate No-Install HRMS (the-ultimate-no-install-hrms.md) — PWA no-install concept, GPS geofencing, selfie verification, leave management, pricing, and FAQ section. Added 4 image prompts (1 cover + 3 inline) to IMAGE-GUIDE.md with cross-device PWA installation, check-in screen mockup, and self-hosted vs managed comparison illustrations.' },
     ],
   },
   {
