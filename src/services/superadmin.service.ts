@@ -350,9 +350,19 @@ export const superAdminService = {
 
   async setGuideHelpLinks(links: Record<string, string>): Promise<void> {
     if (!isSupabaseConfigured()) return;
-    await supabase
+    // Manual upsert — the partial unique index (idx_settings_platform_key) requires
+    // a WHERE clause in ON CONFLICT that the Supabase JS client cannot express.
+    const { data: existing } = await supabase
       .from('settings')
-      .upsert({ key: 'guide_help_links', value: links, organization_id: null }, { onConflict: 'key' });
+      .select('id')
+      .eq('key', 'guide_help_links')
+      .is('organization_id', null)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from('settings').update({ value: links }).eq('id', existing.id);
+    } else {
+      await supabase.from('settings').insert({ key: 'guide_help_links', value: links, organization_id: null });
+    }
   },
 
   // ==================== CONTENT IMAGES ====================
