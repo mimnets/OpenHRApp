@@ -256,6 +256,7 @@ async function main() {
       status: 'PUBLISHED',
       published_at: meta.publishedAt || new Date().toISOString(),
       reading_time: readingTime,
+      category: meta.category || null,
     };
 
     try {

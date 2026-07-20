@@ -18,15 +18,6 @@ interface BlogSidebarProps {
   selectedCategory?: string | null;
 }
 
-const BLOG_CATEGORIES = [
-  'HR Tips',
-  'Product Updates',
-  'Company Culture',
-  'Compliance',
-  'Remote Work',
-  'Employee Engagement',
-];
-
 const BlogSidebar: React.FC<BlogSidebarProps> = ({
   onArchiveSelect,
   onCategorySelect,
@@ -35,11 +26,18 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({
 }) => {
   const [archives, setArchives] = useState<ArchiveEntry[]>([]);
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<{ category: string; count: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadSidebarData();
+    loadCategories();
   }, []);
+
+  const loadCategories = async () => {
+    const result = await blogService.getCategories();
+    setCategories(result);
+  };
 
   const loadSidebarData = async () => {
     setIsLoading(true);
@@ -181,37 +179,47 @@ const BlogSidebar: React.FC<BlogSidebarProps> = ({
       )}
 
       {/* Categories */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-          <Tag size={14} className="text-primary" /> Categories
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {BLOG_CATEGORIES.map(cat => {
-            const isActive = selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => onCategorySelect?.(isActive ? '' : cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary'
-                }`}
-              >
-                {cat}
-              </button>
-            );
-          })}
+      {categories.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
+            <Tag size={14} className="text-primary" /> Categories
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onCategorySelect?.('')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                !selectedCategory
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary'
+              }`}
+            >
+              All Posts
+            </button>
+            {categories.map(({ category, count }) => {
+              const isActive = selectedCategory === category;
+              return (
+                <button
+                  key={category}
+                  onClick={() => onCategorySelect?.(isActive ? '' : category)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-1.5 max-w-[160px] ${
+                    isActive
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary'
+                  }`}
+                  title={category}
+                >
+                  <span className="truncate">{category}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-500'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        {selectedCategory && (
-          <button
-            onClick={() => onCategorySelect?.('')}
-            className="mt-3 w-full text-xs text-center text-primary hover:text-primary-hover font-semibold transition-colors"
-          >
-            Clear filter
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 };

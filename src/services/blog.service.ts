@@ -90,6 +90,37 @@ export const blogService = {
     }
   },
 
+  async getCategories(): Promise<{ category: string; count: number }[]> {
+    if (!isSupabaseConfigured()) return [];
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('category')
+        .eq('status', 'PUBLISHED')
+        .not('category', 'is', null)
+        .neq('category', '');
+
+      if (error) throw error;
+
+      // Aggregate counts client-side
+      const counts: Record<string, number> = {};
+      for (const row of data || []) {
+        const cat = row.category?.trim();
+        if (cat) {
+          counts[cat] = (counts[cat] || 0) + 1;
+        }
+      }
+
+      // Sort by count descending, then alphabetically
+      return Object.entries(counts)
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category));
+    } catch (e: any) {
+      console.error('[BlogService] Failed to fetch categories:', e?.message || e);
+      return [];
+    }
+  },
+
   async getAllPosts(): Promise<BlogPost[]> {
     if (!isSupabaseConfigured()) return [];
     try {

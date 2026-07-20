@@ -42,10 +42,17 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
   });
 
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
 
   useEffect(() => {
     loadPosts();
+    loadExistingCategories();
   }, []);
+
+  const loadExistingCategories = async () => {
+    const cats = await blogService.getCategories();
+    setExistingCategories(cats.map(c => c.category));
+  };
 
   const loadPosts = async () => {
     setIsLoading(true);
@@ -414,11 +421,17 @@ const BlogManagement: React.FC<BlogManagementProps> = ({ onMessage }) => {
             <label className="block text-sm font-bold text-slate-700 mb-2">Category</label>
             <input
               type="text"
+              list="blog-categories"
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-primary text-slate-900"
               placeholder="e.g. Guides, Company, HR Best Practices..."
             />
+            <datalist id="blog-categories">
+              {existingCategories.map(cat => (
+                <option key={cat} value={cat} />
+              ))}
+            </datalist>
           </div>
 
           {/* Published Date */}

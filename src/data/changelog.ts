@@ -24,6 +24,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'improvement', description: 'Reduced blog posts per page from 20 to 10 for better readability and faster page loads.' },
       { type: 'fix', description: 'Fixed mobile footer nav not scrolling to top when navigating between pages (e.g. Landing → Blog, Blog → Guides). Added window.scrollTo(0, 0) to the navigateTo() utility so all programmatic page transitions start at the top of the new page.' },
       { type: 'fix', description: 'Fixed super admin platform settings (theme, guide links) failing with "No Organization Context" and "not-null constraint" errors. getSetting/setSetting now read/write platform-level settings (organization_id IS NULL) when no org context exists. When the DB migration for nullable org_id hasn\'t been applied yet, gracefully falls back to localStorage so the feature works immediately. Fixed the same dual-storage pattern in superAdminService.getGuideHelpLinks/setGuideHelpLinks and organizationService.getGuideHelpLinks. Added migration 0019 to drop NOT NULL on settings.organization_id.' },
+      { type: 'fix', description: 'Fixed blog category filter not working — clicking a category in the sidebar would highlight it but not filter the post list. Also replaced hardcoded category list with dynamic categories pulled from actual published posts (with post counts), so new categories appear automatically without code changes. Added an "All Posts" pill to easily clear the category filter.' },
     ],
   },
   {
