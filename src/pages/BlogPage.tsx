@@ -129,6 +129,10 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
       });
     }
 
+    if (selectedCategory) {
+      result = result.filter(post => post.category === selectedCategory);
+    }
+
     setFilteredPosts(result);
   };
 
