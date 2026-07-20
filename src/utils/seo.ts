@@ -9,6 +9,9 @@ const DEFAULT_SOCIAL_IMAGE = `${SITE_ORIGIN}/img/screenshot-wide.webp`;
 export function navigateTo(path: string): void {
   window.history.pushState(null, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
+  // Scroll to top on programmatic navigation so mobile footer-nav
+  // switches (Landing → Blog, Blog → Guides, etc.) always start at top
+  window.scrollTo(0, 0);
 }
 
 /** Upsert (create-or-update) a meta tag keyed by either `name` or `property`. */

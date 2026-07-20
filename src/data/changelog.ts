@@ -22,6 +22,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'Fixed guide and blog content overflowing viewport on mobile devices. Added responsive CSS for tables (horizontal scroll on narrow screens), images (max-width: 100%%), pre/code blocks (overflow-x: auto), and iframes. Added word-break protection for long unbreakable text. Added overflow-x-hidden to article containers.' },
       { type: 'feature', description: 'Added new blog post: The Ultimate No-Install HRMS (the-ultimate-no-install-hrms.md) — PWA no-install concept, GPS geofencing, selfie verification, leave management, pricing, and FAQ section. Added 4 image prompts (1 cover + 3 inline) to IMAGE-GUIDE.md with cross-device PWA installation, check-in screen mockup, and self-hosted vs managed comparison illustrations.' },
       { type: 'improvement', description: 'Reduced blog posts per page from 20 to 10 for better readability and faster page loads.' },
+      { type: 'fix', description: 'Fixed mobile footer nav not scrolling to top when navigating between pages (e.g. Landing → Blog, Blog → Guides). Added window.scrollTo(0, 0) to the navigateTo() utility so all programmatic page transitions start at the top of the new page.' },
     ],
   },
   {
