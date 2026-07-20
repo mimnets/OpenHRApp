@@ -23,6 +23,10 @@ function isCacheValid() {
 function touchCache() { orgCacheTimestamp = Date.now(); }
 
 
+// localStorage key prefix for platform-level settings when the DB
+// migration (nullable org_id) hasn't been applied yet.
+const PLATFORM_PREFIX = 'openhr-platform:';
+
 async function getSetting(key: string, defaultValue: any) {
   if (!isSupabaseConfigured()) {
     console.warn(`[OrgService] Supabase not configured, returning default for: ${key}`);
@@ -34,8 +38,6 @@ async function getSetting(key: string, defaultValue: any) {
       .from('settings')
       .select('value')
       .eq('key', key);
-    // When there's no org context (super admin), read platform-level settings
-    // (organization_id IS NULL). Otherwise scope to the org.
     if (orgId) {
       query = query.eq('organization_id', orgId);
     } else {
@@ -43,16 +45,40 @@ async function getSetting(key: string, defaultValue: any) {
     }
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
-    if (data?.value == null) return defaultValue;
-    try {
-      return typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-    } catch {
-      return defaultValue;
+    if (data?.value != null) {
+      try {
+        return typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+      } catch {
+        return defaultValue;
+      }
     }
+    // No DB row — for platform-level, try localStorage fallback.
+    if (!orgId) {
+      const stored = readPlatformStored(key);
+      if (stored !== undefined) return stored;
+    }
+    return defaultValue;
   } catch (e: any) {
     console.warn(`[OrgService] Failed to fetch setting '${key}':`, e?.message || e);
+    // Last resort: localStorage for platform-level reads.
+    if (!orgId) {
+      const stored = readPlatformStored(key);
+      if (stored !== undefined) return stored;
+    }
     return defaultValue;
   }
+}
+
+function readPlatformStored(key: string): any | undefined {
+  try {
+    const raw = localStorage.getItem(PLATFORM_PREFIX + key);
+    if (raw !== null) return JSON.parse(raw);
+  } catch { /* corrupt or unavailable */ }
+  return undefined;
+}
+
+function writePlatformStored(key: string, value: any): void {
+  try { localStorage.setItem(PLATFORM_PREFIX + key, JSON.stringify(value)); } catch { /* quota or unavailable */ }
 }
 
 async function setSetting(key: string, value: any) {
@@ -67,26 +93,39 @@ async function setSetting(key: string, value: any) {
     if (error) throw error;
   } else {
     // Platform-level setting (super admin, no org context).
-    // The partial unique index (idx_settings_platform_key) requires a WHERE
-    // clause in ON CONFLICT that the Supabase JS client cannot express, so we
-    // do a manual upsert: select → update or insert.
-    const { data: existing } = await supabase
-      .from('settings')
-      .select('id')
-      .eq('key', key)
-      .is('organization_id', null)
-      .maybeSingle();
-    if (existing) {
-      const { error } = await supabase
+    // Try the DB path first (requires migration 0019: nullable org_id).
+    // If the column is still NOT NULL, fall back to localStorage so the
+    // feature works immediately without a DB migration.
+    try {
+      const { data: existing } = await supabase
         .from('settings')
-        .update({ value })
-        .eq('id', existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('settings')
-        .insert({ key, value, organization_id: null });
-      if (error) throw error;
+        .select('id')
+        .eq('key', key)
+        .is('organization_id', null)
+        .maybeSingle();
+      if (existing) {
+        const { error } = await supabase
+          .from('settings')
+          .update({ value })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({ key, value, organization_id: null });
+        if (error) throw error;
+      }
+      // DB write succeeded — clear any stale localStorage copy.
+      try { localStorage.removeItem(PLATFORM_PREFIX + key); } catch {}
+    } catch (e: any) {
+      if (e?.message?.includes('not-null constraint') || e?.code === '23502') {
+        // Migration 0019 hasn't been applied yet. Persist to localStorage
+        // so the super admin can still use the feature immediately.
+        console.warn(`[OrgService] Platform DB not ready, using localStorage for: ${key}`);
+        writePlatformStored(key, value);
+        return;
+      }
+      throw e;
     }
   }
 }
@@ -386,7 +425,9 @@ export const organizationService = {
     await setSetting('onboarding_status', status);
   },
 
-  // Platform-level setting — no org_id filter
+  // Platform-level setting — no org_id filter.
+  // Falls back to localStorage if the DB migration (nullable org_id) hasn't
+  // been applied yet.
   async getGuideHelpLinks(): Promise<Record<string, string>> {
     if (!isSupabaseConfigured()) return {};
     try {
@@ -397,8 +438,13 @@ export const organizationService = {
         .is('organization_id', null)
         .maybeSingle();
       if (error) throw error;
-      return data?.value ?? {};
-    } catch { return {}; }
+      if (data?.value) return data.value;
+    } catch { /* DB unavailable — try localStorage below */ }
+    try {
+      const stored = localStorage.getItem('openhr-platform:guide_help_links');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {};
   },
 
   /**
