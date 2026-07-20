@@ -538,7 +538,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
           onClick={handleEditorClick}
           onKeyDown={handleEditorKeyDown}
           data-placeholder={placeholder}
-          className="min-h-[320px] max-h-[600px] overflow-y-auto px-6 py-4 prose prose-slate prose-sm max-w-none focus:outline-none
+          className="min-h-[320px] max-h-[600px] overflow-y-auto px-6 py-4 prose prose-slate prose-sm max-w-none dark:prose-invert focus:outline-none
             prose-headings:font-bold prose-a:text-primary prose-img:rounded-xl prose-blockquote:border-l-primary
             empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none"
         />

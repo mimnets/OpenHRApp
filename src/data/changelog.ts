@@ -15,6 +15,14 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-20',
+    title: 'Dark mode visibility & mobile responsiveness fixes for blog/guides',
+    entries: [
+      { type: 'fix', description: 'Fixed blog post and guide content being invisible in dark mode. Added dark:prose-invert to prose containers in BlogPostPage, TutorialPage, and RichTextEditor. Added comprehensive dark mode CSS overrides for tables, code blocks, blockquotes, images, figs, and inline-styled elements from the WYSIWYG editor within prose content.' },
+      { type: 'fix', description: 'Fixed guide and blog content overflowing viewport on mobile devices. Added responsive CSS for tables (horizontal scroll on narrow screens), images (max-width: 100%%), pre/code blocks (overflow-x: auto), and iframes. Added word-break protection for long unbreakable text. Added overflow-x-hidden to article containers.' },
+    ],
+  },
+  {
     date: '2026-07-19',
     title: 'Security: remove hardcoded secrets, blog reading time fix, gstack setup',
     entries: [

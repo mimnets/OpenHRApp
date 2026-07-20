@@ -139,6 +139,103 @@ html.dark body { background-color: #0f172a; color: #e2e8f0; }
 .dark .bg-slate-900 { background-color: #020617 !important; }
 .dark .border-slate-800 { border-color: #1e293b !important; }
 
+/* ===== DARK MODE — PROSE / RICH CONTENT OVERRIDES ===== */
+/* prose-invert handles most elements, these cover edge cases from WYSIWYG content */
+
+/* Tables in prose — dark mode */
+.dark .prose table { background-color: #1e293b; border-color: #475569; }
+.dark .prose thead { background-color: #334155; border-color: #475569; }
+.dark .prose th { color: #f1f5f9; border-color: #475569; background-color: #334155; }
+.dark .prose td { color: #e2e8f0; border-color: #475569; }
+.dark .prose tbody tr { border-color: #475569; }
+.dark .prose tbody tr:nth-child(even) { background-color: #1a2332; }
+
+/* Code blocks and inline code — dark mode */
+.dark .prose pre { background-color: #0f172a; border-color: #334155; }
+.dark .prose pre code { color: #e2e8f0; background-color: transparent; }
+.dark .prose code { color: #f1f5f9; background-color: #334155; }
+.dark .prose :not(pre) > code { color: #fca5a5; background-color: #334155; }
+
+/* Blockquotes — dark mode */
+.dark .prose blockquote { color: #cbd5e1; border-left-color: var(--primary); background-color: #1a2332; }
+
+/* Horizontal rules — dark mode */
+.dark .prose hr { border-color: #475569; }
+
+/* Images — override any inline dark backgrounds */
+.dark .prose img { background-color: transparent; }
+
+/* Figure / figcaption */
+.dark .prose figcaption { color: #94a3b8; }
+
+/* Strong / bold in dark mode */
+.dark .prose strong { color: #f1f5f9; }
+
+/* Override any inline style colors from WYSIWYG editor */
+.dark .prose [style*="color:"] { color: inherit !important; }
+.dark .prose [style*="background-color:"] { background-color: inherit !important; }
+.dark .prose [style*="background:"] { background: inherit !important; }
+
+/* ===== MOBILE RESPONSIVENESS — PROSE CONTENT ===== */
+
+/* Responsive tables — horizontal scroll on narrow screens */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+.prose table tbody,
+.prose table thead,
+.prose table tr,
+.prose table th,
+.prose table td {
+  white-space: nowrap;
+}
+
+/* But on wider screens, allow tables to display normally */
+@media (min-width: 768px) {
+  .prose table {
+    display: table;
+    white-space: normal;
+  }
+  .prose table tbody,
+  .prose table thead,
+  .prose table tr,
+  .prose table th,
+  .prose table td {
+    white-space: normal;
+  }
+}
+
+/* Responsive images in prose content — prevent overflow */
+.prose img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Responsive pre/code blocks — allow horizontal scroll */
+.prose pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+.prose pre code {
+  white-space: pre;
+  word-wrap: normal;
+}
+
+/* Prevent long unbreakable content from overflowing */
+.prose {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Responsive iframes (embedded videos, etc.) */
+.prose iframe {
+  max-width: 100% !important;
+}
+
 /* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
