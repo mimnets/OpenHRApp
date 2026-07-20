@@ -80,7 +80,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
 
   const loadPosts = async () => {
     setIsLoading(true);
-    const data = await blogService.getPublishedPosts(page, 20);
+    const data = await blogService.getPublishedPosts(page, 10);
     setPosts(data.posts);
     setTotalPages(data.totalPages);
     setIsLoading(false);
