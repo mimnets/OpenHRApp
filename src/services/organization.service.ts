@@ -58,15 +58,37 @@ async function getSetting(key: string, defaultValue: any) {
 async function setSetting(key: string, value: any) {
   if (!isSupabaseConfigured()) return;
   const orgId = await resolveOrgId();
-  // Platform-level setting (no org context, e.g. super admin) uses onConflict
-  // on 'key' alone; org-scoped settings use the (organization_id, key) composite.
-  const { error } = await supabase
-    .from('settings')
-    .upsert(
-      { key, value, organization_id: orgId || null },
-      { onConflict: orgId ? 'organization_id,key' : 'key' },
-    );
-  if (error) throw error;
+
+  if (orgId) {
+    // Org-scoped setting — upsert with composite unique constraint.
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key, value, organization_id: orgId }, { onConflict: 'organization_id,key' });
+    if (error) throw error;
+  } else {
+    // Platform-level setting (super admin, no org context).
+    // The partial unique index (idx_settings_platform_key) requires a WHERE
+    // clause in ON CONFLICT that the Supabase JS client cannot express, so we
+    // do a manual upsert: select → update or insert.
+    const { data: existing } = await supabase
+      .from('settings')
+      .select('id')
+      .eq('key', key)
+      .is('organization_id', null)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase
+        .from('settings')
+        .update({ value })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('settings')
+        .insert({ key, value, organization_id: null });
+      if (error) throw error;
+    }
+  }
 }
 
 export const organizationService = {
