@@ -23,6 +23,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'feature', description: 'Added new blog post: The Ultimate No-Install HRMS (the-ultimate-no-install-hrms.md) — PWA no-install concept, GPS geofencing, selfie verification, leave management, pricing, and FAQ section. Added 4 image prompts (1 cover + 3 inline) to IMAGE-GUIDE.md with cross-device PWA installation, check-in screen mockup, and self-hosted vs managed comparison illustrations.' },
       { type: 'improvement', description: 'Reduced blog posts per page from 20 to 10 for better readability and faster page loads.' },
       { type: 'fix', description: 'Fixed mobile footer nav not scrolling to top when navigating between pages (e.g. Landing → Blog, Blog → Guides). Added window.scrollTo(0, 0) to the navigateTo() utility so all programmatic page transitions start at the top of the new page.' },
+      { type: 'fix', description: 'Fixed "No Organization Context" error when super admin saves the global theme. Updated getSetting/setSetting to fall back to platform-level settings (organization_id IS NULL) when no org context exists, matching the pattern already used by guide_help_links.' },
     ],
   },
   {

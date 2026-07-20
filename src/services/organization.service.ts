@@ -29,17 +29,19 @@ async function getSetting(key: string, defaultValue: any) {
     return defaultValue;
   }
   const orgId = await resolveOrgId();
-  if (!orgId) {
-    console.warn(`[OrgService] No organization_id, returning default for: ${key}`);
-    return defaultValue;
-  }
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('settings')
       .select('value')
-      .eq('key', key)
-      .eq('organization_id', orgId)
-      .maybeSingle();
+      .eq('key', key);
+    // When there's no org context (super admin), read platform-level settings
+    // (organization_id IS NULL). Otherwise scope to the org.
+    if (orgId) {
+      query = query.eq('organization_id', orgId);
+    } else {
+      query = query.is('organization_id', null);
+    }
+    const { data, error } = await query.maybeSingle();
     if (error) throw error;
     if (data?.value == null) return defaultValue;
     try {
@@ -56,11 +58,14 @@ async function getSetting(key: string, defaultValue: any) {
 async function setSetting(key: string, value: any) {
   if (!isSupabaseConfigured()) return;
   const orgId = await resolveOrgId();
-  if (!orgId) throw new Error('No Organization Context');
-  // Upsert requires unique constraint on (organization_id, key) — see migration 0001.
+  // Platform-level setting (no org context, e.g. super admin) uses onConflict
+  // on 'key' alone; org-scoped settings use the (organization_id, key) composite.
   const { error } = await supabase
     .from('settings')
-    .upsert({ key, value, organization_id: orgId }, { onConflict: 'organization_id,key' });
+    .upsert(
+      { key, value, organization_id: orgId || null },
+      { onConflict: orgId ? 'organization_id,key' : 'key' },
+    );
   if (error) throw error;
 }
 
