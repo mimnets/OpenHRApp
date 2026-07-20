@@ -165,7 +165,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div className="flex flex-col lg:flex-row gap-8">
                 {/* Main Article */}
-                <article className="flex-1 min-w-0">
+                <article className="flex-1 min-w-0 overflow-x-hidden">
                   <h1 className="text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight mb-4">
                     {post.title}
                   </h1>
@@ -208,7 +208,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
                   )}
 
                   <div
-                    className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary prose-a:underline prose-img:rounded-xl"
+                    className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:font-bold prose-a:text-primary prose-a:underline prose-img:rounded-xl"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
                   />
 
