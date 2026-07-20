@@ -342,26 +342,44 @@ export const superAdminService = {
         .eq('key', 'guide_help_links')
         .is('organization_id', null)
         .maybeSingle();
-      return data?.value ?? {};
+      if (data?.value) return data.value;
     } catch {
-      return {};
+      // DB unavailable — try localStorage fallback below.
     }
+    // Fall back to localStorage if DB migration hasn't been applied yet.
+    try {
+      const stored = localStorage.getItem('openhr-platform:guide_help_links');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {};
   },
 
   async setGuideHelpLinks(links: Record<string, string>): Promise<void> {
     if (!isSupabaseConfigured()) return;
     // Manual upsert — the partial unique index (idx_settings_platform_key) requires
     // a WHERE clause in ON CONFLICT that the Supabase JS client cannot express.
-    const { data: existing } = await supabase
-      .from('settings')
-      .select('id')
-      .eq('key', 'guide_help_links')
-      .is('organization_id', null)
-      .maybeSingle();
-    if (existing) {
-      await supabase.from('settings').update({ value: links }).eq('id', existing.id);
-    } else {
-      await supabase.from('settings').insert({ key: 'guide_help_links', value: links, organization_id: null });
+    // Falls back to localStorage if the DB migration (nullable org_id) hasn't
+    // been applied yet.
+    try {
+      const { data: existing } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'guide_help_links')
+        .is('organization_id', null)
+        .maybeSingle();
+      if (existing) {
+        await supabase.from('settings').update({ value: links }).eq('id', existing.id);
+      } else {
+        await supabase.from('settings').insert({ key: 'guide_help_links', value: links, organization_id: null });
+      }
+      try { localStorage.removeItem('openhr-platform:guide_help_links'); } catch {}
+    } catch (e: any) {
+      if (e?.message?.includes('not-null constraint') || e?.code === '23502') {
+        console.warn('[SuperAdmin] Platform DB not ready, using localStorage for guide_help_links');
+        localStorage.setItem('openhr-platform:guide_help_links', JSON.stringify(links));
+        return;
+      }
+      throw e;
     }
   },
 
