@@ -63,6 +63,7 @@ export interface SubscriptionInfo {
   isReadOnly: boolean;  // true for EXPIRED
   isBlocked: boolean;   // true for SUSPENDED
   showAds: boolean;     // true for AD_SUPPORTED
+  isDemo: boolean;      // true for demo organization
 }
 
 export interface UpgradeRequest {

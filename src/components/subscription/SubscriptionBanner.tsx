@@ -1,17 +1,40 @@
 import React from 'react';
 import { useSubscription } from '../../context/SubscriptionContext';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, Beaker, LogOut } from 'lucide-react';
 
 interface SubscriptionBannerProps {
   onUpgradeClick?: () => void;
   userRole?: string;
+  onExitDemo?: () => void;
 }
 
-export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({ onUpgradeClick, userRole }) => {
+export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({ onUpgradeClick, userRole, onExitDemo }) => {
   const { subscription, isLoading } = useSubscription();
 
   if (isLoading) return null;
   if (!subscription || subscription.isSuperAdmin) return null;
+
+  // Demo mode banner — always visible on every page
+  if (subscription.isDemo) {
+    return (
+      <div className="px-4 py-2.5 flex items-center justify-between text-sm bg-indigo-50 border-b border-indigo-200 text-indigo-700">
+        <div className="flex items-center gap-2">
+          <Beaker className="w-4 h-4 flex-shrink-0" />
+          <span className="font-medium">
+            🧪 Demo Mode — Data resets daily. No data saved.
+          </span>
+        </div>
+        {onExitDemo && (
+          <button
+            onClick={onExitDemo}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-xs font-semibold transition-colors"
+          >
+            <LogOut size={12} /> Exit Demo
+          </button>
+        )}
+      </div>
+    );
+  }
 
   const canUpgrade = userRole === 'ADMIN' || userRole === 'HR';
 

@@ -463,6 +463,7 @@ export const organizationService = {
         isReadOnly: false,
         isBlocked: false,
         showAds: false,
+        isDemo: false,
       };
     }
 
@@ -474,12 +475,13 @@ export const organizationService = {
         isReadOnly: false,
         isBlocked: false,
         showAds: false,
+        isDemo: false,
       };
     }
 
     const { data, error } = await supabase
       .from('organizations')
-      .select('subscription_status, trial_end_date')
+      .select('subscription_status, trial_end_date, is_demo')
       .eq('id', user.organizationId)
       .maybeSingle();
 
@@ -509,6 +511,7 @@ export const organizationService = {
       isReadOnly: status === 'EXPIRED',
       isBlocked: status === 'SUSPENDED',
       showAds: status === 'AD_SUPPORTED',
+      isDemo: data?.is_demo || false,
     };
   },
 
