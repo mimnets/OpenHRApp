@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-21',
+    title: 'Static hero skeleton for instant first paint & SEO',
+    entries: [
+      { type: 'improvement', description: 'Replaced the loading spinner in index.html with a static HTML hero skeleton matching HeroSection.tsx. Crawlers now index the headline ("Modern HR Management Made Simple"), subtext, CTA buttons, and trust badges instead of a blank "Loading..." screen. Visitors see instant content before the JS bundle loads — no white flash. All critical above-the-fold CSS is inlined so the hero renders before external stylesheets load. Responsive breakpoints (mobile CTA placement, font scaling) match the React component exactly. React replaces the static skeleton on mount via createRoot().render() with zero hydration conflict.' },
+    ],
+  },
+  {
     date: '2026-07-20',
     title: 'Dark mode & mobile fixes, new blog post, image guide updated',
     entries: [
