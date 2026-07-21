@@ -14,6 +14,8 @@ import { useToast } from '../context/ToastContext';
 interface AttendanceLogsProps {
   user: any;
   viewMode?: 'MY' | 'AUDIT';
+  /** When provided, pre-filters attendance to this employee ID (deep link) */
+  filterEmployeeId?: string;
 }
 
 const LogSkeleton = () => (
@@ -29,7 +31,7 @@ const LogSkeleton = () => (
   </div>
 );
 
-const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }) => {
+const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY', filterEmployeeId }) => {
   const { showToast } = useToast();
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER';
@@ -109,6 +111,13 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY' }
   useEffect(() => {
     fetchInitialData();
   }, [user.id, viewMode, user.role]);
+
+  // Deep link: pre-filter to specific employee when filterEmployeeId is provided
+  useEffect(() => {
+    if (filterEmployeeId && employees.length > 0) {
+      setEmployeeFilter(filterEmployeeId);
+    }
+  }, [filterEmployeeId, employees]);
 
   // Helper to force HH:mm format (required for input type="time")
   const ensureTimeFormat = (timeStr: string | undefined) => {

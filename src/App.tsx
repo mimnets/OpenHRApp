@@ -54,6 +54,7 @@ const Announcements = lazyWithReload(() => import('./pages/Announcements'));
 const AdminNotifications = lazyWithReload(() => import('./pages/AdminNotifications'));
 
 import { navigateTo } from './utils/seo';
+import { getCurrentRoute, navigateToRoute, replaceRoute } from './utils/deeplink';
 import { PushPermissionPrompt } from './components/PushPermissionPrompt';
 
 // Parse features route from pathname
@@ -249,6 +250,29 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Deep link: listen for hash changes (back/forward, direct URL navigation, bookmarks)
+  useEffect(() => {
+    const handleDeepLinkHashChange = () => {
+      const route = getCurrentRoute();
+      if (route && user) {
+        // Map special attendance shortcut params that come from hash patterns
+        // rather than from reverse-map params
+        const hash = window.location.hash.replace(/^#/, '').replace(/\/+$/, '');
+        let resolvedParams = route.params;
+        if (route.path === 'attendance' && !resolvedParams) {
+          // Hash pattern matched a shortcut — derive autoStart from the hash
+          if (hash === '/attendance/quick-office') resolvedParams = { autoStart: 'OFFICE' };
+          else if (hash === '/attendance/quick-factory') resolvedParams = { autoStart: 'FACTORY' };
+          else if (hash === '/attendance/finish') resolvedParams = { autoStart: 'FINISH' };
+        }
+        setCurrentPath(route.path);
+        setNavParams(resolvedParams);
+      }
+    };
+    window.addEventListener('hashchange', handleDeepLinkHashChange);
+    return () => window.removeEventListener('hashchange', handleDeepLinkHashChange);
+  }, [user]);
+
   // Listen for popstate (browser back/forward) for clean URL routes
   useEffect(() => {
     const handlePopState = () => {
@@ -335,21 +359,47 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // On auth: read initial hash for deep linking (bookmark, shared link)
+  useEffect(() => {
+    if (user && !isLoading) {
+      const route = getCurrentRoute();
+      if (route) {
+        // Resolve attendance shortcut params from hash
+        const hash = window.location.hash.replace(/^#/, '').replace(/\/+$/, '');
+        let resolvedParams = route.params;
+        if (route.path === 'attendance' && !resolvedParams) {
+          if (hash === '/attendance/quick-office') resolvedParams = { autoStart: 'OFFICE' };
+          else if (hash === '/attendance/quick-factory') resolvedParams = { autoStart: 'FACTORY' };
+          else if (hash === '/attendance/finish') resolvedParams = { autoStart: 'FINISH' };
+        }
+        setCurrentPath(route.path);
+        setNavParams(resolvedParams);
+      } else if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#/') {
+        // No deep link in URL — sync URL to default state (dashboard)
+        replaceRoute('dashboard', null);
+      }
+    }
+  }, [user, isLoading]);
+
   // Push subscription handled via PushPermissionPrompt (soft-gate, user-initiated)
 
   const handleNavigate = (path: string, params?: any) => {
     if (path === 'attendance-quick-office') {
       setCurrentPath('attendance');
       setNavParams({ autoStart: 'OFFICE' });
+      navigateToRoute('attendance', { autoStart: 'OFFICE' });
     } else if (path === 'attendance-quick-factory') {
       setCurrentPath('attendance');
       setNavParams({ autoStart: 'FACTORY' });
+      navigateToRoute('attendance', { autoStart: 'FACTORY' });
     } else if (path === 'attendance-finish') {
       setCurrentPath('attendance');
       setNavParams({ autoStart: 'FINISH' });
+      navigateToRoute('attendance', { autoStart: 'FINISH' });
     } else {
       setCurrentPath(path);
       setNavParams(params || null);
+      navigateToRoute(path, params || null);
     }
   };
 
@@ -463,7 +513,7 @@ const AppContent: React.FC = () => {
         }
         return <Dashboard user={user} onNavigate={handleNavigate} />;
       case 'profile': return <Settings user={user} onBack={() => handleNavigate('dashboard')} />;
-      case 'employees': return <EmployeeDirectory user={user} />;
+      case 'employees': return <EmployeeDirectory user={user} selectedEmployeeId={navParams?.selectedEmployeeId} />;
       case 'attendance':
         return (
           <ErrorBoundary>
@@ -474,9 +524,9 @@ const AppContent: React.FC = () => {
             />
           </ErrorBoundary>
         );
-      case 'attendance-logs': return <AttendanceLogs user={user} viewMode="MY" />;
+      case 'attendance-logs': return <AttendanceLogs user={user} viewMode="MY" filterEmployeeId={navParams?.filterEmployeeId} />;
       case 'attendance-audit': return <AttendanceLogs user={user} viewMode="AUDIT" />;
-      case 'leave': return <Leave user={user} autoOpen={navParams?.autoOpen} />;
+      case 'leave': return <Leave user={user} autoOpen={navParams?.autoOpen} openLeaveId={navParams?.openLeaveId} />;
       case 'announcements': return <Announcements user={user} />;
       case 'admin-notifications': return <AdminNotifications user={user} />;
       case 'performance-review': return <PerformanceReview user={user} />;
