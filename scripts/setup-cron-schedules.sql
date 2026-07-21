@@ -146,6 +146,24 @@ select cron.schedule(
 );
 
 -- ============================================================
+-- demo_reset — daily midnight UTC
+-- ============================================================
+select cron.schedule(
+  'demo-reset',
+  '0 0 * * *',
+  $$
+  select net.http_post(
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/demo-reset',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+
+-- ============================================================
 -- Verify all jobs registered:
 -- ============================================================
 -- select jobid, jobname, schedule, active from cron.job order by jobname;

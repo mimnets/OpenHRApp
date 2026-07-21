@@ -16,6 +16,16 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-07-21',
+    title: 'Live Demo — try OpenHRApp instantly without registration',
+    entries: [
+      { type: 'feature', description: 'Added "Try Live Demo" button to the landing page hero section. Visitors can explore the full OpenHRApp dashboard instantly as an admin of "Demo Corp" with pre-seeded attendance records, leave requests, and company data. A prominent indigo "Demo Mode" banner reminds users that data is temporary and resets daily at midnight UTC.' },
+      { type: 'feature', description: 'New demo-reset cron edge function runs daily at midnight UTC. Wipes and re-seeds attendance, leave, announcements, and configuration data for the demo organization. Creates the demo org and users automatically on first run.' },
+      { type: 'feature', description: 'New demo-login edge function returns session tokens for instant dashboard access. Called by the "Try Live Demo" button on the landing page.' },
+      { type: 'feature', description: 'Added is_demo boolean column to organizations table (migration 0021) with demo mode banner in SubscriptionBanner showing on all authenticated pages when in demo mode.' },
+    ],
+  },
+  {
+    date: '2026-07-21',
     title: 'Static hero skeleton for instant first paint & SEO',
     entries: [
       { type: 'improvement', description: 'Replaced the loading spinner in index.html with a static HTML hero skeleton matching HeroSection.tsx. Crawlers now index the headline ("Modern HR Management Made Simple"), subtext, CTA buttons, and trust badges instead of a blank "Loading..." screen. Visitors see instant content before the JS bundle loads — no white flash. All critical above-the-fold CSS is inlined so the hero renders before external stylesheets load. Responsive breakpoints (mobile CTA placement, font scaling) match the React component exactly. React replaces the static skeleton on mount via createRoot().render() with zero hydration conflict.' },
