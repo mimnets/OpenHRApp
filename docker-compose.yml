@@ -1,0 +1,498 @@
+# ============================================================
+# OpenHR — Docker Compose Stack
+#
+# Starts the complete OpenHR platform with a single command:
+#   docker compose up -d
+#
+# Prerequisites:
+#   1. Copy .env.docker to .env (or run: bash scripts/generate-secrets.sh)
+#   2. Edit .env to set DASHBOARD_USERNAME and DASHBOARD_PASSWORD
+#
+# Services (13):
+#   supabase-db         — PostgreSQL 15 + pg_cron, pg_net
+#   supabase-kong       — API Gateway (port 8000)
+#   supabase-auth       — GoTrue authentication
+#   supabase-rest       — PostgREST auto-generated REST API
+#   supabase-realtime   — WebSocket subscriptions
+#   supabase-storage    — File storage API (S3-compatible)
+#   supabase-minio      — MinIO S3 object store
+#   supabase-meta       — Database introspection
+#   supabase-edge-fn    — Deno Edge Functions runtime
+#   supabase-studio     — Admin UI (port 3001)
+#   supabase-imgproxy   — Image resizing proxy
+#   openhr-frontend     — React SPA served by Nginx (port 3000)
+#   openhr-init         — Auto-setup: migrations + functions + cron (runs once)
+# ============================================================
+
+version: "3.9"
+
+# ---- Networks ----
+networks:
+  openhr-network:
+    name: openhr-network
+    driver: bridge
+
+# ---- Volumes ----
+volumes:
+  postgres-data:
+    name: openhr-postgres-data
+  minio-data:
+    name: openhr-minio-data
+  openhr-secrets:
+    name: openhr-secrets
+
+# ---- Services ----
+services:
+
+  # ============================================================
+  # 1. PostgreSQL 15 (with pg_cron, pg_net, pg_trgm extensions)
+  # ============================================================
+  supabase-db:
+    image: supabase/postgres:15.8.1.147
+    container_name: openhr-db
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openhr-postgres-dev}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ============================================================
+  # 2. Kong API Gateway
+  # ============================================================
+  supabase-kong:
+    image: kong:3.7
+    container_name: openhr-kong
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    ports:
+      - "8000:8000"   # Public API endpoint
+      - "8001:8001"   # Admin API (internal)
+    volumes:
+      - ./volumes/kong.yml:/etc/kong/kong.yml:ro
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_NGINX_HTTP_CLIENT_MAX_BODY_SIZE: 50m
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ============================================================
+  # 3. GoTrue Auth Service
+  # ============================================================
+  supabase-auth:
+    image: supabase/gotrue:v2.170.0
+    container_name: openhr-auth
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    environment:
+      GOTRUE_API_HOST: "0.0.0.0"
+      GOTRUE_API_PORT: "9999"
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhr-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-mail}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-2500}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-noreply@openhrapp.com}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-OpenHR}
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_LOG_LEVEL: info
+      GOTRUE_OPERATOR_TOKEN: ${SERVICE_ROLE_KEY:-}
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ============================================================
+  # 4. PostgREST (auto-generated REST API from PostgreSQL schema)
+  # ============================================================
+  supabase-rest:
+    image: postgrest/postgrest:v12.2.8
+    container_name: openhr-rest
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    environment:
+      PGRST_DB_URI: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhr-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
+      PGRST_DB_SCHEMAS: "public,storage,graphql_public"
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      PGRST_DB_EXTRA_SEARCH_PATH: "public,extensions"
+      PGRST_OPENAPI_SERVER_PROXY_URI: ${API_EXTERNAL_URL:-http://localhost:8000}/rest/v1
+      PGRST_SERVER_HOST: "0.0.0.0"
+      PGRST_SERVER_PORT: "3000"
+      PGRST_LOG_LEVEL: info
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  # ============================================================
+  # 5. Realtime Server (WebSocket subscriptions)
+  # ============================================================
+  supabase-realtime:
+    image: supabase/realtime:v2.34.15
+    container_name: openhr-realtime
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    environment:
+      DB_HOST: supabase-db
+      DB_PORT: "5432"
+      DB_USER: supabase_auth_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-openhr-postgres-dev}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_ENC_KEY: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      API_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      SECRET_KEY_BASE: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      PORT: "4000"
+      ERL_AFLAGS: "-proto_dist inet_tcp"
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      SEED_SELF_HOST: "true"
+      MAX_HEADER_LENGTH: "8192"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ============================================================
+  # 6. MinIO S3-Compatible Object Storage
+  # ============================================================
+  supabase-minio:
+    image: minio/minio:latest
+    container_name: openhr-minio
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-supabase-storage}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-openhr-minio-dev-password}
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ============================================================
+  # 7. Supabase Storage API (backed by MinIO)
+  # ============================================================
+  supabase-storage:
+    image: supabase/storage-api:v1.22.3
+    container_name: openhr-storage
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    environment:
+      SERVER_PORT: "5000"
+      SERVER_HOST: "0.0.0.0"
+      POSTGREST_URL: "http://supabase-rest:3000"
+      PGOPTIONS: "-c search_path=storage,public"
+      DATABASE_URL: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhr-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
+      FILE_SIZE_LIMIT: "52428800"
+      STORAGE_BACKEND: "s3"
+      GLOBAL_S3_BUCKET: "openhr-storage"
+      GLOBAL_S3_ENDPOINT: "http://supabase-minio:9000"
+      GLOBAL_S3_PROTOCOL: "http"
+      GLOBAL_S3_FORCE_PATH_STYLE: "true"
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-supabase-storage}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-openhr-minio-dev-password}
+      AWS_DEFAULT_REGION: "us-east-1"
+      REGION: "us-east-1"
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: "http://supabase-imgproxy:8080"
+      TENANT_ID: "stub"
+      ANON_KEY: ${ANON_KEY:-}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY:-}
+      PGRST_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      STORAGE_BACKEND_PATH: /var/lib/storage
+      AUTH_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      TUS_PATH: "/storage/v1/upload/resumable"
+      MULTI_TENANT: "false"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_healthy
+      supabase-minio:
+        condition: service_healthy
+      supabase-imgproxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ============================================================
+  # 8. Image Proxy (imgproxy — image resizing for storage)
+  # ============================================================
+  supabase-imgproxy:
+    image: darthsim/imgproxy:v3.28
+    container_name: openhr-imgproxy
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    environment:
+      IMGPROXY_BIND: ":8080"
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_ENDPOINT: "http://supabase-minio:9000"
+      IMGPROXY_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-supabase-storage}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-openhr-minio-dev-password}
+      IMGPROXY_KEY: ${IMGPROXY_KEY:-}
+      IMGPROXY_SALT: ${IMGPROXY_SALT:-}
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  # ============================================================
+  # 9. pg-meta (Database schema introspection for Studio)
+  # ============================================================
+  supabase-meta:
+    image: supabase/postgres-meta:v0.84.0
+    container_name: openhr-meta
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    environment:
+      PG_META_DB_URL: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhr-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
+      PG_META_PORT: "8080"
+      PG_META_DB_SSL: "false"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  # ============================================================
+  # 10. Edge Functions Runtime (Deno)
+  # ============================================================
+  supabase-edge-functions:
+    image: supabase/edge-runtime:v1.67.18
+    container_name: openhr-edge-fn
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    volumes:
+      - ./supabase/functions:/home/deno/functions:ro
+    environment:
+      SUPABASE_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:-}
+      SUPABASE_ANON_KEY: ${ANON_KEY:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+      DENO_ORIGIN: ${API_EXTERNAL_URL:-http://localhost:8000}
+      VERIFY_JWT: "false"
+      JWT_VERIFY_KEY: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ============================================================
+  # 11. Supabase Studio (Admin UI)
+  # ============================================================
+  supabase-studio:
+    image: supabase/studio:2025.07.07-sha-1f8ada8
+    container_name: openhr-studio
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    ports:
+      - "3001:3000"
+    environment:
+      SUPABASE_URL: http://supabase-kong:8000
+      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      SUPABASE_ANON_KEY: ${ANON_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:-}
+      STUDIO_PG_META_URL: http://supabase-meta:8080
+      STUDIO_DEFAULT_ORGANIZATION: ${STUDIO_DEFAULT_ORGANIZATION:-OpenHR}
+      STUDIO_DEFAULT_PROJECT: ${STUDIO_DEFAULT_PROJECT:-OpenHR}
+      NEXT_PUBLIC_ENABLE_LOGS: "true"
+      IS_PLATFORM: "false"
+      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+      LOGFLARE_URL: http://supabase-db:5432
+      POSTGREST_URL: http://supabase-rest:3000
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_healthy
+      supabase-meta:
+        condition: service_healthy
+      supabase-kong:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/profile"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ============================================================
+  # 12. OpenHR Frontend (React SPA served by Nginx)
+  # ============================================================
+  openhr-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://localhost:8000}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-${ANON_KEY:-}}
+        VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY:-}
+    container_name: openhr-frontend
+    restart: unless-stopped
+    networks:
+      - openhr-network
+    ports:
+      - "3000:3000"
+    depends_on:
+      supabase-kong:
+        condition: service_healthy
+      openhr-init:
+        condition: service_completed_successfully
+
+  # ============================================================
+  # 13. Init Container — Auto-setup
+  #     Runs once after all services are healthy:
+  #     - Applies database migrations
+  #     - Deploys edge functions
+  #     - Configures cron jobs
+  # ============================================================
+  openhr-init:
+    image: node:20-alpine
+    container_name: openhr-init
+    restart: "no"
+    networks:
+      - openhr-network
+    volumes:
+      - ./scripts/init-docker.sh:/scripts/init-docker.sh:ro
+      - ./supabase/migrations:/migrations:ro
+      - ./supabase/functions:/functions:ro
+      - ./scripts/setup-cron-schedules.sql:/scripts/setup-cron-schedules.sql:ro
+      - openhr-secrets:/secrets
+    environment:
+      # Database
+      DB_HOST: supabase-db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: postgres
+      DB_PASS: ${POSTGRES_PASSWORD:-openhr-postgres-dev}
+
+      # Service URLs
+      KONG_URL: http://supabase-kong:8000
+      EDGE_FUNCTIONS_URL: http://supabase-edge-functions:9000
+      EDGE_MGMT_URL: http://supabase-edge-functions:9001
+      SUPABASE_STORAGE_URL: http://supabase-storage:5000
+
+      # Secrets (from .env or defaults)
+      JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      CRON_SECRET: ${CRON_SECRET:-openhr-cron-dev-secret}
+      ANON_KEY: ${ANON_KEY:-}
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:-}
+
+      # Studio credentials (for printing)
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-admin}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-admin}
+
+      # Max wait for services (seconds)
+      MAX_WAIT_SEC: "120"
+
+      # Paths
+      MIGRATIONS_DIR: /migrations
+      FUNCTIONS_DIR: /functions
+      CRON_SQL_TEMPLATE: /scripts/setup-cron-schedules.sql
+      SECRETS_DIR: /secrets
+    entrypoint: ["bash", "/scripts/init-docker.sh"]
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-kong:
+        condition: service_healthy
+      supabase-auth:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_healthy
+      supabase-realtime:
+        condition: service_healthy
+      supabase-storage:
+        condition: service_healthy
+      supabase-meta:
+        condition: service_healthy
+      supabase-edge-functions:
+        condition: service_healthy
+      supabase-minio:
+        condition: service_healthy
+      supabase-imgproxy:
+        condition: service_healthy

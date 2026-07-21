@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.sln
+*.sw?
+
+# Git
+.git/
+.gitignore
+
+# Planning / Agent
+.agents/
+.claude/
+.gstack/
+task_plan.md
+findings.md
+progress.md
+
+# Supabase local state
+supabase/.temp/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+.env.docker
+
+# Logs
+*.log
+npm-debug.log*
+
+# Migration exports (PII)
+exports/
+scripts/migrate-from-pb/exports/
+
+# Design files
+*.psd
+
+# Skills lock
+skills-lock.json
