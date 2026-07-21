@@ -56,8 +56,8 @@ interface FeaturesPageProps {
 const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) => {
   useEffect(() => {
     updatePageMeta(
-      'Features | OpenHR - Open Source HRMS',
-      'Explore all OpenHR features: selfie-based attendance with GPS, leave management, employee directory, performance reviews, reports, and more. Free and open-source.',
+      'Features | OpenHRApp',
+      'Explore all OpenHRApp features: selfie-based attendance with GPS, leave management, employee directory, performance reviews, reports, and more. Free and open-source.',
       'https://openhrapp.com/features',
       'https://openhrapp.com/img/screenshot-wide.webp'
     );
@@ -66,14 +66,14 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
       '@graph': [
         {
           '@type': 'CollectionPage',
-          name: 'OpenHR Features',
-          description: 'Complete list of OpenHR HRMS features including attendance management, leave management, employee directory, performance reviews, and analytics.',
+          name: 'OpenHRApp Features',
+          description: 'Complete list of OpenHRApp HRMS features including attendance management, leave management, employee directory, performance reviews, and analytics.',
           url: 'https://openhrapp.com/features',
           isPartOf: { '@type': 'WebSite', name: 'OpenHRApp', url: 'https://openhrapp.com' },
         },
         {
           '@type': 'ItemList',
-          name: 'OpenHR Feature List',
+          name: 'OpenHRApp Feature List',
           url: 'https://openhrapp.com/features',
           numberOfItems: features.length,
           itemListElement: features.map((f, i) => ({
@@ -196,7 +196,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
                 Built for Modern Teams
               </h2>
               <p className="text-slate-500 text-lg">
-                Beyond core HR features, OpenHR is designed to be fast, accessible, and customizable.
+                Beyond core HR features, OpenHRApp is designed to be fast, accessible, and customizable.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -221,7 +221,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
           <div className="text-center max-w-2xl mx-auto mb-16">
             <span className="text-xs font-bold text-primary uppercase tracking-widest">Comparison</span>
             <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mt-3 mb-4">
-              OpenHR vs Typical Paid HRMS
+              OpenHRApp vs Typical Paid HRMS
             </h2>
             <p className="text-slate-500 text-lg">
               Get more features out of the box — without the per-user pricing.
@@ -232,7 +232,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
               {/* Table Header */}
               <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-100">
                 <div className="px-6 py-4 text-sm font-bold text-slate-900">Feature</div>
-                <div className="px-6 py-4 text-sm font-bold text-primary text-center">OpenHR</div>
+                <div className="px-6 py-4 text-sm font-bold text-primary text-center">OpenHRApp</div>
                 <div className="px-6 py-4 text-sm font-bold text-slate-500 text-center">Typical Paid HRMS</div>
               </div>
               {/* Table Rows */}
@@ -271,7 +271,7 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onBack, onRegisterClick }) 
               Ready to simplify your HR?
             </h2>
             <p className="text-lg text-slate-500 mb-8 max-w-2xl mx-auto">
-              Join organizations already using OpenHR. Free to start, no credit card required.
+              Join organizations already using OpenHRApp. Free to start, no credit card required.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button

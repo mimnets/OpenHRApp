@@ -48,7 +48,7 @@ const Setup: React.FC<SetupProps> = ({ onComplete }) => {
               <Database size={40} />
             </div>
             <h1 className="text-3xl font-semibold tracking-tight mb-2">Backend Setup</h1>
-            <p className="text-white/80 font-medium">Link OpenHR to your PocketBase instance</p>
+            <p className="text-white/80 font-medium">Link OpenHRApp to your PocketBase instance</p>
           </div>
 
           <div className="p-10 space-y-8">

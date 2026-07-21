@@ -1,15 +1,15 @@
-# OpenHR — Open Source HRMS for Growing Teams
+# OpenHRApp — Open Source HRMS for Growing Teams
 
-**[OpenHR](https://www.openhrapp.com/)** is a free, open-source Human Resource Management System (HRMS) built for small to mid-size organizations (20–500 employees). It delivers biometric attendance tracking, intelligent leave management, performance reviews, and organizational tools — all in a lightweight, privacy-first, self-hostable package.
+**[OpenHRApp](https://www.openhrapp.com/)** is a free, open-source Human Resource Management System (HRMS) built for small to mid-size organizations (20–500 employees). It delivers biometric attendance tracking, intelligent leave management, performance reviews, and organizational tools — all in a lightweight, privacy-first, self-hostable package.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/openhr/openhr/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/mimnets/OpenHRApp/pulls)
 
 ---
 
-## Why OpenHR?
+## Why OpenHRApp?
 
-Most open-source HRMS tools are bloated, hard to deploy, or stuck in the past. OpenHR is different:
+Most open-source HRMS tools are bloated, hard to deploy, or stuck in the past. OpenHRApp is different:
 
 - **Supabase backend** — Managed PostgreSQL with built-in auth, storage, and real-time subscriptions. Free tier is enough to get started.
 - **Self-hostable** — Deploy Supabase on your own infrastructure with Docker. Your employee data never leaves your server.
@@ -78,13 +78,13 @@ Most open-source HRMS tools are bloated, hard to deploy, or stuck in the past. O
 
 ### Option A: Supabase Cloud (Recommended — 5 minutes)
 
-This is the fastest way to get OpenHR running. Supabase's free tier includes 500 MB database, 5 GB bandwidth, and 2 Edge Functions — enough for a small team.
+This is the fastest way to get OpenHRApp running. Supabase's free tier includes 500 MB database, 5 GB bandwidth, and 2 Edge Functions — enough for a small team.
 
 #### 1. Clone & Install
 
 ```bash
-git clone https://github.com/openhr/openhr.git
-cd openhr
+git clone https://github.com/mimnets/OpenHRApp.git
+cd OpenHRApp
 npm install
 ```
 
@@ -110,7 +110,7 @@ You can find your project ref in Supabase Dashboard → Settings → General →
 supabase db push
 ```
 
-This applies all 15 migration files from `supabase/migrations/` — creating every table, index, RLS policy, trigger, storage bucket, and helper function OpenHR needs.
+This applies all 15 migration files from `supabase/migrations/` — creating every table, index, RLS policy, trigger, storage bucket, and helper function OpenHRApp needs.
 
 #### 5. Deploy Edge Functions
 
@@ -171,7 +171,7 @@ Edit `.env` and fill in:
 npm run dev
 ```
 
-Open `http://localhost:3000`. You'll see the OpenHR landing page. Register your organization from the app, or create the first admin user via the Supabase Dashboard → Authentication → Add User.
+Open `http://localhost:3000`. You'll see the OpenHRApp landing page. Register your organization from the app, or create the first admin user via the Supabase Dashboard → Authentication → Add User.
 
 ---
 
@@ -185,11 +185,11 @@ For organizations that need to keep all data on their own servers. This deploys 
 - **Git** and **Node.js** 18+
 - **Supabase CLI**: `npm install -g supabase`
 
-#### 1. Clone OpenHR
+#### 1. Clone OpenHRApp
 
 ```bash
-git clone https://github.com/openhr/openhr.git
-cd openhr
+git clone https://github.com/mimnets/OpenHRApp.git
+cd OpenHRApp
 npm install
 ```
 
@@ -221,11 +221,11 @@ Wait ~2 minutes for all containers to become healthy. Verify with `docker compos
 #### 3. Point OpenHR at Your Self-Hosted Supabase
 
 ```bash
-cd ../../  # back to openhr root
+cd ../../  # back to OpenHRApp root
 supabase link --project-ref local
 ```
 
-Or manually configure: edit `.env` in the OpenHR root (copy from `.env.example`):
+Or manually configure: edit `.env` in the OpenHRApp root (copy from `.env.example`):
 
 ```env
 VITE_SUPABASE_URL=http://localhost:8000
@@ -445,7 +445,7 @@ Please read `Others/CLAUDE.md` for architecture details, coding standards, and d
 
 ## License
 
-OpenHR is open-source software licensed under the [MIT License](LICENSE).
+OpenHRApp is open-source software licensed under the [MIT License](LICENSE).
 
 ---
 

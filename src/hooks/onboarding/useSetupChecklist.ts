@@ -92,7 +92,7 @@ const STEPS_CONFIG = [
   {
     id: 8,
     title: 'Add Employees',
-    description: 'Invite your team members to start using OpenHR',
+    description: 'Invite your team members to start using OpenHRApp',
     navigateTo: 'employees',
     tutorialSlug: 'managing-employees',
     check: (d: SetupCheckData) => d.employeeCount > 1,

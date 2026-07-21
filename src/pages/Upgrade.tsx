@@ -145,7 +145,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Upgrade Your Plan</h1>
-          <p className="text-slate-500">Choose how you'd like to continue using OpenHR</p>
+          <p className="text-slate-500">Choose how you'd like to continue using OpenHRApp</p>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
           <h2 className="text-xl font-bold">Support Open Source HR</h2>
         </div>
         <p className="text-white/90">
-          OpenHR is free and open source. Your support helps us maintain and improve the platform for everyone.
+          OpenHRApp is free and open source. Your support helps us maintain and improve the platform for everyone.
         </p>
       </div>
 

@@ -115,13 +115,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
 
           {/* Video Intro */}
           <div className="relative max-w-4xl mx-auto mb-16">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6">See OpenHR in Action</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-6">See OpenHRApp in Action</h2>
             <div className="rounded-2xl overflow-hidden shadow-xl shadow-slate-900/10 border border-slate-200/60">
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                 <iframe
                   className="absolute top-0 left-0 w-full h-full"
                   src="https://www.youtube.com/embed/Wb-4mt90IFU"
-                  title="OpenHR App Introduction"
+                  title="OpenHRApp Introduction"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 ></iframe>
@@ -146,7 +146,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
 
             {isIOS ? (
               <div className="space-y-3">
-                <p className="text-xs text-slate-500 font-medium">Install OpenHR on your iPhone or iPad:</p>
+                <p className="text-xs text-slate-500 font-medium">Install OpenHRApp on your iPhone or iPad:</p>
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-500"><Share size={16} /></div>
                   <p className="text-xs font-bold text-slate-700">1. Tap the <span className="text-blue-600">Share</span> button in Safari</p>
@@ -162,7 +162,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-slate-500 font-medium">Install OpenHR from your browser:</p>
+                <p className="text-xs text-slate-500 font-medium">Install OpenHRApp from your browser:</p>
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-600"><MoreVertical size={16} /></div>
                   <p className="text-xs font-bold text-slate-700">1. Tap the <span className="text-slate-900">Menu</span> button (&#8942; or &#8943;)</p>

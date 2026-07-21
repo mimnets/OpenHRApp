@@ -40,8 +40,8 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
 
   useEffect(() => {
     updatePageMeta(
-      'Blog | OpenHR - Open Source HRMS',
-      'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
+      'Blog | OpenHRApp',
+      'Latest news, updates, and insights about HR management, employee engagement, and OpenHRApp product updates.',
       'https://openhrapp.com/blog'
     );
     setJsonLd({
@@ -49,8 +49,8 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
       '@graph': [
         {
           '@type': 'CollectionPage',
-          name: 'OpenHR Blog',
-          description: 'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
+          name: 'OpenHRApp Blog',
+          description: 'Latest news, updates, and insights about HR management, employee engagement, and OpenHRApp product updates.',
           url: 'https://openhrapp.com/blog',
           isPartOf: {
             '@type': 'WebSite',
@@ -90,14 +90,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
         '@graph': [
           {
             '@type': 'CollectionPage',
-            name: 'OpenHR Blog',
-            description: 'Latest news, updates, and insights about HR management, employee engagement, and OpenHR product updates.',
+            name: 'OpenHRApp Blog',
+            description: 'Latest news, updates, and insights about HR management, employee engagement, and OpenHRApp product updates.',
             url: 'https://openhrapp.com/blog',
             isPartOf: { '@type': 'WebSite', name: 'OpenHRApp', url: 'https://openhrapp.com' },
           },
           {
             '@type': 'ItemList',
-            name: 'OpenHR Blog Posts',
+            name: 'OpenHRApp Blog Posts',
             url: 'https://openhrapp.com/blog',
             numberOfItems: data.posts.length,
             itemListElement: data.posts.map((post, i) => ({

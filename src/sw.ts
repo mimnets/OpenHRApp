@@ -138,12 +138,12 @@ self.addEventListener('push', (event: PushEvent) => {
     try {
       payload = event.data.json();
     } catch {
-      payload = { title: 'OpenHR', body: event.data.text() };
+      payload = { title: 'OpenHRApp', body: event.data.text() };
     }
   }
   // Empty push (no payload) — show generic notification
 
-  const title = payload.title ?? 'OpenHR';
+  const title = payload.title ?? 'OpenHRApp';
   const options = {
     body: payload.body ?? '',
     icon: payload.icon ?? '/img/icon-192.png',

@@ -64,8 +64,8 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
     if (data) {
       setPost(data);
       updatePageMeta(
-        `${data.title} | OpenHR Blog`,
-        data.excerpt || `Read ${data.title} on the OpenHR Blog.`,
+        `${data.title} | OpenHRApp Blog`,
+        data.excerpt || `Read ${data.title} on the OpenHRApp Blog.`,
         `https://openhrapp.com/blog/${slug}`,
         data.coverImage || undefined
       );
@@ -81,7 +81,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
             dateModified: data.updated || data.publishedAt || data.created,
             author: {
               '@type': 'Person',
-              name: data.authorName || 'OpenHR Team',
+              name: data.authorName || 'OpenHRApp Team',
             },
             publisher: {
               '@type': 'Organization',
