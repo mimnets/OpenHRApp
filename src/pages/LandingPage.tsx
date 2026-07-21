@@ -10,6 +10,7 @@ import { updatePageMeta, setJsonLd } from '../utils/seo';
 
 const ShowcaseSection = React.lazy(() => import('../components/landing/ShowcaseSection'));
 const FAQSection = React.lazy(() => import('../components/landing/FAQSection'));
+const RoadmapSection = React.lazy(() => import('../components/landing/RoadmapSection'));
 const ContactSection = React.lazy(() => import('../components/landing/ContactSection'));
 const CTASection = React.lazy(() => import('../components/landing/CTASection'));
 
@@ -116,6 +117,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
         <Suspense fallback={<SectionSkeleton />}><PricingSection onRegisterClick={onRegisterClick} /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><ShowcaseSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><FAQSection /></Suspense>
+        <Suspense fallback={<SectionSkeleton />}><RoadmapSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><ContactSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><CTASection onRegisterClick={onRegisterClick} /></Suspense>
       </main>
