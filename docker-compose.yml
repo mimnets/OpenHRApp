@@ -24,8 +24,6 @@
 #   openhr-init         — Auto-setup: migrations + functions + cron (runs once)
 # ============================================================
 
-version: "3.9"
-
 # ---- Networks ----
 networks:
   openhr-network:
@@ -48,7 +46,7 @@ services:
   # 1. PostgreSQL 15 (with pg_cron, pg_net, pg_trgm extensions)
   # ============================================================
   supabase-db:
-    image: supabase/postgres:15.8.1.147
+    image: supabase/postgres:15.14.1.151
     container_name: openhr-db
     restart: unless-stopped
     networks:
@@ -331,7 +329,7 @@ services:
   # 10. Edge Functions Runtime (Deno)
   # ============================================================
   supabase-edge-functions:
-    image: supabase/edge-runtime:v1.67.18
+    image: supabase/edge-runtime:v1.74.2
     container_name: openhr-edge-fn
     restart: unless-stopped
     networks:
@@ -364,7 +362,7 @@ services:
   # 11. Supabase Studio (Admin UI)
   # ============================================================
   supabase-studio:
-    image: supabase/studio:2025.07.07-sha-1f8ada8
+    image: supabase/studio:2026.07.20-sha-74a0848
     container_name: openhr-studio
     restart: unless-stopped
     networks:
