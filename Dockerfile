@@ -20,8 +20,11 @@ ENV VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
 ENV VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY}
 
 # Install dependencies (devDependencies required for build)
+# better-sqlite3 is a native module — Alpine needs build tools to compile it
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci --legacy-peer-deps
+RUN apk add --no-cache python3 make g++ sqlite-dev && \
+    npm ci && \
+    apk del --no-cache python3 make g++ sqlite-dev
 
 # Copy source files
 COPY tsconfig.json vite.config.ts index.html ./
