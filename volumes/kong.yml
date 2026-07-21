@@ -1,0 +1,78 @@
+# ============================================================
+# OpenHR — Kong API Gateway Declarative Configuration
+# DB-less mode: Kong reads this file at startup.
+# Routes external client requests to internal Supabase services.
+# ============================================================
+
+_format_version: "3.0"
+_transform: true
+
+services:
+  # ---- Auth (GoTrue) ----
+  - name: supabase-auth
+    url: http://supabase-auth:9999
+    routes:
+      - name: auth-route
+        paths:
+          - /auth/v1
+        strip_path: false
+
+  # ---- REST API (PostgREST) ----
+  - name: supabase-rest
+    url: http://supabase-rest:3000
+    routes:
+      - name: rest-route
+        paths:
+          - /rest/v1
+        strip_path: false
+
+  # ---- Storage API ----
+  - name: supabase-storage
+    url: http://supabase-storage:5000
+    routes:
+      - name: storage-route
+        paths:
+          - /storage/v1
+        strip_path: false
+
+  # ---- Realtime (WebSockets) ----
+  - name: supabase-realtime
+    url: http://supabase-realtime:4000
+    routes:
+      - name: realtime-route-path
+        paths:
+          - /realtime/v1
+        strip_path: false
+      - name: realtime-route-ws
+        protocols:
+          - ws
+        paths:
+          - /realtime/v1
+        strip_path: false
+
+  # ---- Edge Functions (Deno) ----
+  - name: supabase-edge-functions
+    url: http://supabase-edge-functions:9000
+    routes:
+      - name: functions-route
+        paths:
+          - /functions/v1
+        strip_path: false
+
+  # ---- Meta (pg-meta) ----
+  - name: supabase-meta
+    url: http://supabase-meta:8080
+    routes:
+      - name: meta-route
+        paths:
+          - /pg
+        strip_path: false
+
+  # ---- Supabase Studio (admin UI) ----
+  - name: supabase-studio
+    url: http://supabase-studio:3000
+    routes:
+      - name: studio-route
+        paths:
+          - /
+        strip_path: false

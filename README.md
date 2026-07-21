@@ -62,7 +62,7 @@ Most open-source HRMS tools are bloated, hard to deploy, or stuck in the past. O
 | Backend | [Supabase](https://supabase.com) (PostgreSQL + Auth + Storage + Edge Functions) |
 | Mobile | Installable PWA (iOS Safari, Android Chrome, desktop) |
 | Icons | Lucide React |
-| Deployment | Vercel / Netlify (frontend), Supabase (backend) |
+| Deployment | Vercel / Netlify (frontend), Supabase (backend), Docker Compose (self-hosted) |
 
 ---
 
@@ -175,99 +175,113 @@ Open `http://localhost:3000`. You'll see the OpenHRApp landing page. Register yo
 
 ---
 
-### Option B: Self-Hosted Supabase (Docker)
+### Option B: Docker Compose (Self-Hosted — 2 minutes)
 
-For organizations that need to keep all data on their own servers. This deploys the full Supabase stack locally.
+Deploy the entire OpenHR stack (frontend + Supabase backend) on your own infrastructure with a single `docker compose up` command. All Supabase services — PostgreSQL, Auth, REST API, Realtime, Storage, Edge Functions, and Studio — are included and pre-configured.
 
 #### Prerequisites
 
 - **Docker** and **Docker Compose** v2+
-- **Git** and **Node.js** 18+
-- **Supabase CLI**: `npm install -g supabase`
+- **Git** (to clone the repo)
 
-#### 1. Clone OpenHRApp
+#### 1. Clone & Generate Secrets
 
 ```bash
 git clone https://github.com/mimnets/OpenHRApp.git
 cd OpenHRApp
-npm install
+
+# Generate a secure .env file with random secrets:
+#   PowerShell: bash scripts/generate-secrets.sh
+#   macOS/Linux: bash scripts/generate-secrets.sh
+#   (Requires Node.js 18+ and openssl — both standard on dev machines)
+#
+# Or manually: cp .env.docker .env and fill in your own values
+bash scripts/generate-secrets.sh
 ```
 
-#### 2. Clone & Start Supabase Self-Hosted
-
-The official Supabase Docker setup:
-
-```bash
-git clone --depth 1 https://github.com/supabase/supabase.git supabase-docker
-cd supabase-docker/docker
-cp .env.example .env
+Edit `.env` to set your Studio credentials (at minimum):
+```
+DASHBOARD_USERNAME=your-username
+DASHBOARD_PASSWORD=your-secure-password
 ```
 
-Edit the `.env` file — at minimum set:
-- `POSTGRES_PASSWORD`: a secure database password
-- `JWT_SECRET`: a random string (generate with `openssl rand -base64 64`)
-- `ANON_KEY`: generate with the JWT secret (see [Supabase self-hosting docs](https://supabase.com/docs/guides/self-hosting))
-- `SERVICE_ROLE_KEY`: generate with the JWT secret
-- `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD`: for the Supabase Studio UI
-
-Then start all services:
+#### 2. Start Everything
 
 ```bash
 docker compose up -d
 ```
 
-Wait ~2 minutes for all containers to become healthy. Verify with `docker compose ps` — all services should show `healthy` or `running`.
-
-#### 3. Point OpenHR at Your Self-Hosted Supabase
+The first startup takes **2–3 minutes** while Docker pulls images, PostgreSQL initializes, all 21 database migrations run, 21 edge functions deploy, and cron jobs are configured. Check progress with:
 
 ```bash
-cd ../../  # back to OpenHRApp root
-supabase link --project-ref local
+docker compose logs openhr-init -f
 ```
 
-Or manually configure: edit `.env` in the OpenHRApp root (copy from `.env.example`):
+#### 3. Access the Stack
 
-```env
-VITE_SUPABASE_URL=http://localhost:8000
-VITE_SUPABASE_ANON_KEY=<your-anon-key-from-step-2>
-```
+| Service | URL | Description |
+|---------|-----|-------------|
+| **OpenHR App** | [http://localhost:3000](http://localhost:3000) | The HRMS frontend |
+| **Supabase Studio** | [http://localhost:3001](http://localhost:3001) | Database admin UI |
+| **Supabase API** | [http://localhost:8000](http://localhost:8000) | Kong API gateway (REST, Auth, Storage, Realtime) |
 
-The Supabase Studio (admin UI) will be at `http://localhost:8000`.
+First time? Click **Get Started** on the landing page to register your organization.
 
-#### 4. Apply Migrations
+#### What's Included
+
+The stack runs 13 containers covering every Supabase service:
+
+| Container | Role |
+|-----------|------|
+| `openhr-db` | PostgreSQL 15 with `pg_cron`, `pg_net`, and `pg_trgm` extensions |
+| `openhr-kong` | API gateway routing all Supabase traffic (port 8000) |
+| `openhr-auth` | GoTrue authentication (email/password, JWT) |
+| `openhr-rest` | PostgREST — auto-generated REST API from your schema |
+| `openhr-realtime` | WebSocket subscriptions for live notifications |
+| `openhr-storage` | File storage API backed by MinIO (S3-compatible) |
+| `openhr-minio` | MinIO S3 object store for uploaded files |
+| `openhr-meta` | Database introspection for Studio |
+| `openhr-edge-fn` | Deno Edge Functions runtime (21 functions deployed) |
+| `openhr-studio` | Supabase Studio admin UI (port 3001) |
+| `openhr-imgproxy` | Image resizing proxy for uploaded photos |
+| `openhr-frontend` | React 19 SPA served by Nginx (port 3000) |
+| `openhr-init` | Auto-setup container (runs once — migrations, functions, cron) |
+
+Cron jobs for attendance processing, trial expiration, daily reports, check-in reminders, review transitions, and demo resets are automatically scheduled.
+
+#### Persistence
+
+Your data survives container restarts and `docker compose down`:
+
+| Volume | Contents |
+|--------|----------|
+| `openhr-postgres-data` | All database tables, users, and settings |
+| `openhr-minio-data` | Uploaded files (selfies, avatars, logos) |
+| `openhr-secrets` | Auto-generated JWT keys and credentials |
+
+To wipe everything and start fresh: `docker compose down -v`
+
+#### Configuration
+
+See `.env.docker` for a complete reference of all environment variables. Key options:
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `VITE_SUPABASE_URL` | `http://localhost:8000` | Change if Kong is exposed on a different host/port |
+| `VITE_SUPABASE_ANON_KEY` | (auto-generated) | Must match `ANON_KEY`. Rebuild frontend after changing |
+| `POSTGRES_PASSWORD` | (auto-generated) | Database superuser password |
+| `JWT_SECRET` | (auto-generated) | HMAC-SHA256 key for all auth tokens |
+| `CRON_SECRET` | (auto-generated) | Shared secret for pg_cron → edge function calls |
+| `RESEND_API_KEY` | (empty) | Optional — enables email sending via [Resend](https://resend.com) |
+
+**Changing the Supabase URL**: If you expose Kong on a different host or port, update `VITE_SUPABASE_URL` in `.env` and rebuild the frontend:
 
 ```bash
-supabase db push --db-url postgresql://postgres:<POSTGRES_PASSWORD>@localhost:5432/postgres
+docker compose build --no-cache openhr-frontend
+docker compose up -d
 ```
 
-#### 5. Deploy Edge Functions
-
-```bash
-# Deploy all functions
-for func in admin-send-push admin-verify-employee create-employee \
-  cron-attendance-reminders cron-auto-absent cron-auto-close-sessions \
-  cron-daily-report cron-expire-trials cron-push-checkin-reminder \
-  cron-review-transitions notify-admins-email public-ad-config \
-  register send-bulk-email superadmin-create-org superadmin-delete-org; do
-  supabase functions deploy $func
-done
-```
-
-#### 6. Set Secrets & Enable Cron
-
-```bash
-supabase secrets set CRON_SECRET=<your-random-secret>
-```
-
-For self-hosted Supabase, you need the `pg_cron` and `pg_net` extensions. Run the cron setup SQL from `scripts/setup-cron-schedules.sql` against your local database, replacing the URL with `http://kong:8000/functions/v1/...` (the internal Docker network URL).
-
-#### 7. Start the App
-
-```bash
-npm run dev
-```
-
-Open `http://localhost:3000`.
+**PWA service worker**: Runtime caching in the PWA service worker is optimized for Supabase Cloud URLs. In self-hosted mode, API requests bypass the service worker cache. This has no functional impact — the app works correctly; it's a performance optimization only.
 
 ---
 
