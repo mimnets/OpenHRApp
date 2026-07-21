@@ -41,8 +41,8 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
       setTutorial(tutorialData);
       setAllTutorials(allData.tutorials);
       updatePageMeta(
-        `${tutorialData.title} | OpenHR Guides`,
-        tutorialData.excerpt || `Learn how to ${tutorialData.title.toLowerCase()} with OpenHR.`,
+        `${tutorialData.title} | OpenHRApp Guides`,
+        tutorialData.excerpt || `Learn how to ${tutorialData.title.toLowerCase()} with OpenHRApp.`,
         `https://openhrapp.com/how-to-use/${slug}`,
         tutorialData.coverImage || undefined
       );
@@ -73,7 +73,7 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
           dateModified: tutorialData.updated || tutorialData.created,
           author: {
             '@type': 'Person',
-            name: tutorialData.authorName || 'OpenHR Team',
+            name: tutorialData.authorName || 'OpenHRApp Team',
           },
           publisher: {
             '@type': 'Organization',

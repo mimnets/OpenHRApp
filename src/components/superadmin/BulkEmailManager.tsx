@@ -15,18 +15,18 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: 'password_reset',
     label: 'Password Reset Notice',
-    subject: 'Action Required: Reset Your OpenHR Password',
+    subject: 'Action Required: Reset Your OpenHRApp Password',
     body: `<p>Dear {{name}},</p>
 <p>We have recently migrated our platform and your account requires a password reset before you can log in.</p>
 <p>Please click the button below to set a new password. This link is unique to your account and expires in 24 hours.</p>
 <p><a href="{{reset_link}}" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Reset My Password</a></p>
 <p>If you did not request this, you can safely ignore this email.</p>
-<p>Best regards,<br/>The OpenHR Team</p>`,
+<p>Best regards,<br/>The OpenHRApp Team</p>`,
   },
   {
     id: 'newsletter',
     label: 'Newsletter',
-    subject: 'OpenHR Monthly Update — [Month Year]',
+    subject: 'OpenHRApp Monthly Update — [Month Year]',
     body: `<p>Dear {{name}},</p>
 <h2>What's New This Month</h2>
 <p>Here are the latest updates and improvements we've shipped:</p>
@@ -37,38 +37,38 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
 </ul>
 <h2>Coming Soon</h2>
 <p>Share upcoming features or plans here.</p>
-<p>Thank you for using OpenHR. We're committed to making HR management effortless for your team.</p>
-<p>Best regards,<br/>The OpenHR Team</p>`,
+<p>Thank you for using OpenHRApp. We're committed to making HR management effortless for your team.</p>
+<p>Best regards,<br/>The OpenHRApp Team</p>`,
   },
   {
     id: 'maintenance',
     label: 'System Maintenance',
-    subject: 'Scheduled Maintenance: OpenHR Will Be Unavailable on [Date]',
+    subject: 'Scheduled Maintenance: OpenHRApp Will Be Unavailable on [Date]',
     body: `<p>Dear {{name}},</p>
-<p>We want to give you advance notice of scheduled maintenance on the OpenHR platform.</p>
+<p>We want to give you advance notice of scheduled maintenance on the OpenHRApp platform.</p>
 <p><strong>Date:</strong> [Date]<br/>
 <strong>Time:</strong> [Start Time] – [End Time] ([Timezone])<br/>
 <strong>Expected downtime:</strong> [Duration]</p>
 <p>During this window the platform will be temporarily unavailable. Please plan accordingly and save any in-progress work before the maintenance window begins.</p>
 <p>We apologise for any inconvenience and appreciate your patience.</p>
-<p>Best regards,<br/>The OpenHR Team</p>`,
+<p>Best regards,<br/>The OpenHRApp Team</p>`,
   },
   {
     id: 'announcement',
     label: 'General Announcement',
-    subject: 'Important Announcement from OpenHR',
+    subject: 'Important Announcement from OpenHRApp',
     body: `<p>Dear {{name}},</p>
 <p>We have an important update to share with you.</p>
 <p>[Write your announcement here.]</p>
 <p>If you have any questions, please reach out to us at <a href="mailto:support@openhrapp.com">support@openhrapp.com</a>.</p>
-<p>Best regards,<br/>The OpenHR Team</p>`,
+<p>Best regards,<br/>The OpenHRApp Team</p>`,
   },
   {
     id: 'welcome',
     label: 'Welcome / Onboarding',
-    subject: 'Welcome to OpenHR, {{name}}!',
+    subject: 'Welcome to OpenHRApp, {{name}}!',
     body: `<p>Dear {{name}},</p>
-<p>Welcome to <strong>OpenHR</strong> — your all-in-one HR management platform.</p>
+<p>Welcome to <strong>OpenHRApp</strong> — your all-in-one HR management platform.</p>
 <p>Here's how to get started:</p>
 <ol>
   <li><strong>Log in</strong> at <a href="https://app.openhrapp.com">app.openhrapp.com</a></li>
@@ -76,7 +76,7 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
   <li><strong>Explore the dashboard</strong> — check attendance, leaves, and announcements</li>
 </ol>
 <p>If you need help, contact your HR admin or reach us at <a href="mailto:support@openhrapp.com">support@openhrapp.com</a>.</p>
-<p>Best regards,<br/>The OpenHR Team</p>`,
+<p>Best regards,<br/>The OpenHRApp Team</p>`,
   },
 ];
 import RichTextEditor from '../blog/RichTextEditor';

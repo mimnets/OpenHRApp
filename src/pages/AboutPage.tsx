@@ -10,7 +10,7 @@ interface AboutPageProps {
 }
 
 const stats = [
-  { icon: Users, value: '50+', label: 'Organizations Using OpenHR' },
+  { icon: Users, value: '50+', label: 'Organizations Using OpenHRApp' },
   { icon: Code, value: '100%', label: 'Open Source (MIT License)' },
   { icon: Globe, value: 'PWA', label: 'Works on Any Device' },
 ];
@@ -29,12 +29,12 @@ const values = [
   {
     icon: Users,
     title: 'Community-Driven',
-    description: 'OpenHR is shaped by the people who use it. Feature requests, bug reports, and community contributions directly influence our development priorities.',
+    description: 'OpenHRApp is shaped by the people who use it. Feature requests, bug reports, and community contributions directly influence our development priorities.',
   },
   {
     icon: GitBranch,
     title: 'Built for Scale',
-    description: 'Whether you have 5 employees or 500, OpenHR scales with you. Role-based access control, multi-department support, and configurable workflows adapt to your needs.',
+    description: 'Whether you have 5 employees or 500, OpenHRApp scales with you. Role-based access control, multi-department support, and configurable workflows adapt to your needs.',
   },
 ];
 
@@ -153,7 +153,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ onBack, onRegisterClick }) => {
 
             {/* Stats Section */}
             <section>
-              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 text-center">OpenHR by the Numbers</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 text-center">OpenHRApp by the Numbers</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 {stats.map((stat) => (
                   <div

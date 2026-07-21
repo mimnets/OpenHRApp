@@ -123,7 +123,7 @@ export const features = [
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     border: 'border-purple-100',
-    description: 'No fingerprint scanners or special hardware needed. OpenHR uses the camera on any smartphone to verify employee identity at check-in, eliminating buddy punching and attendance fraud.',
+    description: 'No fingerprint scanners or special hardware needed. OpenHRApp uses the camera on any smartphone to verify employee identity at check-in, eliminating buddy punching and attendance fraud.',
     subFeatures: [
       'Front-camera selfie capture on check-in',
       'Visual audit trail for managers',
@@ -157,13 +157,13 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'attendance-tracking',
     title: 'Attendance Management',
-    metaTitle: 'Attendance Tracking Software | OpenHR - Selfie & GPS Check-In',
+    metaTitle: 'Attendance Tracking Software | OpenHRApp - Selfie & GPS Check-In',
     metaDescription: 'Track employee attendance with selfie-based check-in, GPS verification, and real-time dashboards. Supports office and factory shift modes. Free and open-source.',
     icon: MapPin,
     color: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-blue-100',
-    heroDescription: 'Eliminate buddy punching and manual timesheets. OpenHR uses selfie-based check-in with GPS tracking to ensure authentic, tamper-proof attendance records — all from a simple mobile interface.',
+    heroDescription: 'Eliminate buddy punching and manual timesheets. OpenHRApp uses selfie-based check-in with GPS tracking to ensure authentic, tamper-proof attendance records — all from a simple mobile interface.',
     sections: [
       {
         heading: 'Selfie-Based Verification',
@@ -178,7 +178,7 @@ export const FEATURES: FeatureData[] = [
       },
       {
         heading: 'Office & Factory Modes',
-        description: 'Different workplaces have different needs. OpenHR supports two attendance modes to accommodate various work environments and shift patterns.',
+        description: 'Different workplaces have different needs. OpenHRApp supports two attendance modes to accommodate various work environments and shift patterns.',
         bullets: [
           'Office Mode: Standard check-in/check-out for regular business hours',
           'Factory Mode: Shift-based tracking for manufacturing and production environments',
@@ -208,13 +208,13 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'leave-management',
     title: 'Leave Management',
-    metaTitle: 'Leave Management System | OpenHR - Request, Approve & Track',
+    metaTitle: 'Leave Management System | OpenHRApp - Request, Approve & Track',
     metaDescription: 'Streamline leave requests, approvals, and balance tracking. Configure custom leave types with automatic calculations. Free HR leave management software.',
     icon: Calendar,
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
     border: 'border-emerald-100',
-    heroDescription: 'From application to approval in seconds. OpenHR automates your entire leave process with configurable leave types, instant notifications, and real-time balance tracking.',
+    heroDescription: 'From application to approval in seconds. OpenHRApp automates your entire leave process with configurable leave types, instant notifications, and real-time balance tracking.',
     sections: [
       {
         heading: 'Easy Leave Application',
@@ -259,7 +259,7 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'performance-reviews',
     title: 'Performance Reviews',
-    metaTitle: 'Performance Review Software | OpenHR - Structured Review Cycles',
+    metaTitle: 'Performance Review Software | OpenHRApp - Structured Review Cycles',
     metaDescription: 'Run structured performance reviews with self-assessment, manager evaluation, and HR finalization. Customizable competencies and rating scales. Free HRMS.',
     icon: ClipboardCheck,
     color: 'text-rose-600',
@@ -269,7 +269,7 @@ export const FEATURES: FeatureData[] = [
     sections: [
       {
         heading: 'Multi-Stage Review Process',
-        description: 'OpenHR implements a three-stage review process that ensures comprehensive, fair evaluations with input from multiple perspectives.',
+        description: 'OpenHRApp implements a three-stage review process that ensures comprehensive, fair evaluations with input from multiple perspectives.',
         bullets: [
           'Stage 1: Employee self-assessment with competency ratings',
           'Stage 2: Direct manager evaluation and feedback',
@@ -291,7 +291,7 @@ export const FEATURES: FeatureData[] = [
       },
       {
         heading: 'Integrated Data',
-        description: 'Performance reviews in OpenHR automatically pull in relevant data from attendance and leave records, giving reviewers a complete picture of employee performance.',
+        description: 'Performance reviews in OpenHRApp automatically pull in relevant data from attendance and leave records, giving reviewers a complete picture of employee performance.',
         bullets: [
           'Attendance summary card in review interface',
           'Leave utilization data during review period',
@@ -310,7 +310,7 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'gps-geofencing',
     title: 'GPS & Location Verification',
-    metaTitle: 'GPS Attendance Tracking | OpenHR - Location Verified Check-In',
+    metaTitle: 'GPS Attendance Tracking | OpenHRApp - Location Verified Check-In',
     metaDescription: 'Verify employee attendance with GPS location tracking. Ensure employees check in from approved locations. Ideal for remote teams and field workers.',
     icon: Globe,
     color: 'text-cyan-600',
@@ -361,13 +361,13 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'biometric-selfie-verification',
     title: 'Biometric Selfie Verification',
-    metaTitle: 'Selfie-Based Attendance | OpenHR - Photo Verified Check-In',
+    metaTitle: 'Selfie-Based Attendance | OpenHRApp - Photo Verified Check-In',
     metaDescription: 'Prevent buddy punching with selfie-based attendance verification. Photo evidence ensures authentic check-ins. No special hardware needed.',
     icon: Camera,
     color: 'text-purple-600',
     bg: 'bg-purple-50',
     border: 'border-purple-100',
-    heroDescription: 'No fingerprint scanners. No hardware. Just a selfie. OpenHR uses the camera on any smartphone to verify employee identity at check-in, eliminating attendance fraud without expensive biometric equipment.',
+    heroDescription: 'No fingerprint scanners. No hardware. Just a selfie. OpenHRApp uses the camera on any smartphone to verify employee identity at check-in, eliminating attendance fraud without expensive biometric equipment.',
     sections: [
       {
         heading: 'How Selfie Verification Works',
@@ -393,7 +393,7 @@ export const FEATURES: FeatureData[] = [
       },
       {
         heading: 'Privacy & Security',
-        description: 'Employee photos are treated as sensitive data. OpenHR ensures selfie data is stored securely and only accessible to authorized personnel.',
+        description: 'Employee photos are treated as sensitive data. OpenHRApp ensures selfie data is stored securely and only accessible to authorized personnel.',
         bullets: [
           'Photos stored with role-based access control',
           'Only HR and managers can view attendance selfies',
@@ -412,7 +412,7 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'employee-directory',
     title: 'Employee Directory',
-    metaTitle: 'Employee Directory & HR Database | OpenHR - Centralized Team Management',
+    metaTitle: 'Employee Directory & HR Database | OpenHRApp - Centralized Team Management',
     metaDescription: 'Manage employee profiles, departments, and org structure in one place. Role-based access, bulk import, and searchable directory. Free open-source HRMS.',
     icon: Users,
     color: 'text-violet-600',
@@ -463,7 +463,7 @@ export const FEATURES: FeatureData[] = [
   {
     slug: 'reports-analytics',
     title: 'Reports & Analytics',
-    metaTitle: 'HR Reports & Analytics | OpenHR - Data-Driven HR Decisions',
+    metaTitle: 'HR Reports & Analytics | OpenHRApp - Data-Driven HR Decisions',
     metaDescription: 'Generate attendance reports, leave utilization analytics, and team performance insights. Interactive charts and CSV export. Free open-source HR reporting.',
     icon: BarChart3,
     color: 'text-amber-600',

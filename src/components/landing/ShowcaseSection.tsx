@@ -30,7 +30,7 @@ const ShowcaseSection: React.FC = () => {
             Trusted by organizations worldwide
           </p>
           <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 tracking-tight">
-            Teams that rely on OpenHR
+            Teams that rely on OpenHRApp
           </h2>
         </div>
 

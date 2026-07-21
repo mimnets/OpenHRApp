@@ -32,8 +32,8 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
 
   useEffect(() => {
     updatePageMeta(
-      'Guides | OpenHR - Open Source HRMS',
-      'Step-by-step guides to help you get the most out of OpenHR. Learn attendance tracking, leave management, employee directory, and more.',
+      'Guides | OpenHRApp',
+      'Step-by-step guides to help you get the most out of OpenHRApp. Learn attendance tracking, leave management, employee directory, and more.',
       'https://openhrapp.com/how-to-use'
     );
     setJsonLd({
@@ -41,8 +41,8 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
       '@graph': [
         {
           '@type': 'CollectionPage',
-          name: 'OpenHR Guides',
-          description: 'Step-by-step guides to help you get the most out of OpenHR. Learn attendance tracking, leave management, employee directory, and more.',
+          name: 'OpenHRApp Guides',
+          description: 'Step-by-step guides to help you get the most out of OpenHRApp. Learn attendance tracking, leave management, employee directory, and more.',
           url: 'https://openhrapp.com/how-to-use',
           isPartOf: {
             '@type': 'WebSite',
