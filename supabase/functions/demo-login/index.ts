@@ -54,7 +54,10 @@ Deno.serve(async (req: Request) => {
 
     const orgId = demoOrg.id;
 
-    // ── Step 2: Find the demo admin user ──────────────────────────────────────
+    // ── Step 2: Find or create the demo admin user ────────────────────────────
+    const adminEmail = 'demo-admin@openhrapp.com';
+
+    // First check if the profile already exists in this org
     const { data: adminProfile } = await adminClient
       .from('profiles')
       .select('id, email, name')
@@ -63,25 +66,51 @@ Deno.serve(async (req: Request) => {
       .limit(1)
       .maybeSingle();
 
-    let adminEmail = adminProfile?.email || 'demo-admin@openhrapp.com';
+    let adminUserId = adminProfile?.id;
 
-    // If admin doesn't exist, create on the fly
     if (!adminProfile) {
-      console.log('[demo-login] Demo admin not found — creating on the fly');
-      const { data: authData, error: authErr } = await adminClient.auth.admin.createUser({
-        email: adminEmail,
-        password: demoPassword,
-        email_confirm: true,
-        user_metadata: { name: 'Alex Morgan' },
-      });
+      console.log('[demo-login] Demo admin profile not found — ensuring auth user exists');
 
-      if (authErr) {
-        console.error('[demo-login] Failed to create demo admin:', authErr.message);
-        return jsonResponse(500, { error: 'Failed to create demo user' });
+      // Check if the auth user already exists (e.g. from a prior demo-reset)
+      let existingAuthUser: { id: string } | null = null;
+      try {
+        const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+        const match = existingUsers?.users?.find(
+          u => u.email?.toLowerCase() === adminEmail.toLowerCase()
+        );
+        if (match) existingAuthUser = { id: match.id };
+      } catch {
+        // listUsers may fail; ignore and try createUser
       }
 
+      if (existingAuthUser) {
+        // User exists in Auth — reset their password and create/update the profile
+        console.log('[demo-login] Auth user exists — resetting password and linking profile');
+        adminUserId = existingAuthUser.id;
+        await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
+          password: demoPassword,
+          email_confirm: true,
+        });
+      } else {
+        // No existing user — create one
+        console.log('[demo-login] Creating new demo admin auth user');
+        const { data: authData, error: authErr } = await adminClient.auth.admin.createUser({
+          email: adminEmail,
+          password: demoPassword,
+          email_confirm: true,
+          user_metadata: { name: 'Alex Morgan' },
+        });
+
+        if (authErr) {
+          console.error('[demo-login] Failed to create demo admin:', authErr.message);
+          return jsonResponse(500, { error: 'Failed to create demo user: ' + authErr.message });
+        }
+        adminUserId = authData.user.id;
+      }
+
+      // Create or update the profile for the demo org
       const { error: profileErr } = await adminClient.from('profiles').upsert({
-        id: authData.user.id,
+        id: adminUserId,
         organization_id: orgId,
         name: 'Alex Morgan',
         email: adminEmail,
@@ -93,7 +122,7 @@ Deno.serve(async (req: Request) => {
       });
 
       if (profileErr) {
-        console.error('[demo-login] Profile creation failed:', profileErr.message);
+        console.error('[demo-login] Profile upsert failed:', profileErr.message);
       }
     }
 
@@ -107,27 +136,7 @@ Deno.serve(async (req: Request) => {
 
     if (signInErr || !sessionData.session) {
       console.error('[demo-login] Sign-in failed:', signInErr?.message);
-
-      // Fallback: try re-creating the user (password may have been reset)
-      try {
-        const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find(
-          u => u.email?.toLowerCase() === adminEmail.toLowerCase()
-        );
-
-        if (existingUser) {
-          // Update password
-          await adminClient.auth.admin.updateUserById(existingUser.id, {
-            password: demoPassword,
-            email_confirm: true,
-          });
-          console.log('[demo-login] Reset password for existing demo admin');
-        }
-      } catch (resetErr) {
-        console.error('[demo-login] Password reset failed:', resetErr);
-      }
-
-      return jsonResponse(500, { error: 'Unable to sign in to demo account' });
+      return jsonResponse(500, { error: 'Sign-in failed: ' + (signInErr?.message || 'unknown') });
     }
 
     const { access_token, refresh_token, expires_in } = sessionData.session;

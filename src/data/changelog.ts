@@ -22,6 +22,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'feature', description: 'New demo-reset cron edge function runs daily at midnight UTC. Wipes and re-seeds attendance, leave, announcements, and configuration data for the demo organization. Creates the demo org and users automatically on first run.' },
       { type: 'feature', description: 'New demo-login edge function returns session tokens for instant dashboard access. Called by the "Try Live Demo" button on the landing page.' },
       { type: 'feature', description: 'Added is_demo boolean column to organizations table (migration 0021) with demo mode banner in SubscriptionBanner showing on all authenticated pages when in demo mode.' },
+      { type: 'fix', description: 'Fixed demo-login edge function failing with "user already registered" when the demo admin Auth user exists but has no profile linked to the demo organization. The function now checks for existing Auth users before creating, resets their password, and upserts the profile correctly.' },
     ],
   },
   {
