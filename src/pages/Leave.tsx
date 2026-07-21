@@ -14,9 +14,11 @@ import { HRLeaveModule } from '../components/leave/HRLeaveModule';
 interface LeaveProps {
   user: any;
   autoOpen?: boolean;
+  /** When provided, scrolls to / highlights the leave request with this ID */
+  openLeaveId?: string;
 }
 
-const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
+const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
   const isAdmin = user.role === 'ADMIN' || user.role === 'HR';
   const isManager = user.role === 'MANAGER' || user.role === 'TEAM_LEAD' || user.role === 'MANAGEMENT';
 
@@ -81,6 +83,7 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen }) => {
         history={leaves.filter(l => l.employeeId === user.id)}
         onRefresh={refreshData}
         initialOpen={autoOpen}
+        openLeaveId={openLeaveId}
         readOnly={!canWrite}
       />
 

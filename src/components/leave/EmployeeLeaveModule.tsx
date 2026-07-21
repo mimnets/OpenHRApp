@@ -25,6 +25,8 @@ interface Props {
   history: LeaveRequest[];
   onRefresh: () => void;
   initialOpen?: boolean;
+  /** When provided, scrolls to the leave request card with this ID */
+  openLeaveId?: string;
   readOnly?: boolean;
 }
 
@@ -41,7 +43,7 @@ const resolveWorkingDays = (config: AppConfig, employeeShift: Shift | null): str
   return normalizeWorkingDays(raw);
 };
 
-const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen, readOnly = false }) => {
+const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefresh, initialOpen, openLeaveId, readOnly = false }) => {
   const [showForm, setShowForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +73,25 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
     };
     loadMeta();
   }, [initialOpen]);
+
+  // Deep link: scroll to a specific leave request when openLeaveId is provided
+  useEffect(() => {
+    if (openLeaveId && history.length > 0) {
+      // Small delay to allow the list to render
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`leave-req-${openLeaveId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight briefly
+          el.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+          }, 2000);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [openLeaveId, history]);
 
   useEffect(() => {
     if (formData.start && formData.end && config) {
@@ -328,7 +349,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
         <h4 className="font-semibold text-slate-900 mb-6 uppercase tracking-widest text-xs text-slate-400">My Application History</h4>
         <div className="space-y-3">
           {history.map(req => (
-            <div key={req.id} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white hover:shadow-md transition-all group">
+            <div key={req.id} id={`leave-req-${req.id}`} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white hover:shadow-md transition-all group">
               <div className="flex items-center gap-4">
                  <div className={`w-2 h-12 rounded-full flex-shrink-0 ${req.status === 'APPROVED' ? 'bg-emerald-500' : req.status === 'REJECTED' ? 'bg-rose-500' : 'bg-amber-500'}`}></div>
                  <div>

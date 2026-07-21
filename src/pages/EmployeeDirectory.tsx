@@ -64,9 +64,11 @@ const DirectorySkeleton = () => (
 
 interface EmployeeDirectoryProps {
   user: User;
+  /** When provided, opens the employee detail modal for this employee ID on mount */
+  selectedEmployeeId?: string;
 }
 
-const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
+const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user, selectedEmployeeId }) => {
   const { showToast } = useToast();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
   const isManager = user?.role === 'MANAGER' || user?.role === 'TEAM_LEAD';
@@ -164,7 +166,17 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user }) => {
     });
     return () => { unsubscribe(); };
   }, [isAdmin, isManager, user?.teamId, user?.id]);
-  
+
+  // Deep link: open employee detail modal when selectedEmployeeId is provided
+  useEffect(() => {
+    if (selectedEmployeeId && employees.length > 0 && !isLoading) {
+      const emp = employees.find(e => e.id === selectedEmployeeId);
+      if (emp) {
+        setShowViewModal(emp);
+      }
+    }
+  }, [selectedEmployeeId, employees, isLoading]);
+
   const initialNewEmpState = {
     name: '',
     email: '',
