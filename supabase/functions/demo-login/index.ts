@@ -1,6 +1,9 @@
 // OpenHR — Demo Login Edge Function
-// Returns session tokens for the demo organization admin user.
+// Returns session tokens for a demo organization user.
 // Called by the "Try Live Demo" button on the landing page.
+//
+// Accepts optional JSON body: { role: "admin" | "manager" | "employee" }
+// Defaults to "admin" if no body or role is provided.
 //
 // Deno runtime (Supabase Edge Functions)
 
@@ -19,6 +22,44 @@ function jsonResponse(status: number, body: unknown): Response {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
+
+// ── Demo account definitions (mirrors demo-reset and demo-credentials) ────────
+
+interface DemoAccount {
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  employeeId: string;
+  department: string;
+  designation: string;
+}
+
+const ROLE_ACCOUNTS: Record<string, DemoAccount> = {
+  admin: {
+    email: 'demo-admin@openhrapp.com',
+    name: 'Alex Morgan',
+    role: 'ADMIN',
+    employeeId: 'DEMO-001',
+    department: 'Management',
+    designation: 'HR Director',
+  },
+  manager: {
+    email: 'demo-manager@openhrapp.com',
+    name: 'Jordan Chen',
+    role: 'MANAGER',
+    employeeId: 'DEMO-002',
+    department: 'Engineering',
+    designation: 'Engineering Manager',
+  },
+  employee: {
+    email: 'demo-employee@openhrapp.com',
+    name: 'Taylor Reed',
+    role: 'EMPLOYEE',
+    employeeId: 'DEMO-003',
+    department: 'Marketing',
+    designation: 'Marketing Specialist',
+  },
+};
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 
@@ -41,7 +82,21 @@ Deno.serve(async (req: Request) => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    // ── Step 1: Find the demo organization ────────────────────────────────────
+    // ── Step 1: Parse requested role from body (default: admin) ────────────────
+    let requestedRole = 'admin';
+    try {
+      const body = await req.json();
+      if (body.role && ROLE_ACCOUNTS[body.role]) {
+        requestedRole = body.role;
+      }
+    } catch {
+      // No body or invalid JSON — use default 'admin'
+    }
+
+    const account = ROLE_ACCOUNTS[requestedRole];
+    console.log(`[demo-login] Requested role: ${requestedRole} → ${account.email}`);
+
+    // ── Step 2: Find the demo organization ────────────────────────────────────
     const { data: demoOrg } = await adminClient
       .from('organizations')
       .select('id, name')
@@ -54,29 +109,29 @@ Deno.serve(async (req: Request) => {
 
     const orgId = demoOrg.id;
 
-    // ── Step 2: Find or create the demo admin user ────────────────────────────
-    const adminEmail = 'demo-admin@openhrapp.com';
+    // ── Step 3: Find or create the demo user ──────────────────────────────────
+    const targetEmail = account.email;
 
     // First check if the profile already exists in this org
-    const { data: adminProfile } = await adminClient
+    const { data: existingProfile } = await adminClient
       .from('profiles')
       .select('id, email, name')
       .eq('organization_id', orgId)
-      .eq('role', 'ADMIN')
+      .eq('email', targetEmail)
       .limit(1)
       .maybeSingle();
 
-    let adminUserId = adminProfile?.id;
+    let userId = existingProfile?.id;
 
-    if (!adminProfile) {
-      console.log('[demo-login] Demo admin profile not found — ensuring auth user exists');
+    if (!existingProfile) {
+      console.log(`[demo-login] Profile not found for ${targetEmail} — ensuring auth user exists`);
 
       // Check if the auth user already exists (e.g. from a prior demo-reset)
       let existingAuthUser: { id: string } | null = null;
       try {
         const { data: existingUsers } = await adminClient.auth.admin.listUsers();
         const match = existingUsers?.users?.find(
-          u => u.email?.toLowerCase() === adminEmail.toLowerCase()
+          u => u.email?.toLowerCase() === targetEmail.toLowerCase()
         );
         if (match) existingAuthUser = { id: match.id };
       } catch {
@@ -85,39 +140,39 @@ Deno.serve(async (req: Request) => {
 
       if (existingAuthUser) {
         // User exists in Auth — reset their password and create/update the profile
-        console.log('[demo-login] Auth user exists — resetting password and linking profile');
-        adminUserId = existingAuthUser.id;
+        console.log(`[demo-login] Auth user exists for ${targetEmail} — resetting password`);
+        userId = existingAuthUser.id;
         await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
           password: demoPassword,
           email_confirm: true,
         });
       } else {
         // No existing user — create one
-        console.log('[demo-login] Creating new demo admin auth user');
+        console.log(`[demo-login] Creating new auth user: ${targetEmail}`);
         const { data: authData, error: authErr } = await adminClient.auth.admin.createUser({
-          email: adminEmail,
+          email: targetEmail,
           password: demoPassword,
           email_confirm: true,
-          user_metadata: { name: 'Alex Morgan' },
+          user_metadata: { name: account.name },
         });
 
         if (authErr) {
-          console.error('[demo-login] Failed to create demo admin:', authErr.message);
+          console.error('[demo-login] Failed to create user:', authErr.message);
           return jsonResponse(500, { error: 'Failed to create demo user: ' + authErr.message });
         }
-        adminUserId = authData.user.id;
+        userId = authData.user.id;
       }
 
       // Create or update the profile for the demo org
       const { error: profileErr } = await adminClient.from('profiles').upsert({
-        id: adminUserId,
+        id: userId,
         organization_id: orgId,
-        name: 'Alex Morgan',
-        email: adminEmail,
-        role: 'ADMIN',
-        employee_id: 'DEMO-001',
-        department: 'Management',
-        designation: 'HR Director',
+        name: account.name,
+        email: targetEmail,
+        role: account.role,
+        employee_id: account.employeeId,
+        department: account.department,
+        designation: account.designation,
         verified: true,
       });
 
@@ -126,11 +181,11 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ── Step 3: Sign in as the demo admin to get session tokens ──────────────
+    // ── Step 4: Sign in as the demo user to get session tokens ────────────────
     const anonClient = createClient(supabaseUrl, anonKey);
 
     const { data: sessionData, error: signInErr } = await anonClient.auth.signInWithPassword({
-      email: adminEmail,
+      email: targetEmail,
       password: demoPassword,
     });
 
@@ -141,13 +196,13 @@ Deno.serve(async (req: Request) => {
 
     const { access_token, refresh_token, expires_in } = sessionData.session;
 
-    // ── Step 4: Log the access attempt ────────────────────────────────────────
+    // ── Step 5: Log the access attempt ────────────────────────────────────────
     const forwardedFor = req.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = req.headers.get('user-agent') || 'unknown';
     const timestamp = new Date().toISOString();
 
     console.log(
-      `[demo-login] ACCESS | time=${timestamp} | ip=${forwardedFor} | ua=${userAgent.substring(0, 100)}`
+      `[demo-login] ACCESS | time=${timestamp} | role=${requestedRole} | email=${targetEmail} | ip=${forwardedFor} | ua=${userAgent.substring(0, 100)}`
     );
 
     return jsonResponse(200, {
