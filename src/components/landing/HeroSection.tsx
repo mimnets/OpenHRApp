@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Clock, CreditCard, Zap, LogIn, Download, RotateCcw, Share, MoreVertical, X, Play, Loader2 } from 'lucide-react';
-import { supabase } from '../../services/supabase';
+import { ArrowRight, Clock, CreditCard, Zap, LogIn, Download, RotateCcw, Share, MoreVertical, X, Play } from 'lucide-react';
+import DemoLoginModal from './DemoLoginModal';
 
 interface HeroSectionProps {
   onLoginClick: () => void;
@@ -13,7 +13,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
   const [canPrompt, setCanPrompt] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -42,23 +42,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
     }
   };
 
-  const handleDemoClick = async () => {
-    setIsDemoLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('demo-login');
-      if (error) throw new Error(error.message);
-      if (data?.access_token && data?.refresh_token) {
-        await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-        // Reload so sessionManager.initialize() picks up the new session
-        window.location.href = '/';
-      }
-    } catch (err) {
-      console.error('[Demo] Login failed:', err);
-      setIsDemoLoading(false);
-    }
+  const handleDemoClick = () => {
+    setShowDemoModal(true);
   };
 
   return (
@@ -79,10 +64,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
             </button>
             <button
               onClick={handleDemoClick}
-              disabled={isDemoLoading}
-              className="w-full py-3.5 border-2 border-primary/30 text-primary rounded-2xl font-bold text-sm hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 border-2 border-primary/30 text-primary rounded-2xl font-bold text-sm hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
             >
-              {isDemoLoading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+              <Play size={18} />
               Try Live Demo →
             </button>
             <button
@@ -125,10 +109,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
             </button>
             <button
               onClick={handleDemoClick}
-              disabled={isDemoLoading}
-              className="px-8 py-4 border-2 border-primary/30 text-primary font-bold text-sm rounded-2xl hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="px-8 py-4 border-2 border-primary/30 text-primary font-bold text-sm rounded-2xl hover:border-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
             >
-              {isDemoLoading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
+              <Play size={18} />
               Try Live Demo →
             </button>
             <button
@@ -231,6 +214,13 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
           </div>
         </div>
       )}
+
+      {/* Demo Accounts Modal */}
+      <DemoLoginModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+        onOpenLoginPage={onLoginClick}
+      />
     </section>
   );
 };

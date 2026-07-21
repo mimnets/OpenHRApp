@@ -18,10 +18,12 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-07-21',
     title: 'Live Demo — try OpenHRApp instantly without registration',
     entries: [
-      { type: 'feature', description: 'Added "Try Live Demo" button to the landing page hero section. Visitors can explore the full OpenHRApp dashboard instantly as an admin of "Demo Corp" with pre-seeded attendance records, leave requests, and company data. A prominent indigo "Demo Mode" banner reminds users that data is temporary and resets daily at midnight UTC.' },
+      { type: 'feature', description: 'Added "Try Live Demo" button to the landing page hero section that opens a Demo Accounts modal. Visitors can choose from three pre-seeded accounts (Admin, Manager, Employee) with one-click login buttons for each role, or copy credentials to log in manually. Each role sees the dashboard from its own perspective — Admin has full access, Manager sees team views, Employee sees personal data. A prominent indigo "Demo Mode" banner reminds users that data is temporary and resets daily at midnight UTC.' },
       { type: 'feature', description: 'New demo-reset cron edge function runs daily at midnight UTC. Wipes and re-seeds attendance, leave, announcements, and configuration data for the demo organization. Creates the demo org and users automatically on first run.' },
-      { type: 'feature', description: 'New demo-login edge function returns session tokens for instant dashboard access. Called by the "Try Live Demo" button on the landing page.' },
+      { type: 'feature', description: 'New demo-login edge function returns session tokens for instant dashboard access. Accepts an optional role parameter (admin, manager, employee) to log in as any demo account. Defaults to admin for backward compatibility.' },
+      { type: 'feature', description: 'New demo-credentials edge function returns all three demo account details (email, name, role, department, designation) and the shared password for display in the Demo Accounts modal on the landing page.' },
       { type: 'feature', description: 'Added is_demo boolean column to organizations table (migration 0021) with demo mode banner in SubscriptionBanner showing on all authenticated pages when in demo mode.' },
+      { type: 'fix', description: 'Fixed demo-login edge function failing with "user already registered" when the demo admin Auth user exists but has no profile linked to the demo organization. The function now checks for existing Auth users before creating, resets their password, and upserts the profile correctly.' },
     ],
   },
   {
