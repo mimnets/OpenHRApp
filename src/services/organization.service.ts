@@ -52,16 +52,27 @@ async function getSetting(key: string, defaultValue: any) {
         return defaultValue;
       }
     }
-    // No DB row — for platform-level, try localStorage fallback.
-    if (!orgId) {
+    // No org-specific row found — cascade to platform-level setting before
+    // falling back to the hardcoded defaultValue.
+    if (orgId) {
+      const platformDefault = await getPlatformSetting(key, undefined);
+      if (platformDefault !== undefined) return platformDefault;
+    } else {
+      // No org context — try localStorage fallback for platform-level reads.
       const stored = readPlatformStored(key);
       if (stored !== undefined) return stored;
     }
     return defaultValue;
   } catch (e: any) {
     console.warn(`[OrgService] Failed to fetch setting '${key}':`, e?.message || e);
-    // Last resort: localStorage for platform-level reads.
-    if (!orgId) {
+    // Cascade to platform-level setting before giving up.
+    if (orgId) {
+      try {
+        const platformDefault = await getPlatformSetting(key, undefined);
+        if (platformDefault !== undefined) return platformDefault;
+      } catch { /* fall through */ }
+    } else {
+      // Last resort: localStorage for platform-level reads.
       const stored = readPlatformStored(key);
       if (stored !== undefined) return stored;
     }
@@ -130,6 +141,120 @@ async function setSetting(key: string, value: any) {
   }
 }
 
+/**
+ * Write a platform-level setting (organization_id = null).
+ * Always writes without org context — safe for SUPER_ADMIN accounts.
+ */
+async function setPlatformSetting(key: string, value: any) {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const { data: existing } = await supabase
+      .from('settings')
+      .select('id')
+      .eq('key', key)
+      .is('organization_id', null)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase
+        .from('settings')
+        .update({ value })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('settings')
+        .insert({ key, value, organization_id: null });
+      if (error) throw error;
+    }
+    // DB write succeeded — clear any stale localStorage copy.
+    try { localStorage.removeItem(PLATFORM_PREFIX + key); } catch {}
+  } catch (e: any) {
+    if (e?.message?.includes('not-null constraint') || e?.code === '23502') {
+      console.warn(`[OrgService] Platform DB not ready, using localStorage for: ${key}`);
+      writePlatformStored(key, value);
+      return;
+    }
+    throw e;
+  }
+}
+
+/**
+ * Read a platform-level setting (organization_id = null).
+ * Falls back to localStorage if the DB read fails.
+ */
+async function getPlatformSetting(key: string, defaultValue: any) {
+  if (!isSupabaseConfigured()) {
+    const stored = readPlatformStored(key);
+    return stored !== undefined ? stored : defaultValue;
+  }
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', key)
+      .is('organization_id', null)
+      .maybeSingle();
+    if (error) throw error;
+    if (data?.value != null) {
+      try {
+        return typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+      } catch {
+        return defaultValue;
+      }
+    }
+    // No DB row — try localStorage fallback.
+    const stored = readPlatformStored(key);
+    if (stored !== undefined) return stored;
+    return defaultValue;
+  } catch (e: any) {
+    console.warn(`[OrgService] Failed to fetch platform setting '${key}':`, e?.message || e);
+    const stored = readPlatformStored(key);
+    if (stored !== undefined) return stored;
+    return defaultValue;
+  }
+}
+
+/**
+ * Push a setting to all existing organizations. Used by super admins to
+ * propagate a platform default to every org immediately.
+ * Batches upserts 10 at a time to avoid overwhelming the DB.
+ */
+async function setSettingForAllOrganizations(key: string, value: any) {
+  if (!isSupabaseConfigured()) return;
+  const { data: orgs, error } = await supabase
+    .from('organizations')
+    .select('id');
+  if (error) throw error;
+  if (!orgs || orgs.length === 0) return;
+
+  const orgIds = orgs.map((o: any) => o.id);
+  const BATCH_SIZE = 10;
+  let succeeded = 0;
+  let failed = 0;
+
+  for (let i = 0; i < orgIds.length; i += BATCH_SIZE) {
+    const batch = orgIds.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((orgId: string) =>
+        supabase
+          .from('settings')
+          .upsert(
+            { key, value, organization_id: orgId },
+            { onConflict: 'organization_id,key' }
+          )
+      )
+    );
+    succeeded += results.filter(r => r.status === 'fulfilled').length;
+    failed += results.filter(r => r.status === 'rejected').length;
+  }
+
+  if (failed > 0) {
+    console.warn(
+      `[OrgService] setSettingForAllOrganizations("${key}"): ${succeeded} succeeded, ${failed} failed out of ${orgIds.length} orgs`
+    );
+  }
+}
+
 export const organizationService = {
   clearCache() {
     cachedConfig = null;
@@ -174,6 +299,9 @@ export const organizationService = {
 
   getSetting,
   setSetting,
+  setPlatformSetting,
+  getPlatformSetting,
+  setSettingForAllOrganizations,
 
   async getConfig(): Promise<AppConfig> {
     if (cachedConfig && isCacheValid()) return cachedConfig;
