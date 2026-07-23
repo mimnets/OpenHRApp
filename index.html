@@ -132,20 +132,14 @@
         (darkPref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
       if (isDark) {
-        // Apply dark class immediately
+        // Apply dark class immediately — the .dark CSS rules in the static
+        // hero <style> block handle background/text overrides for both the
+        // skeleton and body, so no element lookups are needed here.
         document.documentElement.classList.add('dark');
 
         // Update theme-color meta tag to dark
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute('content', '#0f172a');
-
-        // Override static hero background
-        var hero = document.getElementById('static-hero');
-        if (hero) { hero.style.background = '#0f172a'; hero.style.color = '#e2e8f0'; }
-
-        // Override body background and text (React will refine after hydration)
-        document.body.style.background = '#0f172a';
-        document.body.style.color = '#e2e8f0';
       }
     } catch(e) {}
   })();
@@ -212,6 +206,19 @@
         @media(min-width:1024px){
           #static-hero .sh-headline{font-size:3.75rem}
         }
+        /* Dark mode overrides — .dark class is applied on <html> by the
+           synchronous <head> script before the body parses, so these rules
+           are active on first paint and eliminate the white flash. */
+        .dark #static-hero{background:#0f172a!important;color:#e2e8f0!important}
+        .dark #static-hero .sh-headline{color:#f1f5f9!important}
+        .dark #static-hero .sh-subtext{color:#94a3b8!important}
+        .dark #static-hero .sh-trust-item{color:#64748b!important}
+        .dark #static-hero .sh-badge{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.1)!important}
+        .dark #static-hero .sh-btn-dark{background:#334155!important}
+        /* Auth-aware: when the user has a cached Supabase session, hide the
+           landing-page skeleton to avoid a flash-of-wrong-page on refresh.
+           The inline script below toggles this class synchronously. */
+        #static-hero.sh-auth-session{display:none}
       </style>
       <section class="sh-section">
         <div class="sh-blob sh-blob-top"></div>
@@ -272,6 +279,33 @@
       </section>
     </div>
   </div>
+<script>
+  // Auth-aware: hide the landing-page skeleton when the user already has a
+  // Supabase session in localStorage. This prevents authenticated users from
+  // briefly seeing the landing hero on refresh / PWA cold start. Crawlers
+  // (no JS / no localStorage) always see the full hero for SEO.
+  (function() {
+    try {
+      var hasSession = false;
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && /^sb-[a-z0-9]+-auth-token$/i.test(key)) {
+          try {
+            var raw = localStorage.getItem(key);
+            if (raw) {
+              var session = JSON.parse(raw);
+              if (session && session.access_token) { hasSession = true; break; }
+            }
+          } catch(e) { /* corrupt entry, keep checking */ }
+        }
+      }
+      if (hasSession) {
+        var hero = document.getElementById('static-hero');
+        if (hero) hero.classList.add('sh-auth-session');
+      }
+    } catch(e) {}
+  })();
+</script>
 <script>
   // Capture install prompt event (must be inline, not in ESM module,
   // because on slower devices beforeinstallprompt fires before modules load)

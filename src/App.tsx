@@ -14,6 +14,7 @@ import { PWAUpdateBanner } from './components/PWAUpdateBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { lazyWithReload } from './utils/lazyWithReload';
 import { supabase } from './services/supabase';
+import { sessionManager } from './services/session/sessionManager';
 
 // Eager: public pages needed for first paint / SEO
 import Login from './pages/Login';
@@ -208,12 +209,21 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // Listen for Supabase PASSWORD_RECOVERY event (fires after hash tokens parsed)
+  // Listen for Supabase auth state changes (PASSWORD_RECOVERY, SIGNED_OUT).
+  // When Supabase clears the session externally (another tab signs out, token
+  // revocation, SDK auto-cleanup after failed refresh), sync sessionManager
+  // so the UI immediately reflects the correct auth state.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowPasswordReset(true);
         setShowLanding(false);
+      }
+      if (event === 'SIGNED_OUT') {
+        const snap = sessionManager.getSnapshot();
+        if (snap.user) {
+          sessionManager.setCurrentUser(null);
+        }
       }
     });
     return () => subscription.unsubscribe();

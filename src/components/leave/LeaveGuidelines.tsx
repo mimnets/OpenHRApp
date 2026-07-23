@@ -73,21 +73,21 @@ export const LeaveGuidelines: React.FC<Props> = ({ role }) => {
   const Icon = guide.icon;
 
   return (
-    <div className="bg-white rounded-xl p-6 md:p-8 border border-slate-100 shadow-sm mb-8 animate-in slide-in-from-top-4">
+    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 md:p-8 border border-slate-100 dark:border-slate-800 shadow-sm mb-8 animate-in slide-in-from-top-4">
       <div className="flex items-center gap-4 mb-6">
         <div className={`p-3 rounded-2xl ${guide.color}`}>
           <Icon size={24} />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-900 uppercase tracking-tight">{guide.title}</h3>
-          <p className="text-xs font-bold text-slate-400">Please review before proceeding</p>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-tight">{guide.title}</h3>
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Please review before proceeding</p>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {guide.rules.map((rule, idx) => (
-          <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/50">
-            <CheckCircle2 size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs font-medium text-slate-600 leading-relaxed">{rule}</p>
+          <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
+            <CheckCircle2 size={16} className="text-slate-400 dark:text-slate-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{rule}</p>
           </div>
         ))}
       </div>
