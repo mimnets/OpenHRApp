@@ -74,7 +74,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const fetchPlatformDefault = useCallback(async () => {
     try {
-      const themeId = await organizationService.getSetting('default_theme', null);
+      // Try org-scoped setting first; getSetting now cascades to platform-level
+      // internally when no org-specific value exists.
+      let themeId = await organizationService.getSetting('default_theme', null);
+      // Belt-and-suspenders: if getSetting returned nothing, explicitly try the
+      // platform-level setting (covers edge cases where cascade might be skipped).
+      if (!themeId) {
+        themeId = await organizationService.getPlatformSetting('default_theme', null);
+      }
       if (themeId && typeof themeId === 'string') {
         applyThemeById(themeId);
       }

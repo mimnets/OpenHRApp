@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Check, Palette } from 'lucide-react';
 import { THEMES, useTheme, cacheThemeId } from '../../context/ThemeContext';
 import { organizationService } from '../../services/organization.service';
+import { useAuth } from '../../context/AuthContext';
 
 interface AppearanceManagementProps {
   onMessage: (msg: { type: 'success' | 'error'; text: string }) => void;
@@ -10,9 +11,13 @@ interface AppearanceManagementProps {
 
 const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }) => {
   const { setTheme } = useTheme();
+  const { user } = useAuth();
   const [selectedTheme, setSelectedTheme] = useState('arctic-frost');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pushToAllOrgs, setPushToAllOrgs] = useState(false);
+
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
   useEffect(() => {
     loadCurrentDefault();
@@ -21,7 +26,9 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
   const loadCurrentDefault = async () => {
     setIsLoading(true);
     try {
-      const value = await organizationService.getSetting('default_theme', 'arctic-frost');
+      const value = isSuperAdmin
+        ? await organizationService.getPlatformSetting('default_theme', 'arctic-frost')
+        : await organizationService.getSetting('default_theme', 'arctic-frost');
       if (value) setSelectedTheme(value as string);
     } catch (e) {
       // use default
@@ -33,11 +40,38 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
     setIsSaving(true);
     setSelectedTheme(themeId);
     try {
-      await organizationService.setSetting('default_theme', themeId);
+      if (isSuperAdmin) {
+        // Super admin saves as a platform-wide default.
+        await organizationService.setPlatformSetting('default_theme', themeId);
+
+        if (pushToAllOrgs) {
+          // Push the theme to every existing organization so they inherit it
+          // immediately instead of waiting for the cascade on next read.
+          await organizationService.setSettingForAllOrganizations('default_theme', themeId);
+        }
+      } else {
+        // Org admin — scoped to their own organization.
+        await organizationService.setSetting('default_theme', themeId);
+      }
+
       setTheme(themeId);
       cacheThemeId(themeId);
       const theme = THEMES.find(t => t.id === themeId);
-      onMessage({ type: 'success', text: `Global theme set to "${theme?.name || themeId}". All users will see this on their next visit.` });
+
+      if (isSuperAdmin) {
+        const suffix = pushToAllOrgs
+          ? ' Pushed to all existing organizations.'
+          : ' Individual org admins can override this with their own theme.';
+        onMessage({
+          type: 'success',
+          text: `Platform-wide default theme set to "${theme?.name || themeId}".${suffix}`,
+        });
+      } else {
+        onMessage({
+          type: 'success',
+          text: `Global theme set to "${theme?.name || themeId}". All users will see this on their next visit.`,
+        });
+      }
     } catch (e: any) {
       onMessage({ type: 'error', text: `Failed to save: ${e?.message || 'Unknown error'}` });
     }
@@ -59,9 +93,13 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
           <Palette size={24} className="text-primary" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-900">Global App Theme</h3>
+          <h3 className="text-xl font-bold text-slate-900">
+            {isSuperAdmin ? 'Platform-Wide Default Theme' : 'Global App Theme'}
+          </h3>
           <p className="text-sm text-slate-500">
-            Set the accent color for all users across the platform.
+            {isSuperAdmin
+              ? 'Set the default accent color for all organizations on the platform.'
+              : 'Set the accent color for all users across the platform.'}
           </p>
         </div>
       </div>
@@ -103,10 +141,41 @@ const AppearanceManagement: React.FC<AppearanceManagementProps> = ({ onMessage }
           ))}
         </div>
 
+        {isSuperAdmin && (
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pushToAllOrgs}
+                onChange={(e) => setPushToAllOrgs(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-amber-900">
+                Push this theme to all existing organizations
+              </span>
+            </label>
+            <p className="text-xs text-amber-700 mt-1 ml-7">
+              When checked, the selected theme will be immediately applied to every organization.
+              Otherwise, organizations without their own theme will fall back to this platform default
+              on their next setting read.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 p-4 bg-slate-50 rounded-2xl">
           <p className="text-xs text-slate-500">
-            <strong>Note:</strong> This sets the global accent color for the entire platform.
-            All users will see the updated theme. Users can still choose their own light/dark mode preference.
+            {isSuperAdmin ? (
+              <>
+                <strong>Note:</strong> This sets the <strong>platform-wide default</strong> accent color.
+                Individual organization admins can override this with their own theme via their admin panel.
+                Users can still choose their own light/dark mode preference.
+              </>
+            ) : (
+              <>
+                <strong>Note:</strong> This sets the global accent color for the entire organization.
+                All users will see the updated theme. Users can still choose their own light/dark mode preference.
+              </>
+            )}
           </p>
         </div>
       </div>

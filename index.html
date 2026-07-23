@@ -123,6 +123,32 @@
       s.setProperty('--primary-light-dark', t.p + '20');
     } catch(e) {}
   })();
+
+  // Dark mode preload — prevents white flash on refresh
+  (function() {
+    try {
+      var darkPref = localStorage.getItem('openhr-dark-mode') || 'system';
+      var isDark = darkPref === 'dark' ||
+        (darkPref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      if (isDark) {
+        // Apply dark class immediately
+        document.documentElement.classList.add('dark');
+
+        // Update theme-color meta tag to dark
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', '#0f172a');
+
+        // Override static hero background
+        var hero = document.getElementById('static-hero');
+        if (hero) { hero.style.background = '#0f172a'; hero.style.color = '#e2e8f0'; }
+
+        // Override body background and text (React will refine after hydration)
+        document.body.style.background = '#0f172a';
+        document.body.style.color = '#e2e8f0';
+      }
+    } catch(e) {}
+  })();
 </script>
 <script type="importmap">
 {
