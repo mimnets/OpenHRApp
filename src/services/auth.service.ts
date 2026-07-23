@@ -57,8 +57,10 @@ export const authService = {
   },
 
   async logout() {
+    // sessionManager.forceLogout() is the single exit path that calls
+    // supabase.auth.signOut() — do not duplicate the call here (frozen
+    // module invariant: only sessionManager may call signOut).
     await sessionManager.forceLogout('USER_INITIATED');
-    await supabase.auth.signOut();
     organizationService.clearCache();
     apiClient.notify();
   },
