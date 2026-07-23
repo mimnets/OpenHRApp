@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-07-23',
+    title: 'Automated testing infrastructure with Vitest and Testing Library',
+    entries: [
+      { type: 'feature', description: 'Added Vitest test runner with jsdom environment, React Testing Library, and jest-dom matchers. Configured globals and @/ path alias in vitest.config.ts. Added src/test/setup.ts for test environment setup. Created example unit tests for readingTime utils (13 test cases) and a component smoke test for CookieConsent (3 test cases). All 17 tests pass. Added test and test:run scripts to package.json. Pinned Node.js version via .nvmrc.' },
+    ],
+  },
+  {
     date: '2026-07-21',
     title: 'Live Demo — try OpenHRApp instantly without registration',
     entries: [
