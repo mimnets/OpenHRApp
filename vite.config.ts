@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
           manifest: false,
           strategies: 'injectManifest',
           srcDir: 'src',
-          filename: 'sw.ts',
+          filename: 'pwa-sw.js',
           injectManifest: {
             globPatterns: ['**/*.{js,css,html,ico,svg,woff2,webp,png}'],
             maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
