@@ -6,7 +6,7 @@
   <title>OpenHRApp — Free Open-Source HR Management Software</title>
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="OpenHRApp is a free, open-source HR management platform with attendance tracking, leave management, and employee directory. Completely free forever — no credit[...]">
+  <meta name="description" content="OpenHRApp is a free, open-source HR management platform with attendance tracking, leave management, and employee directory. Completely free forever — no credit card required.">
   <meta name="author" content="OpenHRApp">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://openhrapp.com/">
@@ -106,8 +106,8 @@
        Daylight public surface. One request, non-blocking, display=swap.
        Inter previously pulled 300/800/900 which nothing uses — see the weight
        audit: only font-medium, font-semibold and font-bold appear in src/. -->
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght[...]">
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400[...]"></noscript>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Schibsted+Grotesk:wght@600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <script>
   // Dark mode preload — prevents white flash on refresh
   (function() {
@@ -169,43 +169,35 @@
         #static-hero{font-family:var(--dl-font-body,"Public Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif);background:var(--dl-ground,#FFFFFF);min-height:100vh}
         #static-hero .sh-wrap{max-width:80rem;margin:0 auto;padding:0 1rem;text-align:center}
         #static-hero .sh-inner{max-width:56rem;margin:0 auto}
-        #static-hero .sh-headline{font-family:var(--dl-font-display,"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif);font-size:2.25rem;line-height:1.1;font-weight:[...]
+        #static-hero .sh-headline{font-family:var(--dl-font-display,"Schibsted Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif);font-size:2.25rem;line-height:1.1;font-weight:600;color:var(--dl-ink,#0E2A33);letter-spacing:-0.03em;margin:0 0 1.5rem}
         #static-hero .sh-headline span{color:var(--dl-teal,#1C6E7E)}
         #static-hero .sh-subtext{font-size:1.125rem;line-height:1.625;color:var(--dl-muted,#55707A);max-width:42rem;margin:0 auto 2.5rem}
-        #static-hero .sh-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem 2rem;font-weight:700;font-size:.875rem;border-radius:var(--dl-r-md,14px);text-dec[...]
+        #static-hero .sh-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem 2rem;font-weight:700;font-size:.875rem;border-radius:var(--dl-r-md,14px);text-decoration:none;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:opacity .15s}
         #static-hero .sh-btn-dark{background:var(--dl-ink,#0E2A33);color:var(--dl-surface,#FFFFFF);box-shadow:var(--dl-lift-2,0 1px 2px rgba(14,42,51,.05), 0 14px 34px -14px rgba(14,42,51,.16))}
         #static-hero .sh-btn-demo{background:transparent;color:var(--dl-teal,#1C6E7E);border-color:rgba(28,110,126,.4)}
-        #static-hero .sh-btn-primary{background:var(--dl-teal,#1C6E7E);color:var(--dl-surface,#FFFFFF);box-shadow:var(--dl-lift-1,0 1px 1px rgba(14,42,51,.045), 0 4px 10px -4px rgba(14,42,51,.08)[...]
+        #static-hero .sh-btn-primary{background:var(--dl-teal,#1C6E7E);color:var(--dl-surface,#FFFFFF);box-shadow:var(--dl-lift-1,0 1px 1px rgba(14,42,51,.045), 0 4px 10px -4px rgba(14,42,51,.08))}
         #static-hero .sh-btn:hover{opacity:.9}
         /* Mirrors .dl-cta-cycle / .dl-cta-pulse in src/index.css so the two CTAs
            do not visibly start animating at the moment React takes over. */
         @property --sh-ring-angle{syntax:"<angle>";inherits:false;initial-value:0deg}
         @keyframes sh-cta-ring-spin{to{--sh-ring-angle:360deg}}
-        #static-hero .sh-btn-demo{border:2px solid transparent;background:linear-gradient(var(--dl-ground,#FFFFFF),var(--dl-ground,#FFFFFF)) padding-box,conic-gradient(from var(--sh-ring-angle),v[...]
+        #static-hero .sh-btn-demo{border:2px solid transparent;background:linear-gradient(var(--dl-ground,#FFFFFF),var(--dl-ground,#FFFFFF)) padding-box,conic-gradient(from var(--sh-ring-angle),var(--dl-teal,#1C6E7E),var(--dl-dawn,#B4560F),var(--dl-noon,#A83E58),var(--dl-dusk,#5C4E8E),var(--dl-teal,#1C6E7E)) border-box;animation:sh-cta-ring-spin 4s linear infinite}
         #static-hero .sh-dots{display:inline-flex;align-items:center;gap:.3rem}
         #static-hero .sh-dot{width:.45rem;height:.45rem;border-radius:50%;display:block;animation:sh-dot-blink 1.8s ease-in-out infinite}
         #static-hero .sh-dot-red{background:#E5484D}
         #static-hero .sh-dot-green{background:#30A46C;animation-delay:.9s}
         @keyframes sh-dot-blink{0%,100%{opacity:1}50%{opacity:.22}}
         #static-hero .sh-btn-primary{position:relative;overflow:hidden;animation:sh-cta-halo 2.6s ease-out infinite}
-        #static-hero .sh-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;pointer-events:none;background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.[...]
+        #static-hero .sh-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;pointer-events:none;background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.38) 50%,transparent 100%);transform:skewX(-18deg);animation:sh-cta-sheen 3.4s ease-in-out infinite}
         @media(prefers-reduced-motion:reduce){
           #static-hero .sh-btn-demo,#static-hero .sh-btn-primary,#static-hero .sh-btn-primary::after,#static-hero .sh-dot{animation:none}
         }
         #static-hero .sh-note{font-size:.75rem;color:var(--dl-muted,#55707A);margin:0 0 3rem}
         #static-hero .sh-note-desktop{display:none}
-        #static-hero .sh-badge{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;background:rgba(28,110,126,.05);border:1px solid rgba(28,110,126,.15);border-radius:9999px;margi[...]
+        #static-hero .sh-badge{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;background:rgba(28,110,126,.05);border:1px solid rgba(28,110,126,.15);border-radius:9999px;margin-bottom:1.5rem}
         #static-hero .sh-badge-dot{width:.5rem;height:.5rem;background:var(--dl-teal,#1C6E7E);border-radius:50%}
         #static-hero .sh-badge-text{font-size:.75rem;font-weight:700;color:var(--dl-teal,#1C6E7E);text-transform:uppercase;letter-spacing:.12em}
         #static-hero .sh-trust{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:1.5rem;margin-top:3rem}
-        #static-hero .sh-trust-item{display:flex;align-items:center;gap:.5rem;color:var(--dl-muted,#55707A);font-size:.75rem;font-weight:600}
-        #static-hero .sh-trust-icon{color:var(--dl-teal,#1C6E7E);flex-shrink:0}
-        #static-hero .sh-cta-mobile{display:flex;flex-direction:column;gap:.75rem;margin-bottom:2rem}
-        #static-hero .sh-cta-desktop{display:none;align-items:center;justify-content:center;gap:1rem;margin-bottom:3rem}
-        #static-hero .sh-section{position:relative;padding-top:7rem;padding-bottom:4rem;overflow:hidden}
-        #static-hero .sh-blob{position:absolute;border-radius:50%;filter:blur(120px);z-index:0}
-        #static-hero .sh-blob-top{top:0;right:-20%;width:60%;height:60%;background:radial-gradient(circle, rgba(28,110,126,.05) 0%, transparent 70%)}
-        #static-hero .sh-blob-bottom{bottom:0;left:-10%;width:40%;height:40%;background:radial-gradient(circle, rgba(14,42,51,.05) 0%, transparent 70%)}
         @media(min-width:640px){
           #static-hero .sh-headline{font-size:3rem}
           #static-hero .sh-subtext{font-size:1.406rem}
@@ -238,13 +230,11 @@
         .dark #static-hero .sh-badge-dot{background:var(--dl-teal,#5FBDCE)}
         .dark #static-hero .sh-btn-dark{background:var(--dl-ink,#E4EDEF);color:var(--dl-surface,#102026)}
         .dark #static-hero .sh-badge{background:rgba(95,189,206,.06);border-color:rgba(95,189,206,.18)}
-        .dark #static-hero .sh-btn-demo{background:linear-gradient(var(--dl-ground,#0A1518),var(--dl-ground,#0A1518)) padding-box,conic-gradient(from var(--sh-ring-angle),var(--dl-teal,#5FBDCE),v[...]
+        .dark #static-hero .sh-btn-demo{background:linear-gradient(var(--dl-ground,#0A1518),var(--dl-ground,#0A1518)) padding-box,conic-gradient(from var(--sh-ring-angle),var(--dl-teal,#5FBDCE),var(--dl-dawn,#E2925A),var(--dl-noon,#DE8199),var(--dl-dusk,#A99BDA),var(--dl-teal,#5FBDCE)) border-box}
         .dark #static-hero .sh-btn-primary{animation-name:sh-cta-halo-dark}
         .dark #static-hero .sh-btn-primary::after{background:linear-gradient(100deg,transparent 0%,rgba(14,42,51,.30) 50%,transparent 100%)}
         @keyframes sh-cta-halo-dark{0%{box-shadow:0 0 0 0 rgba(95,189,206,.55)}70%{box-shadow:0 0 0 12px rgba(95,189,206,0)}100%{box-shadow:0 0 0 0 rgba(95,189,206,0)}}
-        .dark #static-hero .sh-blob-top{background:radial-gradient(circle, rgba(95,189,206,.06) 0%, transparent 70%)}
-        .dark #static-hero .sh-blob-bottom{background:radial-gradient(circle, rgba(228,237,239,.04) 0%, transparent 70%)}
-        .dark #static-hero .sh-btn-primary{background:var(--dl-teal,#5FBDCE);color:var(--dl-surface,#102026)}
+        #static-hero .sh-btn-primary{background:var(--dl-teal,#5FBDCE);color:var(--dl-surface,#102026)}
         /* Auth-aware: when the user has a cached Supabase session, hide the
            landing-page skeleton to avoid a flash-of-wrong-page on refresh.
            The inline script below toggles this class synchronously. */
@@ -258,66 +248,66 @@
           <!-- Mobile CTA Buttons (visible below 640px, matches HeroSection.tsx sm:hidden) -->
           <div class="sh-cta-mobile">
             <a class="sh-btn sh-btn-dark" href="/" style="width:100%">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2[...]
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
               Login to Your Account
             </a>
             <a class="sh-btn sh-btn-demo" href="/" style="width:100%">
               <span class="sh-dots" aria-hidden="true"><i class="sh-dot sh-dot-red"></i><i class="sh-dot sh-dot-green"></i></span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3[...]
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               Try Live Demo →
             </a>
             <a class="sh-btn sh-btn-primary" href="/" style="width:100%">
               Get Started Free
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12[...]
-              </a>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+          <p class="sh-note">Demo resets daily. No data saved.</p>
+
+          <!-- Badge -->
+          <div class="sh-badge">
+            <div class="sh-badge-dot"></div>
+            <span class="sh-badge-text">Free &amp; Open-Source HR Platform</span>
+          </div>
+
+          <!-- Headline -->
+          <h1 class="sh-headline">Modern HR Management <span>Made Simple</span></h1>
+
+          <!-- Subtext -->
+          <p class="sh-subtext">OpenHRApp is a free, open-source HR management platform trusted by growing teams worldwide. Track attendance with selfie-based check-ins, manage leave requests with one click, and keep employee records organized — all from one intuitive dashboard. No downloads, no credit card — get started in minutes.</p>
+
+          <!-- Desktop CTA Buttons (hidden below 640px, matches HeroSection.tsx hidden sm:flex) -->
+          <div class="sh-cta-desktop">
+            <a class="sh-btn sh-btn-dark" href="/">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              Login to Your Account
+            </a>
+            <a class="sh-btn sh-btn-demo" href="/">
+              <span class="sh-dots" aria-hidden="true"><i class="sh-dot sh-dot-red"></i><i class="sh-dot sh-dot-green"></i></span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Try Live Demo →
+            </a>
+            <a class="sh-btn sh-btn-primary" href="/">
+              Get Started Free
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+          <p class="sh-note sh-note-desktop">Demo resets daily. No data saved.</p>
+
+          <!-- Trust Badges -->
+          <div class="sh-trust">
+            <div class="sh-trust-item">
+              <svg class="sh-trust-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Free forever</span>
             </div>
-            <p class="sh-note">Demo resets daily. No data saved.</p>
-
-            <!-- Badge -->
-            <div class="sh-badge">
-              <div class="sh-badge-dot"></div>
-              <span class="sh-badge-text">Free &amp; Open-Source HR Platform</span>
+            <div class="sh-trust-item">
+              <svg class="sh-trust-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span>No credit card required</span>
             </div>
-
-            <!-- Headline -->
-            <h1 class="sh-headline">Modern HR Management <span>Made Simple</span></h1>
-
-            <!-- Subtext -->
-            <p class="sh-subtext">OpenHRApp is a free, open-source HR management platform trusted by growing teams worldwide. Track attendance with selfie-based check-ins, manage leave requests wit[...]
-
-            <!-- Desktop CTA Buttons (hidden below 640px, matches HeroSection.tsx hidden sm:flex) -->
-            <div class="sh-cta-desktop">
-              <a class="sh-btn sh-btn-dark" href="/">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2[...]
-                Login to Your Account
-              </a>
-              <a class="sh-btn sh-btn-demo" href="/">
-                <span class="sh-dots" aria-hidden="true"><i class="sh-dot sh-dot-red"></i><i class="sh-dot sh-dot-green"></i></span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3[...]
-                Try Live Demo →
-              </a>
-              <a class="sh-btn sh-btn-primary" href="/">
-                Get Started Free
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12[...]
-                </a>
-              </div>
-              <p class="sh-note sh-note-desktop">Demo resets daily. No data saved.</p>
-
-              <!-- Trust Badges -->
-              <div class="sh-trust">
-                <div class="sh-trust-item">
-                  <svg class="sh-trust-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="1[...]
-                  <span>Free forever</span>
-                </div>
-                <div class="sh-trust-item">
-                  <svg class="sh-trust-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y[...]
-                  <span>No credit card required</span>
-                </div>
-                <div class="sh-trust-item">
-                  <svg class="sh-trust-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon poin[...]
-                  <span>Setup in 5 minutes</span>
-                </div>
-              </div>
+            <div class="sh-trust-item">
+              <svg class="sh-trust-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Setup in 5 minutes</span>
+            </div>
+          </div>
          </div>
         </div>
       </section>
