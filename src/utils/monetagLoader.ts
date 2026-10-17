@@ -62,6 +62,87 @@ import {
 import { assessStorageCapability, hasAdvertisingConsent } from './adConsent';
 
 /**
+ * Runtime activation settings fetched from the database. These supplement (not replace)
+ * the compile-time kill switches. Both must be true for a format to activate:
+ * compile-time flag AND runtime setting. The compile-time flags remain as emergency
+ * kill switches that can never be overridden by database settings.
+ *
+ * Default-OFF: if the database is unreachable, the settings are missing, or the fetch
+ * fails, both formats remain disabled. This is the safe default.
+ */
+interface RuntimeSettings {
+  ipp: boolean;
+  vignette: boolean;
+  loaded: boolean;
+}
+
+let runtimeSettings: RuntimeSettings = { ipp: false, vignette: false, loaded: false };
+
+/**
+ * Fetches the Monetag runtime activation settings from the database. Called once during
+ * app initialization. If the fetch fails or settings are missing, defaults to OFF (safe).
+ * The compile-time flags in monetag.ts remain as emergency kill switches.
+ */
+export async function initializeMonetagRuntimeSettings(): Promise<void> {
+  // Lazy import to avoid module-supabase construction in test environments
+  let isSupabaseConfigured: () => boolean;
+  let supabase: any;
+  try {
+    const mod = await import('../services/supabase');
+    isSupabaseConfigured = mod.isSupabaseConfigured;
+    supabase = mod.supabase;
+  } catch {
+    runtimeSettings = { ipp: false, vignette: false, loaded: true };
+    return;
+  }
+
+  if (!isSupabaseConfigured()) {
+    // Supabase not configured — default OFF, mark as loaded to prevent retry loops
+    runtimeSettings = { ipp: false, vignette: false, loaded: true };
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .rpc('get_monetag_settings')
+      .single();
+
+    if (error) {
+      console.warn('[Monetag] Runtime settings fetch failed, defaulting to OFF:', error.message);
+      runtimeSettings = { ipp: false, vignette: false, loaded: true };
+      return;
+    }
+
+    if (!data) {
+      // No settings row — default OFF
+      runtimeSettings = { ipp: false, vignette: false, loaded: true };
+      return;
+    }
+
+    // Cast the RPC response to the expected shape
+    const settings = data as { ipp_enabled: boolean; vignette_enabled: boolean };
+    runtimeSettings = {
+      ipp: Boolean(settings.ipp_enabled),
+      vignette: Boolean(settings.vignette_enabled),
+      loaded: true,
+    };
+  } catch (e: any) {
+    console.warn('[Monetag] Runtime settings fetch error, defaulting to OFF:', e?.message || e);
+    runtimeSettings = { ipp: false, vignette: false, loaded: true };
+  }
+}
+
+/** Test seam: reset runtime settings for isolated test cases. */
+export function __resetMonetagRuntimeSettingsForTests(): void {
+  runtimeSettings = { ipp: false, vignette: false, loaded: false };
+}
+
+/** Test seam: set runtime settings directly for testing. */
+export function __setMonetagRuntimeSettingsForTests(ipp: boolean, vignette: boolean): void {
+  runtimeSettings = { ipp, vignette, loaded: true };
+}
+
+/**
  * The standalone formats this loader can install. Both are plain vendor scripts with no
  * worker and no notification API; they differ only in zone, URL, kill switch and marker.
  * `enabled` is a getter rather than a captured value so the decision always reads the
@@ -88,7 +169,9 @@ interface FormatSpec {
 
 const FORMATS: Record<MonetagFormat, FormatSpec> = {
   ipp: {
-    enabled: () => MONETAG_ENABLED,
+    // Both compile-time kill switch AND runtime database setting must be true.
+    // The compile-time flag is the emergency override that can never be bypassed.
+    enabled: () => MONETAG_ENABLED && runtimeSettings.ipp,
     zoneId: MONETAG_ZONE_ID,
     src: MONETAG_TAG_SRC,
     host: MONETAG_TAG_HOST,
@@ -96,7 +179,7 @@ const FORMATS: Record<MonetagFormat, FormatSpec> = {
     markerAttr: MONETAG_MARKER_ATTR,
   },
   vignette: {
-    enabled: () => MONETAG_VIGNETTE_ENABLED,
+    enabled: () => MONETAG_VIGNETTE_ENABLED && runtimeSettings.vignette,
     zoneId: MONETAG_VIGNETTE_ZONE_ID,
     src: MONETAG_VIGNETTE_TAG_SRC,
     host: MONETAG_VIGNETTE_TAG_HOST,

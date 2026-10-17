@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, X, Code, Image, Globe } from 'lucide-react';
+import { Loader2, X, Code, Image, Globe, AlertTriangle } from 'lucide-react';
 import { organizationService } from '../../services/organization.service';
 import { AdConfig, AdSlot, AdPlaceholder } from '../ads';
 
@@ -37,9 +37,17 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingSlot, setEditingSlot] = useState<AdSlot | null>(null);
   const [editForm, setEditForm] = useState<AdConfig | null>(null);
+  
+  // Monetag Controls state
+  const [monetagIppEnabled, setMonetagIppEnabled] = useState(false);
+  const [monetagVignetteEnabled, setMonetagVignetteEnabled] = useState(false);
+  const [monetagLoading, setMonetagLoading] = useState(true);
+  const [showIppWarning, setShowIppWarning] = useState(false);
+  const [showVignetteWarning, setShowVignetteWarning] = useState(false);
 
   useEffect(() => {
     loadConfigs();
+    loadMonetagSettings();
   }, []);
 
   const loadConfigs = async () => {
@@ -61,6 +69,77 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadMonetagSettings = async () => {
+    setMonetagLoading(true);
+    try {
+      const ippEnabled = await organizationService.getSetting('monetag_ipp_enabled', false);
+      const vignetteEnabled = await organizationService.getSetting('monetag_vignette_enabled', false);
+      setMonetagIppEnabled(Boolean(ippEnabled));
+      setMonetagVignetteEnabled(Boolean(vignetteEnabled));
+    } catch (e) {
+      console.error('[AdManagement] Monetag settings load error:', e);
+      // Default to OFF on error
+      setMonetagIppEnabled(false);
+      setMonetagVignetteEnabled(false);
+    } finally {
+      setMonetagLoading(false);
+    }
+  };
+
+  const handleMonetagIppToggle = async () => {
+    const newValue = !monetagIppEnabled;
+    
+    if (newValue && !showIppWarning) {
+      setShowIppWarning(true);
+      return;
+    }
+    
+    setShowIppWarning(false);
+    
+    try {
+      await organizationService.setSetting('monetag_ipp_enabled', newValue);
+      setMonetagIppEnabled(newValue);
+      onMessage({ 
+        type: 'success', 
+        text: `In-Page Push ${newValue ? 'enabled' : 'disabled'}. ${newValue ? 'Note: Already-loaded pages may continue running vendor code until their document contexts end.' : ''}` 
+      });
+    } catch (e: any) {
+      console.error('[AdManagement] Monetag IPP toggle error:', e);
+      onMessage({ type: 'error', text: 'Failed to update In-Page Push setting' });
+    }
+  };
+
+  const handleMonetagVignetteToggle = async () => {
+    const newValue = !monetagVignetteEnabled;
+    
+    if (newValue && !showVignetteWarning) {
+      setShowVignetteWarning(true);
+      return;
+    }
+    
+    setShowVignetteWarning(false);
+    
+    try {
+      await organizationService.setSetting('monetag_vignette_enabled', newValue);
+      setMonetagVignetteEnabled(newValue);
+      onMessage({ 
+        type: 'success', 
+        text: `Vignette ${newValue ? 'enabled' : 'disabled'}. ${newValue ? 'Note: Already-loaded pages may continue running vendor code until their document contexts end.' : ''}` 
+      });
+    } catch (e: any) {
+      console.error('[AdManagement] Monetag Vignette toggle error:', e);
+      onMessage({ type: 'error', text: 'Failed to update Vignette setting' });
+    }
+  };
+
+  const cancelMonetagIppToggle = () => {
+    setShowIppWarning(false);
+  };
+
+  const cancelMonetagVignetteToggle = () => {
+    setShowVignetteWarning(false);
   };
 
   const openEditModal = (slot: AdSlot) => {
@@ -118,6 +197,170 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
           <h3 className="text-xl font-bold text-slate-900">Ad Management</h3>
           <p className="text-sm text-slate-500 mt-1">Configure ad slots for AD_SUPPORTED organizations</p>
         </div>
+      </div>
+
+      {/* Monetag Controls Section */}
+      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h4 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+              <Globe size={20} />
+              Monetag Advertising Controls
+            </h4>
+            <p className="text-sm text-purple-700 mt-1">
+              Platform-wide advertising formats for public content pages. These are separate from the organization ad slots above.
+            </p>
+          </div>
+        </div>
+
+        {monetagLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="animate-spin text-purple-600" size={24} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* In-Page Push Control */}
+            <div className={`bg-white rounded-xl border-2 p-5 ${monetagIppEnabled ? 'border-emerald-300' : 'border-slate-200'}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h5 className="font-bold text-slate-900">In-Page Push</h5>
+                  <p className="text-xs text-slate-500 mt-1">Zone: 12046475</p>
+                </div>
+                <button
+                  onClick={handleMonetagIppToggle}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    monetagIppEnabled
+                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                >
+                  {monetagIppEnabled ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+              
+              <p className="text-xs text-slate-600 mb-3">
+                Non-intrusive push notifications displayed directly on eligible tutorial articles. 
+                Requires explicit visitor consent. Anonymous visitors only.
+              </p>
+
+              {showIppWarning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-900 mb-1">
+                        Enable In-Page Push Advertising?
+                      </p>
+                      <p className="text-xs text-amber-800 mb-2">
+                        This will load third-party advertising scripts on eligible public tutorial pages 
+                        for anonymous visitors who have explicitly granted advertising consent.
+                      </p>
+                      <p className="text-xs text-amber-800 mb-2">
+                        <strong>Important:</strong> Already-loaded pages may continue running vendor code 
+                        until their document contexts end, even after disabling.
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={handleMonetagIppToggle}
+                          className="px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded hover:bg-amber-700"
+                        >
+                          Yes, Enable
+                        </button>
+                        <button
+                          onClick={cancelMonetagIppToggle}
+                          className="px-3 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded hover:bg-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-xs text-slate-500">
+                <strong>Eligible pages:</strong> Tutorial articles only (/how-to-use/:slug)
+              </div>
+            </div>
+
+            {/* Vignette Control */}
+            <div className={`bg-white rounded-xl border-2 p-5 ${monetagVignetteEnabled ? 'border-emerald-300' : 'border-slate-200'}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h5 className="font-bold text-slate-900">Vignette</h5>
+                  <p className="text-xs text-slate-500 mt-1">Zone: 12054036</p>
+                </div>
+                <button
+                  onClick={handleMonetagVignetteToggle}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    monetagVignetteEnabled
+                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                >
+                  {monetagVignetteEnabled ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+              
+              <p className="text-xs text-slate-600 mb-3">
+                Full-page interstitial ads shown between page transitions on eligible tutorial articles. 
+                Requires explicit visitor consent. Anonymous visitors only.
+              </p>
+
+              {showVignetteWarning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-900 mb-1">
+                        Enable Vignette Advertising?
+                      </p>
+                      <p className="text-xs text-amber-800 mb-2">
+                        This will load third-party advertising scripts on eligible public tutorial pages 
+                        for anonymous visitors who have explicitly granted advertising consent.
+                      </p>
+                      <p className="text-xs text-amber-800 mb-2">
+                        <strong>Important:</strong> Already-loaded pages may continue running vendor code 
+                        until their document contexts end, even after disabling.
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={handleMonetagVignetteToggle}
+                          className="px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded hover:bg-amber-700"
+                        >
+                          Yes, Enable
+                        </button>
+                        <button
+                          onClick={cancelMonetagVignetteToggle}
+                          className="px-3 py-1 bg-slate-200 text-slate-700 text-xs font-bold rounded hover:bg-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-xs text-slate-500">
+                <strong>Eligible pages:</strong> Tutorial articles only (/how-to-use/:slug)
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 p-3 bg-purple-100 rounded-lg">
+          <p className="text-xs text-purple-900">
+            <strong>Note:</strong> Both formats require explicit visitor consent, are restricted to anonymous visitors on tutorial articles only, 
+            and preserve all existing consent withdrawal and document teardown behavior. Script URLs and zone IDs are hardcoded and cannot be modified through this interface.
+          </p>
+        </div>
+      </div>
+
+      {/* Organization Ad Slots Section */}
+      <div>
+        <h4 className="text-lg font-bold text-slate-900 mb-3">Organization Ad Slots</h4>
+        <p className="text-sm text-slate-500 mb-4">Configure ad slots for AD_SUPPORTED organizations</p>
       </div>
 
       {/* Ad Slots Grid */}

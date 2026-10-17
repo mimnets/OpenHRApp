@@ -60,7 +60,7 @@ import { getCurrentRoute, navigateToRoute, replaceRoute } from './utils/deeplink
 import { PushPermissionPrompt } from './components/PushPermissionPrompt';
 // M-04: standalone Monetag In-Page Push. Ships switched off — see src/config/monetag.ts.
 import { classifyRoute } from './config/monetag';
-import { beginAdvertisingDocumentReset, installMonetagTagOnce, watchPageAdvertisingOptIn, type AuthState } from './utils/monetagLoader';
+import { beginAdvertisingDocumentReset, initializeMonetagRuntimeSettings, installMonetagTagOnce, watchPageAdvertisingOptIn, type AuthState } from './utils/monetagLoader';
 
 // Parse features route from pathname
 const parseFeaturesRoute = (pathname: string) => {
@@ -192,6 +192,11 @@ const AppContent: React.FC = () => {
 
     return !knownPaths.includes(path);
   });
+
+  // Initialize Monetag runtime settings from database (once on mount)
+  useEffect(() => {
+    initializeMonetagRuntimeSettings();
+  }, []);
 
   // Check URL for verification token on mount
   useEffect(() => {
