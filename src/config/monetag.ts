@@ -26,7 +26,7 @@
  */
 
 /** The IPP kill switch. False means: never inject, evaluate nothing else, mutate nothing. */
-export const MONETAG_ENABLED = false;
+export const MONETAG_ENABLED = true;
 
 /** The Vignette kill switch, independent of the IPP one. Same meaning. */
 export const MONETAG_VIGNETTE_ENABLED = false;
