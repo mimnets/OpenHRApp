@@ -214,8 +214,15 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
             {/* Article with Sidebar */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div className="flex flex-col lg:flex-row gap-8">
-                {/* Main Article */}
-                <article className="flex-1 min-w-0 overflow-x-hidden">
+                {/* Main Article.
+                    `data-advertising="eligible"` is this page's explicit opt-in to standalone
+                    In-Page Push (M-22). It is a declaration, not a default: the loader refuses
+                    a document that does not carry it, so eligibility is decided by the
+                    component that knows what it renders rather than inferred from a URL that
+                    merely looks like an article. Placed here, inside the branch that renders
+                    only after a tutorial has actually loaded, it also keeps advertising off the
+                    loading state, the not-found state, and any path that resolves to neither. */}
+                <article className="flex-1 min-w-0 overflow-x-hidden" data-advertising="eligible">
                   <h1 className="text-3xl md:text-4xl font-semibold text-dl-ink tracking-tight mb-4">
                     {tutorial.title}
                   </h1>

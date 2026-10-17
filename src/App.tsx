@@ -58,6 +58,9 @@ const AdminNotifications = lazyWithReload(() => import('./pages/AdminNotificatio
 import { navigateTo } from './utils/seo';
 import { getCurrentRoute, navigateToRoute, replaceRoute } from './utils/deeplink';
 import { PushPermissionPrompt } from './components/PushPermissionPrompt';
+// M-04: standalone Monetag In-Page Push. Ships switched off — see src/config/monetag.ts.
+import { classifyRoute } from './config/monetag';
+import { beginAdvertisingDocumentReset, installMonetagTagOnce, watchPageAdvertisingOptIn, type AuthState } from './utils/monetagLoader';
 
 // Parse features route from pathname
 const parseFeaturesRoute = (pathname: string) => {
@@ -423,6 +426,69 @@ const AppContent: React.FC = () => {
       }
     }
   }, [user, isLoading]);
+
+  // ── M-04: standalone Monetag formats (In-Page Push + Vignette) ─────────────
+  // Inert while MONETAG_ENABLED and MONETAG_VIGNETTE_ENABLED are false, which is
+  // how this ships: the loader returns a denial per format before it touches the
+  // DOM, so routing, session handling and first-party push are entirely unaffected
+  // until the owner switches a format on.
+  //
+  // The facts are passed in from React state rather than inferred from the URL,
+  // because Login, Register, VerifyAccount and ResetPassword all share "/" with
+  // the landing page and would otherwise look like ordinary public routes.
+  useEffect(() => {
+    const evaluateAdvertisingGate = () => {
+      const route = classifyRoute({
+        pathname: window.location.pathname,
+        hash: window.location.hash,
+        search: window.location.search,
+        isConfigured,
+        hasVerificationToken: verificationToken !== null,
+        passwordResetRequested: showPasswordReset,
+        registerViewRequested: showRegister,
+        landingHidden: !showLanding,
+        hasSession: Boolean(user),
+        publicContentActive: Boolean(
+          blogRoute || tutorialRoute || featuresRoute || changelogRoute || aboutRoute || contactRoute,
+        ),
+      });
+      // Refuse to decide while authentication is still resolving: a cold start is
+      // exactly when an ad could otherwise land on a document about to become
+      // authenticated.
+      const authState: AuthState = isLoading ? 'loading' : (user ? 'authenticated' : 'anonymous');
+      // One shared eligibility decision, applied once per format. Each call is inert while
+      // that format's kill switch is false, and each injects at most one script per document.
+      const ctx = { authState, route };
+      const ippDecision = installMonetagTagOnce(ctx, 'ipp');
+      const vignetteDecision = installMonetagTagOnce(ctx, 'vignette');
+      // A guide article enters the DOM when its data arrives, which is after this effect has
+      // already run once. If the *only* thing missing was the page's own opt-in, watch for it —
+      // and when it appears, come back through this same function so the decision is made again
+      // against the current session and consent, never against a captured snapshot. The watcher
+      // injects nothing itself. Both formats share the same facts, so one watcher (armed by
+      // whichever decision was waiting on the opt-in) re-checks both.
+      const pendingOptIn = ippDecision.reason === 'page-opt-in-absent' ? ippDecision : vignetteDecision;
+      return watchPageAdvertisingOptIn(pendingOptIn, evaluateAdvertisingGate);
+    };
+    return evaluateAdvertisingGate();
+  }, [
+    isLoading, user, isConfigured, verificationToken, showPasswordReset, showRegister, showLanding,
+    blogRoute, tutorialRoute, featuresRoute, changelogRoute, aboutRoute, contactRoute,
+  ]);
+
+  // Public → authenticated boundary. This SPA signs in with state, not with a
+  // navigation, so the document that carried the vendor tag stays alive inside the
+  // HR workspace; deleting the <script> node would not stop the timers, listeners
+  // or requests it already started. Replacing the document is the only real
+  // teardown, and it is claimed at most once per document — the fresh one starts
+  // with a session present, the gate refuses injection, and this branch cannot
+  // fire again, so there is no reload loop. The URL is left exactly as it is, so
+  // deep links and return URLs survive.
+  useEffect(() => {
+    if (!user) return;
+    if (!beginAdvertisingDocumentReset()) return;
+    window.location.replace(window.location.href);
+  }, [user]);
 
   // Push subscription handled via PushPermissionPrompt (soft-gate, user-initiated)
 

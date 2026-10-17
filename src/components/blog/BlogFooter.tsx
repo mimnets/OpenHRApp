@@ -5,7 +5,13 @@ import {
 import { socialLinksService } from '../../services/sociallinks.service';
 import { SocialLink } from '../../types';
 import { navigateTo } from '../../utils/seo';
+import { CONSENT_PREFERENCES_EVENT } from '../../utils/adConsent';
 import { dlBrand, dlFooter } from '../shared/daylightShell';
+
+/** Reopens the consent panel rendered by CookieConsent; no new state or router entry. */
+const openConsentPreferences = () => {
+  window.dispatchEvent(new Event(CONSENT_PREFERENCES_EVENT));
+};
 
 const PLATFORM_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
   youtube: Youtube,
@@ -60,6 +66,7 @@ const BlogFooter: React.FC = () => {
         { label: 'Contact', action: () => { navigateTo('/contact'); } },
         { label: 'Privacy Policy', action: () => { navigateTo('/privacy'); } },
         { label: 'Terms of Service', action: () => { navigateTo('/terms'); } },
+        { label: 'Cookie & Ad Preferences', action: openConsentPreferences },
       ],
     },
   ];

@@ -1,6 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+
+// AdBanner pulls in src/services/organization.service.ts -> src/services/supabase.ts, which
+// constructs a Supabase client at module scope and throws "supabaseUrl is required" when
+// VITE_SUPABASE_URL is unset. That import-time side effect made this file fail collection and
+// run zero tests. The values under test are pure constants, so the module is stubbed with an
+// inert contract covering every value export of the real module. Nothing here constructs a
+// client, holds a credential, names a real host, or can reach the network — and no
+// module-scope call to supabase exists anywhere in this import chain (verified by inspection).
+vi.mock('../../../services/supabase', () => ({
+  supabase: {
+    from: () => ({
+      select: () => Promise.resolve({ data: [], error: null }),
+    }),
+  },
+  isSupabaseConfigured: () => false,
+  getSupabaseStorageUrl: () => '',
+  getSupabaseSignedUrl: async () => null,
+}));
+
 import { AUTHENTICATED_AD_SLOTS, isSlotSuppressedPendingApproval } from '../AdBanner';
 import { MIN_CONTENT_CHARS } from '../PublicAdBanner';
 import type { AdSlot } from '../AdBanner';

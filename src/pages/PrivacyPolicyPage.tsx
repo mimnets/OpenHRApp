@@ -104,10 +104,40 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                 <li><strong>Essential Cookies:</strong> Required for the Service to function properly (authentication, session management).</li>
                 <li><strong>Analytics Cookies:</strong> We use Google Analytics to understand how visitors interact with our website. These cookies are only loaded after you provide consent through our cookie banner.</li>
                 <li><strong>Vercel Analytics:</strong> We use Vercel Analytics for performance monitoring and usage insights.</li>
+                <li>
+                  <strong>Advertising (currently disabled):</strong> We are preparing to show
+                  in-page advertising supplied by Monetag on eligible public content pages
+                  such as the blog and guides. This integration is switched off and serves no
+                  ads unless it is separately enabled. It never runs on your dashboard,
+                  attendance, leave, or any other signed-in screen, and it is unrelated to
+                  the in-app notifications that remind you to check in — those are a first-party
+                  feature of your own account, not advertising. Advertising consent is a
+                  separate, explicit choice: accepting analytics or essential cookies does not
+                  enable it, and declining advertising changes nothing else. Advertising may
+                  involve cookies, local storage, identifiers, or similar technologies; the
+                  provider has not published which ones its in-page format uses, so we describe
+                  the possibility rather than assert specifics, and we will update this policy
+                  once confirmed.
+                </li>
               </ul>
               <p className="text-dl-muted leading-relaxed mt-3">
-                You can choose to accept or decline analytics cookies through the consent banner shown on your first visit.
-                You can change your preference at any time by clearing your browser's local storage for this site.
+                You can accept or decline each of these choices in the consent banner shown on
+                your first visit, and change your mind at any time using
+                {' '}<strong>“Cookie &amp; Ad Preferences”</strong> in the footer of our public
+                pages. Withdrawal takes effect for future pages immediately; because
+                third-party advertising code already running in an open tab cannot be stopped
+                remotely, turning advertising off also replaces the current page so that any
+                ad already loaded there is terminated. The Monetag privacy policy is available
+                at{' '}
+                <a
+                  href="https://monetag.com/privacy/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 font-medium text-dl-ink"
+                >
+                  monetag.com/privacy
+                </a>
+                .
               </p>
             </section>
 
@@ -139,6 +169,27 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
               <ul className="list-disc list-inside text-dl-muted space-y-2 ml-2">
                 <li><strong>Within Your Organization:</strong> HR administrators and managers within your organization can access relevant employee data as permitted by their role.</li>
                 <li><strong>Service Providers:</strong> We use third-party services (hosting, analytics) that may process data on our behalf.</li>
+                <li>
+                  <strong>Advertising Provider:</strong> If and when advertising is enabled,
+                  ad delivery on public content pages is handled by Monetag, whose privacy
+                  policy identifies the operating entities as Propeller Ads Limited (Cyprus),
+                  Propeller Ads s.r.o. (Czech Republic), and Propeller Ads Limited (Isle of
+                  Man). What we send and what we cannot control are different things, so this
+                  says which is which. OpenHRApp does not deliberately include employee
+                  records, account names, or email addresses in the Monetag integration: the
+                  code that loads the ad tag passes only the advertising zone identifier and
+                  the provider's script address, and no advertising is requested at all while
+                  you are signed in. The request for an ad is nevertheless made by your
+                  browser directly to that provider, so the provider — and any advertiser it
+                  serves — may receive the technical information every web request carries,
+                  including your IP address, device and browser characteristics, and the
+                  address of the page being viewed. Once running, the provider's own scripts
+                  can access whatever your browser permits them to access on that page. We do
+                  not sell your personal information and we do not hand your HR records to an
+                  advertising provider, but we cannot describe or vouch for the provider's own
+                  collection, which is governed by its policy and by applicable law rather than
+                  by us.
+                </li>
                 <li><strong>Legal Requirements:</strong> When required by law, regulation, or legal process.</li>
               </ul>
             </section>
