@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, X, Code, Image, Globe, AlertTriangle } from 'lucide-react';
 import { organizationService } from '../../services/organization.service';
 import { AdConfig, AdSlot, AdPlaceholder } from '../ads';
+import type { FormatTargeting, PageTargetGroup } from '../../config/monetag';
+import { DEFAULT_IPP_TARGETING, DEFAULT_VIGNETTE_TARGETING } from '../../config/monetag';
+
+const PAGE_TARGET_GROUPS: { id: PageTargetGroup; name: string; description: string }[] = [
+  { id: 'guides-listing', name: 'Guides listing', description: '/how-to-use' },
+  { id: 'guides-articles', name: 'Guides articles', description: '/how-to-use/:slug' },
+  { id: 'blog-listing', name: 'Blog listing', description: '/blog' },
+  { id: 'blog-articles', name: 'Blog articles', description: '/blog/:slug' },
+  { id: 'landing-page', name: 'Public landing', description: '/' },
+];
 
 const AD_SLOTS: { id: AdSlot; name: string; description: string; size: string }[] = [
   { id: 'sidebar', name: 'Sidebar', description: 'Bottom of sidebar navigation', size: '300x250' },
@@ -41,6 +51,8 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
   // Monetag Controls state
   const [monetagIppEnabled, setMonetagIppEnabled] = useState(false);
   const [monetagVignetteEnabled, setMonetagVignetteEnabled] = useState(false);
+  const [monetagIppTargeting, setMonetagIppTargeting] = useState<FormatTargeting>(DEFAULT_IPP_TARGETING);
+  const [monetagVignetteTargeting, setMonetagVignetteTargeting] = useState<FormatTargeting>(DEFAULT_VIGNETTE_TARGETING);
   const [monetagLoading, setMonetagLoading] = useState(true);
   const [showIppWarning, setShowIppWarning] = useState(false);
   const [showVignetteWarning, setShowVignetteWarning] = useState(false);
@@ -76,13 +88,20 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
     try {
       const ippEnabled = await organizationService.getSetting('monetag_ipp_enabled', false);
       const vignetteEnabled = await organizationService.getSetting('monetag_vignette_enabled', false);
+      const ippTargeting = await organizationService.getSetting('monetag_ipp_targeting', DEFAULT_IPP_TARGETING);
+      const vignetteTargeting = await organizationService.getSetting('monetag_vignette_targeting', DEFAULT_VIGNETTE_TARGETING);
+      
       setMonetagIppEnabled(Boolean(ippEnabled));
       setMonetagVignetteEnabled(Boolean(vignetteEnabled));
+      setMonetagIppTargeting({ ...DEFAULT_IPP_TARGETING, ...(ippTargeting as FormatTargeting || {}) });
+      setMonetagVignetteTargeting({ ...DEFAULT_VIGNETTE_TARGETING, ...(vignetteTargeting as FormatTargeting || {}) });
     } catch (e) {
       console.error('[AdManagement] Monetag settings load error:', e);
       // Default to OFF on error
       setMonetagIppEnabled(false);
       setMonetagVignetteEnabled(false);
+      setMonetagIppTargeting(DEFAULT_IPP_TARGETING);
+      setMonetagVignetteTargeting(DEFAULT_VIGNETTE_TARGETING);
     } finally {
       setMonetagLoading(false);
     }
@@ -140,6 +159,30 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
 
   const cancelMonetagVignetteToggle = () => {
     setShowVignetteWarning(false);
+  };
+
+  const handleIppTargetingToggle = async (group: PageTargetGroup) => {
+    const newTargeting = { ...monetagIppTargeting, [group]: !monetagIppTargeting[group] };
+    try {
+      await organizationService.setSetting('monetag_ipp_targeting', newTargeting);
+      setMonetagIppTargeting(newTargeting);
+      onMessage({ type: 'success', text: `IPP targeting for "${group}" updated` });
+    } catch (e: any) {
+      console.error('[AdManagement] IPP targeting toggle error:', e);
+      onMessage({ type: 'error', text: 'Failed to update IPP targeting' });
+    }
+  };
+
+  const handleVignetteTargetingToggle = async (group: PageTargetGroup) => {
+    const newTargeting = { ...monetagVignetteTargeting, [group]: !monetagVignetteTargeting[group] };
+    try {
+      await organizationService.setSetting('monetag_vignette_targeting', newTargeting);
+      setMonetagVignetteTargeting(newTargeting);
+      onMessage({ type: 'success', text: `Vignette targeting for "${group}" updated` });
+    } catch (e: any) {
+      console.error('[AdManagement] Vignette targeting toggle error:', e);
+      onMessage({ type: 'error', text: 'Failed to update Vignette targeting' });
+    }
   };
 
   const openEditModal = (slot: AdSlot) => {
@@ -351,9 +394,84 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
 
         <div className="mt-4 p-3 bg-purple-100 rounded-lg">
           <p className="text-xs text-purple-900">
-            <strong>Note:</strong> Both formats require explicit visitor consent, are restricted to anonymous visitors on tutorial articles only, 
+            <strong>Note:</strong> Both formats require explicit visitor consent, are restricted to anonymous visitors,
             and preserve all existing consent withdrawal and document teardown behavior. Script URLs and zone IDs are hardcoded and cannot be modified through this interface.
+            Page targeting controls which page groups are eligible for each format.
           </p>
+        </div>
+
+        {/* IPP Targeting Panel */}
+        <div className="mt-6 bg-white rounded-xl border-2 border-slate-200 p-5">
+          <h5 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <Globe size={16} />
+            IPP Page Targeting
+          </h5>
+          <p className="text-xs text-slate-600 mb-3">
+            Select which page groups are eligible for In-Page Push advertising. Each group can be independently enabled.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {PAGE_TARGET_GROUPS.map((group) => (
+              <div key={group.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{group.name}</p>
+                  <p className="text-xs text-slate-500">{group.description}</p>
+                </div>
+                <button
+                  onClick={() => handleIppTargetingToggle(group.id)}
+                  disabled={!monetagIppEnabled}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                    monetagIppTargeting[group.id]
+                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                  } ${!monetagIppEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {monetagIppTargeting[group.id] ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+            ))}
+          </div>
+          {!monetagIppEnabled && (
+            <p className="text-xs text-amber-600 mt-3">
+              <strong>Note:</strong> IPP master switch is disabled. Enable it above to activate targeting.
+            </p>
+          )}
+        </div>
+
+        {/* Vignette Targeting Panel */}
+        <div className="mt-4 bg-white rounded-xl border-2 border-slate-200 p-5">
+          <h5 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <Globe size={16} />
+            Vignette Page Targeting
+          </h5>
+          <p className="text-xs text-slate-600 mb-3">
+            Select which page groups are eligible for Vignette advertising. Each group can be independently enabled.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {PAGE_TARGET_GROUPS.map((group) => (
+              <div key={group.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{group.name}</p>
+                  <p className="text-xs text-slate-500">{group.description}</p>
+                </div>
+                <button
+                  onClick={() => handleVignetteTargetingToggle(group.id)}
+                  disabled={!monetagVignetteEnabled}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                    monetagVignetteTargeting[group.id]
+                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                  } ${!monetagVignetteEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {monetagVignetteTargeting[group.id] ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+            ))}
+          </div>
+          {!monetagVignetteEnabled && (
+            <p className="text-xs text-amber-600 mt-3">
+              <strong>Note:</strong> Vignette is disabled at the code level. Targeting settings are saved but will not take effect until Vignette is enabled.
+            </p>
+          )}
         </div>
       </div>
 

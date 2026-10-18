@@ -130,7 +130,7 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
               <p className="text-dl-muted text-lg">No tutorials published yet. Check back soon!</p>
             </div>
           ) : (
-            <div className="flex flex-col lg:flex-row gap-8">
+            <div data-advertising="eligible" className="flex flex-col lg:flex-row gap-8">
               {/* Main Content */}
               <div className="flex-1 min-w-0 space-y-10">
                 {grouped.map(group => (

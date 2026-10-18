@@ -55,9 +55,13 @@ import {
   MONETAG_VIGNETTE_ZONE_ID,
   MONETAG_ZONE_ID,
   classifyRoute,
+  classifyPageTarget,
   validateMonetagConfig,
+  DEFAULT_IPP_TARGETING,
+  DEFAULT_VIGNETTE_TARGETING,
   type AdRouteClass,
   type RouteFacts,
+  type FormatTargeting,
 } from '../config/monetag';
 import { assessStorageCapability, hasAdvertisingConsent } from './adConsent';
 
@@ -69,19 +73,34 @@ import { assessStorageCapability, hasAdvertisingConsent } from './adConsent';
  *
  * Default-OFF: if the database is unreachable, the settings are missing, or the fetch
  * fails, both formats remain disabled. This is the safe default.
+ *
+ * Targeting: each format has independent page-group targeting. A page must match an
+ * enabled targeting group for ads to serve. Default targeting preserves backward
+ * compatibility (IPP: guides-articles only; Vignette: all OFF).
  */
 interface RuntimeSettings {
   ipp: boolean;
   vignette: boolean;
+  ippTargeting: FormatTargeting;
+  vignetteTargeting: FormatTargeting;
   loaded: boolean;
 }
 
-let runtimeSettings: RuntimeSettings = { ipp: false, vignette: false, loaded: false };
+let runtimeSettings: RuntimeSettings = {
+  ipp: false,
+  vignette: false,
+  ippTargeting: DEFAULT_IPP_TARGETING,
+  vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+  loaded: false,
+};
 
 /**
  * Fetches the Monetag runtime activation settings from the database. Called once during
  * app initialization. If the fetch fails or settings are missing, defaults to OFF (safe).
  * The compile-time flags in monetag.ts remain as emergency kill switches.
+ *
+ * Targeting: fetches page-group targeting for both formats. If targeting data is missing
+ * or malformed, defaults to safe values (IPP: guides-articles only; Vignette: all OFF).
  */
 export async function initializeMonetagRuntimeSettings(): Promise<void> {
   // Lazy import to avoid module-supabase construction in test environments
@@ -92,13 +111,25 @@ export async function initializeMonetagRuntimeSettings(): Promise<void> {
     isSupabaseConfigured = mod.isSupabaseConfigured;
     supabase = mod.supabase;
   } catch {
-    runtimeSettings = { ipp: false, vignette: false, loaded: true };
+    runtimeSettings = {
+      ipp: false,
+      vignette: false,
+      ippTargeting: DEFAULT_IPP_TARGETING,
+      vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+      loaded: true,
+    };
     return;
   }
 
   if (!isSupabaseConfigured()) {
     // Supabase not configured — default OFF, mark as loaded to prevent retry loops
-    runtimeSettings = { ipp: false, vignette: false, loaded: true };
+    runtimeSettings = {
+      ipp: false,
+      vignette: false,
+      ippTargeting: DEFAULT_IPP_TARGETING,
+      vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+      loaded: true,
+    };
     return;
   }
 
@@ -109,37 +140,90 @@ export async function initializeMonetagRuntimeSettings(): Promise<void> {
 
     if (error) {
       console.warn('[Monetag] Runtime settings fetch failed, defaulting to OFF:', error.message);
-      runtimeSettings = { ipp: false, vignette: false, loaded: true };
+      runtimeSettings = {
+        ipp: false,
+        vignette: false,
+        ippTargeting: DEFAULT_IPP_TARGETING,
+        vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+        loaded: true,
+      };
       return;
     }
 
     if (!data) {
       // No settings row — default OFF
-      runtimeSettings = { ipp: false, vignette: false, loaded: true };
+      runtimeSettings = {
+        ipp: false,
+        vignette: false,
+        ippTargeting: DEFAULT_IPP_TARGETING,
+        vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+        loaded: true,
+      };
       return;
     }
 
     // Cast the RPC response to the expected shape
-    const settings = data as { ipp_enabled: boolean; vignette_enabled: boolean };
+    const settings = data as {
+      ipp_enabled: boolean;
+      vignette_enabled: boolean;
+      ipp_targeting?: Partial<FormatTargeting>;
+      vignette_targeting?: Partial<FormatTargeting>;
+    };
+
+    // Parse targeting with safe defaults for missing/malformed data
+    const ippTargeting: FormatTargeting = {
+      ...DEFAULT_IPP_TARGETING,
+      ...(settings.ipp_targeting || {}),
+    };
+    const vignetteTargeting: FormatTargeting = {
+      ...DEFAULT_VIGNETTE_TARGETING,
+      ...(settings.vignette_targeting || {}),
+    };
+
     runtimeSettings = {
       ipp: Boolean(settings.ipp_enabled),
       vignette: Boolean(settings.vignette_enabled),
+      ippTargeting,
+      vignetteTargeting,
       loaded: true,
     };
   } catch (e: any) {
     console.warn('[Monetag] Runtime settings fetch error, defaulting to OFF:', e?.message || e);
-    runtimeSettings = { ipp: false, vignette: false, loaded: true };
+    runtimeSettings = {
+      ipp: false,
+      vignette: false,
+      ippTargeting: DEFAULT_IPP_TARGETING,
+      vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+      loaded: true,
+    };
   }
 }
 
 /** Test seam: reset runtime settings for isolated test cases. */
 export function __resetMonetagRuntimeSettingsForTests(): void {
-  runtimeSettings = { ipp: false, vignette: false, loaded: false };
+  runtimeSettings = {
+    ipp: false,
+    vignette: false,
+    ippTargeting: DEFAULT_IPP_TARGETING,
+    vignetteTargeting: DEFAULT_VIGNETTE_TARGETING,
+    loaded: false,
+  };
 }
 
 /** Test seam: set runtime settings directly for testing. */
-export function __setMonetagRuntimeSettingsForTests(ipp: boolean, vignette: boolean): void {
-  runtimeSettings = { ipp, vignette, loaded: true };
+export function __setMonetagRuntimeSettingsForTests(
+  ipp: boolean,
+  vignette: boolean,
+  ippTargeting?: Partial<FormatTargeting>,
+  vignetteTargeting?: Partial<FormatTargeting>,
+): void {
+  runtimeSettings = {
+    ipp,
+    vignette,
+    ippTargeting: { ...DEFAULT_IPP_TARGETING, ...(ippTargeting || {}) },
+    vignetteTargeting: { ...DEFAULT_VIGNETTE_TARGETING, ...(vignetteTargeting || {}) },
+    loaded: true,
+  };
 }
 
 /**
@@ -533,9 +617,17 @@ export function evaluateAdvertisingEligibility(ctx: GateContext, format: Monetag
   return { inject: true, reason: 'eligible' };
 }
 
-/** The entry point the application uses: the format's kill switch first, then eligibility. */
+/** The entry point the application uses: the format's kill switch first, then targeting, then eligibility. */
 export function evaluateMonetagGate(ctx: GateContext, format: MonetagFormat = 'ipp'): GateDecision {
   if (!FORMATS[format].enabled()) return deny('feature-flag-off');
+  
+  // Check page targeting: the current page must match an enabled targeting group
+  const pageTarget = classifyPageTarget(typeof window !== 'undefined' ? window.location.pathname : '');
+  if (!pageTarget) return deny('page-target-not-eligible');
+  
+  const targeting = format === 'ipp' ? runtimeSettings.ippTargeting : runtimeSettings.vignetteTargeting;
+  if (!targeting[pageTarget]) return deny('page-target-disabled');
+  
   return evaluateAdvertisingEligibility(ctx, format);
 }
 

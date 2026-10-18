@@ -52,6 +52,38 @@ export type AdRouteClass =
   | 'unknown';
 
 /**
+ * Page targeting groups for Monetag advertising. Each group can be independently
+ * enabled/disabled by Super Admin for each format (IPP and Vignette).
+ */
+export type PageTargetGroup =
+  | 'guides-listing'
+  | 'guides-articles'
+  | 'blog-listing'
+  | 'blog-articles'
+  | 'landing-page';
+
+/**
+ * Targeting settings for a single format. Each page group can be independently enabled.
+ */
+export interface FormatTargeting {
+  'guides-listing': boolean;
+  'guides-articles': boolean;
+  'blog-listing': boolean;
+  'blog-articles': boolean;
+  'landing-page': boolean;
+}
+
+/**
+ * Runtime targeting settings fetched from the database. Both formats have independent
+ * targeting configurations.
+ */
+export interface RuntimeTargeting {
+  ipp: FormatTargeting;
+  vignette: FormatTargeting;
+  loaded: boolean;
+}
+
+/**
  * Everything the classifier needs. It is passed in rather than read from
  * globals so the rule is testable in isolation.
  *
@@ -211,6 +243,56 @@ function isNonAdvertising(path: string): boolean {
   if (NON_ADVERTISING_PREFIXES.some((prefix) => path.startsWith(prefix))) return true;
   return bare.startsWith('/downloads');
 }
+
+/**
+ * Classify a route into a page targeting group for Monetag advertising.
+ * Returns null if the route is not eligible for any targeting group.
+ */
+export function classifyPageTarget(pathname: string): PageTargetGroup | null {
+  const path = normalizePath(pathname);
+  
+  // Landing page: exact match for "/"
+  if (path === '/') return 'landing-page';
+  
+  // Guides listing: exact match for "/how-to-use"
+  if (path === '/how-to-use') return 'guides-listing';
+  
+  // Guides articles: "/how-to-use/:slug" with exactly one slug segment
+  if (isAdvertisableDetail(path) && path.startsWith('/how-to-use/')) return 'guides-articles';
+  
+  // Blog listing: exact match for "/blog"
+  if (path === '/blog') return 'blog-listing';
+  
+  // Blog articles: "/blog/:slug" with exactly one slug segment
+  if (path.startsWith('/blog/') && path !== '/blog') {
+    const remainder = path.slice('/blog/'.length);
+    if (remainder && !remainder.includes('/')) return 'blog-articles';
+  }
+  
+  return null;
+}
+
+/**
+ * Default targeting for IPP: only guides-articles enabled (backward compatible).
+ */
+export const DEFAULT_IPP_TARGETING: FormatTargeting = {
+  'guides-listing': false,
+  'guides-articles': true,
+  'blog-listing': false,
+  'blog-articles': false,
+  'landing-page': false,
+};
+
+/**
+ * Default targeting for Vignette: all disabled.
+ */
+export const DEFAULT_VIGNETTE_TARGETING: FormatTargeting = {
+  'guides-listing': false,
+  'guides-articles': false,
+  'blog-listing': false,
+  'blog-articles': false,
+  'landing-page': false,
+};
 
 /**
  * Classify one document into an ad-eligibility class.

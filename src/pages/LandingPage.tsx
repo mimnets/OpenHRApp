@@ -108,7 +108,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
         Skip to content
       </a>
       <Navbar onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
-      <main id="main-content" className="dl-bands">
+      <main id="main-content" className="dl-bands" data-advertising="eligible">
         {/* Section order per plan Addendum 1, N5 (finding F-L2). The page previously ran
             Hero -> Testimonials -> Features, putting social proof before the visitor knew what
             the product did, and burying the Showcase — the actual screenshots, the strongest
