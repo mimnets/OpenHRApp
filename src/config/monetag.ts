@@ -114,19 +114,14 @@ export interface RouteFacts {
  *   - A prefix plus a non-empty remainder means *has a slug*, so `/how-to-use/` is not a
  *     detail route and `/how-to-use/attendance-guide` is.
  *   - `/features/*` is product copy, not an article, and is out.
- *   - `/blog/:slug` is out too, even though it is a genuine article page: it renders
- *     `PublicAdBanner` twice (BlogPostPage.tsx), which can produce an embedded frame or
- *     admin-supplied HTML *after* this module has finished inspecting the DOM. Eligibility
- *     decided against a snapshot cannot be trusted on a page that acquires third-party
- *     interactive content later, so the blog stays out until a component-level opt-in
- *     exists. That is an owner decision, not a code detail — the prefix is listed in the
- *     comment below so the change is one line when the owner makes it.
+ *   - `/blog/:slug` is now included once BlogPostPage opts in explicitly with
+ *     `data-advertising="eligible"` on the article element. The component-level opt-in
+ *     ensures eligibility is decided against the rendered DOM, not a snapshot.
  *   - Index pages, the landing page and every marketing route are refused by name.
  *
  * Nothing else is ever eligible, and unknown paths still fall through to a denial.
  */
-const ADVERTISABLE_DETAIL_PREFIXES: readonly string[] = ['/how-to-use/'];
-// Candidate for re-admission once BlogPostPage opts in explicitly: '/blog/'.
+const ADVERTISABLE_DETAIL_PREFIXES: readonly string[] = ['/how-to-use/', '/blog/'];
 
 /**
  * Public URLs that must never carry advertising even though they are anonymous.
@@ -162,7 +157,7 @@ const NON_ADVERTISING_EXACT: readonly string[] = [
  * distinction is what makes the exit route's safety auditable: an exclusion that is written
  * down cannot silently widen when somebody adds a new prefix to the allowlist.
  */
-const NON_ADVERTISING_PREFIXES: readonly string[] = ['/blog/', '/features/'];
+const NON_ADVERTISING_PREFIXES: readonly string[] = ['/features/'];
 
 /** Defense in depth: authenticated HR routes are hash-based here, but if a path
  * form ever appears, refuse it rather than falling through to "unknown". */
