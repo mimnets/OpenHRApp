@@ -164,9 +164,9 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
 
             {/* Article with Sidebar */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-              <div data-advertising="eligible" className="flex flex-col lg:flex-row gap-8">
+              <div className="flex flex-col lg:flex-row gap-8">
                 {/* Main Article */}
-                <article className="flex-1 min-w-0 overflow-x-hidden">
+                <article className="flex-1 min-w-0 overflow-x-hidden" data-advertising="eligible">
                   {/* Mirrors the BreadcrumbList JSON-LD emitted above exactly.
                       Structured data must describe what the page actually shows,
                       and the category is deliberately omitted from both: blog
