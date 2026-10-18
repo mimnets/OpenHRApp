@@ -381,11 +381,12 @@ export function __resetMonetagModuleStateForTests(): void {
 }
 
 /**
- * The element a page must render to opt into advertising at all: a real content article that
- * declares itself. Restricting the tag name matters — a stray `<div data-advertising>` on some
- * future page would otherwise be enough to make that page eligible.
+ * The element a page must render to opt into advertising at all: a real content container that
+ * declares itself. Accepts article, main, and div elements with the opt-in marker. The route
+ * classifier already restricts eligibility to approved pages, so this DOM check confirms the
+ * page has actually rendered the marker rather than being in a loading or error state.
  */
-const PAGE_OPT_IN_SELECTOR = 'article[data-advertising="eligible"]';
+const PAGE_OPT_IN_SELECTOR = 'article[data-advertising="eligible"], main[data-advertising="eligible"], div[data-advertising="eligible"]';
 
 function deny(reason: string): GateDecision {
   return { inject: false, reason };
