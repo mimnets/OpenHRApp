@@ -141,9 +141,6 @@ const NON_ADVERTISING_EXACT: readonly string[] = [
   '/terms/',
   '/download',
   '/save-password',
-  '/',
-  '/blog',
-  '/how-to-use',
   '/features',
   '/changelog',
   '/about',
@@ -229,6 +226,14 @@ function isAdvertisableDetail(path: string): boolean {
     const remainder = path.slice(prefix.length);
     return remainder !== '' && !remainder.includes('/');
   });
+}
+
+/**
+ * True for listing/landing pages that have explicit opt-in markers and are enabled in Super Admin.
+ * These pages are not article details but are eligible for advertising when targeting is enabled.
+ */
+function isAdvertisableListing(path: string): boolean {
+  return path === '/' || path === '/how-to-use' || path === '/blog';
 }
 
 function isNonAdvertising(path: string): boolean {
@@ -321,17 +326,20 @@ export function classifyRoute(facts: RouteFacts): AdRouteClass {
 
   // 5. React resolved a public content page. This flag covers *every* public route the app
   //    resolves — `parseBlogRoute` matches `/blog` as readily as `/blog/slug` — so it cannot
-  //    be the whole rule. The path shape decides, and anything that is not an article detail
-  //    stays refused even while React calls it public content.
+  //    be the whole rule. The path shape decides: article details, listing pages, and the
+  //    landing page are allowed; anything else stays refused even while React calls it public content.
   if (facts.publicContentActive) {
-    return isAdvertisableDetail(path) ? 'public-content' : 'non-public';
+    return (isAdvertisableDetail(path) || isAdvertisableListing(path)) ? 'public-content' : 'non-public';
   }
 
   // 6. Static allowlist: article-detail paths only, so the rule holds before React has
   //    resolved anything as well as after.
   if (isAdvertisableDetail(path)) return 'public-content';
 
-  // 7. Named public-but-not-advertisable paths.
+  // 7. Listing/landing pages that haven't been resolved by React yet are non-public.
+  if (isAdvertisableListing(path)) return 'non-public';
+
+  // 8. Named public-but-not-advertisable paths.
   if (isNonAdvertising(path)) return 'non-public';
 
   // 8. Any app-shaped path.
