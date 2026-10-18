@@ -193,9 +193,13 @@ const AppContent: React.FC = () => {
     return !knownPaths.includes(path);
   });
 
+  const [monetagSettingsLoaded, setMonetagSettingsLoaded] = useState(false);
+
   // Initialize Monetag runtime settings from database (once on mount)
   useEffect(() => {
-    initializeMonetagRuntimeSettings();
+    initializeMonetagRuntimeSettings().then(() => {
+      setMonetagSettingsLoaded(true);
+    });
   }, []);
 
   // Check URL for verification token on mount
@@ -442,6 +446,9 @@ const AppContent: React.FC = () => {
   // because Login, Register, VerifyAccount and ResetPassword all share "/" with
   // the landing page and would otherwise look like ordinary public routes.
   useEffect(() => {
+    // Don't evaluate the gate until runtime settings are loaded from the database
+    if (!monetagSettingsLoaded) return;
+
     const evaluateAdvertisingGate = () => {
       const route = classifyRoute({
         pathname: window.location.pathname,
@@ -477,7 +484,7 @@ const AppContent: React.FC = () => {
     };
     return evaluateAdvertisingGate();
   }, [
-    isLoading, user, isConfigured, verificationToken, showPasswordReset, showRegister, showLanding,
+    monetagSettingsLoaded, isLoading, user, isConfigured, verificationToken, showPasswordReset, showRegister, showLanding,
     blogRoute, tutorialRoute, featuresRoute, changelogRoute, aboutRoute, contactRoute,
   ]);
 

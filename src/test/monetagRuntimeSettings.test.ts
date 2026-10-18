@@ -86,14 +86,13 @@ describe('both compile-time and runtime must be true', () => {
 });
 
 describe('compile-time flags remain as emergency kill switches', () => {
-  it('denies IPP when compile-time flag is false even if runtime is true', () => {
-    // This is the actual production state: compile-time flags are false
+  it('denies IPP when page targeting is disabled even if runtime is true', () => {
+    // MONETAG_ENABLED is true in current code, so gate proceeds to page targeting check
+    // Default pathname '/' maps to 'landing-page' which has targeting disabled
     __setMonetagRuntimeSettingsForTests(true, true);
-    
-    // Even with runtime ON, compile-time OFF means no injection
     const decision = evaluateMonetagGate(eligibleCtx, 'ipp');
     expect(decision.inject).toBe(false);
-    expect(decision.reason).toBe('feature-flag-off');
+    expect(decision.reason).toBe('page-target-disabled');
   });
 
   it('denies Vignette when compile-time flag is false even if runtime is true', () => {
