@@ -23,7 +23,11 @@ const AD_SLOTS: { id: AdSlot; name: string; description: string; size: string }[
   { id: 'blog-header', name: 'Blog Header', description: 'Top of blog listing page', size: '728x90' },
   { id: 'blog-feed', name: 'Blog Feed', description: 'Below blog post grid', size: '728x90' },
   { id: 'blog-post-top', name: 'Blog Post Top', description: 'Top of blog post page', size: '728x90' },
-  { id: 'blog-post-content', name: 'Blog Post Content', description: 'Inside blog post content area', size: '300x250' }
+  { id: 'blog-post-content', name: 'Blog Post Content', description: 'Inside blog post content area', size: '300x250' },
+  // Phase 2A: PWA authenticated page slots (default OFF, mobile-first)
+  { id: 'attendance-success', name: 'Attendance Success', description: 'After successful check-in/check-out on attendance page', size: '320x100' },
+  { id: 'leave-success', name: 'Leave Success', description: 'After successful leave submission', size: '320x100' },
+  { id: 'dashboard-below-cards', name: 'Dashboard Below Cards', description: 'Below summary cards on employee dashboard', size: '320x100' }
 ];
 
 const DEFAULT_CONFIG: Omit<AdConfig, 'id' | 'slot'> = {

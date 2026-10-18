@@ -4,7 +4,7 @@ import { supabase } from '../../services/supabase';
 import { apiClient } from '../../services/api.client';
 import { sanitizeHtml } from '../../utils/sanitize';
 
-export type AdSlot = 'sidebar' | 'dashboard' | 'reports' | 'footer' | 'landing-hero' | 'landing-mid' | 'blog-header' | 'blog-feed' | 'blog-post-top' | 'blog-post-content';
+export type AdSlot = 'sidebar' | 'dashboard' | 'reports' | 'footer' | 'landing-hero' | 'landing-mid' | 'blog-header' | 'blog-feed' | 'blog-post-top' | 'blog-post-content' | 'attendance-success' | 'leave-success' | 'dashboard-below-cards';
 export type AdSize = '300x250' | '728x90' | '320x100' | 'text';
 
 export interface AdConfig {
@@ -39,7 +39,11 @@ const SLOT_SIZES: Record<AdSlot, { width: number; height: number }> = {
   'blog-header': { width: 728, height: 90 },     // Leaderboard on blog listing
   'blog-feed': { width: 728, height: 90 },       // Leaderboard in blog feed
   'blog-post-top': { width: 728, height: 90 },   // Leaderboard on blog post
-  'blog-post-content': { width: 300, height: 250 } // Medium Rectangle in post
+  'blog-post-content': { width: 300, height: 250 }, // Medium Rectangle in post
+  // Phase 2A: PWA authenticated page slots
+  'attendance-success': { width: 320, height: 100 }, // Large Mobile Banner (mobile-first)
+  'leave-success': { width: 320, height: 100 },      // Large Mobile Banner (mobile-first)
+  'dashboard-below-cards': { width: 320, height: 100 } // Large Mobile Banner (mobile-first)
 };
 
 /**
@@ -60,11 +64,40 @@ export const isSlotSuppressedPendingApproval = (slot: AdSlot): boolean =>
   import.meta.env.VITE_ENABLE_AUTHENTICATED_ADS !== 'true' &&
   AUTHENTICATED_AD_SLOTS.includes(slot);
 
+/**
+ * Phase 2D: Compile-time activation lock for PWA authenticated page ad slots.
+ *
+ * These three slots (attendance-success, leave-success, dashboard-below-cards) are defined
+ * in the codebase and placed in the UI, but must NOT load or execute any provider ads until
+ * this constant is explicitly set to true by a developer in source code. This is a fail-closed
+ * safety gate that cannot be overridden by Supabase configuration, Super Admin UI, or
+ * environment variables. It requires a source code change and redeployment to activate.
+ *
+ * Even if Super Admin enables these slots in the database, they will remain inert until this
+ * lock is flipped. This prevents accidental activation during deployment or configuration.
+ */
+export const PWA_ADS_ACTIVATED = false;
+
+export const PWA_AD_SLOTS: readonly AdSlot[] = [
+  'attendance-success',
+  'leave-success',
+  'dashboard-below-cards'
+];
+
+export const isPwaAdSlot = (slot: AdSlot): boolean => PWA_AD_SLOTS.includes(slot);
+
 
 export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
   const { subscription } = useSubscription();
   const [adConfig, setAdConfig] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Phase 2D: Compile-time activation lock for PWA slots.
+  // Even if all other conditions are met, PWA slots remain inert until PWA_ADS_ACTIVATED is true.
+  // This is a fail-closed safety gate that requires source code change to activate.
+  if (isPwaAdSlot(slot) && !PWA_ADS_ACTIVATED) {
+    return null;
+  }
 
   // Only show ads for AD_SUPPORTED organizations — and never on a robots.txt-Disallowed
   // authenticated route while AdSense approval is pending (item 27 / AC1.10 / F6).
