@@ -92,17 +92,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
   const [adConfig, setAdConfig] = useState<AdConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Phase 2D: Compile-time activation lock for PWA slots.
-  // Even if all other conditions are met, PWA slots remain inert until PWA_ADS_ACTIVATED is true.
-  // This is a fail-closed safety gate that requires source code change to activate.
-  if (isPwaAdSlot(slot) && !PWA_ADS_ACTIVATED) {
-    return null;
-  }
-
   // Only show ads for AD_SUPPORTED organizations — and never on a robots.txt-Disallowed
   // authenticated route while AdSense approval is pending (item 27 / AC1.10 / F6).
   // Folding the gate into shouldShowAds suppresses the network fetch as well as the render.
-  const shouldShowAds = subscription?.showAds === true && !isSlotSuppressedPendingApproval(slot);
+  // Phase 2D: PWA slots stay inert (no fetch, no render) until PWA_ADS_ACTIVATED is flipped in source.
+  const shouldShowAds =
+    subscription?.showAds === true &&
+    !isSlotSuppressedPendingApproval(slot) &&
+    !(isPwaAdSlot(slot) && !PWA_ADS_ACTIVATED);
 
   useEffect(() => {
     const loadAdConfig = async () => {

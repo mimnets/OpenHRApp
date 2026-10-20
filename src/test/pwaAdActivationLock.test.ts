@@ -1,8 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
+import { render, waitFor } from '@testing-library/react';
 
-// Mock supabase to prevent import chain errors
+// Supabase always answers with an ENABLED ad config, simulating a Super Admin who switched the slot on.
+const { fromSpy } = vi.hoisted(() => {
+  const enabled = { enabled: true, adType: 'custom', customHtml: '<p>PROVIDER-AD</p>' };
+  const chain: any = {
+    select: () => chain,
+    eq: () => chain,
+    maybeSingle: () => Promise.resolve({ data: { value: enabled }, error: null }),
+  };
+  return { fromSpy: vi.fn(() => chain) };
+});
+
 vi.mock('../services/supabase', () => ({
-  supabase: {},
+  supabase: { from: fromSpy },
   isSupabaseConfigured: () => false,
 }));
 
@@ -11,7 +23,16 @@ vi.mock('../services/organization.service', () => ({
   organizationService: {},
 }));
 
-import { PWA_ADS_ACTIVATED, PWA_AD_SLOTS, isPwaAdSlot, type AdSlot } from '../components/ads/AdBanner';
+vi.mock('../services/api.client', () => ({
+  apiClient: { getOrganizationId: () => 'org-1' },
+}));
+
+// AD_SUPPORTED organization: every org-level gate is open.
+vi.mock('../context/SubscriptionContext', () => ({
+  useSubscription: () => ({ subscription: { showAds: true } }),
+}));
+
+import { AdBanner, PWA_ADS_ACTIVATED, PWA_AD_SLOTS, isPwaAdSlot, type AdSlot } from '../components/ads/AdBanner';
 
 /**
  * Phase 2D: PWA Advertising Activation Lock Tests
@@ -84,40 +105,23 @@ describe('Phase 2D: Activation Lock', () => {
 });
 
 describe('Phase 2D: PWA Slots Inactive Even If Config Enabled', () => {
-  it('attendance-success slot remains inactive when PWA_ADS_ACTIVATED is false', () => {
-    // Simulate scenario: Super Admin enables attendance-success in database
-    // But PWA_ADS_ACTIVATED is false, so slot remains inert
-    const configEnabled = true; // Hypothetical: config enabled in DB
-    const activationLockActive = PWA_ADS_ACTIVATED === false;
+  beforeEach(() => fromSpy.mockClear());
 
-    // Slot should NOT render because activation lock is active
-    expect(activationLockActive && configEnabled).toBe(true);
-    // In AdBanner: if (isPwaAdSlot(slot) && !PWA_ADS_ACTIVATED) return null;
+  it('control: a public slot with the same enabled config does fetch and render', async () => {
+    const { container } = render(React.createElement(AdBanner, { slot: 'landing-hero' }));
+    await waitFor(() => expect(container.textContent).toContain('PROVIDER-AD'));
+    expect(fromSpy).toHaveBeenCalledWith('settings');
   });
 
-  it('leave-success slot remains inactive when PWA_ADS_ACTIVATED is false', () => {
-    const configEnabled = true;
-    const activationLockActive = PWA_ADS_ACTIVATED === false;
-
-    expect(activationLockActive && configEnabled).toBe(true);
-  });
-
-  it('dashboard-below-cards slot remains inactive when PWA_ADS_ACTIVATED is false', () => {
-    const configEnabled = true;
-    const activationLockActive = PWA_ADS_ACTIVATED === false;
-
-    expect(activationLockActive && configEnabled).toBe(true);
-  });
-
-  it('all three PWA slots remain inactive simultaneously', () => {
-    const allPwaSlots = ['attendance-success', 'leave-success', 'dashboard-below-cards'];
-    const activationLockActive = PWA_ADS_ACTIVATED === false;
-
-    allPwaSlots.forEach(slot => {
-      expect(isPwaAdSlot(slot as AdSlot)).toBe(true);
-      expect(activationLockActive).toBe(true);
-    });
-  });
+  it.each(['attendance-success', 'leave-success', 'dashboard-below-cards'] as AdSlot[])(
+    '%s neither fetches config nor renders despite an enabled config',
+    async (slot) => {
+      const { container } = render(React.createElement(AdBanner, { slot }));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(fromSpy).not.toHaveBeenCalled();
+      expect(container.innerHTML).toBe('');
+    }
+  );
 });
 
 describe('Phase 2D: Existing Slots Unaffected', () => {

@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-10-21',
+    title: 'In-app ad placements prepared, and locked off in source',
+    entries: [
+      { type: 'security', description: 'Three ad placements inside the signed-in app — after a check-in, after a leave request, and below the dashboard cards — now exist in the code but are locked off by a constant in source. While that lock is off, these placements never ask the database for an ad and never draw anything, even if an administrator switches them on in settings. Turning them on takes a reviewed code change and a fresh deploy. Every other ad placement behaves exactly as before. New tests render each of the three placements with an ad switched on and confirm nothing is fetched or shown.' },
+    ],
+  },
+  {
     date: '2026-10-16',
     title: 'Advertising groundwork for the public site, switched off, and honest about consent',
     entries: [
