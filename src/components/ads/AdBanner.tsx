@@ -75,8 +75,12 @@ export const isSlotSuppressedPendingApproval = (slot: AdSlot): boolean =>
  *
  * Even if Super Admin enables these slots in the database, they will remain inert until this
  * lock is flipped. This prevents accidental activation during deployment or configuration.
+ *
+ * Phase 3D: activated by Product Owner authorization. The lock only removes the source-level
+ * block — AD_SUPPORTED, the per-org `ad_config_<slot>.enabled` row (default OFF) and the
+ * image-only / fixed-SmartLink rules below all still have to pass before anything renders.
  */
-export const PWA_ADS_ACTIVATED = false;
+export const PWA_ADS_ACTIVATED = true;
 
 export const PWA_AD_SLOTS: readonly AdSlot[] = [
   'attendance-success',
@@ -85,6 +89,52 @@ export const PWA_AD_SLOTS: readonly AdSlot[] = [
 ];
 
 export const isPwaAdSlot = (slot: AdSlot): boolean => PWA_AD_SLOTS.includes(slot);
+
+/**
+ * Phase 3C: the only click destination a PWA slot may use (Adsterra Smartlink_1, id 31839098).
+ * A fixed constant, never built from config or runtime values, so no employee, organization,
+ * attendance, leave or token data can reach an outbound URL. It is a link target only — no
+ * Adsterra script is ever loaded into the authenticated document.
+ */
+export const PWA_SPONSORED_LINK = 'https://araplhn.org/4/b520d39f8958fa5a99fe036521a5d454';
+
+/**
+ * Phase 3C: PWA slots render only a self-hosted (same-origin) image. AdSense, custom HTML,
+ * scripts, iframes, third-party and data: images all resolve to null and render nothing.
+ */
+export const resolvePwaImageSrc = (
+  config: AdConfig | null,
+  origin: string = window.location.origin
+): string | null => {
+  if (config?.adType !== 'image' || !config.imageUrl) return null;
+  try {
+    const url = new URL(config.imageUrl, origin);
+    return url.origin === origin ? url.href : null;
+  } catch {
+    return null;
+  }
+};
+
+// Alt text is fixed: the SmartLink is not a specific brand or offer, so config alt text is not trusted to describe it.
+export const PwaSponsoredImage: React.FC<{ src: string }> = ({ src }) => (
+  <a
+    href={PWA_SPONSORED_LINK}
+    target="_blank"
+    rel="noopener noreferrer sponsored"
+    className="block w-full h-full"
+    onClick={(e) => e.stopPropagation()}
+  >
+    <img
+      src={src}
+      alt="Sponsored link"
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      className="rounded-lg"
+    />
+    <span className="absolute top-1 left-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+      Sponsored
+    </span>
+  </a>
+);
 
 
 export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
@@ -160,6 +210,10 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
 
   // Render based on ad type
   const renderAd = () => {
+    if (isPwaAdSlot(slot)) {
+      const src = resolvePwaImageSrc(adConfig);
+      return src ? <PwaSponsoredImage src={src} /> : null;
+    }
     switch (adConfig.adType) {
       case 'adsense':
         if (!adConfig.adsenseClient || !adConfig.adsenseSlot) return null;
@@ -238,7 +292,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
       }}
     >
       {adContent}
-      <span className="text-[9px] text-slate-400 absolute bottom-1 right-2">Ad</span>
+      {!isPwaAdSlot(slot) && <span className="text-[9px] text-slate-400 absolute bottom-1 right-2">Ad</span>}
     </div>
   );
 };

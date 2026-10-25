@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, X, Code, Image, Globe, AlertTriangle } from 'lucide-react';
 import { organizationService } from '../../services/organization.service';
 import { AdConfig, AdSlot, AdPlaceholder } from '../ads';
+import { isPwaAdSlot, resolvePwaImageSrc, PWA_SPONSORED_LINK } from '../ads/AdBanner';
 import type { FormatTargeting, PageTargetGroup } from '../../config/monetag';
 import { DEFAULT_IPP_TARGETING, DEFAULT_VIGNETTE_TARGETING } from '../../config/monetag';
 
@@ -191,8 +192,14 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
 
   const openEditModal = (slot: AdSlot) => {
     setEditingSlot(slot);
-    setEditForm({ ...configs[slot] });
+    setEditForm(isPwaAdSlot(slot) ? { ...configs[slot], adType: 'image' } : { ...configs[slot] });
   };
+
+  // Phase 3D: PWA slots persist only image fields; the click destination is the fixed SmartLink.
+  const toPwaImageConfig = (config: AdConfig): AdConfig =>
+    ({ ...config, adType: 'image', adsenseClient: '', adsenseSlot: '', customHtml: '', linkUrl: '' });
+
+  const PWA_IMAGE_ERROR = 'PWA slots need a self-hosted image on this site, e.g. /img/sponsored-320x100.png';
 
   const closeEditModal = () => {
     setEditingSlot(null);
@@ -201,10 +208,15 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
 
   const handleSave = async () => {
     if (!editingSlot || !editForm) return;
+    const toSave = isPwaAdSlot(editingSlot) ? toPwaImageConfig(editForm) : editForm;
+    if (isPwaAdSlot(editingSlot) && !resolvePwaImageSrc(toSave)) {
+      onMessage({ type: 'error', text: PWA_IMAGE_ERROR });
+      return;
+    }
     setIsSaving(true);
     try {
-      await organizationService.setSetting(`ad_config_${editingSlot}`, editForm);
-      setConfigs(prev => ({ ...prev, [editingSlot]: editForm }));
+      await organizationService.setSetting(`ad_config_${editingSlot}`, toSave);
+      setConfigs(prev => ({ ...prev, [editingSlot]: toSave }));
       onMessage({ type: 'success', text: `Ad slot "${editingSlot}" updated successfully` });
       closeEditModal();
     } catch (e: any) {
@@ -217,6 +229,10 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
 
   const toggleEnabled = async (slot: AdSlot) => {
     const config = configs[slot];
+    if (isPwaAdSlot(slot) && !config.enabled && !resolvePwaImageSrc(config)) {
+      onMessage({ type: 'error', text: PWA_IMAGE_ERROR });
+      return;
+    }
     const updated = { ...config, enabled: !config.enabled };
     setConfigs(prev => ({ ...prev, [slot]: updated }));
     try {
@@ -582,6 +598,7 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                     <Image size={20} />
                     <span className="text-xs font-medium">Image</span>
                   </button>
+                  {!isPwaAdSlot(editingSlot) && (<>
                   <button
                     onClick={() => setEditForm({ ...editForm, adType: 'adsense' })}
                     className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
@@ -600,6 +617,7 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                     <Code size={20} />
                     <span className="text-xs font-medium">Custom HTML</span>
                   </button>
+                  </>)}
                 </div>
               </div>
 
@@ -612,10 +630,17 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                       type="url"
                       value={editForm.imageUrl || ''}
                       onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                      placeholder="https://example.com/ad-image.png"
+                      placeholder={isPwaAdSlot(editingSlot) ? '/img/sponsored-320x100.png' : 'https://example.com/ad-image.png'}
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
                     />
                   </div>
+                  {isPwaAdSlot(editingSlot) ? (
+                  <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-600 space-y-1">
+                    <p><strong>Image-only slot.</strong> Use a self-hosted image on this site (e.g. <code>/img/sponsored-320x100.png</code>). External image hosts are rejected.</p>
+                    <p>The click destination is fixed and cannot be edited: <code className="break-all">{PWA_SPONSORED_LINK}</code>. It opens in a new tab only when the employee taps the ad, with a visible "Sponsored" label.</p>
+                    <p>Enabling applies only to the organization this configuration is saved for, and only if it is AD_SUPPORTED.</p>
+                  </div>
+                  ) : (<>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Link URL (optional)</label>
                     <input
@@ -636,6 +661,7 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
                     />
                   </div>
+                  </>)}
                 </>
               )}
 

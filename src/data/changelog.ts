@@ -15,6 +15,14 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-10-25',
+    title: 'In-app sponsored image placements switched on, image-only and off by default',
+    entries: [
+      { type: 'feature', description: 'The three in-app ad placements — after a check-in, after a leave request, and below the dashboard cards — can now show a single sponsored image, clearly labelled "Sponsored". Nothing appears until a Super Admin deliberately enables a placement for an organization on the ad-supported plan; every placement starts switched off, and organizations on a paid plan never see one.' },
+      { type: 'security', description: 'These placements only ever show an image hosted on OpenHR itself. Ad network scripts, AdSense, custom HTML, iframes and images from other sites are refused, both in the Super Admin editor and again when the page is drawn. Tapping the image opens a fixed advertising page in a new tab, and only when the employee taps it; the link never carries employee, organization, attendance, leave or login details, and the HR page address is not sent along with it. No advertising code runs inside the signed-in app.' },
+    ],
+  },
+  {
     date: '2026-10-21',
     title: 'In-app ad placements prepared, and locked off in source',
     entries: [
