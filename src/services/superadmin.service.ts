@@ -120,6 +120,27 @@ export const superAdminService = {
     }
   },
 
+  // Phase 3F: settings for an explicitly chosen organization. Never resolves the caller's own org,
+  // so a platform Super Admin can manage per-org rows (RLS: is_super_admin() may read/write any org).
+  async getOrgSettings(orgId: string, keys: string[]): Promise<Record<string, unknown>> {
+    if (!orgId) throw new Error('organization_id is required');
+    const { data, error } = await supabase
+      .from('settings')
+      .select('key, value')
+      .eq('organization_id', orgId)
+      .in('key', keys);
+    if (error) throw error;
+    return Object.fromEntries((data ?? []).map(r => [r.key, typeof r.value === 'string' ? JSON.parse(r.value) : r.value]));
+  },
+
+  async setOrgSetting(orgId: string, key: string, value: unknown): Promise<void> {
+    if (!orgId) throw new Error('organization_id is required');
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key, value, organization_id: orgId }, { onConflict: 'organization_id,key' });
+    if (error) throw error;
+  },
+
   async getOrganization(id: string): Promise<Organization | null> {
     if (!isSupabaseConfigured()) return null;
     try {
