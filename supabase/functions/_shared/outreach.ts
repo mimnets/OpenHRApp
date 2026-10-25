@@ -112,13 +112,16 @@ export interface SendDeps {
   callerRole(): Promise<{ id: string; role: string } | null>;
   getProspect(id: string): Promise<OutreachProspectRow | null>;
   isSuppressed(email: string): Promise<boolean>;
+  /** True when an earlier send to this prospect may have reached Resend but its outcome is unknown. */
+  hasPendingSince(prospectId: string, iso: string): Promise<boolean>;
   countOutboundSince(iso: string): Promise<number>;
   /** Inserts a SENDING row; returns null when the idempotency key already exists. */
   claim(row: Record<string, unknown>): Promise<{ id: string } | null>;
   finish(id: string, patch: Record<string, unknown>): Promise<void>;
   markContacted(prospectId: string, at: string): Promise<void>;
   unsubscribeUrl(email: string): Promise<string>;
-  resend(payload: Record<string, unknown>, idempotencyKey: string): Promise<{ id?: string; error?: string }>;
+  /** `unknown` = no definitive answer (timeout, network, 5xx): Resend may have accepted it. */
+  resend(payload: Record<string, unknown>, idempotencyKey: string): Promise<{ id?: string; error?: string; unknown?: boolean }>;
   now(): Date;
 }
 
@@ -157,6 +160,9 @@ export async function handleOutreachSend(input: unknown, deps: SendDeps): Promis
   if (blocked) return fail(422, blocked);
 
   const now = deps.now();
+  if (await deps.hasPendingSince(p.id, new Date(now.getTime() - 86400_000).toISOString())) {
+    return fail(409, 'An earlier send to this prospect has an unknown outcome. Check the Resend dashboard before sending again (blocked for 24 hours).');
+  }
   const hour = await deps.countOutboundSince(new Date(now.getTime() - 3600_000).toISOString());
   const day = await deps.countOutboundSince(new Date(now.getTime() - 86400_000).toISOString());
   if (hour >= OUTREACH_MAX_PER_HOUR || day >= OUTREACH_MAX_PER_DAY) {
@@ -179,11 +185,18 @@ export async function handleOutreachSend(input: unknown, deps: SendDeps): Promis
   };
   if (deps.config.replyTo) payload.reply_to = deps.config.replyTo.trim();
 
-  let res: { id?: string; error?: string };
+  let res: { id?: string; error?: string; unknown?: boolean };
   try {
     res = await deps.resend(payload, key);
   } catch (e) {
-    res = { error: e instanceof Error ? e.message : String(e) };
+    res = { error: e instanceof Error ? e.message : String(e), unknown: true };
+  }
+
+  // A timeout is not a failure: the email may be on its way. Leave the row
+  // SENDING so it counts against the rate limit and blocks an immediate resend.
+  if (!res.id && res.unknown) {
+    await deps.finish(claimed.id, { error: `Outcome unknown: ${res.error ?? 'no response'}` });
+    return fail(504, 'Resend did not answer in time. The email may still be delivered — check the Resend dashboard before sending again.', { messageId: claimed.id, unknown: true });
   }
 
   if (!res.id) {

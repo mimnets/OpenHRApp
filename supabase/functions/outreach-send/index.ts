@@ -63,6 +63,13 @@ Deno.serve(async (req: Request) => {
       if (error) throw new Error(`Suppression check failed: ${error.message}`);
       return !!data;
     },
+    async hasPendingSince(prospectId, iso) {
+      const { count, error } = await admin.from('outreach_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('prospect_id', prospectId).eq('status', 'SENDING').gte('created', iso);
+      if (error) throw new Error(`Pending-send check failed: ${error.message}`);
+      return (count ?? 0) > 0;
+    },
     async countOutboundSince(iso) {
       const { count, error } = await admin.from('outreach_messages')
         .select('id', { count: 'exact', head: true })
@@ -96,9 +103,12 @@ Deno.serve(async (req: Request) => {
           'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15_000), // thrown abort is treated as "outcome unknown"
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) return { error: `Resend ${res.status}: ${body?.message ?? JSON.stringify(body)}` };
+      if (!res.ok) {
+        return { error: `Resend ${res.status}: ${body?.message ?? JSON.stringify(body)}`, unknown: res.status >= 500 };
+      }
       return { id: body?.id };
     },
     now: () => new Date(),

@@ -31,6 +31,7 @@ function deps(o: Partial<SendDeps> = {}) {
     callerRole: async () => ({ id: 'u1', role: 'SUPER_ADMIN' }),
     getProspect: async () => row(),
     isSuppressed: async () => false,
+    hasPendingSince: async () => false,
     countOutboundSince: async () => 0,
     claim: vi.fn(async (r: Record<string, unknown>) => {
       const k = r.idempotency_key as string;
@@ -125,10 +126,21 @@ describe('outreach-send delivery record', () => {
     expect(d.markContacted).not.toHaveBeenCalled();
   });
 
-  it('treats a thrown network error as FAILED', async () => {
-    const d = deps({ resend: vi.fn(async () => { throw new Error('ECONNRESET'); }) });
-    expect((await handleOutreachSend(req(), d)).status).toBe(502);
-    expect(d.finish).toHaveBeenCalledWith('m1', expect.objectContaining({ status: 'FAILED' }));
+  it('treats a timeout or 5xx as unknown: never FAILED, never contacted', async () => {
+    for (const resend of [vi.fn(async () => { throw new Error('TimeoutError'); }), vi.fn(async () => ({ error: 'Resend 503', unknown: true }))]) {
+      const d = deps({ resend });
+      const r = await handleOutreachSend(req(), d);
+      expect(r.status).toBe(504);
+      expect(r.body.unknown).toBe(true);
+      expect(d.finish).toHaveBeenCalledWith('m1', { error: expect.stringContaining('Outcome unknown') });
+      expect(d.markContacted).not.toHaveBeenCalled();
+    }
+  });
+
+  it('blocks a new send while an earlier one has an unknown outcome', async () => {
+    const d = deps({ hasPendingSince: async () => true });
+    expect((await handleOutreachSend(req(), d)).status).toBe(409);
+    expect(d.claim).not.toHaveBeenCalled();
   });
 
   it('blocks a duplicate submit with the same idempotency key', async () => {
