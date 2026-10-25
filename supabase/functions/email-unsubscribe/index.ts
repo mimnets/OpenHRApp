@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
   console.log(`[email-unsubscribe] suppressed ${email}`);
   return page(
     'You have been unsubscribed',
-    `We will not send any more onboarding or reminder email to <strong>${email}</strong>. ` +
+    `We will not send any more outreach, onboarding or reminder email to <strong>${email}</strong>. ` +
     'Essential account messages, such as password resets, are unaffected.',
     true,
   );

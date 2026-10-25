@@ -50,6 +50,7 @@ const Settings = lazyWithReload(() => import('./pages/Settings'));
 const Reports = lazyWithReload(() => import('./pages/Reports'));
 const Organization = lazyWithReload(() => import('./pages/Organization'));
 const SuperAdmin = lazyWithReload(() => import('./pages/SuperAdmin'));
+const Outreach = lazyWithReload(() => import('./pages/Outreach'));
 const Upgrade = lazyWithReload(() => import('./pages/Upgrade'));
 const PerformanceReview = lazyWithReload(() => import('./pages/PerformanceReview'));
 const Announcements = lazyWithReload(() => import('./pages/Announcements'));
@@ -629,6 +630,7 @@ const AppContent: React.FC = () => {
     if (isSuperAdmin && (currentPath === 'dashboard' || currentPath === 'super-admin')) {
       return <SuperAdmin user={user} onNavigate={handleNavigate} />;
     }
+    if (isSuperAdmin && currentPath === 'outreach') return <Outreach />;
 
     switch (currentPath) {
       case 'dashboard': return <Dashboard user={user} onNavigate={handleNavigate} />;

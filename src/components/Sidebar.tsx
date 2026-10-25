@@ -16,6 +16,7 @@ import {
   ClipboardCheck,
   Megaphone,
   Bell,
+  Target,
 } from 'lucide-react';
 import HelpButton from './onboarding/HelpButton';
 
@@ -33,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
   // Super Admin has a different menu
   const superAdminMenuItems = [
     { id: 'super-admin', label: 'Organizations', icon: Shield, roles: ['SUPER_ADMIN'] },
+    { id: 'outreach', label: 'Outreach', icon: Target, roles: ['SUPER_ADMIN'] },
     { id: 'profile', label: 'My Profile', icon: UserCircle, roles: ['SUPER_ADMIN'] },
   ];
 
