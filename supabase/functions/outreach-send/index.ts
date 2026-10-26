@@ -55,8 +55,15 @@ Deno.serve(async (req: Request) => {
     },
     async getProspect(id) {
       const { data } = await admin.from('outreach_prospects')
-        .select('id, email, status, outreach_basis, do_not_contact, archived').eq('id', id).maybeSingle();
+        .select('id, email, status, outreach_basis, do_not_contact, archived, organization_id').eq('id', id).maybeSingle();
       return data;
+    },
+    async isOrgAdminContact(orgId, email) {
+      const { count, error } = await admin.from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', orgId).eq('role', 'ADMIN').ilike('email', email.replace(/[\\%_]/g, '\\$&')); // case-insensitive exact match
+      if (error) throw new Error(`Organization contact check failed: ${error.message}`);
+      return (count ?? 0) > 0;
     },
     async isSuppressed(email) {
       const { data, error } = await admin.from('email_suppressions').select('email').eq('email', email).maybeSingle();

@@ -8,7 +8,8 @@ import {
 import {
   renderTemplate, hasUnresolvedVariables, sendBlockReason, validateProspect, prepareCsvImport,
   parseCsv, computeMetrics, dueFollowUps, followUpsStopped, stageChange, campaignProgress,
-  type Prospect, type OutreachMessage, type FollowUpTask, type Campaign,
+  orgSegment, orgMetrics, lastActivity, isVerifiedPaying, orgProspectInput, linksByOrg, templatePurpose,
+  type OrgInsight, type Prospect, type OutreachMessage, type FollowUpTask, type Campaign,
 } from '../utils/outreach';
 
 const cfg = {
@@ -30,6 +31,7 @@ function deps(o: Partial<SendDeps> = {}) {
     config: cfg,
     callerRole: async () => ({ id: 'u1', role: 'SUPER_ADMIN' }),
     getProspect: async () => row(),
+    isOrgAdminContact: async () => true,
     isSuppressed: async () => false,
     hasPendingSince: async () => false,
     countOutboundSince: async () => 0,
@@ -289,5 +291,127 @@ describe('migration 0040 RLS', () => {
     expect(insert).toMatch(/status = 'DRAFT'/);
     expect(insert).not.toMatch(/'SENT'/);
     expect(sql).not.toMatch(/references public\.(profiles|employees|organizations)/);
+  });
+});
+
+// ── Phase 5D: existing organizations ────────────────────────────────────────
+const NOW = new Date('2026-10-26T00:00:00Z');
+const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86400_000).toISOString();
+const O = (o: Partial<OrgInsight> = {}): OrgInsight => ({
+  org_id: 'o1', org_name: 'Acme', org_created: daysAgo(60), subscription_status: 'TRIAL',
+  trial_end_date: daysAgo(-30), subscription_expires: null, is_demo: false, employee_count: 12,
+  attendance_total: 100, attendance_recent: 20, last_attendance_at: daysAgo(1),
+  leave_total: 3, leave_recent: 1, last_leave_at: daysAgo(5),
+  verified_payments: 0, last_payment_at: null, admin_name: 'Rahim Uddin', admin_email: 'admin@acme.com', ...o,
+});
+
+describe('existing organization segmentation', () => {
+  it('classifies each segment from evidence', () => {
+    expect(orgSegment(O(), null, NOW)).toBe('ACTIVE_TRIAL');
+    expect(orgSegment(O({ org_created: daysAgo(3) }), null, NOW)).toBe('NEW');
+    expect(orgSegment(O({ last_attendance_at: null, last_leave_at: null, attendance_recent: 0, leave_recent: 0 }), null, NOW)).toBe('NOT_ACTIVATED');
+    expect(orgSegment(O({ attendance_recent: 0, leave_recent: 0, last_attendance_at: daysAgo(90) }), null, NOW)).toBe('INACTIVE');
+    expect(orgSegment(O({ trial_end_date: daysAgo(-3) }), null, NOW)).toBe('TRIAL_EXPIRING');
+    expect(orgSegment(O({ trial_end_date: daysAgo(1) }), null, NOW)).toBe('EXPIRED');
+    expect(orgSegment(O({ subscription_status: 'EXPIRED' }), null, NOW)).toBe('EXPIRED');
+    expect(orgSegment(O({ subscription_status: 'ACTIVE', verified_payments: 1 }), null, NOW)).toBe('PAYING');
+  });
+
+  it('does not treat ACTIVE status as paid without evidence', () => {
+    const o = O({ subscription_status: 'ACTIVE', trial_end_date: null });
+    expect(isVerifiedPaying(o)).toBe(false);
+    expect(orgSegment(o, null, NOW)).toBe('ACTIVE_UNVERIFIED');
+    // A PAYING stage without a paid_at stamp is not evidence either.
+    expect(isVerifiedPaying(o, P({ status: 'PAYING', paid_at: null }))).toBe(false);
+    expect(isVerifiedPaying(o, P({ status: 'PAYING', paid_at: daysAgo(2) }))).toBe(true);
+  });
+
+  it('reports the activity source and never invents activity', () => {
+    expect(lastActivity(O())).toEqual({ at: daysAgo(1), source: 'Attendance record' });
+    expect(lastActivity(O({ last_attendance_at: daysAgo(9) }))?.source).toBe('Leave request');
+    expect(lastActivity(O({ last_attendance_at: null, last_leave_at: null }))).toBeNull();
+  });
+
+  it('aggregates dashboard metrics per organization, excluding demos', () => {
+    const orgs = [
+      O({ org_id: 'a' }),
+      O({ org_id: 'b', org_created: daysAgo(2), last_attendance_at: null, last_leave_at: null, attendance_recent: 0, leave_recent: 0 }),
+      O({ org_id: 'c', subscription_status: 'ACTIVE', verified_payments: 2 }),
+      O({ org_id: 'd', attendance_recent: 0, leave_recent: 0 }),
+      O({ org_id: 'demo', is_demo: true, verified_payments: 5 }),
+    ];
+    const m = orgMetrics(orgs, [P({ id: 'x', organization_id: 'a' })], NOW);
+    expect(m).toMatchObject({ total: 4, newlyRegistered: 1, activated: 3, activeRecent: 2, inactive: 1, verifiedPaying: 1, convertedTrials: 1, linked: 1 });
+  });
+});
+
+describe('existing organization vs external prospect', () => {
+  it('builds the explicit outreach record from the org admin contact only', () => {
+    expect(orgProspectInput(O({ admin_email: null }))).toBeNull();
+    const input = orgProspectInput(O({ admin_email: 'Admin@Acme.com' }))!;
+    expect(input).toMatchObject({ organization_id: 'o1', email: 'admin@acme.com', outreach_basis: 'EXISTING_RELATIONSHIP', status: 'NEW' });
+    expect(Object.keys(input).sort()).toEqual(
+      ['company_name', 'contact_name', 'contact_source', 'email', 'employee_count', 'organization_id', 'outreach_basis', 'status']);
+  });
+
+  it('indexes at most one outreach record per organization and ignores external prospects', () => {
+    const links = linksByOrg([P({ id: '1', organization_id: 'o1' }), P({ id: '2' }), P({ id: '3', organization_id: null })]);
+    expect([...links.keys()]).toEqual(['o1']);
+  });
+
+  it('labels account/service vs promotional templates', () => {
+    expect(templatePurpose('org_onboarding')).toBe('SERVICE');
+    expect(templatePurpose('org_feedback')).toBe('SERVICE');
+    expect(templatePurpose('org_subscription')).toBe('PROMOTIONAL');
+    expect(templatePurpose('initial_intro')).toBe('PROMOTIONAL');
+    expect(templatePurpose(null)).toBe('PROMOTIONAL');
+  });
+});
+
+describe('outreach-send for linked organizations', () => {
+  it('refuses a linked organization recipient who is not a current admin (never emails employees)', async () => {
+    const d = deps({ getProspect: async () => row({ organization_id: 'o1' }), isOrgAdminContact: async () => false });
+    const r = await handleOutreachSend(req(), d);
+    expect(r.status).toBe(422);
+    expect(d.claim).not.toHaveBeenCalled();
+    expect(d.resend).not.toHaveBeenCalled();
+  });
+
+  it('still applies suppression and basis rules to linked organizations', async () => {
+    const admin = vi.fn(async () => true);
+    expect((await handleOutreachSend(req(), deps({ getProspect: async () => row({ organization_id: 'o1' }), isSuppressed: async () => true, isOrgAdminContact: admin }))).status).toBe(422);
+    expect((await handleOutreachSend(req(), deps({ getProspect: async () => row({ organization_id: 'o1', outreach_basis: 'UNVERIFIED' }), isOrgAdminContact: admin }))).status).toBe(422);
+    expect((await handleOutreachSend(req(), deps({ getProspect: async () => row({ organization_id: 'o1' }), isOrgAdminContact: admin }))).status).toBe(200);
+    expect(admin).toHaveBeenCalledWith('o1', 'ceo@acme.com');
+  });
+
+  it('does not check org membership for external prospects', async () => {
+    const admin = vi.fn(async () => false);
+    expect((await handleOutreachSend(req(), deps({ isOrgAdminContact: admin }))).status).toBe(200);
+    expect(admin).not.toHaveBeenCalled();
+  });
+});
+
+describe('migration 0041 organization insights', () => {
+  const sql = readFileSync(resolve(process.cwd(), 'supabase/migrations/0041_outreach_existing_orgs.sql'), 'utf8');
+  const fn = sql.match(/create or replace function public\.outreach_org_insights[\s\S]*?\$\$;/)![0];
+  const returns = fn.match(/returns table \(([\s\S]*?)\)\s*language/)![1];
+
+  it('is SUPER_ADMIN-only and not executable by anon', () => {
+    expect(fn).toMatch(/if not public\.is_super_admin\(\) then\s+raise exception/);
+    expect(sql).toMatch(/revoke all on function public\.outreach_org_insights\(int\) from public/);
+    expect(sql).not.toMatch(/grant execute[^;]*to anon/);
+  });
+
+  it('returns organization-level aggregates only, no personal HR data', () => {
+    for (const col of ['employee_name', 'selfie', 'latitude', 'longitude', 'location', 'reason', 'remarks', 'salary', 'mobile', 'check_in'])
+      expect(returns).not.toMatch(new RegExp(`\\b${col}\\b`));
+    expect(fn).not.toMatch(/\b(t|v)\.(employee_name|selfie|latitude|longitude|location|reason|remarks)\b/);
+  });
+
+  it('prevents duplicate organization links and does not recreate 0040 tables', () => {
+    expect(sql).toMatch(/create unique index if not exists outreach_prospects_org_key\s+on public\.outreach_prospects \(organization_id\) where organization_id is not null/);
+    expect(sql).not.toMatch(/create table/i);
+    expect(sql).toMatch(/on conflict \(key\) do nothing/);
   });
 });

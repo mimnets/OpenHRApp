@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
+import { ORG_THRESHOLDS, orgProspectInput } from '../utils/outreach';
 import type {
-  Campaign, FollowUpTask, OutreachMessage, OutreachTemplate, Prospect, ProspectInput,
+  Campaign, FollowUpTask, OrgInsight, OutreachMessage, OutreachTemplate, Prospect, ProspectInput,
 } from '../utils/outreach';
 
 // Super Admin outreach CRM. Every table is SUPER_ADMIN-only by RLS; sending
@@ -36,6 +37,33 @@ export const outreachService = {
       templates: must(t, 'Could not load templates') as OutreachTemplate[],
       tasks: must(k, 'Could not load follow-ups') as FollowUpTask[],
     };
+  },
+
+  /** Organization-level aggregates from a SUPER_ADMIN-guarded RPC; nothing per-employee reaches the browser. */
+  async orgInsights(): Promise<OrgInsight[]> {
+    const r = await supabase.rpc('outreach_org_insights', { p_days: ORG_THRESHOLDS.activeDays });
+    return must(r, 'Organization insights unavailable') as OrgInsight[];
+  },
+
+  /**
+   * Explicitly start managing an organization in outreach. Reuses an existing
+   * prospect with the same admin email instead of creating a duplicate; the
+   * unique organization_id index blocks a second link.
+   */
+  async linkOrganization(o: OrgInsight) {
+    const input = orgProspectInput(o);
+    if (!input) throw new Error('This organization has no admin contact with a valid email');
+    const found = await supabase.from('outreach_prospects')
+      .select('id, organization_id').eq('email', input.email).maybeSingle();
+    const existing = must(found, 'Could not check existing prospects') as { id: string; organization_id: string | null } | null;
+    if (existing?.organization_id && existing.organization_id !== o.org_id) {
+      throw new Error('This email is already linked to a different organization');
+    }
+    const r = existing
+      ? await supabase.from('outreach_prospects').update({ organization_id: o.org_id }).eq('id', existing.id)
+      : await supabase.from('outreach_prospects').insert(input);
+    if (r.error?.code === '23505') throw new Error('This organization is already managed in outreach');
+    must(r, 'Could not link organization');
   },
 
   async saveProspect(id: string | null, input: Partial<ProspectInput>) {

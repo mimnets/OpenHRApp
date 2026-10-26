@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Target, Users, KanbanSquare, Mail, CalendarClock, Flag, Plus, Upload, Search, Send, Save,
-  Trash2, Archive, Loader2, AlertTriangle, MessageSquareReply, Ban, X, CheckCircle2,
+  Trash2, Archive, Loader2, AlertTriangle, MessageSquareReply, Ban, X, CheckCircle2, Building2,
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { outreachService } from '../services/outreach.service';
 import {
   PIPELINE, CLOSED, STATUS_LABEL, OUTREACH_BASIS, computeMetrics, campaignProgress, dueFollowUps,
   followUpsStopped, hasUnresolvedVariables, pct, prepareCsvImport, renderTemplate, sendBlockReason,
-  stageChange, templateVars, validateProspect,
-  type Campaign, type CsvPreviewRow, type FollowUpTask, type OutreachMessage, type OutreachTemplate,
+  stageChange, templateVars, validateProspect, ORG_SEGMENTS, ORG_NEXT_ACTION, ORG_THRESHOLDS,
+  SUPERADMIN_OPEN_ORG_KEY, lastActivity, linksByOrg, orgMetrics, orgSegment, templatePurpose,
+  type OrgInsight, type OrgMetrics, type Campaign, type CsvPreviewRow, type FollowUpTask, type OutreachMessage, type OutreachTemplate,
   type Prospect, type ProspectInput, type ProspectStatus,
 } from '../utils/outreach';
 
-type Tab = 'dashboard' | 'prospects' | 'pipeline' | 'email' | 'followups' | 'campaigns';
+type Tab = 'dashboard' | 'organizations' | 'prospects' | 'pipeline' | 'email' | 'followups' | 'campaigns';
 
 const inputCls = 'w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-4 focus:ring-primary-light';
 const btn = 'px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50';
@@ -26,7 +27,7 @@ const SIGNATURE_KEY = 'openhr.outreach.signature';
 
 const ALL_STATUSES = [...PIPELINE, ...CLOSED] as ProspectStatus[];
 
-const Outreach: React.FC = () => {
+const Outreach: React.FC<{ onNavigate?: (path: string) => void }> = ({ onNavigate }) => {
   const { showToast } = useToast();
   const [tab, setTab] = useState<Tab>('dashboard');
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,9 @@ const Outreach: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templates, setTemplates] = useState<OutreachTemplate[]>([]);
   const [tasks, setTasks] = useState<FollowUpTask[]>([]);
+  // null = unavailable (RPC missing or failed): shown as unavailable, never as zero.
+  const [orgs, setOrgs] = useState<OrgInsight[] | null>(null);
+  const [orgError, setOrgError] = useState<string | null>(null);
   const [composeFor, setComposeFor] = useState<{ prospectId: string; templateKey?: string } | null>(null);
 
   const reload = useCallback(async () => {
@@ -43,6 +47,10 @@ const Outreach: React.FC = () => {
       const d = await outreachService.loadAll();
       setProspects(d.prospects); setMessages(d.messages); setCampaigns(d.campaigns);
       setTemplates(d.templates); setTasks(d.tasks); setLoadError(null);
+      // Separate from the CRM load so a missing 0041 migration never breaks prospect work.
+      await outreachService.orgInsights()
+        .then((o) => { setOrgs(o); setOrgError(null); })
+        .catch((e) => { setOrgs(null); setOrgError(e instanceof Error ? e.message : String(e)); });
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -60,7 +68,8 @@ const Outreach: React.FC = () => {
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Target },
-    { id: 'prospects', label: 'Prospects', icon: Users },
+    { id: 'organizations', label: 'Existing Organizations', icon: Building2 },
+    { id: 'prospects', label: 'External Prospects', icon: Users },
     { id: 'pipeline', label: 'Pipeline', icon: KanbanSquare },
     { id: 'email', label: 'Email Center', icon: Mail },
     { id: 'followups', label: 'Follow-ups', icon: CalendarClock },
@@ -92,7 +101,11 @@ const Outreach: React.FC = () => {
           <span>{loadError}. If this is a new install, apply migration 0040_outreach_crm.sql.</span></div>
       ) : (
         <>
-          {tab === 'dashboard' && <Dashboard prospects={prospects} messages={messages} campaigns={campaigns} tasks={tasks} />}
+          {tab === 'dashboard' && <Dashboard prospects={prospects} messages={messages} campaigns={campaigns} tasks={tasks} orgs={orgs} />}
+          {tab === 'organizations' && (
+            <Organizations orgs={orgs} orgError={orgError} prospects={prospects} run={run} onCompose={openCompose}
+              onNavigate={onNavigate} />
+          )}
           {tab === 'prospects' && <Prospects prospects={prospects} messages={messages} campaigns={campaigns} run={run} onCompose={openCompose} />}
           {tab === 'pipeline' && <Pipeline prospects={prospects} run={run} />}
           {tab === 'email' && (
@@ -118,14 +131,31 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; sub?: string }> = 
   </div>
 );
 
-const Dashboard: React.FC<{ prospects: Prospect[]; messages: OutreachMessage[]; campaigns: Campaign[]; tasks: FollowUpTask[] }> =
-  ({ prospects, messages, campaigns, tasks }) => {
+const Dashboard: React.FC<{ prospects: Prospect[]; messages: OutreachMessage[]; campaigns: Campaign[]; tasks: FollowUpTask[]; orgs: OrgInsight[] | null }> =
+  ({ prospects, messages, campaigns, tasks, orgs }) => {
     const m = computeMetrics(prospects, messages, campaigns);
     const due = dueFollowUps(tasks, prospects, messages, today());
+    const o = orgs && orgMetrics(orgs, prospects);
+    const v = (k: keyof OrgMetrics) => (o ? o[k] : 'Unavailable');
+    const external = prospects.filter((p) => !p.organization_id && !p.archived).length;
     return (
       <div className="space-y-6">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Product usage · existing organizations</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <Stat label="Total prospects" value={m.prospects} />
+          <Stat label="Organizations" value={v('total')} sub="Demo workspaces excluded" />
+          <Stat label="Newly registered" value={v('newlyRegistered')} sub={`Last ${ORG_THRESHOLDS.newDays} days`} />
+          <Stat label="Activated" value={v('activated')} sub="Any attendance or leave record" />
+          <Stat label={`Active, last ${ORG_THRESHOLDS.activeDays} days`} value={v('activeRecent')} sub="New attendance/leave records" />
+          <Stat label="Inactive" value={v('inactive')} />
+          <Stat label="Trials needing attention" value={v('trialsNeedingAttention')} sub={`Ending within ${ORG_THRESHOLDS.trialExpiringDays} days`} />
+          <Stat label="Verified paying" value={v('verifiedPaying')} sub="Approved payment or recorded conversion" />
+          <Stat label="Trials converted to paid" value={v('convertedTrials')} />
+        </div>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Outreach activity</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <Stat label="External prospects" value={external} />
+          <Stat label="Organizations in outreach" value={v('linked')} />
+          <Stat label="Total outreach records" value={m.prospects} />
           <Stat label="Contacted" value={m.contacted} sub="≥1 email accepted by Resend" />
           <Stat label="Replies" value={m.replies} sub={`${m.positiveReplies} positive`} />
           <Stat label="Interested" value={m.interested} />
@@ -180,6 +210,153 @@ const CampaignReport: React.FC<{ c: Campaign; prospects: Prospect[]; messages: O
   );
 };
 
+// ── Existing organizations ──────────────────────────────────────────────────
+const ORG_EMAILS = [['org_onboarding', 'Onboarding'], ['org_feedback', 'Feedback'], ['org_subscription', 'Subscription']] as const;
+
+const Organizations: React.FC<{
+  orgs: OrgInsight[] | null; orgError: string | null; prospects: Prospect[]; run: Run;
+  onCompose: (id: string, key?: string) => void; onNavigate?: (path: string) => void;
+}> = ({ orgs, orgError, prospects, run, onCompose, onNavigate }) => {
+  const [q, setQ] = useState('');
+  const [seg, setSeg] = useState('');
+  const [selId, setSelId] = useState<string | null>(null);
+  const [replyFor, setReplyFor] = useState<Prospect | null>(null);
+  const [due, setDue] = useState(today());
+
+  if (!orgs) {
+    return (
+      <div className="p-4 rounded-2xl bg-amber-50 text-amber-800 flex gap-3"><AlertTriangle size={20} />
+        <span>Organization usage is unavailable ({orgError}). Apply migration 0041_outreach_existing_orgs.sql.</span></div>
+    );
+  }
+
+  const links = linksByOrg(prospects);
+  const all = orgs.filter((o) => !o.is_demo).map((o) => {
+    const link = links.get(o.org_id) ?? null;
+    return { o, link, s: orgSegment(o, link) };
+  });
+  const rows = all.filter(({ o, s }) => (!seg || s === seg) &&
+    (!q || [o.org_name, o.admin_email].some((v) => v?.toLowerCase().includes(q.toLowerCase()))));
+  const sel = all.find((x) => x.o.org_id === selId) ?? null;
+
+  const recordPaid = (p: Prospect) => {
+    if (!window.confirm('Record a paid conversion only after the payment has been received and verified. Continue?')) return;
+    const v = window.prompt('Verified monthly amount (USD)', String(p.confirmed_mrr ?? ''));
+    const n = Number(v);
+    if (v === null || !Number.isFinite(n) || n <= 0) return;
+    run(() => outreachService.saveProspect(p.id, { ...stageChange(p, 'PAYING'), confirmed_mrr: n }), 'Paid conversion recorded');
+  };
+
+  const openAdmin = (orgId: string) => {
+    try { sessionStorage.setItem(SUPERADMIN_OPEN_ORG_KEY, orgId); } catch { /* falls back to the org list */ }
+    onNavigate?.('super-admin');
+  };
+
+  const linked = sel?.link ?? null;
+  const blocked = linked ? sendBlockReason(linked, false) : null;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-slate-500">
+        Live organization-level counts. Activity is the newest attendance or leave record, not a login. No employee details are shown here.
+        An organization joins outreach only when you choose <em>Manage in outreach</em>, and only its admin contact can be emailed.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[12rem]">
+          <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+          <input className={`${inputCls} pl-9`} placeholder="Search organization or admin email" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search organizations" />
+        </div>
+        <select className={`${inputCls} w-auto`} value={seg} onChange={(e) => setSeg(e.target.value)} aria-label="Filter by segment">
+          <option value="">All segments</option>
+          {Object.entries(ORG_SEGMENTS).map(([k, l]) => <option key={k} value={k}>{l} ({all.filter((x) => x.s === k).length})</option>)}
+        </select>
+      </div>
+
+      {sel && (
+        <div className={`${card} p-4 space-y-3`}>
+          <div className="flex justify-between items-start gap-2">
+            <h3 className="font-bold">{sel.o.org_name} <span className="font-normal text-slate-400">· {ORG_SEGMENTS[sel.s]}</span></h3>
+            <button onClick={() => setSelId(null)} aria-label="Close details"><X size={18} /></button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <p><span className="block text-xs text-slate-400">Subscription</span>{sel.o.subscription_status}{sel.o.trial_end_date && ` · trial ends ${fmtDate(sel.o.trial_end_date)}`}</p>
+            <p><span className="block text-xs text-slate-400">Created</span>{fmtDate(sel.o.org_created)}</p>
+            <p><span className="block text-xs text-slate-400">Employees</span>{sel.o.employee_count}</p>
+            <p><span className="block text-xs text-slate-400">Verified payments</span>{sel.o.verified_payments}{sel.o.last_payment_at && ` · last ${fmtDate(sel.o.last_payment_at)}`}</p>
+            <p><span className="block text-xs text-slate-400">Attendance records</span>{sel.o.attendance_recent} in {ORG_THRESHOLDS.activeDays}d · {sel.o.attendance_total} total</p>
+            <p><span className="block text-xs text-slate-400">Leave requests</span>{sel.o.leave_recent} in {ORG_THRESHOLDS.activeDays}d · {sel.o.leave_total} total</p>
+            <p><span className="block text-xs text-slate-400">Admin contact</span>{sel.o.admin_name || '—'}<br />{sel.o.admin_email || 'No admin email'}</p>
+            <p><span className="block text-xs text-slate-400">Next action</span>{ORG_NEXT_ACTION[sel.s].action}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {onNavigate && <button className={btnGhost} onClick={() => openAdmin(sel.o.org_id)}><Building2 size={16} /> Open organization admin</button>}
+            {!linked && (
+              <button className={btnPrimary} disabled={!sel.o.admin_email}
+                onClick={() => run(() => outreachService.linkOrganization(sel.o), 'Organization added to outreach')}>
+                <Plus size={16} /> Manage in outreach
+              </button>
+            )}
+          </div>
+          {linked && (
+            <div className="space-y-3 border-t border-slate-100 pt-3">
+              <p className="text-sm">Outreach: <strong>{STATUS_LABEL[linked.status]}</strong> · last contact {fmtDate(linked.last_contacted_at)} · next follow-up {linked.next_follow_up ?? '—'}
+                {linked.do_not_contact && <span className="ml-1 text-xs text-rose-600 font-bold">DNC</span>}</p>
+              {blocked && <p className="text-sm text-rose-600">{blocked}</p>}
+              <div className="flex flex-wrap gap-2">
+                {ORG_EMAILS.map(([k, label]) => (
+                  <button key={k} className={btnGhost} disabled={!!blocked} onClick={() => onCompose(linked.id, k)}><Mail size={16} /> {label} email</button>
+                ))}
+                <button className={btnGhost} onClick={() => setReplyFor(linked)}><MessageSquareReply size={16} /> Record reply / meeting</button>
+                {linked.status !== 'PAYING' && <button className={btnGhost} onClick={() => recordPaid(linked)}><CheckCircle2 size={16} /> Record verified payment</button>}
+              </div>
+              {!followUpsStopped(linked) && (
+                <div className="flex flex-wrap gap-2 items-center">
+                  <input type="date" className={`${inputCls} w-auto`} value={due} onChange={(e) => setDue(e.target.value)} aria-label="Follow-up date" />
+                  <button className={btnGhost} disabled={!due}
+                    onClick={() => run(() => outreachService.addTask({ prospect_id: linked.id, due_date: due, template_key: ORG_NEXT_ACTION[sel.s].templateKey, note: ORG_NEXT_ACTION[sel.s].action }), 'Follow-up scheduled')}>
+                    <CalendarClock size={16} /> Schedule follow-up
+                  </button>
+                </div>
+              )}
+              {replyFor && <RecordReply prospect={replyFor} run={run} onClose={() => setReplyFor(null)} />}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={`${card} overflow-x-auto`}>
+        <table className="w-full text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-slate-400">
+            <tr><th className="p-3">Organization</th><th className="p-3">Segment</th><th className="p-3">Employees</th>
+              <th className="p-3">Last activity</th><th className="p-3">{ORG_THRESHOLDS.activeDays}d attendance / leave</th>
+              <th className="p-3">Outreach</th><th className="p-3">Next action</th></tr>
+          </thead>
+          <tbody>
+            {rows.map(({ o, link, s }) => {
+              const last = lastActivity(o);
+              return (
+                <tr key={o.org_id} className="border-t border-slate-100">
+                  <td className="p-3">
+                    <button className="font-bold text-primary text-left" onClick={() => { setSelId(o.org_id); setReplyFor(null); }}>{o.org_name}</button>
+                    <p className="text-xs text-slate-500">{o.subscription_status} · since {fmtDate(o.org_created)}</p>
+                  </td>
+                  <td className="p-3 text-xs">{ORG_SEGMENTS[s]}</td>
+                  <td className="p-3">{o.employee_count}</td>
+                  <td className="p-3">{last ? <>{fmtDate(last.at)}<p className="text-xs text-slate-500">{last.source}</p></> : <span className="text-slate-400">None yet</span>}</td>
+                  <td className="p-3">{o.attendance_recent} / {o.leave_recent}</td>
+                  <td className="p-3 text-xs">{link ? STATUS_LABEL[link.status] : <span className="text-slate-400">Not managed</span>}</td>
+                  <td className="p-3 text-xs">{ORG_NEXT_ACTION[s].action}</td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-slate-400">No organizations.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // ── Prospects ───────────────────────────────────────────────────────────────
 const emptyProspect = (): ProspectInput => ({ company_name: '', email: '', outreach_basis: 'UNVERIFIED', status: 'NEW' });
 
@@ -196,7 +373,7 @@ const Prospects: React.FC<{
   const [replyFor, setReplyFor] = useState<Prospect | null>(null);
 
   const sentIds = useMemo(() => new Set(messages.filter((m) => m.direction === 'OUTBOUND' && m.status !== 'DRAFT').map((m) => m.prospect_id)), [messages]);
-  const rows = prospects.filter((p) =>
+  const rows = prospects.filter((p) => !p.organization_id &&
     (showArchived || !p.archived) && (!status || p.status === status) &&
     (!q || [p.company_name, p.contact_name, p.email, p.industry, p.city].some((v) => v?.toLowerCase().includes(q.toLowerCase()))));
 
@@ -485,6 +662,13 @@ const EmailCenter: React.FC<{
           <option value="">Choose a template…</option>
           {templates.map((t) => <option key={t.key} value={t.key}>{t.name}</option>)}
         </select>
+        {templateKey && (
+          <p className="text-xs text-slate-500">
+            {templatePurpose(templateKey) === 'SERVICE'
+              ? 'Account/service message to an existing customer.'
+              : 'Sales/promotional message. Send only where the contact basis supports it.'}
+          </p>
+        )}
         <input className={inputCls} value={subject} onChange={(e) => { setSubject(e.target.value); setConfirmed(false); }} placeholder="Subject" aria-label="Subject" />
         <textarea className={inputCls} rows={12} value={body} onChange={(e) => { setBody(e.target.value); setConfirmed(false); }} placeholder="Body (plain text)" aria-label="Body" />
         {unresolved && <p className="text-sm text-amber-700">Fill in the remaining {'{{variables}}'} — the prospect record is missing a value, or set your signature.</p>}

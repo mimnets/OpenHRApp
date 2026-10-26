@@ -17,6 +17,8 @@ export interface OutreachProspectRow {
   outreach_basis: string;
   do_not_contact: boolean;
   archived: boolean;
+  /** Set when this record is an existing OpenHRApp organization's admin contact. */
+  organization_id?: string | null;
 }
 
 export function isValidEmail(email: string): boolean {
@@ -111,6 +113,8 @@ export interface SendDeps {
   /** Role of the verified caller, or null when the token is invalid. */
   callerRole(): Promise<{ id: string; role: string } | null>;
   getProspect(id: string): Promise<OutreachProspectRow | null>;
+  /** True when `email` is a current ADMIN of the organization: existing customers are only emailed at their admin contact, never an employee. */
+  isOrgAdminContact(orgId: string, email: string): Promise<boolean>;
   isSuppressed(email: string): Promise<boolean>;
   /** True when an earlier send to this prospect may have reached Resend but its outcome is unknown. */
   hasPendingSince(prospectId: string, iso: string): Promise<boolean>;
@@ -158,6 +162,9 @@ export async function handleOutreachSend(input: unknown, deps: SendDeps): Promis
   }
   const blocked = sendBlockReason(p, await deps.isSuppressed(p.email));
   if (blocked) return fail(422, blocked);
+  if (p.organization_id && !(await deps.isOrgAdminContact(p.organization_id, p.email))) {
+    return fail(422, 'Recipient is not a current admin of the linked organization');
+  }
 
   const now = deps.now();
   if (await deps.hasPendingSince(p.id, new Date(now.getTime() - 86400_000).toISOString())) {

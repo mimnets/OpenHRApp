@@ -630,7 +630,7 @@ const AppContent: React.FC = () => {
     if (isSuperAdmin && (currentPath === 'dashboard' || currentPath === 'super-admin')) {
       return <SuperAdmin user={user} onNavigate={handleNavigate} />;
     }
-    if (isSuperAdmin && currentPath === 'outreach') return <Outreach />;
+    if (isSuperAdmin && currentPath === 'outreach') return <Outreach onNavigate={handleNavigate} />;
 
     switch (currentPath) {
       case 'dashboard': return <Dashboard user={user} onNavigate={handleNavigate} />;

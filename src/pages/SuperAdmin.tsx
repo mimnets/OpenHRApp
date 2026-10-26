@@ -5,6 +5,7 @@ import {
   CreditCard, Monitor, HardDrive, FileText, Star, Share2, BookOpen, Bell, HelpCircle, Send, ScrollText, ShieldAlert, Sparkles
 } from 'lucide-react';
 import { superAdminService } from '../services/superadmin.service';
+import { SUPERADMIN_OPEN_ORG_KEY } from '../utils/outreach';
 import { upgradeService } from '../services/upgrade.service';
 import { Organization, Employee, PlatformStats, User, UpgradeRequest } from '../types';
 import AdManagement from '../components/superadmin/AdManagement';
@@ -69,6 +70,11 @@ const SuperAdmin: React.FC<SuperAdminProps> = () => {
     setOrganizations(orgsData);
     setStats(statsData);
     setIsLoading(false);
+    // Opened from Outreach → Existing Organizations: jump straight to that organization.
+    let openId: string | null = null;
+    try { openId = sessionStorage.getItem(SUPERADMIN_OPEN_ORG_KEY); sessionStorage.removeItem(SUPERADMIN_OPEN_ORG_KEY); } catch { /* storage blocked */ }
+    const target = openId && orgsData.find((o) => o.id === openId);
+    if (target) openEditMode(target);
   };
 
   const loadUpgradeRequests = async () => {

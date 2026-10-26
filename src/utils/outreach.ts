@@ -53,6 +53,8 @@ export interface Prospect {
   pilot_started_at: string | null;
   paid_at: string | null;
   confirmed_mrr: number | null;
+  /** Set when this record is the outreach link for an existing OpenHRApp organization. */
+  organization_id?: string | null;
 }
 
 export type ProspectInput = Partial<Omit<Prospect, 'id'>> & { company_name: string; email: string };
@@ -288,5 +290,136 @@ export function templateVars(p: Prospect, signature: string): Record<string, str
     primary_problem: p.primary_problem ?? '',
     current_hr_method: p.current_hr_method ?? '',
     sender_signature: signature,
+  };
+}
+
+// ── Existing organizations ──────────────────────────────────────────────────
+/** Outreach -> Super Admin handoff: the org to open when the admin view mounts. */
+export const SUPERADMIN_OPEN_ORG_KEY = 'openhr.superadmin.openOrg';
+
+/** One row of the outreach_org_insights() RPC: organization-level aggregates only. */
+export interface OrgInsight {
+  org_id: string;
+  org_name: string;
+  org_created: string;
+  subscription_status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'AD_SUPPORTED';
+  trial_end_date: string | null;
+  subscription_expires: string | null;
+  is_demo: boolean;
+  employee_count: number;
+  attendance_total: number;
+  attendance_recent: number;
+  last_attendance_at: string | null;
+  leave_total: number;
+  leave_recent: number;
+  last_leave_at: string | null;
+  /** Approved DONATION upgrade requests with an amount > 0. */
+  verified_payments: number;
+  last_payment_at: string | null;
+  admin_name: string | null;
+  admin_email: string | null;
+}
+
+/** Days, editable in one place. `activeDays` must match the window passed to the RPC. */
+export const ORG_THRESHOLDS = { newDays: 14, activeDays: 30, trialExpiringDays: 7 };
+
+export const ORG_SEGMENTS = {
+  NEW: 'New / onboarding',
+  NOT_ACTIVATED: 'Registered, not activated',
+  ACTIVE_TRIAL: 'Active trial',
+  TRIAL_EXPIRING: 'Trial expiring',
+  PAYING: 'Verified paying',
+  ACTIVE_UNVERIFIED: 'Active, payment not verified',
+  INACTIVE: 'Inactive',
+  EXPIRED: 'Expired subscription',
+} as const;
+export type OrgSegment = keyof typeof ORG_SEGMENTS;
+
+/** Recommended next step and the template that fits it. */
+export const ORG_NEXT_ACTION: Record<OrgSegment, { action: string; templateKey: string }> = {
+  NEW: { action: 'Send an onboarding check-in', templateKey: 'org_onboarding' },
+  NOT_ACTIVATED: { action: 'Offer setup help', templateKey: 'org_onboarding' },
+  ACTIVE_TRIAL: { action: 'Ask for product feedback', templateKey: 'org_feedback' },
+  TRIAL_EXPIRING: { action: 'Discuss a plan before the trial ends', templateKey: 'org_subscription' },
+  PAYING: { action: 'Ask for feedback and keep in touch', templateKey: 'org_feedback' },
+  ACTIVE_UNVERIFIED: { action: 'Confirm plan and payment status', templateKey: 'org_subscription' },
+  INACTIVE: { action: 'Check in on why usage stopped', templateKey: 'org_feedback' },
+  EXPIRED: { action: 'Discuss renewal or what was missing', templateKey: 'org_subscription' },
+};
+
+/** Account/service messages vs sales/promotional ones. Unknown keys are treated as promotional. */
+const SERVICE_TEMPLATES = new Set(['org_onboarding', 'org_feedback']);
+export const templatePurpose = (key: string | null | undefined): 'SERVICE' | 'PROMOTIONAL' =>
+  key && SERVICE_TEMPLATES.has(key) ? 'SERVICE' : 'PROMOTIONAL';
+
+/** Latest product activity and where it came from. Record timestamps, not logins. */
+export function lastActivity(o: OrgInsight): { at: string; source: string } | null {
+  const a = o.last_attendance_at, l = o.last_leave_at;
+  if (!a && !l) return null;
+  return a && (!l || a >= l) ? { at: a, source: 'Attendance record' } : { at: l!, source: 'Leave request' };
+}
+
+/** Paid only on evidence: an approved donation, or a conversion recorded on the linked outreach record. */
+export const isVerifiedPaying = (o: OrgInsight, link?: Prospect | null) =>
+  o.verified_payments > 0 || (link?.status === 'PAYING' && !!link.paid_at);
+
+export function orgSegment(o: OrgInsight, link?: Prospect | null, now = new Date(), t = ORG_THRESHOLDS): OrgSegment {
+  const day = 86400_000, nowT = now.getTime();
+  const at = (s: string | null) => (s ? new Date(s).getTime() : null);
+  const trialEnd = at(o.trial_end_date), subEnd = at(o.subscription_expires);
+  if (o.subscription_status === 'EXPIRED' || o.subscription_status === 'SUSPENDED'
+    || (o.subscription_status === 'TRIAL' && trialEnd != null && trialEnd < nowT)
+    || (o.subscription_status === 'ACTIVE' && subEnd != null && subEnd < nowT)) return 'EXPIRED';
+  if (isVerifiedPaying(o, link)) return 'PAYING';
+  if (o.subscription_status === 'TRIAL' && trialEnd != null && trialEnd - nowT <= t.trialExpiringDays * day) return 'TRIAL_EXPIRING';
+  if (nowT - new Date(o.org_created).getTime() <= t.newDays * day) return 'NEW';
+  if (!lastActivity(o)) return 'NOT_ACTIVATED';
+  if (o.attendance_recent + o.leave_recent === 0) return 'INACTIVE';
+  return o.subscription_status === 'TRIAL' ? 'ACTIVE_TRIAL' : 'ACTIVE_UNVERIFIED';
+}
+
+/** Index of outreach records by organization, so each org has at most one. */
+export const linksByOrg = (prospects: Prospect[]) =>
+  new Map(prospects.filter((p) => p.organization_id).map((p) => [p.organization_id!, p]));
+
+export interface OrgMetrics {
+  total: number; newlyRegistered: number; activated: number; activeRecent: number; inactive: number;
+  trialsNeedingAttention: number; verifiedPaying: number; convertedTrials: number; linked: number;
+}
+
+/** Product-usage metrics. Demo organizations are excluded. */
+export function orgMetrics(orgs: OrgInsight[], prospects: Prospect[], now = new Date()): OrgMetrics {
+  const links = linksByOrg(prospects);
+  const real = orgs.filter((o) => !o.is_demo);
+  const seg = real.map((o) => ({ o, s: orgSegment(o, links.get(o.org_id), now) }));
+  const count = (...s: OrgSegment[]) => seg.filter((x) => s.includes(x.s)).length;
+  const paying = real.filter((o) => isVerifiedPaying(o, links.get(o.org_id)));
+  return {
+    total: real.length,
+    newlyRegistered: count('NEW'),
+    activated: real.filter((o) => lastActivity(o)).length,
+    activeRecent: real.filter((o) => o.attendance_recent + o.leave_recent > 0).length,
+    inactive: count('INACTIVE'),
+    trialsNeedingAttention: count('TRIAL_EXPIRING'),
+    verifiedPaying: paying.length,
+    // Every organization starts on a trial at registration, so a verified payment is a trial conversion.
+    convertedTrials: paying.length,
+    linked: real.filter((o) => links.has(o.org_id)).length,
+  };
+}
+
+/** Fields for the explicit outreach record created when the Super Admin chooses to manage an organization. */
+export function orgProspectInput(o: OrgInsight): ProspectInput | null {
+  if (!o.admin_email || !isValidEmail(o.admin_email)) return null;
+  return {
+    organization_id: o.org_id,
+    company_name: o.org_name,
+    contact_name: o.admin_name,
+    email: o.admin_email.toLowerCase(),
+    employee_count: o.employee_count,
+    // The admin opened the account themselves: a documented existing relationship.
+    outreach_basis: 'EXISTING_RELATIONSHIP',
+    contact_source: 'OpenHRApp registration (organization admin)',
+    status: 'NEW',
   };
 }
