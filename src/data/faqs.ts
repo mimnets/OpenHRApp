@@ -85,8 +85,8 @@ export const faqs = [
         a: 'There is no trial period because OpenHRApp is permanently free. There are no time limits, no feature gates, and no employee caps. You can use it for as long as you want without paying anything.',
       },
       {
-        q: 'How can I support the project?',
-        a: 'You can support OpenHRApp by making a donation through Buy Me a Coffee. Any amount helps — your contribution directly funds ongoing development and hosting costs. As a thank-you, donors receive an ad-free experience for their organization. Contact us after donating and we will enable it for your account.',
+        q: 'How does the ad-free plan work?',
+        a: 'The ad-free plan is $3 a month or $24 a year per organization, whatever its size. It removes all ads, keeps every feature, and mainly covers server costs. You can cancel at any time, and payments within the last 14 days can be refunded. See the Pricing page for details.',
       },
       {
         q: 'What features should I look for in HR management software?',

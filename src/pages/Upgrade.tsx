@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Heart, Clock, Monitor, ArrowLeft, ExternalLink, Upload,
-  CheckCircle2, AlertCircle, Loader2, Coffee, X
+  Sparkles, Clock, Monitor, ArrowLeft, Mail,
+  CheckCircle2, AlertCircle, Loader2, X
 } from 'lucide-react';
 import { upgradeService } from '../services/upgrade.service';
 import { useSubscription } from '../context/SubscriptionContext';
-import { DonationTier, UpgradeRequest } from '../types';
+import { UpgradeRequest } from '../types';
+import { PRICING, yearlyPerMonth } from '../data/pricing';
 
 interface UpgradeProps {
   onBack: () => void;
 }
-
-const DONATION_TIERS: { id: DonationTier; label: string; amount: number; duration: string }[] = [
-  { id: 'TIER_3MO', label: '$5', amount: 5, duration: '3 months' },
-  { id: 'TIER_6MO', label: '$10', amount: 10, duration: '6 months' },
-  { id: 'TIER_1YR', label: '$20', amount: 20, duration: '1 year' },
-  { id: 'TIER_LIFETIME', label: '$50', amount: 50, duration: 'Lifetime' }
-];
 
 const EXTENSION_REASONS = [
   'Still evaluating features',
@@ -30,16 +24,10 @@ const EXTENSION_REASONS = [
 
 const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
   const { subscription, refreshSubscription } = useSubscription();
-  const [activeTab, setActiveTab] = useState<'donate' | 'extend' | 'ads'>('donate');
+  const [activeTab, setActiveTab] = useState<'plan' | 'extend' | 'ads'>('plan');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pendingRequest, setPendingRequest] = useState<UpgradeRequest | null>(null);
-
-  // Donation form state
-  const [selectedTier, setSelectedTier] = useState<DonationTier>('TIER_6MO');
-  const [donationRef, setDonationRef] = useState('');
-  const [donationFile, setDonationFile] = useState<File | null>(null);
-  const [showDonationForm, setShowDonationForm] = useState(false);
 
   // Extension form state
   const [extensionReason, setExtensionReason] = useState('');
@@ -54,34 +42,6 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
     };
     checkPending();
   }, []);
-
-  const handleDonationSubmit = async () => {
-    if (!donationRef.trim()) {
-      setMessage({ type: 'error', text: 'Please enter your transaction reference' });
-      return;
-    }
-
-    const tier = DONATION_TIERS.find(t => t.id === selectedTier);
-    if (!tier) return;
-
-    setIsLoading(true);
-    const result = await upgradeService.submitDonationRequest({
-      donationTier: selectedTier,
-      donationAmount: tier.amount,
-      donationReference: donationRef,
-      donationScreenshot: donationFile || undefined
-    });
-
-    setIsLoading(false);
-    if (result.success) {
-      setMessage({ type: 'success', text: 'Request submitted! We\'ll review it shortly.' });
-      setShowDonationForm(false);
-      const pending = await upgradeService.getPendingRequest();
-      setPendingRequest(pending);
-    } else {
-      setMessage({ type: 'error', text: result.message });
-    }
-  };
 
   const handleExtensionSubmit = async () => {
     const reason = extensionReason === 'Other' ? customReason : extensionReason;
@@ -180,23 +140,23 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
       {/* Intro Banner */}
       <div className="bg-gradient-to-br from-primary to-primary-hover rounded-2xl p-8 text-white">
         <div className="flex items-center gap-3 mb-4">
-          <Heart className="w-8 h-8" />
-          <h2 className="text-xl font-bold">Support Open Source HR</h2>
+          <Sparkles className="w-8 h-8" />
+          <h2 className="text-xl font-bold">Every feature, free</h2>
         </div>
         <p className="text-white/90">
-          OpenHRApp is free and open source. Your support helps us maintain and improve the platform for everyone.
+          OpenHRApp is free and open source. The optional ad-free plan removes ads and helps pay for the servers that keep it running.
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
         <button
-          onClick={() => setActiveTab('donate')}
+          onClick={() => setActiveTab('plan')}
           className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'donate' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            activeTab === 'plan' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <Heart size={18} /> Donate
+          <Sparkles size={18} /> Ad-free Plan
         </button>
         <button
           onClick={() => setActiveTab('extend')}
@@ -218,121 +178,43 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
 
       {/* Tab Content */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Donation Tab */}
-        {activeTab === 'donate' && (
+        {/* Ad-free Plan Tab */}
+        {activeTab === 'plan' && (
           <div className="p-8 space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Support with a Donation</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Ad-free Plan</h3>
               <p className="text-slate-500">
-                Make a one-time donation to get full access. Choose your support level:
+                All features, no ads, one flat price for your whole organization — however many employees you have.
               </p>
             </div>
 
-            {/* Donation Tiers */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {DONATION_TIERS.map(tier => (
-                <button
-                  key={tier.id}
-                  onClick={() => setSelectedTier(tier.id)}
-                  className={`p-4 rounded-xl border-2 text-center transition-all ${
-                    selectedTier === tier.id
-                      ? 'border-primary bg-primary-light'
-                      : 'border-slate-200 hover:border-primary-light'
-                  }`}
-                >
-                  <div className="text-2xl font-bold text-slate-900">{tier.label}</div>
-                  <div className="text-sm text-slate-500">{tier.duration}</div>
-                </button>
-              ))}
-            </div>
-
-            {/* Donation Platforms */}
-            <div className="space-y-4">
-              <p className="text-sm font-medium text-slate-600">Donate via:</p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="https://ko-fi.com/openhr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-5 py-3 bg-[#FF5E5B] text-white rounded-xl font-bold hover:opacity-90 transition-all"
-                >
-                  <Coffee size={20} /> Ko-fi
-                  <ExternalLink size={14} />
-                </a>
-                <a
-                  href="https://buymeacoffee.com/openhrapp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-5 py-3 bg-[#FFDD00] text-slate-900 rounded-xl font-bold hover:opacity-90 transition-all"
-                >
-                  <Coffee size={20} /> Buy Me a Coffee
-                  <ExternalLink size={14} />
-                </a>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="p-5 rounded-xl border-2 border-primary bg-primary-light">
+                <div className="text-2xl font-bold text-slate-900">${PRICING.yearly} <span className="text-base font-medium text-slate-500">/ year</span></div>
+                <div className="text-sm text-slate-500">About {yearlyPerMonth()} a month</div>
+              </div>
+              <div className="p-5 rounded-xl border-2 border-slate-200">
+                <div className="text-2xl font-bold text-slate-900">${PRICING.monthly} <span className="text-base font-medium text-slate-500">/ month</span></div>
+                <div className="text-sm text-slate-500">Cancel anytime</div>
               </div>
             </div>
 
-            {/* Activation Form */}
-            {!showDonationForm ? (
-              <button
-                onClick={() => setShowDonationForm(true)}
-                className="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 font-medium hover:border-primary hover:text-primary transition-all"
-              >
-                Already donated? Click here to submit activation request
-              </button>
-            ) : (
-              <div className="space-y-4 p-6 bg-slate-50 rounded-xl">
-                <h4 className="font-bold text-slate-900">Submit Activation Request</h4>
+            <div className="bg-slate-50 rounded-xl p-6 space-y-3 text-sm text-slate-600">
+              <p className="font-bold text-slate-800">Online card payment is coming soon.</p>
+              <p>
+                To switch to the ad-free plan now, email{' '}
+                <a href="mailto:support@openhrapp.com?subject=Ad-free%20plan" className="text-primary font-bold hover:underline">support@openhrapp.com</a>{' '}
+                from your admin address with your organization name and whether you want monthly or yearly billing.
+              </p>
+              <p>Prices are in US dollars. Payments are refundable within {PRICING.refundDays} days.</p>
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-600">Transaction Reference *</label>
-                  <input
-                    type="text"
-                    value={donationRef}
-                    onChange={(e) => setDonationRef(e.target.value)}
-                    placeholder="e.g., Ko-fi or Buy Me a Coffee receipt number"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-600">Screenshot (optional)</label>
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
-                      <Upload size={18} />
-                      <span className="text-sm">{donationFile ? donationFile.name : 'Choose file'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setDonationFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                    </label>
-                    {donationFile && (
-                      <button onClick={() => setDonationFile(null)} className="text-red-500 text-sm">
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowDonationForm(false)}
-                    className="px-6 py-3 border border-slate-200 rounded-xl font-medium hover:bg-slate-100 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleDonationSubmit}
-                    disabled={isLoading || !donationRef.trim()}
-                    className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-hover transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isLoading && <Loader2 size={18} className="animate-spin" />}
-                    Submit Request
-                  </button>
-                </div>
-              </div>
-            )}
+            <a
+              href="mailto:support@openhrapp.com?subject=Ad-free%20plan"
+              className="w-full py-4 bg-primary text-white rounded-xl font-bold hover:bg-primary-hover transition-all flex items-center justify-center gap-2"
+            >
+              <Mail size={18} /> Email us to upgrade
+            </a>
           </div>
         )}
 
@@ -432,7 +314,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                  <span className="text-slate-600">Upgrade to ad-free anytime with a donation</span>
+                  <span className="text-slate-600">Switch to the ad-free plan anytime</span>
                 </li>
               </ul>
             </div>

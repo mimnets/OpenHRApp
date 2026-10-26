@@ -1,7 +1,7 @@
 import React from 'react';
 import { navigateTo } from '../../utils/seo';
 import { PRICING, yearlyPerMonth } from '../../data/pricing';
-import { Heart, Coffee, Check, Shield, Zap, Users, Calendar, MapPin, BarChart3, ClipboardCheck, Globe } from 'lucide-react';
+import { Heart, Check, Shield, Zap, Users, Calendar, MapPin, BarChart3, ClipboardCheck, Globe } from 'lucide-react';
 
 interface PricingSectionProps {
   onRegisterClick: () => void;
@@ -81,31 +81,7 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
           ))}
         </div>
 
-        {/* Donation Card */}
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-dl-ground border border-dl-hair-soft rounded-dl-lg p-8 md:p-10 text-center">
-            <div className="w-12 h-12 bg-dl-teal/10 rounded-dl-md flex items-center justify-center mx-auto mb-4">
-              <Coffee size={22} className="text-dl-teal" />
-            </div>
-            <h3 className="text-lg font-bold text-dl-ink mb-2">
-              Support the Project
-            </h3>
-            <p className="text-dl-muted text-sm max-w-md mx-auto mb-4">
-              OpenHRApp is independently maintained and funded by the community. If you'd like to support ongoing development, you can make a small donation — any amount helps keep the project alive.
-            </p>
-            <a
-              href="https://buymeacoffee.com/openhrapp"
-              target="_blank"
-              rel="noopener noreferrer"
-              /* #FFDD00 is Buy Me a Coffee's own yellow and does not invert, so the
-                 label cannot use --dl-ink, which does: in dark mode that was
-                 near-white on yellow, 1.1:1. --dl-ink-fixed stays dark in both. */
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FFDD00] text-dl-ink-fixed rounded-dl-md font-bold text-sm hover:opacity-90 transition-all"
-            >
-              <Coffee size={14} /> Buy Me a Coffee
-            </a>
-          </div>
-        </div>
+
 
       </div>
     </section>

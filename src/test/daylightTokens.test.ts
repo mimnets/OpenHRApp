@@ -114,11 +114,6 @@ describe('the fixed colours stay fixed', () => {
       expect(src, `${footer} must not put ink on the ink slab`).not.toMatch(/dlBrand\.wordInk|dlBrand\.wordAccent\b/);
     }
   });
-
-  it('the Buy Me a Coffee button does not pair a flipping token with the fixed yellow', () => {
-    const src = fs.readFileSync(path.resolve(__dirname, '../components/landing/PricingSection.tsx'), 'utf8');
-    expect(src).toMatch(/bg-\[#FFDD00\][^"]*text-dl-ink-fixed/);
-  });
 });
 
 /**
