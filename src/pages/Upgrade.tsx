@@ -268,15 +268,6 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                   <Coffee size={20} /> Buy Me a Coffee
                   <ExternalLink size={14} />
                 </a>
-                <a
-                  href="https://paypal.me/openhr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-5 py-3 bg-[#003087] text-white rounded-xl font-bold hover:opacity-90 transition-all"
-                >
-                  PayPal
-                  <ExternalLink size={14} />
-                </a>
               </div>
             </div>
 
@@ -298,7 +289,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                     type="text"
                     value={donationRef}
                     onChange={(e) => setDonationRef(e.target.value)}
-                    placeholder="e.g., TXN123456 or PayPal confirmation"
+                    placeholder="e.g., Ko-fi or Buy Me a Coffee receipt number"
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
                   />
                 </div>

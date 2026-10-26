@@ -190,7 +190,7 @@ Support the project with a one-time donation and get full access:
 **How donation activation works:**
 
 1. Choose a donation tier.
-2. Make your payment via Ko-fi, Buy Me a Coffee, or PayPal.
+2. Make your payment via Ko-fi or Buy Me a Coffee.
 3. Enter your **transaction reference** and upload a **screenshot** of the payment.
 4. Submit your activation request.
 5. The OpenHR team verifies and activates your subscription.
@@ -1941,7 +1941,7 @@ You get a 14-day trial with every feature unlocked. After that, three paths:
 
 **Keep it free with ads.** The system shows small banner ads in non-critical areas (sidebar, bottom of dashboard). Nothing during attendance punching, nothing in modals, nothing that blocks your workflow. For most small organizations, this is the pragmatic choice.
 
-**Support the project.** Donation tiers from $5 (3 months ad-free) to $50 (lifetime). Processed through Ko-fi, Buy Me a Coffee, or PayPal. This keeps development going and is honestly how we pay for hosting the landing page and demo server.
+**Support the project.** Donation tiers from $5 (3 months ad-free) to $50 (lifetime). Processed through Ko-fi or Buy Me a Coffee. This keeps development going and is honestly how we pay for hosting the landing page and demo server.
 
 **Ask for more trial time.** If you're mid-rollout and need more evaluation time, request a 7, 14, or 30-day extension. We approve these pretty liberally — we'd rather you take your time and adopt it properly than rush and have a bad experience.
 
@@ -2615,7 +2615,7 @@ You get a 14-day trial with every feature unlocked. After that, three paths:
 
 **Keep it free with ads.** The system shows small banner ads in non-critical areas (sidebar, bottom of dashboard). Nothing during attendance punching, nothing in modals, nothing that blocks your workflow. For most small organizations, this is the pragmatic choice.
 
-**Support the project.** Donation tiers from $5 (3 months ad-free) to $50 (lifetime). Processed through Ko-fi, Buy Me a Coffee, or PayPal. This keeps development going and is honestly how we pay for hosting the landing page and demo server.
+**Support the project.** Donation tiers from $5 (3 months ad-free) to $50 (lifetime). Processed through Ko-fi or Buy Me a Coffee. This keeps development going and is honestly how we pay for hosting the landing page and demo server.
 
 **Ask for more trial time.** If you're mid-rollout and need more evaluation time, request a 7, 14, or 30-day extension. We approve these pretty liberally — we'd rather you take your time and adopt it properly than rush and have a bad experience.
 
