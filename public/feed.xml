@@ -6,14 +6,14 @@
     <atom:link href="https://openhrapp.com/feed.xml" rel="self" type="application/rss+xml" />
     <description>Articles, guides, and product updates from OpenHR — the open-source HR management system.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Aug 2026 02:53:30 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 16 Oct 2026 04:53:27 GMT</lastBuildDate>
     <item>
       <title>The Complete Guide to OpenHR: Free Open Source HR Software That Actually Works</title>
       <link>https://openhrapp.com/blog/openhr-complete-guide</link>
       <guid isPermaLink="true">https://openhrapp.com/blog/openhr-complete-guide</guid>
       <pubDate>Fri, 21 Aug 2026 02:53:30 GMT</pubDate>
       <category>Blog</category>
-      <description>Look, I get it. You&apos;ve probably spent hours Googling &quot;free HR software&quot; and every result either wants your credit card after five users or looks like it hasn&apos;t been updated since Windows XP was cool. I was in the same boat when I started working on OpenHR.</description>
+      <description>Everything you need to know about OpenHRApp — from selfie-based attendance and leave management to performance reviews and reports. A no-nonsense walkthrough of every feature, honest setup instructions, and what it actually feels like to use day to day.</description>
       <dc:creator>Monirul Islam</dc:creator>
     </item>
     <item>
@@ -157,7 +157,7 @@
       <guid isPermaLink="true">https://openhrapp.com/how-to-use/subscription-upgrade-options</guid>
       <pubDate>Fri, 13 Mar 2026 06:05:10 GMT</pubDate>
       <category>Guide — Getting Started</category>
-      <description>OpenHRApp&apos;s subscription model explained — Trial, Donation tiers, Ad-Supported free tier, and what happens when your trial expires.</description>
+      <description>OpenHRApp&apos;s subscription model explained — Trial, the Ad-free plan, the Ad-Supported free tier, and what happens when your trial expires.</description>
       <dc:creator>Monirul Islam</dc:creator>
     </item>
     <item>
@@ -409,7 +409,7 @@
       <title>Attendance Management</title>
       <link>https://openhrapp.com/features/attendance-tracking</link>
       <guid isPermaLink="true">https://openhrapp.com/features/attendance-tracking</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Track employee attendance with selfie-based check-in, GPS verification, and real-time dashboards. Supports office and factory shift modes.</description>
       <dc:creator>OpenHR Team</dc:creator>
@@ -418,7 +418,7 @@
       <title>Leave Management</title>
       <link>https://openhrapp.com/features/leave-management</link>
       <guid isPermaLink="true">https://openhrapp.com/features/leave-management</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Streamline leave requests, approvals, and balance tracking. Configure custom leave types with automatic calculations.</description>
       <dc:creator>OpenHR Team</dc:creator>
@@ -427,7 +427,7 @@
       <title>Performance Reviews</title>
       <link>https://openhrapp.com/features/performance-reviews</link>
       <guid isPermaLink="true">https://openhrapp.com/features/performance-reviews</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Run structured performance reviews with self-assessment, manager evaluation, and HR finalization. Customizable competencies and rating scales.</description>
       <dc:creator>OpenHR Team</dc:creator>
@@ -436,7 +436,7 @@
       <title>GPS &amp; Location Verification</title>
       <link>https://openhrapp.com/features/gps-geofencing</link>
       <guid isPermaLink="true">https://openhrapp.com/features/gps-geofencing</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Verify employee attendance with GPS location tracking. Ideal for remote teams and field workers.</description>
       <dc:creator>OpenHR Team</dc:creator>
@@ -445,7 +445,7 @@
       <title>Biometric Selfie Verification</title>
       <link>https://openhrapp.com/features/biometric-selfie-verification</link>
       <guid isPermaLink="true">https://openhrapp.com/features/biometric-selfie-verification</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Prevent buddy punching with selfie-based attendance verification. Photo evidence ensures authentic check-ins. No special hardware needed.</description>
       <dc:creator>OpenHR Team</dc:creator>
@@ -454,7 +454,7 @@
       <title>Employee Directory</title>
       <link>https://openhrapp.com/features/employee-directory</link>
       <guid isPermaLink="true">https://openhrapp.com/features/employee-directory</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Manage employee profiles, departments, and org structure in one place. Role-based access, bulk import, and searchable directory.</description>
       <dc:creator>OpenHR Team</dc:creator>
@@ -463,7 +463,7 @@
       <title>Reports &amp; Analytics</title>
       <link>https://openhrapp.com/features/reports-analytics</link>
       <guid isPermaLink="true">https://openhrapp.com/features/reports-analytics</guid>
-      <pubDate>Tue, 21 Jul 2026 04:39:27 GMT</pubDate>
+      <pubDate>Fri, 16 Oct 2026 04:53:27 GMT</pubDate>
       <category>Feature</category>
       <description>Generate attendance reports, leave utilization analytics, and team performance insights. Interactive charts and CSV export.</description>
       <dc:creator>OpenHR Team</dc:creator>

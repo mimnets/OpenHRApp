@@ -6,7 +6,7 @@
 
 - [Install OpenHRApp as an App (PWA) on Android and iOS](https://openhrapp.com/how-to-use/install-openhrapp-pwa): Install OpenHRApp on your phone or desktop as a Progressive Web App PWA — no app store download required.
 - [Exporting Employee Data](https://openhrapp.com/how-to-use/exporting-employee-data): How to export your employee directory as CSV for data analysis or branded PDF for stakeholder sharing.
-- [Subscription and Upgrade Options](https://openhrapp.com/how-to-use/subscription-upgrade-options): OpenHRApp's subscription model explained — Trial, Donation tiers, Ad-Supported free tier, and what happens when your trial expires.
+- [Subscription and Upgrade Options](https://openhrapp.com/how-to-use/subscription-upgrade-options): OpenHRApp's subscription model explained — Trial, the Ad-free plan, the Ad-Supported free tier, and what happens when your trial expires.
 - [Understanding the Dashboard](https://openhrapp.com/how-to-use/understanding-dashboard): A detailed tour of OpenHRApp's role-based dashboard — what each widget shows for Employees, Managers, and Admins.
 - [Configuring Notification Settings](https://openhrapp.com/how-to-use/notification-settings): How to configure email notifications, enable or disable notification types, set up SMTP, and manage notification retention.
 - [Custom Leave Types and Special Leave](https://openhrapp.com/how-to-use/custom-leave-types): Understanding all leave types in OpenHRApp — Maternity, Paternity, Earned, Unpaid, half-day leave, and custom-configured types.
@@ -32,7 +32,7 @@
 
 ## Blog
 
-- [The Complete Guide to OpenHR: Free Open Source HR Software That Actually Works](https://openhrapp.com/blog/openhr-complete-guide): Look, I get it. You've probably spent hours Googling "free HR software" and every result either wants your credit card after five users or looks like it hasn't been updated since Windows XP was cool.…
+- [The Complete Guide to OpenHR: Free Open Source HR Software That Actually Works](https://openhrapp.com/blog/openhr-complete-guide): Everything you need to know about OpenHRApp — from selfie-based attendance and leave management to performance reviews and reports. A no-nonsense walkthrough of every feature, honest setup…
 - [OpenHRApp Reports and Analytics: Making Data-Driven HR Decisions](https://openhrapp.com/blog/openhrapp-reports-analytics-guide): Turn your HR data into actionable insights. This guide covers OpenHRApp's reporting capabilities — from attendance summaries to leave analytics to team performance dashboards — and how to use them…
 - [Getting Started with OpenHRApp: A Step-by-Step Setup Guide](https://openhrapp.com/blog/getting-started-with-openhrapp): Learn how to set up your OpenHRApp account from scratch. This comprehensive guide walks you through organization creation, employee setup, and configuration — everything you need to go live in under…
 - [The Ultimate "No-Install" HRMS: High-Precision Attendance Without the App Store Headache](https://openhrapp.com/blog/the-ultimate-no-install-hrms-high-precision-attendance-without-the-app-store-headache): Ditch the bulky downloads and expensive licenses. OpenHRApp uses modern PWA technology to provide a high-precision, no-install attendance system. From geofencing with GPS coordinates to biometric…
