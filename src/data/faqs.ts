@@ -8,7 +8,7 @@ export const faqs = [
       },
       {
         q: 'Is OpenHRApp really free?',
-        a: 'Yes — completely free. OpenHRApp is open-source software with no paywalls, no user limits, and no credit card required. The app is ad-supported. If you\'d like to support the project, you can make a small donation through Buy Me a Coffee.',
+        a: 'Yes. Every feature is free for every organization, with no user limits and no credit card required. The free plan shows ads. If you prefer no ads, the optional ad-free plan is $3 a month or $24 a year per organization, which mainly covers server costs.',
       },
     ],
   },

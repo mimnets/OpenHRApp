@@ -1,5 +1,7 @@
 import React from 'react';
-import { Heart, Coffee, Shield, Zap, Users, Calendar, MapPin, BarChart3, ClipboardCheck, Globe } from 'lucide-react';
+import { navigateTo } from '../../utils/seo';
+import { PRICING, yearlyPerMonth } from '../../data/pricing';
+import { Heart, Coffee, Check, Shield, Zap, Users, Calendar, MapPin, BarChart3, ClipboardCheck, Globe } from 'lucide-react';
 
 interface PricingSectionProps {
   onRegisterClick: () => void;
@@ -24,10 +26,10 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="text-xs font-bold text-dl-teal uppercase tracking-wide">Free & Open Source</span>
           <h2 className="text-3xl sm:text-4xl font-semibold text-dl-ink mt-3 mb-4">
-            Completely Free. No Catch.
+            Every Feature Free. Ad-free if You Like.
           </h2>
           <p className="text-dl-muted text-lg">
-            OpenHRApp is free and open-source software. Every feature is available to every organization — no paywalls, no user limits, no credit card required.
+            Every feature is available to every organization — no paywalls, no user limits, no credit card required. The optional ad-free plan just helps cover the servers.
           </p>
         </div>
 
@@ -45,11 +47,14 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
 
               <div className="mb-6">
                 <span className="text-5xl md:text-6xl font-bold">$0</span>
-                <span className="text-xl text-dl-surface/70 font-medium"> — forever</span>
+                <span className="text-xl text-dl-surface/70 font-medium"> — forever, with ads</span>
               </div>
 
-              <p className="text-dl-surface/80 text-lg mb-8 max-w-md mx-auto">
-                All features included. No hidden fees. No premium tiers. Just free, open-source HR software for everyone.
+              <p className="text-dl-surface/80 text-lg mb-4 max-w-md mx-auto">
+                All features included. No hidden fees, no per-employee pricing.
+              </p>
+              <p className="text-dl-surface/90 mb-8 max-w-md mx-auto inline-flex items-center gap-2">
+                <Check size={18} aria-hidden="true" /> Prefer no ads? ${PRICING.yearly}/year ({yearlyPerMonth()}/month) or ${PRICING.monthly}/month per organization.
               </p>
 
               <button
@@ -58,6 +63,10 @@ const PricingSection: React.FC<PricingSectionProps> = ({ onRegisterClick }) => {
               >
                 Get Started Free <Zap size={16} />
               </button>
+              <a href="/pricing" onClick={(e) => { e.preventDefault(); navigateTo('/pricing'); }}
+                className="block mt-4 text-sm font-bold text-dl-surface/90 underline underline-offset-4 hover:text-dl-surface">
+                See full pricing
+              </a>
             </div>
           </div>
         </div>

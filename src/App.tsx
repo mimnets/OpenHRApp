@@ -30,6 +30,8 @@ import TutorialsPage from './pages/TutorialsPage';
 import TutorialPage from './pages/TutorialPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import PricingPage from './pages/PricingPage';
+import RefundPolicyPage from './pages/RefundPolicyPage';
 import NotFoundPage from './pages/NotFoundPage';
 import FeaturesPage from './pages/FeaturesPage';
 import FeatureDetailPage from './pages/FeatureDetailPage';
@@ -124,10 +126,12 @@ const AppContent: React.FC = () => {
   const [tutorialRoute, setTutorialRoute] = useState<{ type: 'list' | 'single'; slug?: string } | null>(() => {
     return parseTutorialRoute(window.location.pathname);
   });
-  const [policyRoute, setPolicyRoute] = useState<'privacy' | 'terms' | null>(() => {
+  const [policyRoute, setPolicyRoute] = useState<'privacy' | 'terms' | 'pricing' | 'refund' | null>(() => {
     const path = window.location.pathname;
     if (path === '/privacy' || path === '/privacy/') return 'privacy';
     if (path === '/terms' || path === '/terms/') return 'terms';
+    if (path === '/pricing' || path === '/pricing/') return 'pricing';
+    if (path === '/refund' || path === '/refund/') return 'refund';
     return null;
   });
   const [featuresRoute, setFeaturesRoute] = useState<{ type: 'list' | 'detail'; slug?: string } | null>(() => {
@@ -148,7 +152,7 @@ const AppContent: React.FC = () => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     const search = window.location.search;
-    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/features', '/features/', '/changelog', '/changelog/', '/about', '/about/', '/contact', '/contact/', '/_/', '/_'];
+    const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/features', '/features/', '/changelog', '/changelog/', '/about', '/about/', '/contact', '/contact/', '/pricing', '/pricing/', '/refund', '/refund/', '/_/', '/_'];
 
     // Don't show 404 if URL contains a verification token
     if (new URLSearchParams(search).has('token')) return false;
@@ -327,7 +331,7 @@ const AppContent: React.FC = () => {
       const path = window.location.pathname;
       const hash = window.location.hash;
       const search = window.location.search;
-      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/features', '/features/', '/changelog', '/changelog/', '/about', '/about/', '/contact', '/contact/', '/_/', '/_'];
+      const knownPaths = ['/', '/privacy', '/privacy/', '/terms', '/terms/', '/features', '/features/', '/changelog', '/changelog/', '/about', '/about/', '/contact', '/contact/', '/pricing', '/pricing/', '/refund', '/refund/', '/_/', '/_'];
 
       // Never show 404 for verification tokens or hash-based routes
       const hasToken = new URLSearchParams(search).has('token') || hash.includes('token=') || hash.includes('/auth/confirm-verification/');
@@ -402,6 +406,14 @@ const AppContent: React.FC = () => {
       } else if (path === '/terms' || path === '/terms/') {
         clearAll();
         setPolicyRoute('terms');
+        setIs404(false);
+      } else if (path === '/pricing' || path === '/pricing/') {
+        clearAll();
+        setPolicyRoute('pricing');
+        setIs404(false);
+      } else if (path === '/refund' || path === '/refund/') {
+        clearAll();
+        setPolicyRoute('refund');
         setIs404(false);
       } else if (path === '/' || knownPaths.includes(path) || hasToken || hasHashRoute) {
         clearAll();
@@ -535,6 +547,12 @@ const AppContent: React.FC = () => {
   }
   if (policyRoute === 'terms') {
     return <TermsOfServicePage onBack={() => { navigateTo('/'); }} />;
+  }
+  if (policyRoute === 'pricing') {
+    return <PricingPage onBack={() => { navigateTo('/'); }} onRegisterClick={() => { navigateTo('/'); setShowLanding(false); setShowRegister(true); }} />;
+  }
+  if (policyRoute === 'refund') {
+    return <RefundPolicyPage onBack={() => { navigateTo('/'); }} />;
   }
   // Priority 0b: Public Features pages (accessible regardless of auth)
   if (featuresRoute) {

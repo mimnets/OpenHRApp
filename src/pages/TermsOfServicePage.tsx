@@ -60,7 +60,7 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
             <FileText className="text-dl-teal" size={28} />
           </div>
           <h1 className="text-3xl sm:text-4xl font-semibold text-dl-ink mb-3">Terms of Service</h1>
-          <p className="text-dl-muted text-sm">Last updated: February 2026</p>
+          <p className="text-dl-muted text-sm">Last updated: October 2026</p>
         </div>
       </div>
 
@@ -125,10 +125,13 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
             <section>
               <h2 className="text-xl font-bold text-dl-ink mb-3">6. Subscription and Billing</h2>
               <p className="text-dl-muted leading-relaxed">
-                The Service offers both free and paid subscription plans. Paid plans provide additional features and higher usage limits.
-                Payment terms, pricing, and plan details are displayed within the Service. We reserve the right to modify pricing with
-                reasonable notice. If your subscription is suspended due to non-payment, you may lose access to certain features until
-                payment is resolved.
+                The Service offers a free plan with advertising and an optional paid ad-free plan, billed monthly or yearly per
+                organization. Current prices are shown on the <a href="/pricing" className="text-dl-teal hover:underline">Pricing</a> page.
+                Our order process is conducted by our online reseller Paddle.com. Paddle.com is the Merchant of Record for all our orders
+                and handles payments, invoices, taxes and refunds. Paid plans renew automatically until cancelled; you can cancel at any
+                time and keep the ad-free plan until the end of the period paid for. Refunds are described in our{' '}
+                <a href="/refund" className="text-dl-teal hover:underline">Refund Policy</a>. We will give reasonable notice before any
+                price change takes effect on your next renewal.
               </p>
             </section>
 

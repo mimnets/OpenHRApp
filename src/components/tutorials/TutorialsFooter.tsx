@@ -48,6 +48,7 @@ const TutorialsFooter: React.FC = () => {
       links: [
         { label: 'Home', action: goHome },
         { label: 'Features', action: () => { navigateTo('/features'); } },
+        { label: 'Pricing', action: () => { navigateTo('/pricing'); } },
         { label: 'Blog', action: goToBlog },
         { label: 'Changelog', action: () => { navigateTo('/changelog'); } },
       ],
@@ -66,6 +67,7 @@ const TutorialsFooter: React.FC = () => {
         { label: 'Contact', action: () => { navigateTo('/contact'); } },
         { label: 'Privacy Policy', action: () => { navigateTo('/privacy'); } },
         { label: 'Terms of Service', action: () => { navigateTo('/terms'); } },
+        { label: 'Refund Policy', action: () => { navigateTo('/refund'); } },
         { label: 'Cookie & Ad Preferences', action: openConsentPreferences },
       ],
     },

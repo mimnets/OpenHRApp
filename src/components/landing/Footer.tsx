@@ -57,9 +57,11 @@ const Footer: React.FC = () => {
       title: 'Company',
       links: [
         { label: 'About', href: '/about', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/about'); } },
+        { label: 'Pricing', href: '/pricing', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/pricing'); } },
         { label: 'Contact', href: '/contact', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/contact'); } },
         { label: 'Privacy Policy', href: '/privacy', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/privacy'); } },
         { label: 'Terms of Service', href: '/terms', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/terms'); } },
+        { label: 'Refund Policy', href: '/refund', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/refund'); } },
         { label: 'Cookie & Ad Preferences', href: '#consent', onClick: openConsentPreferences },
       ],
     },
