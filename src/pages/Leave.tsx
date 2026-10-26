@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { LeaveRequest, LeaveBalance } from '../types';
+import { LeaveRequest, LeaveBalance, Employee, Team } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 
 // New Modules
@@ -29,15 +29,22 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [balance, setBalance] = useState<LeaveBalance | null>(null);
+  // Managers need team membership to see their team's requests in every status.
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
 
   const refreshData = async () => {
     try {
-      const [fetchedLeaves, userBalance] = await Promise.all([
+      const [fetchedLeaves, userBalance, emps, tms] = await Promise.all([
         hrService.getLeaves(),
-        hrService.getLeaveBalance(user.id)
+        hrService.getLeaveBalance(user.id),
+        isManager ? hrService.getEmployees() : Promise.resolve([] as Employee[]),
+        isManager ? hrService.getTeams() : Promise.resolve([] as Team[]),
       ]);
       setLeaves(fetchedLeaves);
       setBalance(userBalance);
+      setEmployees(emps);
+      setTeams(tms);
     } catch (e) { 
       console.error("Refresh failed", e); 
     } finally { 
@@ -93,6 +100,8 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
           <ManagerialLeaveModule
             user={user}
             requests={leaves}
+            employees={employees}
+            teams={teams}
             onRefresh={refreshData}
             roleLabel={user.role === 'TEAM_LEAD' ? 'Team Lead' : user.role === 'MANAGEMENT' ? 'Director' : 'Manager'}
             readOnly={!canWrite}

@@ -2,29 +2,42 @@
 import React, { useState } from 'react';
 import { UserCheck, RefreshCw, X, ArrowRight, CheckCircle2, XCircle } from 'lucide-react';
 import { hrService } from '../../services/hrService';
-import { LeaveRequest } from '../../types';
+import { Employee, LeaveRequest, Team } from '../../types';
+import { teamLeaveRequests } from '../../utils/teamLeave';
 import { useToast } from '../../context/ToastContext';
 import HelpButton from '../onboarding/HelpButton';
+
+const STATUS_LABEL: Record<LeaveRequest['status'], string> = {
+  PENDING_MANAGER: 'Awaiting manager',
+  PENDING_HR: 'Forwarded to HR',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+};
+const STATUS_STYLE: Record<LeaveRequest['status'], string> = {
+  PENDING_MANAGER: 'bg-amber-50 text-amber-700',
+  PENDING_HR: 'bg-sky-50 text-sky-700',
+  APPROVED: 'bg-emerald-50 text-emerald-700',
+  REJECTED: 'bg-rose-50 text-rose-700',
+};
 
 interface Props {
   user: any;
   requests: LeaveRequest[];
+  employees: Employee[];
+  teams: Team[];
   onRefresh: () => void;
   roleLabel: string; // "Team Lead" | "Manager" | "Director"
   readOnly?: boolean;
 }
 
-const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, roleLabel, readOnly = false }) => {
+const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, employees, teams, onRefresh, roleLabel, readOnly = false }) => {
   const { showToast } = useToast();
   const [showReview, setShowReview] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Filter requests: Show if I am the line manager OR (if the requester is in my team and I am the leader)
-  const myPendingRequests = requests.filter(r => 
-    r.status === 'PENDING_MANAGER' && 
-    (r.lineManagerId === user.id)
-  );
+  // Pending = awaiting my decision. History = every other request from my team, in any status.
+  const { pending: myPendingRequests, history } = teamLeaveRequests(requests, user.id, employees, teams);
 
   const handleAction = async (action: 'APPROVED' | 'REJECTED') => {
     if (!showReview || readOnly) return;
@@ -85,6 +98,29 @@ const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, rol
             </div>
           )}
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-8 shadow-sm space-y-4">
+        <div>
+          <h4 className="text-lg font-semibold text-slate-900">Team leave history</h4>
+          <p className="text-xs font-bold text-slate-400 mt-1">Every request from your team in the last 6 months, including ones you approved or rejected</p>
+        </div>
+        {history.length === 0 && <p className="text-sm text-slate-400 py-4">No other requests from your team.</p>}
+        <ul className="divide-y divide-slate-100">
+          {history.map(req => (
+            <li key={req.id} className="py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+              <div>
+                <p className="font-semibold text-slate-900">{req.employeeName}</p>
+                <p className="text-xs text-slate-500">{req.type} · {req.totalDays} days · {req.startDate} → {req.endDate}</p>
+                {req.managerRemarks && <p className="text-xs text-slate-600 mt-1">Manager: {req.managerRemarks}</p>}
+                {req.approverRemarks && <p className="text-xs text-slate-600 mt-1">HR: {req.approverRemarks}</p>}
+              </div>
+              <span className={`self-start px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-widest ${STATUS_STYLE[req.status]}`}>
+                {STATUS_LABEL[req.status]}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {showReview && (
