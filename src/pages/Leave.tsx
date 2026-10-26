@@ -38,8 +38,8 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
       const [fetchedLeaves, userBalance, emps, tms] = await Promise.all([
         hrService.getLeaves(),
         hrService.getLeaveBalance(user.id),
-        isManager ? hrService.getEmployees() : Promise.resolve([] as Employee[]),
-        isManager ? hrService.getTeams() : Promise.resolve([] as Team[]),
+        hrService.getEmployees(),
+        hrService.getTeams(),
       ]);
       setLeaves(fetchedLeaves);
       setBalance(userBalance);
@@ -56,6 +56,14 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
     setIsInitializing(true);
     refreshData(); 
   }, [user.id]);
+
+  // The hub follows who actually manages people, not only the role: a "Commercial Manager"
+  // with role EMPLOYEE who leads a team or has direct reports still reviews their leave.
+  const leadsTeam = teams.some(t => t.leaderId === user.id);
+  const managesPeople = leadsTeam
+    || employees.some(e => e.lineManagerId === user.id)
+    || leaves.some(l => l.lineManagerId === user.id && l.employeeId !== user.id);
+  const showManagerHub = isManager || managesPeople;
 
   if (isInitializing) {
     return (
@@ -95,7 +103,7 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
       />
 
       {/* 3. Managerial Module (Team Leads, Managers, Directors) */}
-      {isManager && (
+      {showManagerHub && (
         <div className="pt-12 border-t border-slate-100">
           <ManagerialLeaveModule
             user={user}
@@ -103,7 +111,7 @@ const Leave: React.FC<LeaveProps> = ({ user, autoOpen, openLeaveId }) => {
             employees={employees}
             teams={teams}
             onRefresh={refreshData}
-            roleLabel={user.role === 'TEAM_LEAD' ? 'Team Lead' : user.role === 'MANAGEMENT' ? 'Director' : 'Manager'}
+            roleLabel={user.role === 'TEAM_LEAD' || (!isManager && leadsTeam) ? 'Team Lead' : user.role === 'MANAGEMENT' ? 'Director' : 'Manager'}
             readOnly={!canWrite}
           />
         </div>
