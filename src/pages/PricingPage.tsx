@@ -105,7 +105,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onRegisterClick }) =>
           <div className={`${card} space-y-4 text-sm text-dl-muted leading-relaxed`}>
             <h2 className="text-lg font-bold text-dl-ink">Billing questions</h2>
             <p><strong className="text-dl-ink">How do I upgrade?</strong> An organization admin can upgrade from inside the app under Upgrade. Prices are in US dollars; sales tax or VAT is added where required.</p>
-            <p><strong className="text-dl-ink">Who processes payments?</strong> Our order process is conducted by our online reseller {PRICING.merchantOfRecord}, which is the Merchant of Record for all orders and handles billing, invoices and tax.</p>
+            <p><strong className="text-dl-ink">Who processes payments?</strong> Our order process is conducted by our online reseller {PRICING.merchantOfRecord}, which is the Merchant of Record for all orders and handles billing, invoices and tax. OpenHRApp is operated by Monirul Islam.</p>
             <p><strong className="text-dl-ink">Can I cancel?</strong> Yes, at any time. Your plan stays ad-free until the end of the period you paid for, then returns to the free plan. Your data is never deleted because you cancel.</p>
             <p><strong className="text-dl-ink">Refunds?</strong> Full refund within {PRICING.refundDays} days of a payment. See our <a href="/refund" className={link} onClick={(e) => { e.preventDefault(); navigateTo('/refund'); }}>Refund Policy</a> and <a href="/terms" className={link} onClick={(e) => { e.preventDefault(); navigateTo('/terms'); }}>Terms of Service</a>.</p>
           </div>

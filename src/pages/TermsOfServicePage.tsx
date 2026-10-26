@@ -74,7 +74,8 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
               <p className="text-dl-muted leading-relaxed">
                 By accessing or using OpenHRApp ("the Service") at <strong>openhrapp.com</strong>, you agree to be bound by these
                 Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Service.
-                These Terms apply to all visitors, users, and others who access or use the Service.
+                These Terms apply to all visitors, users, and others who access or use the Service. The Service is owned and
+                operated by Monirul Islam, an individual based in Dhaka, Bangladesh ("we", "us", "our").
               </p>
             </section>
 
@@ -206,7 +207,7 @@ const TermsOfServicePage: React.FC<TermsOfServicePageProps> = ({ onBack }) => {
                 If you have any questions about these Terms of Service, please contact us at:
               </p>
               <div className="mt-3 p-4 bg-dl-ground rounded-dl-md text-dl-muted">
-                <p><strong>OpenHRApp</strong></p>
+                <p><strong>OpenHRApp</strong>, operated by Monirul Islam</p>
                 <p>Email: support@openhrapp.com</p>
                 <p>Website: <a href="https://openhrapp.com" className="text-dl-teal hover:underline">openhrapp.com</a></p>
               </div>

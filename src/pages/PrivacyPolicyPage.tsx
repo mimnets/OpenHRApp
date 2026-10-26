@@ -241,7 +241,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                 If you have any questions about this Privacy Policy or our data practices, please contact us at:
               </p>
               <div className="mt-3 p-4 bg-dl-ground rounded-dl-md text-dl-muted">
-                <p><strong>OpenHRApp</strong></p>
+                <p><strong>OpenHRApp</strong>, operated by Monirul Islam</p>
                 <p>Email: support@openhrapp.com</p>
                 <p>Website: <a href="https://openhrapp.com" className="text-dl-teal hover:underline">openhrapp.com</a></p>
               </div>

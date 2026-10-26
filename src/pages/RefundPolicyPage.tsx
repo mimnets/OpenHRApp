@@ -98,7 +98,7 @@ const RefundPolicyPage: React.FC<RefundPolicyPageProps> = ({ onBack }) => {
             <section>
               <h2 className={h2}>6. Contact</h2>
               <div className="mt-3 p-4 bg-dl-ground rounded-dl-md text-dl-muted">
-                <p><strong>OpenHRApp</strong></p>
+                <p><strong>OpenHRApp</strong>, operated by Monirul Islam</p>
                 <p>Email: support@openhrapp.com</p>
                 <p>House-38, Road-05, Sector-03, Uttara, Dhaka-1230, Bangladesh</p>
               </div>
