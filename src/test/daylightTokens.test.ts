@@ -14,7 +14,12 @@ import path from 'path';
  * hex. Here the ratios are recomputed from the stylesheet on every run.
  */
 
-const css = fs.readFileSync(path.resolve(__dirname, '../index.css'), 'utf8');
+// Normalise CRLF to LF in memory only: a Windows checkout (core.autocrlf=true) hands back
+// \r\n while the anchors below are written with \n. src/index.css is never rewritten, and
+// on an LF checkout the replace is a no-op, so behaviour is identical on every platform.
+const css = fs
+  .readFileSync(path.resolve(__dirname, '../index.css'), 'utf8')
+  .replace(/\r\n/g, '\n');
 
 /** Pull a custom property from a specific block of the stylesheet. */
 function token(name: string, scope: 'light' | 'dark'): string {

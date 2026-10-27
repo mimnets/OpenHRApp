@@ -102,43 +102,17 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
               </p>
               <ul className="list-disc list-inside text-dl-muted space-y-2 ml-2">
                 <li><strong>Essential Cookies:</strong> Required for the Service to function properly (authentication, session management).</li>
-                <li><strong>Analytics Cookies:</strong> We use Google Analytics to understand how visitors interact with our website. These cookies are only loaded after you provide consent through our cookie banner.</li>
+                <li><strong>Analytics Cookies:</strong> Analytics tracking is currently disabled. No analytics cookies are loaded.</li>
                 <li><strong>Vercel Analytics:</strong> We use Vercel Analytics for performance monitoring and usage insights.</li>
                 <li>
-                  <strong>Advertising (currently disabled):</strong> We are preparing to show
-                  in-page advertising supplied by Monetag on eligible public content pages
-                  such as the blog and guides. This integration is switched off and serves no
-                  ads unless it is separately enabled. It never runs on your dashboard,
-                  attendance, leave, or any other signed-in screen, and it is unrelated to
+                  <strong>Advertising (currently disabled):</strong> Advertising is currently disabled. No advertising scripts are loaded.
+                  When enabled in the future, we may show in-page advertising supplied by Monetag on eligible public content pages
+                  such as the blog and guides. This integration will never run on your dashboard,
+                  attendance, leave, or any other signed-in screen, and it will be unrelated to
                   the in-app notifications that remind you to check in — those are a first-party
-                  feature of your own account, not advertising. Advertising consent is a
-                  separate, explicit choice: accepting analytics or essential cookies does not
-                  enable it, and declining advertising changes nothing else. Advertising may
-                  involve cookies, local storage, identifiers, or similar technologies; the
-                  provider has not published which ones its in-page format uses, so we describe
-                  the possibility rather than assert specifics, and we will update this policy
-                  once confirmed.
+                  feature of your own account, not advertising.
                 </li>
               </ul>
-              <p className="text-dl-muted leading-relaxed mt-3">
-                You can accept or decline each of these choices in the consent banner shown on
-                your first visit, and change your mind at any time using
-                {' '}<strong>“Cookie &amp; Ad Preferences”</strong> in the footer of our public
-                pages. Withdrawal takes effect for future pages immediately; because
-                third-party advertising code already running in an open tab cannot be stopped
-                remotely, turning advertising off also replaces the current page so that any
-                ad already loaded there is terminated. The Monetag privacy policy is available
-                at{' '}
-                <a
-                  href="https://monetag.com/privacy/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-2 font-medium text-dl-ink"
-                >
-                  monetag.com/privacy
-                </a>
-                .
-              </p>
             </section>
 
             <section>

@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-10-27',
+    title: 'Cookie banner removed',
+    entries: [
+      { type: 'improvement', description: 'Removed the cookie consent banner and the Cookie & Ad Preferences footer link. Analytics tracking and advertising scripts are currently switched off, so there is nothing optional left to consent to. The Privacy Policy now says so: only essential cookies for sign-in and sessions are used, plus Vercel Analytics for performance monitoring.' },
+    ],
+  },
+  {
     date: '2026-10-26',
     title: 'Outreach now shows existing organizations alongside external prospects',
     entries: [

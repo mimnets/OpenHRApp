@@ -8,7 +8,6 @@ import { SearchProvider } from './context/SearchContext';
 import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import { ToastProvider } from './context/ToastContext';
 import MainLayout from './layouts/MainLayout';
-import CookieConsent from './components/CookieConsent';
 import SearchDialog from './components/search/SearchDialog';
 import { PWAUpdateBanner } from './components/PWAUpdateBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -720,7 +719,6 @@ const App: React.FC = () => {
               <AppContent />
               <SearchDialog />
               <Analytics />
-              <CookieConsent />
               <PWAUpdateBanner />
             </SearchProvider>
           </ToastProvider>

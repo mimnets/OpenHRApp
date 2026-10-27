@@ -5,14 +5,7 @@ import {
 import { socialLinksService } from '../../services/sociallinks.service';
 import { SocialLink } from '../../types';
 import { navigateTo } from '../../utils/seo';
-import { CONSENT_PREFERENCES_EVENT } from '../../utils/adConsent';
 import { dlBrand, dlFooter } from '../shared/daylightShell';
-
-/** Reopens the consent panel rendered by CookieConsent; no new state or router entry. */
-const openConsentPreferences = (e: React.MouseEvent) => {
-  e.preventDefault();
-  window.dispatchEvent(new Event(CONSENT_PREFERENCES_EVENT));
-};
 
 const PLATFORM_ICONS: Record<string, React.FC<{ size?: number; className?: string }>> = {
   youtube: Youtube,
@@ -62,7 +55,6 @@ const Footer: React.FC = () => {
         { label: 'Privacy Policy', href: '/privacy', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/privacy'); } },
         { label: 'Terms of Service', href: '/terms', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/terms'); } },
         { label: 'Refund Policy', href: '/refund', onClick: (e: React.MouseEvent) => { e.preventDefault(); navigateTo('/refund'); } },
-        { label: 'Cookie & Ad Preferences', href: '#consent', onClick: openConsentPreferences },
       ],
     },
   ];
