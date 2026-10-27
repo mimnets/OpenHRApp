@@ -28,6 +28,7 @@ const M04_FILES = [
   'src/utils/adConsent.ts',
   'src/utils/monetagLoader.ts',
   'src/App.tsx',
+  'src/components/CookieConsent.tsx',
 ];
 
 /**

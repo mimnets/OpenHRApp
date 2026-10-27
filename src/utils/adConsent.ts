@@ -63,6 +63,9 @@ export const CONSENT_MAX_AGE_DAYS = 365;
  */
 export const CONSENT_PREFERENCES_EVENT = 'openhr:consent-preferences';
 
+/** Off worldwide for now. Set true to show the consent banner and the footer "Cookie & Ad Preferences" link again. */
+export const COOKIE_CONSENT_ENABLED = false;
+
 /** Same-origin-only channel name; the only payload is the fixed literal below. */
 export const CONSENT_SYNC_CHANNEL = 'openhr-consent-sync';
 /** A revocation-only message. There is deliberately no corresponding grant message. */
