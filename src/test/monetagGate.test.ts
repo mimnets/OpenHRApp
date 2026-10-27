@@ -198,8 +198,9 @@ describe('route classification', () => {
    * `/blog/:slug` is refused on purpose — BlogPostPage renders its own ad slots, which can
    * put interactive markup on screen after this module's DOM snapshot has already passed.
    */
-  it('treats only guide-detail pages as eligible', () => {
-    for (const pathname of ['/how-to-use/attendance-guide', '/how-to-use/leave-policy/', '/how-to-use/x-1']) {
+  it('treats only guide and blog detail pages as eligible', () => {
+    // Blog articles joined guides in f16f9d4; per-page Super Admin targeting is the next gate.
+    for (const pathname of ['/how-to-use/attendance-guide', '/how-to-use/leave-policy/', '/how-to-use/x-1', '/blog/openhrapp-reports-analytics-guide']) {
       expect(classifyRoute(facts({ pathname }))).toBe('public-content');
     }
   });
@@ -209,7 +210,7 @@ describe('route classification', () => {
     ['the blog index', '/blog'],
     ['the guides index', '/how-to-use'],
     ['the guides index with a trailing slash', '/how-to-use/'],
-    ['a blog article', '/blog/openhrapp-reports-analytics-guide'],
+    ['a blog path with an extra segment', '/blog/openhrapp-reports-analytics-guide/extra'],
     ['the features index', '/features'],
     ['a feature detail page', '/features/attendance-tracking'],
     ['the changelog', '/changelog'],
@@ -225,7 +226,7 @@ describe('route classification', () => {
   });
 
   it('names the refused public families rather than leaving them unknown', () => {
-    expect(classifyRoute(facts({ pathname: '/blog/openhrapp-reports-analytics-guide' }))).toBe('non-public');
+    expect(classifyRoute(facts({ pathname: '/blog' }))).toBe('non-public');
     expect(classifyRoute(facts({ pathname: '/features/attendance-tracking/' }))).toBe('non-public');
     expect(classifyRoute(facts({ pathname: '/' }))).toBe('non-public');
     // Genuinely unrecognised input still fails closed.
@@ -244,10 +245,10 @@ describe('route classification', () => {
     expect(classifyRoute(facts({ isConfigured: false }))).toBe('auth-flow');
     expect(classifyRoute(facts({ search: '?token=abc' }))).toBe('auth-flow');
     expect(classifyRoute(facts({ search: '?reset=1' }))).toBe('auth-flow');
-    // An index page stays refused even when React has resolved it as public content, because
-    // `publicContentActive` is set for `/blog` just as readily as for `/blog/slug`.
+    // Once React has resolved an index page as public content it is eligible too (8073af9);
+    // whether it actually carries ads is then up to the per-page Super Admin targeting.
     expect(classifyRoute(facts({ pathname: '/blog', landingHidden: true, publicContentActive: true })))
-      .toBe('non-public');
+      .toBe('public-content');
     expect(classifyRoute(facts({ pathname: '/how-to-use/attendance-guide', landingHidden: true, publicContentActive: true })))
       .toBe('public-content');
   });
@@ -762,7 +763,7 @@ describe('M-22 page-level advertising opt-in', () => {
     });
   });
 
-  it('accepts only an <article> that declares itself eligible', () => {
+  it('accepts only an <article>, <main> or <div> that declares itself eligible', () => {
     expect(hasPageAdvertisingOptIn()).toBe(false);
     const cases: Array<[string, () => Element, boolean]> = [
       ['an opted-in article', () => {
@@ -770,8 +771,19 @@ describe('M-22 page-level advertising opt-in', () => {
         el.setAttribute('data-advertising', 'eligible');
         return el;
       }, true],
-      ['a div with the same attribute', () => {
+      // Listing and landing pages declare themselves on a <main> or <div> container (ba7a39d).
+      ['an opted-in main', () => {
+        const el = document.createElement('main');
+        el.setAttribute('data-advertising', 'eligible');
+        return el;
+      }, true],
+      ['an opted-in div', () => {
         const el = document.createElement('div');
+        el.setAttribute('data-advertising', 'eligible');
+        return el;
+      }, true],
+      ['a section with the same attribute', () => {
+        const el = document.createElement('section');
         el.setAttribute('data-advertising', 'eligible');
         return el;
       }, false],
@@ -892,10 +904,10 @@ describe('M-22 page opt-in re-check watcher', () => {
     disposed();
   });
 
-  it('ignores a declaration on an element that is not an article', async () => {
+  it('ignores a declaration on an element that is not an accepted container', async () => {
     const recheck = vi.fn();
     const disposed = watchPageAdvertisingOptIn({ inject: false, reason: 'page-opt-in-absent' }, recheck);
-    const el = append('div', 'eligible');
+    const el = append('section', 'eligible');
     await tick();
     expect(recheck).not.toHaveBeenCalled();
     disposed();

@@ -59,6 +59,12 @@ vi.mock('../config/monetag', async (importOriginal) => {
 
 const eligibleCtx: GateContext = { authState: 'anonymous', route: 'public-content' };
 
+// jsdom's document is at "/", the landing-page target group, which both formats leave off by
+// default. Opt that group in so these tests reach the eligibility rules they are about.
+const ON_THIS_PAGE = { 'landing-page': true };
+const setRuntime = (ipp: boolean, vignette: boolean) =>
+  __setMonetagRuntimeSettingsForTests(ipp, vignette, ON_THIS_PAGE, ON_THIS_PAGE);
+
 const scripts = () => Array.from(document.querySelectorAll<HTMLScriptElement>('script[data-zone]'));
 
 /** Renders the TutorialPage opt-in element for one case, exactly as monetagGate.test.ts does. */
@@ -109,7 +115,7 @@ describe('the shipped default keeps both formats off', () => {
 describe('one shared eligibility decision, per-format kill switches', () => {
   it('IPP only: injects the IPP tag and refuses the Vignette one', () => {
     flags.ipp = true;
-    __setMonetagRuntimeSettingsForTests(true, false);
+    setRuntime(true, false);
     grant();
     withOptIn(() => {
       expect(installMonetagTagOnce(eligibleCtx, 'ipp')).toEqual({ inject: true, reason: 'eligible' });
@@ -124,7 +130,7 @@ describe('one shared eligibility decision, per-format kill switches', () => {
 
   it('Vignette only: injects the Vignette tag under its own marker and zone', () => {
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(false, true);
+    setRuntime(false, true);
     grant();
     withOptIn(() => {
       expect(installMonetagTagOnce(eligibleCtx, 'vignette')).toEqual({ inject: true, reason: 'eligible' });
@@ -142,7 +148,7 @@ describe('one shared eligibility decision, per-format kill switches', () => {
   it('both enabled: exactly one script per format, distinct zones and markers', () => {
     flags.ipp = true;
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(true, true);
+    setRuntime(true, true);
     grant();
     withOptIn(() => {
       expect(installMonetagTagOnce(eligibleCtx, 'ipp').inject).toBe(true);
@@ -158,7 +164,7 @@ describe('one shared eligibility decision, per-format kill switches', () => {
   it('refuses a duplicate injection per format, and keeps the other format independent', () => {
     flags.ipp = true;
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(true, true);
+    setRuntime(true, true);
     grant();
     withOptIn(() => {
       expect(installMonetagTagOnce(eligibleCtx, 'ipp').inject).toBe(true);
@@ -173,7 +179,7 @@ describe('one shared eligibility decision, per-format kill switches', () => {
 
   it('honours an existing per-format document marker as already-injected', () => {
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(false, true);
+    setRuntime(false, true);
     grant();
     document.documentElement.dataset[MONETAG_VIGNETTE_MARKER_ATTR] = MONETAG_VIGNETTE_ZONE_ID;
     withOptIn(() => {
@@ -187,7 +193,7 @@ describe('the shared refusals apply identically to both formats', () => {
   const withBothOn = (run: () => void) => {
     flags.ipp = true;
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(true, true);
+    setRuntime(true, true);
     run();
   };
 
@@ -278,7 +284,7 @@ describe('the shared refusals apply identically to both formats', () => {
 describe('withdrawal and teardown treat either executed format as live advertising', () => {
   it('terminates once when only the Vignette script ran', () => {
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(false, true);
+    setRuntime(false, true);
     grant();
     withOptIn(() => {
       expect(installMonetagTagOnce(eligibleCtx, 'vignette').inject).toBe(true);
@@ -296,7 +302,7 @@ describe('withdrawal and teardown treat either executed format as live advertisi
   it('shares ONE teardown claim across both formats, so withdrawal navigates exactly once', () => {
     flags.ipp = true;
     flags.vignette = true;
-    __setMonetagRuntimeSettingsForTests(true, true);
+    setRuntime(true, true);
     grant();
     withOptIn(() => {
       expect(installMonetagTagOnce(eligibleCtx, 'ipp').inject).toBe(true);
