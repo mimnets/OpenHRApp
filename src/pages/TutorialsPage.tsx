@@ -134,8 +134,11 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
             <div data-advertising="eligible" className="flex flex-col lg:flex-row gap-8">
               {/* Main Content */}
               <div className="flex-1 min-w-0 space-y-10">
-                {grouped.map(group => (
-                  <div key={group.category} id={`cat-${group.category.toLowerCase().replace(/\s+/g, '-')}`}>
+                {grouped.map((group, gi) => (
+                  <React.Fragment key={group.category}>
+                  {/* One ad between the first and second category of guides. */}
+                  {gi === 1 && <AdFrame placement="guides" />}
+                  <div id={`cat-${group.category.toLowerCase().replace(/\s+/g, '-')}`}>
                     <h2 className="text-2xl font-bold text-dl-ink mb-6 flex items-center gap-3">
                       <span className="w-1.5 h-8 bg-dl-teal rounded-full" />
                       {group.category}
@@ -188,6 +191,7 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
                       })}
                     </div>
                   </div>
+                  </React.Fragment>
                 ))}
               </div>
 

@@ -4,9 +4,9 @@ import { tutorialService } from '../services/tutorial.service';
 import { Tutorial } from '../types';
 import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
-import { sanitizeHtml } from '../utils/sanitize';
 import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 import { AdFrame } from '../components/ads/AdBanner';
+import { ArticleWithAd } from '../components/ads/ArticleWithAd';
 
 interface TutorialPageProps {
   slug: string;
@@ -240,9 +240,10 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
                     </p>
                   )}
 
-                  <div
+                  <ArticleWithAd
+                    placement="guides"
                     className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:font-dl-display prose-headings:font-semibold prose-headings:tracking-dl-head prose-a:text-dl-teal prose-a:underline prose-img:rounded-dl-md"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(tutorial.content) }}
+                    html={tutorial.content}
                   />
 
                   {/* Previous / Next Navigation */}

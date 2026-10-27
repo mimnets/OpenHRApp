@@ -41,6 +41,10 @@ export const AD_PLACEMENTS = [
 
 export type AdPlacement = typeof AD_PLACEMENTS[number]['id'];
 
+/** Adsterra banner sizes a key can have (Adsterra → Websites → unit). Keep in sync with migration 0045. */
+export const ADSTERRA_SIZES = ['300x250', '320x50', '468x60', '728x90', '320x100'] as const;
+export type AdsterraSize = typeof ADSTERRA_SIZES[number];
+
 /**
  * Ad frame configuration, stored by Super Admin as the platform setting 'ad_frame_config' and
  * read back through the public get_ad_frame_settings() RPC (migrations 0042-0044).
@@ -48,8 +52,8 @@ export type AdPlacement = typeof AD_PLACEMENTS[number]['id'];
  */
 export interface AdFrameConfig {
   enabled: boolean;
-  /** key: 300x250 banner (phones, narrow spaces). keyWide: 728x90 banner (desktop). */
-  adsterra: { enabled: boolean; key: string; keyWide: string; weight: number };
+  /** Two banner units with their real sizes; the ad page shows the largest that fits the space. */
+  adsterra: { enabled: boolean; key: string; keySize: AdsterraSize; keyWide: string; keyWideSize: AdsterraSize; weight: number };
   aads: { enabled: boolean; unit: string; weight: number };
   /** img: 300x250 banner. imgWide: 728x90 banner. */
   zoho: { enabled: boolean; img: string; imgWide: string; href: string; weight: number };
@@ -58,7 +62,7 @@ export interface AdFrameConfig {
 
 export const DEFAULT_AD_FRAME_CONFIG: AdFrameConfig = {
   enabled: false,
-  adsterra: { enabled: false, key: '', keyWide: '', weight: 2 },
+  adsterra: { enabled: false, key: '', keySize: '300x250', keyWide: '', keyWideSize: '728x90', weight: 2 },
   aads: { enabled: false, unit: '', weight: 1 },
   zoho: { enabled: false, img: '', imgWide: '', href: '', weight: 1 },
   placements: {},
@@ -97,7 +101,6 @@ export const SandboxedAdFrame: React.FC<{ src: string; width: number; height: nu
       height={height}
       sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
-      loading="lazy"
       style={{ border: 0, width: '100%', height: '100%' }}
     />
     <span className="absolute top-1 left-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 pointer-events-none">
@@ -129,23 +132,33 @@ export const fetchAdFrameSwitches = (): Promise<PlacementSwitches> => {
 /** Test seam: forget the cached switches. */
 export const __resetAdFrameSwitchesForTests = () => { switchesRequest = null; };
 
-// Ad networks serve fixed sizes, so "responsive" means picking one: a 728x90 leaderboard where it
-// fits (desktop), otherwise the 300x250 medium rectangle, scaled down below 300px (e.g. side menu).
-// Both are standard Adsterra banner sizes; each needs its own key (see AdFrameConfig).
-const SIZES = {
-  wide: { width: 728, height: 90 },
-  small: { width: 300, height: 250 },
-} as const;
-type FrameSize = keyof typeof SIZES;
+/*
+ * Sizing protocol. Ad networks serve fixed sizes and the app cannot see inside the cross-origin
+ * frame, so it never guesses: it tells the ad page the widest ad that fits (?maxw=), the ad page
+ * picks a creative and posts back the exact size it rendered ({type:'openhr-ad-size', w, h}),
+ * and only then is the box shown, sized to match. No reserved blank space, and an ad wider than
+ * its space (e.g. the side menu) is scaled down instead of cut off.
+ */
+const WIDTH_STEPS = [728, 468, 320, 300] as const;
 
-export const pickFrameSize = (containerWidth: number): FrameSize =>
-  containerWidth >= SIZES.wide.width ? 'wide' : 'small';
+/** Round the available width down to a standard ad width, so small resizes don't reload the ad. */
+export const maxAdWidth = (containerWidth: number): number =>
+  WIDTH_STEPS.find(w => containerWidth >= w) ?? Math.max(1, Math.floor(containerWidth));
 
-/** The ad page reads ?size= to choose the matching Adsterra key / Zoho image. */
-export const adFrameSrcForSize = (src: string, size: FrameSize): string => {
+export const adFrameSrcForWidth = (src: string, maxw: number): string => {
   const u = new URL(src);
-  u.searchParams.set('size', size);
+  u.searchParams.set('maxw', String(maxw));
   return u.href;
+};
+
+export type AdSize2D = { w: number; h: number };
+
+/** Accept only a well-formed size report; anything else on the message channel is ignored. */
+export const readAdSizeMessage = (data: unknown): AdSize2D | null => {
+  const d = data as { type?: unknown; w?: unknown; h?: unknown } | null;
+  if (!d || d.type !== 'openhr-ad-size') return null;
+  const ok = (n: unknown): n is number => Number.isInteger(n) && (n as number) > 0 && (n as number) <= 1000;
+  return ok(d.w) && ok(d.h) ? { w: d.w, h: d.h } : null;
 };
 
 /**
@@ -153,7 +166,6 @@ export const adFrameSrcForSize = (src: string, size: FrameSize): string => {
  * subscription says showAds (everyone except paid ACTIVE organizations and the demo); public
  * placements also show to anonymous visitors. Both need the Super Admin master switch, the
  * placement's own switch, and VITE_AD_FRAME_URL pointing at the ad subdomain.
- * It picks the 728x90 or 320x100 size from the space available (see pickFrameSize).
  */
 export const AdFrame: React.FC<{ placement: AdPlacement; className?: string }> = ({ placement, className = '' }) => {
   const { subscription } = useSubscription();
@@ -163,7 +175,9 @@ export const AdFrame: React.FC<{ placement: AdPlacement; className?: string }> =
   const eligible = audience && src !== null;
   const [on, setOn] = useState(false);
   const [width, setWidth] = useState<number | null>(null);
+  const [ad, setAd] = useState<AdSize2D | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  const frameHost = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!eligible) return;
@@ -182,22 +196,42 @@ export const AdFrame: React.FC<{ placement: AdPlacement; className?: string }> =
     return () => ro.disconnect();
   }, [visible]);
 
+  const maxw = width === null ? null : maxAdWidth(width);
+
+  useEffect(() => {
+    if (!visible || maxw === null) return;
+    setAd(null); // a new maxw loads a new ad; stay collapsed until it reports its size
+    const origin = new URL(src!).origin;
+    const onMessage = (e: MessageEvent) => {
+      // Only our own frame, from the ad origin, can size this box.
+      const frame = frameHost.current?.querySelector('iframe');
+      if (e.origin !== origin || !frame || e.source !== frame.contentWindow) return;
+      const size = readAdSizeMessage(e.data);
+      if (size) setAd(size);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [visible, maxw, src]);
+
   if (!visible) return null;
 
-  // Until measured (or without ResizeObserver) assume the mobile size at full scale.
-  const sizeName = width === null ? 'small' : pickFrameSize(width);
-  const size = SIZES[sizeName];
-  const scale = width === null ? 1 : Math.min(1, width / size.width);
+  // Before the report the frame loads at maxw x 250 inside a zero-height box: invisible, no gap.
+  const frameW = ad?.w ?? maxw ?? 300;
+  const frameH = ad?.h ?? 250;
+  const scale = ad && width ? Math.min(1, width / ad.w) : 1;
 
   return (
-    <div ref={box} className={`w-full flex justify-center ${className}`} style={{ height: size.height * scale }}>
-      <div style={{ width: size.width * scale, height: size.height * scale }}>
+    <div ref={box} className={`w-full flex justify-center ${ad ? className : ''}`}>
+      <div className="overflow-hidden" style={ad ? { width: ad.w * scale, height: ad.h * scale } : { width: 0, height: 0 }}>
         <div
-          className="relative overflow-hidden"
-          style={{ width: size.width, height: size.height, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+          ref={frameHost}
+          className="relative"
+          style={{ width: frameW, height: frameH, transform: `scale(${scale})`, transformOrigin: 'top left' }}
         >
-          {/* key: a size change loads a fresh ad of the new size instead of resizing the old one */}
-          <SandboxedAdFrame key={sizeName} src={adFrameSrcForSize(src!, sizeName)} width={size.width} height={size.height} />
+          {maxw !== null && (
+            // key: a new width loads a fresh ad that fits instead of resizing the old one
+            <SandboxedAdFrame key={maxw} src={adFrameSrcForWidth(src!, maxw)} width={frameW} height={frameH} />
+          )}
         </div>
       </div>
     </div>

@@ -228,9 +228,9 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {displayPosts.map(post => (
+                    {displayPosts.map((post, i) => (
+                      <React.Fragment key={post.id}>
                       <article
-                        key={post.id}
                         className="relative bg-dl-surface rounded-dl-lg border border-dl-hair-soft shadow-dl-1 overflow-hidden cursor-pointer hover:shadow-dl-1 hover:-translate-y-1 transition-all duration-200 focus-within:shadow-dl-1"
                       >
                         {post.coverImage ? (
@@ -271,6 +271,11 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
                           </div>
                         </div>
                       </article>
+                      {/* An ad row after every 4th post, spanning both columns; not after the last post. */}
+                      {(i + 1) % 4 === 0 && i < displayPosts.length - 1 && (
+                        <div className="md:col-span-2"><AdFrame placement="blog" /></div>
+                      )}
+                      </React.Fragment>
                     ))}
                   </div>
 

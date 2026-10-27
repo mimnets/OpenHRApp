@@ -6,21 +6,30 @@ vi.mock('../../../services/organization.service', () => ({ organizationService: 
 
 import {
   resolveAdFrameSrc, SandboxedAdFrame, DEFAULT_AD_FRAME_CONFIG,
-  isPlacementOn, pickFrameSize, adFrameSrcForSize,
+  isPlacementOn, maxAdWidth, adFrameSrcForWidth, readAdSizeMessage,
 } from '../AdBanner';
 
 describe('ad frame sizing and placements', () => {
-  it('uses the 728x90 leaderboard only where it fits, else the 300x250 rectangle', () => {
-    expect(pickFrameSize(1100)).toBe('wide');
-    expect(pickFrameSize(728)).toBe('wide');
-    expect(pickFrameSize(727)).toBe('small');
-    expect(pickFrameSize(360)).toBe('small');
-    expect(pickFrameSize(220)).toBe('small'); // side menu: scaled down, never the wide banner
+  it('rounds the available width down to a standard ad width', () => {
+    expect(maxAdWidth(1100)).toBe(728);
+    expect(maxAdWidth(728)).toBe(728);
+    expect(maxAdWidth(727)).toBe(468);
+    expect(maxAdWidth(360)).toBe(320);
+    expect(maxAdWidth(310)).toBe(300);
+    expect(maxAdWidth(220)).toBe(220); // side menu: the ad page picks its narrowest, the app scales it
   });
 
-  it('tells the ad page which size to serve', () => {
-    expect(adFrameSrcForSize('https://ads.openhrapp.com/', 'wide')).toBe('https://ads.openhrapp.com/?size=wide');
-    expect(adFrameSrcForSize('https://ads.openhrapp.com/', 'small')).toBe('https://ads.openhrapp.com/?size=small');
+  it('tells the ad page the widest ad that fits', () => {
+    expect(adFrameSrcForWidth('https://ads.openhrapp.com/', 728)).toBe('https://ads.openhrapp.com/?maxw=728');
+  });
+
+  it('accepts only well-formed size reports from the ad page', () => {
+    expect(readAdSizeMessage({ type: 'openhr-ad-size', w: 320, h: 50 })).toEqual({ w: 320, h: 50 });
+    expect(readAdSizeMessage({ type: 'openhr-ad-size', w: 0, h: 50 })).toBeNull();
+    expect(readAdSizeMessage({ type: 'openhr-ad-size', w: 5000, h: 50 })).toBeNull();
+    expect(readAdSizeMessage({ type: 'openhr-ad-size', w: '320', h: 50 })).toBeNull();
+    expect(readAdSizeMessage({ type: 'other', w: 320, h: 50 })).toBeNull();
+    expect(readAdSizeMessage(null)).toBeNull();
   });
 
   it('keeps the employee dashboard on by default and every other placement opt-in', () => {
@@ -38,7 +47,7 @@ describe('dashboard ad settings validation', () => {
   it('accepts the defaults and well-formed provider values', () => {
     expect(validateAdFrameConfig(DEFAULT_AD_FRAME_CONFIG)).toBeNull();
     expect(validateAdFrameConfig(on({
-      adsterra: { enabled: true, key: 'abc123', weight: 2 },
+      adsterra: { enabled: true, key: 'abc123', keySize: '300x250', keyWide: 'def456', keyWideSize: '728x90', weight: 2 },
       aads: { enabled: true, unit: '2412345', weight: 1 },
       zoho: { enabled: true, img: 'https://x.example/b.png', href: 'https://go.zoho.com/r', weight: 1 },
     }))).toBeNull();

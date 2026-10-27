@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, MonitorSmartphone } from 'lucide-react';
 import { organizationService } from '../../services/organization.service';
-import { AD_PLACEMENTS, AdFrameConfig, DEFAULT_AD_FRAME_CONFIG, isPlacementOn, resolveAdFrameSrc } from '../ads/AdBanner';
+import {
+  AD_PLACEMENTS, ADSTERRA_SIZES, AdFrameConfig, AdsterraSize, DEFAULT_AD_FRAME_CONFIG, isPlacementOn, resolveAdFrameSrc,
+} from '../ads/AdBanner';
 
 /** Same rules the ad page re-checks before using a value; see ads-frame/index.html. */
 export const validateAdFrameConfig = (cfg: AdFrameConfig): string | null => {
   const https = (v: string) => { try { return new URL(v).protocol === 'https:'; } catch { return false; } };
   const key = /^[A-Za-z0-9]+$/;
-  if (cfg.adsterra.enabled && !key.test(cfg.adsterra.key)) return 'Adsterra 300x250 key must be letters and numbers only.';
-  if (cfg.adsterra.keyWide && !key.test(cfg.adsterra.keyWide)) return 'Adsterra 728x90 key must be letters and numbers only.';
+  if (cfg.adsterra.enabled && !key.test(cfg.adsterra.key)) return 'Adsterra phone key must be letters and numbers only.';
+  if (cfg.adsterra.keyWide && !key.test(cfg.adsterra.keyWide)) return 'Adsterra desktop key must be letters and numbers only.';
+  if (![cfg.adsterra.keySize, cfg.adsterra.keyWideSize].every(s => (ADSTERRA_SIZES as readonly string[]).includes(s))) return 'Pick a size for each Adsterra key.';
   if (cfg.aads.enabled && !/^\d+$/.test(cfg.aads.unit)) return 'A-Ads unit must be a number.';
   if (cfg.zoho.enabled && (!https(cfg.zoho.img) || !https(cfg.zoho.href))) return 'Zoho image and link must both be https:// URLs.';
   if (cfg.zoho.imgWide && !https(cfg.zoho.imgWide)) return 'Zoho 728x90 image must be an https:// URL.';
@@ -129,10 +132,18 @@ const AdFrameSettings: React.FC<{ onMessage: (msg: { type: 'success' | 'error'; 
             <h5 className="font-bold text-slate-900">Adsterra</h5>
             <Toggle on={cfg.adsterra.enabled} onClick={() => set('adsterra', { enabled: !cfg.adsterra.enabled })} label="Adsterra" />
           </div>
-          <input className={input} placeholder="300x250 banner key (phones)" value={cfg.adsterra.key}
-            onChange={e => set('adsterra', { key: e.target.value.trim() })} />
-          <input className={input} placeholder="728x90 banner key (desktop)" value={cfg.adsterra.keyWide}
-            onChange={e => set('adsterra', { keyWide: e.target.value.trim() })} />
+          {([['key', 'keySize', 'Banner key (phones)'], ['keyWide', 'keyWideSize', 'Banner key (desktop, optional)']] as const).map(([k, s, ph]) => (
+            <div key={k} className="flex gap-2">
+              <input className={input} placeholder={ph} value={cfg.adsterra[k]}
+                onChange={e => set('adsterra', { [k]: e.target.value.trim() })} />
+              <select aria-label={`${ph} size`} value={cfg.adsterra[s]}
+                onChange={e => set('adsterra', { [s]: e.target.value as AdsterraSize })}
+                className="px-2 py-2 border border-slate-200 rounded-lg text-sm">
+                {ADSTERRA_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
+              </select>
+            </div>
+          ))}
+          <p className="text-[11px] text-slate-400">Pick the size the unit was created with in Adsterra. The largest one that fits the space is shown.</p>
           {weight('adsterra')}
         </div>
 

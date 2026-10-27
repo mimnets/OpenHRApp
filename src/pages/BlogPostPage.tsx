@@ -3,10 +3,10 @@ import { ArrowLeft, Calendar, ChevronRight, Clock, User } from 'lucide-react';
 import { blogService } from '../services/blog.service';
 import { BlogPost } from '../types';
 import { PublicAdBanner, AdFrame } from '../components/ads';
+import { ArticleWithAd } from '../components/ads/ArticleWithAd';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
-import { sanitizeHtml } from '../utils/sanitize';
 import { getReadingTime } from '../utils/readingTime';
 import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
 import { spaLinkProps } from '../utils/spaLink';
@@ -225,9 +225,10 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ slug, onBack }) => {
                     </p>
                   )}
 
-                  <div
+                  <ArticleWithAd
+                    placement="blog"
                     className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:font-dl-display prose-headings:font-semibold prose-headings:tracking-dl-head prose-a:text-dl-teal prose-a:underline prose-img:rounded-dl-md"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
+                    html={post.content}
                   />
 
                   {/* Ad - Blog Post Content (only for substantial posts 2000+ words) */}

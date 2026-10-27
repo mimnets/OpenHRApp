@@ -125,9 +125,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
             with the CTA. The navbar and footer both link to /contact. */}
         <HeroSection onLoginClick={onLoginClick} onRegisterClick={onRegisterClick} onLoginSuccess={onLoginSuccess} />
         <FeaturesSection />
+        <AdFrame placement="landing" className="px-4 py-6" />
         <HowItWorksSection />
         <Suspense fallback={<SectionSkeleton />}><ShowcaseSection /></Suspense>
         <ProofSection />
+        <AdFrame placement="landing" className="px-4 py-6" />
         <Suspense fallback={<SectionSkeleton />}><PricingSection onRegisterClick={onRegisterClick} /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><FAQSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><RoadmapSection /></Suspense>

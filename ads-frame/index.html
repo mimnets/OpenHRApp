@@ -1,11 +1,15 @@
 <!doctype html>
 <!--
   OpenHRApp ad frame. Deployed on its own origin (ads.openhrapp.com, Cloudflare Pages) and
-  embedded by the app's dashboard in a sandboxed <iframe>. Every third-party ad script runs
-  here, never on the app's origin, so it cannot read employee data. See ads-frame/README.md.
+  embedded by the app in a sandboxed <iframe>. Every third-party ad script runs here, never on
+  the app's origin, so it cannot read employee data. See ads-frame/README.md.
 
-  Which providers run, their keys and weights are set in Super Admin -> Ads -> Dashboard Ads
+  Which providers run, their keys, sizes and weights are set in Super Admin -> Ads -> Platform Ads
   and read from the public get_ad_frame_settings() RPC. Nothing here needs editing after setup.
+
+  Sizing: the app passes ?maxw=<widest ad that fits>. This page picks a creative no wider than
+  that (or the narrowest available, which the app then scales down), draws it at the top-left,
+  and posts {type:'openhr-ad-size', w, h} to the app, which sizes its box to match exactly.
 -->
 <html lang="en">
 <head>
@@ -14,12 +18,12 @@
   <meta name="robots" content="noindex">
   <title>Advertisement</title>
   <style>
-    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
-    body { display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; }
-    #ad { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    #ad a, #ad img { display: block; max-width: 100%; max-height: 100%; }
-    #ad iframe { border: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    .house { color: #0f766e; background: #f0fdfa; border-radius: 8px; padding: 12px 16px; text-decoration: none; font-size: 14px; text-align: center; }
+    html, body { margin: 0; background: transparent; overflow: hidden; font-family: system-ui, sans-serif; }
+    #ad { position: absolute; top: 0; left: 0; overflow: hidden; }
+    #ad a, #ad img { display: block; }
+    #ad iframe { border: 0; display: block; overflow: hidden; background: transparent; }
+    .house { box-sizing: border-box; display: flex !important; align-items: center; justify-content: center;
+      color: #0f766e; background: #f0fdfa; border-radius: 8px; text-decoration: none; font-size: 14px; text-align: center; }
   </style>
 </head>
 <body>
@@ -32,21 +36,44 @@
     var HOUSE = { href: 'https://openhrapp.com/pricing', text: 'Remove ads — OpenHRApp ad-free plan' };
 
     var slot = document.getElementById('ad');
+    var maxw = parseInt(new URLSearchParams(location.search).get('maxw'), 10);
+    if (!(maxw > 0 && maxw <= 1000)) maxw = 300;
+
+    function report(w, h) {
+      slot.style.width = w + 'px'; slot.style.height = h + 'px';
+      // Sizes only, nothing sensitive, so any parent may read it; the app checks origin and source.
+      parent.postMessage({ type: 'openhr-ad-size', w: Math.round(w), h: Math.round(h) }, '*');
+    }
 
     function house() {
       slot.innerHTML = '';
       var a = document.createElement('a');
       a.className = 'house'; a.href = HOUSE.href; a.target = '_blank'; a.rel = 'noopener';
       a.textContent = HOUSE.text;
+      var w = Math.min(maxw, 468), h = 60;
+      a.style.width = w + 'px'; a.style.height = h + 'px';
       slot.appendChild(a);
+      report(w, h);
     }
 
     function https(v) {
       try { return new URL(v).protocol === 'https:'; } catch (e) { return false; }
     }
 
-    // The app asks for ?size=wide (728x90, desktop) or small (300x250, phones and narrow spaces).
-    var WIDE = new URLSearchParams(location.search).get('size') === 'wide';
+    function parseSize(s) {
+      var m = /^(\d+)x(\d+)$/.exec(s || '');
+      return m ? { w: +m[1], h: +m[2] } : null;
+    }
+
+    // Widest option that fits maxw; if none fits, the narrowest (the app scales it down).
+    function bestFit(options) {
+      var fits = options.filter(function (o) { return o.w <= maxw; });
+      var pool = fits.length ? fits : options;
+      return pool.reduce(function (a, b) {
+        return fits.length ? (b.w > a.w ? b : a) : (b.w < a.w ? b : a);
+      });
+    }
+
     var KEY = /^[A-Za-z0-9]+$/;
 
     // Each value is re-validated here, not only in Super Admin: this page is public.
@@ -54,27 +81,34 @@
       adsterra: {
         ok: function (p) { return KEY.test(p.key || ''); },
         render: function (p) {
-          // Desktop uses the 728x90 key when there is one; otherwise the 300x250 banner, centered.
-          var wide = WIDE && KEY.test(p.keyWide || '');
-          var key = wide ? p.keyWide : p.key;
-          var w = wide ? 728 : 300, h = wide ? 90 : 250;
+          var units = [{ key: p.key, size: p.keySize || '300x250' }, { key: p.keyWide, size: p.keyWideSize || '728x90' }]
+            .filter(function (u) { return KEY.test(u.key || '') && parseSize(u.size); })
+            .map(function (u) { var s = parseSize(u.size); return { key: u.key, w: s.w, h: s.h }; });
+          if (!units.length) return house();
+          var u = bestFit(units);
           // Adsterra's banner tag may use document.write, so it runs in its own srcdoc document
           // where it is parsed normally (same origin as this page, still isolated from the app).
           var f = document.createElement('iframe');
-          f.style.width = w + 'px'; f.style.height = h + 'px';
-          f.srcdoc = '<!doctype html><body style="margin:0;display:flex;justify-content:center">' +
-            '<script>atOptions={key:"' + key + '",format:"iframe",height:' + h + ',width:' + w + ',params:{}};<\/script>' +
-            '<script src="https://www.highperformanceformat.com/' + key + '/invoke.js"><\/script></body>';
+          f.style.width = u.w + 'px'; f.style.height = u.h + 'px';
+          f.setAttribute('scrolling', 'no');
+          f.srcdoc = '<!doctype html><body style="margin:0;overflow:hidden">' +
+            '<script>atOptions={key:"' + u.key + '",format:"iframe",height:' + u.h + ',width:' + u.w + ',params:{}};<\/script>' +
+            '<script src="https://www.highperformanceformat.com/' + u.key + '/invoke.js"><\/script></body>';
           slot.appendChild(f);
+          report(u.w, u.h);
         }
       },
       aads: {
         ok: function (p) { return /^\d+$/.test(p.unit || ''); },
         render: function (p) {
+          var s = bestFit([{ w: 728, h: 90 }, { w: 468, h: 60 }, { w: 300, h: 250 }]);
           var f = document.createElement('iframe');
           f.setAttribute('data-aa', p.unit);
-          f.src = 'https://acceptable.a-ads.com/' + p.unit + '/?size=Adaptive';
+          f.setAttribute('scrolling', 'no');
+          f.src = 'https://acceptable.a-ads.com/' + p.unit + '/?size=' + s.w + 'x' + s.h;
+          f.style.width = s.w + 'px'; f.style.height = s.h + 'px';
           slot.appendChild(f);
+          report(s.w, s.h);
         }
       },
       zoho: {
@@ -83,14 +117,17 @@
           var a = document.createElement('a');
           a.href = p.href; a.target = '_blank'; a.rel = 'sponsored noopener';
           var img = document.createElement('img');
-          img.src = WIDE && https(p.imgWide) ? p.imgWide : p.img; img.alt = 'Zoho — business apps for growing teams'; img.onerror = house;
+          img.alt = 'Zoho — business apps for growing teams';
+          img.onload = function () { report(img.naturalWidth, img.naturalHeight); };
+          img.onerror = house;
+          img.src = maxw >= 728 && https(p.imgWide) ? p.imgWide : p.img;
           a.appendChild(img);
           slot.appendChild(a);
         }
       }
     };
 
-    // Weighted random pick, so each dashboard load rotates between the enabled providers.
+    // Weighted random pick, so each banner load rotates between the enabled providers.
     function pick(list) {
       var total = list.reduce(function (n, x) { return n + x.weight; }, 0);
       var r = Math.random() * total;
