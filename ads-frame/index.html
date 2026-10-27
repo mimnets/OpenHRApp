@@ -96,6 +96,23 @@
             '<script src="https://www.highperformanceformat.com/' + u.key + '/invoke.js"><\/script></body>';
           slot.appendChild(f);
           report(u.w, u.h);
+          // If the size picked in Super Admin is wrong, Adsterra still draws the unit's real size.
+          // Its banner iframe lives in our same-origin srcdoc document, so measure it for a few
+          // seconds and re-report the true size; the app then refits the box (no cut, no gap).
+          var tries = 0;
+          var timer = setInterval(function () {
+            tries++;
+            var inner;
+            try { inner = f.contentDocument && f.contentDocument.querySelector('iframe'); } catch (e) { inner = null; }
+            var w = inner ? inner.offsetWidth : 0, h = inner ? inner.offsetHeight : 0;
+            if (w > 0 && h > 0 && w <= 1000 && h <= 1000 && (w !== u.w || h !== u.h)) {
+              f.style.width = w + 'px'; f.style.height = h + 'px';
+              report(w, h);
+              clearInterval(timer);
+            } else if (tries >= 20) {
+              clearInterval(timer);
+            }
+          }, 250);
         }
       },
       aads: {
