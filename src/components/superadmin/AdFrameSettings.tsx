@@ -36,7 +36,9 @@ const AdFrameSettings: React.FC<{ onMessage: (msg: { type: 'success' | 'error'; 
   const frameUrl = resolveAdFrameSrc();
 
   useEffect(() => {
-    organizationService.getSetting('ad_frame_config', null)
+    // Platform-level explicitly: get_ad_frame_settings() reads only the organization_id = null row,
+    // and getSetting/setSetting would scope to the Super Admin's own org if their profile has one.
+    organizationService.getPlatformSetting('ad_frame_config', null)
       .then((stored: Partial<AdFrameConfig> | null) => {
         if (!stored) return;
         setCfg({
@@ -58,7 +60,7 @@ const AdFrameSettings: React.FC<{ onMessage: (msg: { type: 'success' | 'error'; 
     if (problem) { onMessage({ type: 'error', text: problem }); return; }
     setSaving(true);
     try {
-      await organizationService.setSetting('ad_frame_config', cfg);
+      await organizationService.setPlatformSetting('ad_frame_config', cfg);
       onMessage({ type: 'success', text: 'Dashboard ad settings saved. Changes appear on the next dashboard load.' });
     } catch (e: any) {
       onMessage({ type: 'error', text: e?.message || 'Failed to save dashboard ad settings' });
