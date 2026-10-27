@@ -144,7 +144,8 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
           <h2 className="text-xl font-bold">Every feature, free</h2>
         </div>
         <p className="text-white/90">
-          OpenHRApp is free and open source. The optional ad-free plan removes ads and helps pay for the servers that keep it running.
+          OpenHRApp is free and open source. During the trial and on the free plan, the employee dashboard shows one small ad
+          banner. The optional ad-free plan removes it and helps pay for the servers that keep OpenHRApp running.
         </p>
       </div>
 
@@ -293,7 +294,8 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
             <div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Continue Free with Ads</h3>
               <p className="text-slate-500">
-                Get full access to all features for free. We'll show non-intrusive ads to support development.
+                Keep full access to every feature after your trial ends, at no cost. Your trial already shows the same
+                small dashboard ad, so nothing changes for your team except that access no longer expires.
               </p>
             </div>
 
@@ -310,7 +312,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                  <span className="text-slate-600">No ads during attendance punch or critical workflows</span>
+                  <span className="text-slate-600">No ads on attendance, camera or leave screens</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
@@ -320,7 +322,9 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
-              <strong>Note:</strong> By accepting, you agree to see advertisements. Your data will not be shared with ad networks.
+              <strong>Note:</strong> By accepting, you agree to see advertisements. We never send employee records or
+              organization details to ad networks. Ads load in an isolated frame that cannot read your data; like any website,
+              the ad network sees the viewer's IP address and browser. See the Privacy Policy for details.
             </div>
 
             <button
