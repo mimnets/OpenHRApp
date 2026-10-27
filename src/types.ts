@@ -70,7 +70,7 @@ export interface SubscriptionInfo {
   isSuperAdmin: boolean;
   isReadOnly: boolean;  // true for EXPIRED
   isBlocked: boolean;   // true for SUSPENDED
-  showAds: boolean;     // true for AD_SUPPORTED
+  showAds: boolean;     // true unless ACTIVE (paid ad-free plan) or the demo org
   isDemo: boolean;      // true for demo organization
 }
 

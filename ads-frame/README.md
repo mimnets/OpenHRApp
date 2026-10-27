@@ -1,48 +1,38 @@
 # Ad frame (ads.openhrapp.com)
 
-A one-page site that rotates Adsterra, A-Ads and Zoho banners. The dashboard shows it in a
-sandboxed iframe (`SandboxedAdFrame` in `src/components/ads/AdBanner.tsx`), so ad scripts run on
-this origin, never on the app's, and cannot read employee data or the login session.
+A one-page site that shows one rotating banner (Adsterra, A-Ads or a Zoho affiliate banner) on
+the employee dashboard. The app embeds it in a sandboxed iframe (`DashboardAdFrame` in
+`src/components/ads/AdBanner.tsx`), so ad scripts run on this origin, never on the app's, and
+cannot read employee data or the login session.
+
+Who sees it: every organization except those on the paid ad-free plan (`ACTIVE`) and the demo.
+What it shows: whatever is set in **Super Admin → Ads → Dashboard Ads**. After the one-time
+setup below you never edit or redeploy this folder to change ads.
 
 It is **not** part of the Vite build. Never move it into `public/`: served from the app's own
 origin it would lose all isolation (the app refuses a same-origin frame URL anyway).
 
-## 1. Deploy on Cloudflare Pages
+## One-time setup
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Upload assets**.
-2. Project name `openhr-ads`, upload this `ads-frame/` folder (`index.html`, `_headers`, and
-   your Zoho banner image). You get `https://openhr-ads.pages.dev`.
-   (Or connect the GitHub repo: build command empty, build output directory `ads-frame`.)
-3. Project → **Custom domains** → **Set up a custom domain** → `ads.openhrapp.com`.
-   - If `openhrapp.com` DNS is on Cloudflare, it creates the CNAME for you.
-   - If DNS is elsewhere, add a CNAME `ads` → `openhr-ads.pages.dev` at that DNS provider.
-4. Wait for the certificate (a few minutes), then open `https://ads.openhrapp.com`. With nothing
-   configured you should see the "Remove ads" house link.
+1. **Database:** run `supabase/migrations/0042_ad_frame_settings.sql` in the Supabase SQL Editor.
+2. **This page:** at the top of the script in `index.html`, fill in `SUPABASE_URL` and
+   `SUPABASE_ANON_KEY` with the same values as the app's `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY` (both are public keys).
+3. **Cloudflare Pages** (pick one):
+   - *Upload:* Workers & Pages → your `openhr-ads` project → **Create deployment** → upload this
+     folder. Repeat only if `index.html` itself changes.
+   - *Git (recommended):* Workers & Pages → Create → Pages → **Connect to Git** → this repo,
+     build command empty, build output directory `ads-frame`. Then move the custom domain
+     `ads.openhrapp.com` to this project and delete the uploaded one. Pushes now redeploy it.
+4. **Vercel:** set `VITE_AD_FRAME_URL = https://ads.openhrapp.com` and redeploy the app.
+5. **Super Admin → Ads → Dashboard Ads:** enter the Adsterra key (320x50 banner), A-Ads unit
+   number and Zoho banner image + affiliate link, switch on the providers you want, switch on
+   **All dashboard ads**, and save.
 
-## 2. Fill in the ad networks (top of `index.html`)
-
-| Entry | Where to get it |
-|---|---|
-| `adsterra.key` | Adsterra → Websites → add `ads.openhrapp.com` → Banner **320x50** → copy the `key` from the code |
-| `aads.unit` | a-ads.com → Create ad unit → site `ads.openhrapp.com`, size Adaptive → the unit number |
-| `image.href` + `img` | Zoho affiliate dashboard → banner (320x100) saved into this folder + your affiliate link |
-
-Empty entries are skipped. `weight` sets how often each one is picked per page load.
-Re-upload (or push) after every change.
-
-## 3. Switch it on in the app
-
-1. Vercel → Project → Settings → Environment Variables:
-   `VITE_AD_FRAME_URL = https://ads.openhrapp.com` (Production), then redeploy.
-2. Super Admin → Ads: the `dashboard-below-cards` slot must be enabled for the organization.
-3. Only organizations on the ad-supported plan see it; paid plans never load the frame.
-
-Before going live, update the Privacy Policy: it currently says advertising never runs on
-signed-in screens. State that the employee dashboard shows ads from Adsterra and A-Ads inside
-an isolated frame, and that those networks receive the viewer's IP address and browser details.
+Register `ads.openhrapp.com` as the website in Adsterra and A-Ads.
 
 ## Rules
 
-- The frame is only on the employee dashboard, never on attendance, camera or leave screens.
+- The frame appears only on the employee dashboard, never on attendance, camera or leave screens.
 - `_headers` limits who may embed this page (`frame-ancestors`). Add any new app domain there.
 - If the app domain is not `openhrapp.com`, change `HOUSE.href` and `_headers` to match.

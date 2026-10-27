@@ -1,4 +1,4 @@
 /*
-  Content-Security-Policy: frame-ancestors https://openhrapp.com https://www.openhrapp.com http://localhost:3000
+  Content-Security-Policy: frame-ancestors 'self' https://openhrapp.com https://www.openhrapp.com http://localhost:3000
   X-Content-Type-Options: nosniff
   Cache-Control: public, max-age=300

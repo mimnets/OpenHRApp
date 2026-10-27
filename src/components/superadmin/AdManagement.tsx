@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2, X, Code, Image, Globe, AlertTriangle } from 'lucide-react';
 import { organizationService } from '../../services/organization.service';
-import { superAdminService } from '../../services/superadmin.service';
-import type { Organization } from '../../types';
-import { AdConfig, AdSlot, AdPlaceholder } from '../ads';
-import { isPwaAdSlot, resolvePwaImageSrc, PWA_SPONSORED_LINK } from '../ads/AdBanner';
+import { AdConfig, AdSlot } from '../ads';
+import AdFrameSettings from './AdFrameSettings';
 import type { FormatTargeting, PageTargetGroup } from '../../config/monetag';
 import { DEFAULT_IPP_TARGETING, DEFAULT_VIGNETTE_TARGETING } from '../../config/monetag';
 
@@ -17,25 +15,11 @@ const PAGE_TARGET_GROUPS: { id: PageTargetGroup; name: string; description: stri
 ];
 
 const AD_SLOTS: { id: AdSlot; name: string; description: string; size: string }[] = [
-  { id: 'sidebar', name: 'Sidebar', description: 'Bottom of sidebar navigation', size: '300x250' },
-  { id: 'dashboard', name: 'Dashboard', description: 'Below dashboard stats', size: '728x90' },
-  { id: 'reports', name: 'Reports', description: 'Reports page sidebar', size: '300x250' },
-  { id: 'footer', name: 'Footer', description: 'Footer area on all pages', size: '728x90' },
-  { id: 'landing-hero', name: 'Landing Hero', description: 'Below hero section on landing page', size: '728x90' },
-  { id: 'landing-mid', name: 'Landing Mid', description: 'Between sections on landing page', size: '728x90' },
   { id: 'blog-header', name: 'Blog Header', description: 'Top of blog listing page', size: '728x90' },
   { id: 'blog-feed', name: 'Blog Feed', description: 'Below blog post grid', size: '728x90' },
   { id: 'blog-post-top', name: 'Blog Post Top', description: 'Top of blog post page', size: '728x90' },
   { id: 'blog-post-content', name: 'Blog Post Content', description: 'Inside blog post content area', size: '300x250' },
-  // Phase 2A: PWA authenticated page slots (default OFF, mobile-first)
-  { id: 'attendance-success', name: 'Attendance Success', description: 'After successful check-in/check-out on attendance page', size: '320x100' },
-  { id: 'leave-success', name: 'Leave Success', description: 'After successful leave submission', size: '320x100' },
-  { id: 'dashboard-below-cards', name: 'Dashboard Below Cards', description: 'Below summary cards on employee dashboard', size: '320x100' }
 ];
-
-const LEGACY_AD_SLOTS = AD_SLOTS.filter(slot => !isPwaAdSlot(slot.id));
-const PWA_AD_SLOT_META = AD_SLOTS.filter(slot => isPwaAdSlot(slot.id));
-const PWA_KEYS = PWA_AD_SLOT_META.map(slot => `ad_config_${slot.id}`);
 
 const DEFAULT_CONFIG: Omit<AdConfig, 'id' | 'slot'> = {
   enabled: false,
@@ -59,13 +43,6 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
   const [editingSlot, setEditingSlot] = useState<AdSlot | null>(null);
   const [editForm, setEditForm] = useState<AdConfig | null>(null);
 
-  // Phase 3F: PWA slots belong to an explicitly selected organization, never the caller's own org.
-  const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [pwaOrgId, setPwaOrgId] = useState('');
-  const [pwaConfigs, setPwaConfigs] = useState<Partial<Record<AdSlot, AdConfig>> | null>(null);
-  const [editOrgId, setEditOrgId] = useState('');
-  const pwaRequest = useRef(0); // bumps on every selection; older responses and saves are discarded
-
   // Monetag Controls state
   const [monetagIppEnabled, setMonetagIppEnabled] = useState(false);
   const [monetagVignetteEnabled, setMonetagVignetteEnabled] = useState(false);
@@ -78,45 +55,13 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
   useEffect(() => {
     loadConfigs();
     loadMonetagSettings();
-    superAdminService.getAllOrganizations().then(setOrgs);
   }, []);
-
-  const isAdSupported = (orgId: string) =>
-    orgs.some(org => org.id === orgId && org.subscriptionStatus === 'AD_SUPPORTED');
-
-  const selectPwaOrg = async (orgId: string) => {
-    const request = ++pwaRequest.current;
-    setPwaOrgId(orgId);
-    setPwaConfigs(null);
-    if (editingSlot && isPwaAdSlot(editingSlot)) closeEditModal();
-    if (!orgId || !isAdSupported(orgId)) return;
-    try {
-      const stored = await superAdminService.getOrgSettings(orgId, PWA_KEYS);
-      if (request !== pwaRequest.current) return;
-      setPwaConfigs(Object.fromEntries(PWA_AD_SLOT_META.map(slot => {
-        const value = stored[`ad_config_${slot.id}`] as AdConfig | undefined;
-        return [slot.id, value ? { ...value, slot: slot.id } : { id: '', slot: slot.id, ...DEFAULT_CONFIG }];
-      })));
-    } catch (e) {
-      if (request !== pwaRequest.current) return;
-      console.error('[AdManagement] PWA org settings load error:', e);
-      onMessage({ type: 'error', text: 'Failed to load in-app ad settings for this organization' });
-    }
-  };
-
-  // Every PWA write names its organization and is refused unless that organization is AD_SUPPORTED.
-  const writePwaConfig = async (orgId: string, slot: AdSlot, value: AdConfig) => {
-    if (!orgId || !isAdSupported(orgId)) throw new Error('Select an AD_SUPPORTED organization first');
-    const request = pwaRequest.current;
-    await superAdminService.setOrgSetting(orgId, `ad_config_${slot}`, value);
-    if (request === pwaRequest.current) setPwaConfigs(prev => prev && { ...prev, [slot]: value });
-  };
 
   const loadConfigs = async () => {
     setIsLoading(true);
     try {
       const loadedConfigs: Record<AdSlot, AdConfig> = {} as Record<AdSlot, AdConfig>;
-      for (const slot of LEGACY_AD_SLOTS) {
+      for (const slot of AD_SLOTS) {
         const value = await organizationService.getSetting(`ad_config_${slot.id}`, null);
         if (value) {
           loadedConfigs[slot.id] = { ...(value as AdConfig), slot: slot.id };
@@ -236,23 +181,9 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
   };
 
   const openEditModal = (slot: AdSlot) => {
-    if (isPwaAdSlot(slot)) {
-      const config = pwaConfigs?.[slot];
-      if (!pwaOrgId || !config) return;
-      setEditOrgId(pwaOrgId);
-      setEditingSlot(slot);
-      setEditForm({ ...config, adType: 'image' });
-      return;
-    }
     setEditingSlot(slot);
     setEditForm({ ...configs[slot] });
   };
-
-  // Phase 3D: PWA slots persist only image fields; the click destination is the fixed SmartLink.
-  const toPwaImageConfig = (config: AdConfig): AdConfig =>
-    ({ ...config, adType: 'image', adsenseClient: '', adsenseSlot: '', customHtml: '', linkUrl: '' });
-
-  const PWA_IMAGE_ERROR = 'PWA slots need a self-hosted image on this site, e.g. /img/sponsored-320x100.png';
 
   const closeEditModal = () => {
     setEditingSlot(null);
@@ -261,19 +192,11 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
 
   const handleSave = async () => {
     if (!editingSlot || !editForm) return;
-    const toSave = isPwaAdSlot(editingSlot) ? toPwaImageConfig(editForm) : editForm;
-    if (isPwaAdSlot(editingSlot) && !resolvePwaImageSrc(toSave)) {
-      onMessage({ type: 'error', text: PWA_IMAGE_ERROR });
-      return;
-    }
+    const toSave = editForm;
     setIsSaving(true);
     try {
-      if (isPwaAdSlot(editingSlot)) {
-        await writePwaConfig(editOrgId, editingSlot, toSave);
-      } else {
-        await organizationService.setSetting(`ad_config_${editingSlot}`, toSave);
-        setConfigs(prev => ({ ...prev, [editingSlot]: toSave }));
-      }
+      await organizationService.setSetting(`ad_config_${editingSlot}`, toSave);
+      setConfigs(prev => ({ ...prev, [editingSlot]: toSave }));
       onMessage({ type: 'success', text: `Ad slot "${editingSlot}" updated successfully` });
       closeEditModal();
     } catch (e: any) {
@@ -284,25 +207,7 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
     }
   };
 
-  const togglePwaEnabled = async (slot: AdSlot) => {
-    const config = pwaConfigs?.[slot];
-    if (!pwaOrgId || !config) return;
-    if (!config.enabled && !resolvePwaImageSrc(config)) {
-      onMessage({ type: 'error', text: PWA_IMAGE_ERROR });
-      return;
-    }
-    const updated = { ...config, enabled: !config.enabled };
-    try {
-      await writePwaConfig(pwaOrgId, slot, updated);
-      onMessage({ type: 'success', text: `Ad slot "${slot}" ${updated.enabled ? 'enabled' : 'disabled'}` });
-    } catch (e: any) {
-      console.error('[AdManagement] PWA toggle error:', e);
-      onMessage({ type: 'error', text: e?.message || 'Failed to update status.' });
-    }
-  };
-
   const toggleEnabled = async (slot: AdSlot) => {
-    if (isPwaAdSlot(slot)) return togglePwaEnabled(slot);
     const config = configs[slot];
     const updated = { ...config, enabled: !config.enabled };
     setConfigs(prev => ({ ...prev, [slot]: updated }));
@@ -374,9 +279,11 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xl font-bold text-slate-900">Ad Management</h3>
-          <p className="text-sm text-slate-500 mt-1">Configure ad slots for AD_SUPPORTED organizations</p>
+          <p className="text-sm text-slate-500 mt-1">Dashboard ads for all non-paying organizations, plus public blog slots</p>
         </div>
       </div>
+
+      <AdFrameSettings onMessage={onMessage} />
 
       {/* Monetag Controls Section */}
       <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
@@ -611,73 +518,14 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
         </div>
       </div>
 
-      {/* Organization Ad Slots Section */}
+      {/* Public blog slots (PublicAdBanner) */}
       <div>
-        <h4 className="text-lg font-bold text-slate-900 mb-3">Organization Ad Slots</h4>
-        <p className="text-sm text-slate-500 mb-4">Configure ad slots for AD_SUPPORTED organizations</p>
+        <h4 className="text-lg font-bold text-slate-900 mb-3">Public Blog Ad Slots</h4>
+        <p className="text-sm text-slate-500 mb-4">Shown to visitors of the public blog, not inside the app</p>
       </div>
 
-      {/* Ad Slots Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {LEGACY_AD_SLOTS.map(slot => renderSlotCard(slot, configs[slot.id]))}
-      </div>
-
-      {/* Phase 3F: In-app (PWA) slots, managed per explicitly selected organization */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-        <div>
-          <h4 className="text-lg font-bold text-slate-900">In-App Sponsored Slots (PWA)</h4>
-          <p className="text-sm text-slate-500">
-            Image-only slots inside the employee app. Choose an organization; only AD_SUPPORTED organizations can be configured.
-          </p>
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="pwa-ad-org" className="text-sm font-medium text-slate-600">Organization</label>
-          <select
-            id="pwa-ad-org"
-            value={pwaOrgId}
-            onChange={(e) => selectPwaOrg(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
-          >
-            <option value="">Select an organization…</option>
-            {orgs.map(org => (
-              <option key={org.id} value={org.id} disabled={org.subscriptionStatus !== 'AD_SUPPORTED'}>
-                {org.name} — {org.subscriptionStatus || 'TRIAL'}
-              </option>
-            ))}
-          </select>
-        </div>
-        {!pwaOrgId ? (
-          <p className="text-sm text-slate-500">Select an AD_SUPPORTED organization to manage its in-app slots.</p>
-        ) : !pwaConfigs ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 className="animate-spin" size={16} /> Loading settings for this organization…
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PWA_AD_SLOT_META.map(slot => renderSlotCard(slot, pwaConfigs[slot.id]))}
-          </div>
-        )}
-      </div>
-
-      {/* Preview Section */}
-      <div className="bg-slate-50 rounded-2xl p-6">
-        <h4 className="font-bold text-slate-700 mb-4">Ad Placement Preview</h4>
-        <div className="grid grid-cols-4 gap-4 items-start">
-          <div className="col-span-1 space-y-2">
-            <div className="text-xs font-bold text-slate-500 uppercase">Sidebar</div>
-            <AdPlaceholder slot="sidebar" />
-          </div>
-          <div className="col-span-3 space-y-4">
-            <div>
-              <div className="text-xs font-bold text-slate-500 uppercase mb-2">Dashboard</div>
-              <AdPlaceholder slot="dashboard" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-500 uppercase mb-2">Footer</div>
-              <AdPlaceholder slot="footer" />
-            </div>
-          </div>
-        </div>
+        {AD_SLOTS.map(slot => renderSlotCard(slot, configs[slot.id]))}
       </div>
 
       {/* Edit Modal */}
@@ -705,7 +553,6 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                     <Image size={20} />
                     <span className="text-xs font-medium">Image</span>
                   </button>
-                  {!isPwaAdSlot(editingSlot) && (<>
                   <button
                     onClick={() => setEditForm({ ...editForm, adType: 'adsense' })}
                     className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
@@ -724,7 +571,6 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                     <Code size={20} />
                     <span className="text-xs font-medium">Custom HTML</span>
                   </button>
-                  </>)}
                 </div>
               </div>
 
@@ -737,17 +583,10 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                       type="url"
                       value={editForm.imageUrl || ''}
                       onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                      placeholder={isPwaAdSlot(editingSlot) ? '/img/sponsored-320x100.png' : 'https://example.com/ad-image.png'}
+                      placeholder="https://example.com/ad-image.png"
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
                     />
                   </div>
-                  {isPwaAdSlot(editingSlot) ? (
-                  <div className="p-3 bg-slate-50 rounded-lg text-xs text-slate-600 space-y-1">
-                    <p><strong>Image-only slot.</strong> Use a self-hosted image on this site (e.g. <code>/img/sponsored-320x100.png</code>). External image hosts are rejected.</p>
-                    <p>The click destination is fixed and cannot be edited: <code className="break-all">{PWA_SPONSORED_LINK}</code>. It opens in a new tab only when the employee taps the ad, with a visible "Sponsored" label.</p>
-                    <p>Saved for <strong>{orgs.find(org => org.id === editOrgId)?.name || 'the selected organization'}</strong> only. Its employees see it only while the organization is AD_SUPPORTED and this slot is enabled.</p>
-                  </div>
-                  ) : (<>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-600">Link URL (optional)</label>
                     <input
@@ -768,7 +607,6 @@ const AdManagement: React.FC<AdManagementProps> = ({ onMessage }) => {
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-light outline-none"
                     />
                   </div>
-                  </>)}
                 </>
               )}
 

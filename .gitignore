@@ -69,3 +69,6 @@ Others/import-backups/
 # Content backups written by scripts/relativize-internal-links.mjs --apply.
 # These are full dumps of live article content; they stay local.
 scripts/.backups/
+
+# Temporary Monetag IPP local browser-test rig (mocks only; delete when done).
+monetag-ipp-test/

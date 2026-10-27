@@ -105,8 +105,8 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                 <li><strong>Analytics Cookies:</strong> Analytics tracking is currently disabled. No analytics cookies are loaded.</li>
                 <li><strong>Vercel Analytics:</strong> We use Vercel Analytics for performance monitoring and usage insights.</li>
                 <li>
-                  <strong>Dashboard advertising (free ad-supported plan only):</strong> If your organization uses the free
-                  ad-supported plan, the employee dashboard shows one advertising banner. The banner rotates between ads from
+                  <strong>Dashboard advertising (free use only):</strong> Unless your organization is on the paid
+                  ad-free plan, the employee dashboard shows one advertising banner. The banner rotates between ads from
                   Adsterra, A-Ads, and affiliate partners such as Zoho. It is loaded inside an isolated frame served from a
                   separate address (ads.openhrapp.com), and the ad providers' code runs only inside that frame. Your browser
                   prevents that code from reading the dashboard, your employee records, selfies, locations, or your sign-in
@@ -172,7 +172,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                   by us.
                 </li>
                 <li>
-                  <strong>Dashboard Ad Providers:</strong> For organizations on the free ad-supported plan, the dashboard
+                  <strong>Dashboard Ad Providers:</strong> For organizations not on the paid ad-free plan, the dashboard
                   banner is requested by your browser from Adsterra and A-Ads inside the isolated ad frame described in
                   section 3. We send them no employee records, names, email addresses, or organization details, and the frame
                   is loaded without telling them which page of the app you were on. Like any website you visit, those

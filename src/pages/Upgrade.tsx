@@ -306,7 +306,7 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                  <span className="text-slate-600">Small banner ads in sidebar and dashboard</span>
+                  <span className="text-slate-600">One small banner on the employee dashboard</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />

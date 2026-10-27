@@ -5,7 +5,7 @@ import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AnnouncementWidget } from './AnnouncementWidget';
-import { AdBanner } from '../ads/AdBanner';
+import { DashboardAdFrame } from '../ads/AdBanner';
 
 interface Props {
   data: DashboardData;
@@ -78,12 +78,8 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
         </div>
       )}
 
-      {/* Phase 2B: PWA Ad Placement - Below summary cards */}
-      {!isLoading && (
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-          <AdBanner slot="dashboard-below-cards" className="mx-auto" />
-        </div>
-      )}
+      {/* The only in-app ad: renders nothing for paid organizations or while ads are off. */}
+      {!isLoading && <DashboardAdFrame className="mx-auto" />}
 
       {/* Announcements Widget */}
       <AnnouncementWidget user={data.freshUser} onNavigate={onNavigate} />

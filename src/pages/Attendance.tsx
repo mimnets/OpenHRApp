@@ -14,7 +14,6 @@ import { AttendanceHeader } from '../components/attendance/AttendanceHeader';
 import { CameraFeed } from '../components/attendance/CameraFeed';
 import { LocationDisplay } from '../components/attendance/LocationDisplay';
 import { AttendanceActions } from '../components/attendance/AttendanceActions';
-import { AdBanner } from '../components/ads/AdBanner';
 
 interface AttendanceProps {
   user: any;
@@ -175,13 +174,6 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
         activeRecord={activeRecord}
         isDisabled={!canPunch || !location || isLocating || status !== 'idle' || !hasPhoto || (dutyType === 'FACTORY' && !remarks.trim())}
       />
-
-      {/* Phase 2B: PWA Ad Placement - Only after successful punch */}
-      {status === 'success' && (
-        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
-          <AdBanner slot="attendance-success" className="mx-auto" />
-        </div>
-      )}
 
       <canvas ref={canvasRef} className="hidden" />
     </div>

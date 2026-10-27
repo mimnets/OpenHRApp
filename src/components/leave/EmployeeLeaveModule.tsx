@@ -6,7 +6,6 @@ import { hrService } from '../../services/hrService';
 import { organizationService } from '../../services/organization.service';
 import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift, CustomLeaveType } from '../../types';
 import { DEFAULT_LEAVE_TYPES } from '../../constants';
-import { AdBanner } from '../ads/AdBanner';
 
 
 const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
@@ -49,7 +48,6 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ type: 'ANNUAL', start: '', end: '', reason: '' });
-  const [showSuccessAd, setShowSuccessAd] = useState(false);
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -312,7 +310,6 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
       }, user);
       setShowForm(false);
       setFormData({ type: leaveTypes[0]?.id || 'ANNUAL', start: '', end: '', reason: '' });
-      setShowSuccessAd(true); // Phase 2B: Show success ad after successful submission
       onRefresh();
     } catch (err: any) {
       setError(err.message || "Submission failed");
@@ -328,7 +325,6 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
         <button
           onClick={() => {
             setShowForm(true);
-            setShowSuccessAd(false); // Phase 2C: Reset success ad when opening new form
           }}
           disabled={readOnly}
           className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold uppercase tracking-widest text-[10px] shadow-xl transition-all ${
@@ -341,12 +337,6 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
         </button>
       </div>
 
-      {/* Phase 2B: PWA Ad Placement - Only after successful leave submission */}
-      {showSuccessAd && (
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-          <AdBanner slot="leave-success" className="mx-auto" />
-        </div>
-      )}
 
       <div className={`grid grid-cols-1 gap-6 ${['','md:grid-cols-1','md:grid-cols-2','md:grid-cols-3','md:grid-cols-4'][Math.min(balanceTypes.length, 4)] || 'md:grid-cols-4'}`}>
         {balanceTypes.map(lt => (

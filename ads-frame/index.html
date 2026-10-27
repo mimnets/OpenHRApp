@@ -3,6 +3,9 @@
   OpenHRApp ad frame. Deployed on its own origin (ads.openhrapp.com, Cloudflare Pages) and
   embedded by the app's dashboard in a sandboxed <iframe>. Every third-party ad script runs
   here, never on the app's origin, so it cannot read employee data. See ads-frame/README.md.
+
+  Which providers run, their keys and weights are set in Super Admin -> Ads -> Dashboard Ads
+  and read from the public get_ad_frame_settings() RPC. Nothing here needs editing after setup.
 -->
 <html lang="en">
 <head>
@@ -13,23 +16,19 @@
   <style>
     html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
     body { display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; }
-    #ad, #ad a, #ad img { display: block; max-width: 100%; max-height: 100%; }
+    #ad { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    #ad a, #ad img { display: block; max-width: 100%; max-height: 100%; }
+    #ad iframe { border: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
     .house { color: #0f766e; background: #f0fdfa; border-radius: 8px; padding: 12px 16px; text-decoration: none; font-size: 14px; text-align: center; }
   </style>
 </head>
 <body>
   <div id="ad"></div>
   <script>
-    // ── Fill these in. An entry left empty is skipped; weight sets how often it is picked. ──
-    var ADS = [
-      // Adsterra → Websites → add ads.openhrapp.com → Get code for a 320x50 Banner. Paste its key.
-      { type: 'adsterra', weight: 2, key: '', width: 320, height: 50 },
-      // A-Ads → Create ad unit for ads.openhrapp.com, size Adaptive. Paste the unit number.
-      { type: 'aads', weight: 1, unit: '' },
-      // Zoho affiliate: download a banner from the Zoho dashboard into this folder, paste your link.
-      { type: 'image', weight: 1, img: 'zoho-320x100.png', href: '', alt: 'Zoho — business apps for growing teams' }
-    ];
-    // Shown when nothing above is configured, or the chosen network returns no ad.
+    // ── One-time setup: the same public values as VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. ──
+    var SUPABASE_URL = 'https://cixryuwtlwbofabctrkk.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpeHJ5dXd0bHdib2ZhYmN0cmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTgzMjcsImV4cCI6MjA5NDEzNDMyN30.DIsKHuNmR6ivb2oAdukpDDV8XSlK9km1KJDQ0O8yUEE';
+    // Shown when ads are off, nothing is configured, or the settings cannot be loaded.
     var HOUSE = { href: 'https://openhrapp.com/pricing', text: 'Remove ads — OpenHRApp ad-free plan' };
 
     var slot = document.getElementById('ad');
@@ -42,49 +41,77 @@
       slot.appendChild(a);
     }
 
-    function link(href, child) {
-      var a = document.createElement('a');
-      a.href = href; a.target = '_blank'; a.rel = 'sponsored noopener';
-      a.appendChild(child);
-      return a;
+    function https(v) {
+      try { return new URL(v).protocol === 'https:'; } catch (e) { return false; }
     }
 
-    var render = {
-      adsterra: function (ad) {
-        // Adsterra's banner snippet: a global atOptions, then invoke.js. Written while the page is
-        // still parsing (as their own snippet is), because invoke.js may itself use document.write.
-        window.atOptions = { key: ad.key, format: 'iframe', height: ad.height, width: ad.width, params: {} };
-        document.write('<script src="https://www.highperformanceformat.com/' + encodeURIComponent(ad.key) + '/invoke.js"><\/script>');
+    // Each value is re-validated here, not only in Super Admin: this page is public.
+    var providers = {
+      adsterra: {
+        ok: function (p) { return /^[A-Za-z0-9]+$/.test(p.key || ''); },
+        render: function (p) {
+          // Adsterra's banner tag may use document.write, so it runs in its own srcdoc document
+          // where it is parsed normally (same origin as this page, still isolated from the app).
+          var f = document.createElement('iframe');
+          f.srcdoc = '<!doctype html><body style="margin:0;display:flex;justify-content:center">' +
+            '<script>atOptions={key:"' + p.key + '",format:"iframe",height:50,width:320,params:{}};<\/script>' +
+            '<script src="https://www.highperformanceformat.com/' + p.key + '/invoke.js"><\/script></body>';
+          slot.appendChild(f);
+        }
       },
-      aads: function (ad) {
-        var f = document.createElement('iframe');
-        f.setAttribute('data-aa', ad.unit);
-        f.src = 'https://acceptable.a-ads.com/' + encodeURIComponent(ad.unit) + '/?size=Adaptive';
-        f.style.cssText = 'border:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent';
-        slot.appendChild(f);
+      aads: {
+        ok: function (p) { return /^\d+$/.test(p.unit || ''); },
+        render: function (p) {
+          var f = document.createElement('iframe');
+          f.setAttribute('data-aa', p.unit);
+          f.src = 'https://acceptable.a-ads.com/' + p.unit + '/?size=Adaptive';
+          slot.appendChild(f);
+        }
       },
-      image: function (ad) {
-        var img = document.createElement('img');
-        img.src = ad.img; img.alt = ad.alt; img.onerror = house;
-        slot.appendChild(link(ad.href, img));
+      zoho: {
+        ok: function (p) { return https(p.img) && https(p.href); },
+        render: function (p) {
+          var a = document.createElement('a');
+          a.href = p.href; a.target = '_blank'; a.rel = 'sponsored noopener';
+          var img = document.createElement('img');
+          img.src = p.img; img.alt = 'Zoho — business apps for growing teams'; img.onerror = house;
+          a.appendChild(img);
+          slot.appendChild(a);
+        }
       }
     };
 
-    function configured(ad) {
-      return ad.type === 'adsterra' ? !!ad.key : ad.type === 'aads' ? !!ad.unit : !!(ad.href && ad.img);
-    }
-
-    // Weighted random pick, so each dashboard load rotates between the configured networks.
+    // Weighted random pick, so each dashboard load rotates between the enabled providers.
     function pick(list) {
-      var total = list.reduce(function (n, ad) { return n + ad.weight; }, 0);
+      var total = list.reduce(function (n, x) { return n + x.weight; }, 0);
       var r = Math.random() * total;
       for (var i = 0; i < list.length; i++) { r -= list[i].weight; if (r < 0) return list[i]; }
       return list[list.length - 1];
     }
 
-    var ready = ADS.filter(configured);
-    if (ready.length) { var ad = pick(ready); render[ad.type](ad); }
-    else house();
+    function show(cfg) {
+      if (!cfg || cfg.enabled !== true) return house();
+      var ready = Object.keys(providers).filter(function (name) {
+        var p = cfg[name];
+        return p && p.enabled === true && p.weight > 0 && providers[name].ok(p);
+      }).map(function (name) { return { name: name, weight: cfg[name].weight }; });
+      if (!ready.length) return house();
+      var chosen = pick(ready).name;
+      providers[chosen].render(cfg[chosen]);
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      house();
+    } else {
+      fetch(SUPABASE_URL + '/rest/v1/rpc/get_ad_frame_settings', {
+        method: 'POST',
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: '{}'
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(show)
+        .catch(house);
+    }
   </script>
 </body>
 </html>

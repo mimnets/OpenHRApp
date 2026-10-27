@@ -4,7 +4,29 @@ import { render } from '@testing-library/react';
 vi.mock('../../../services/supabase', () => ({ supabase: {}, isSupabaseConfigured: () => false }));
 vi.mock('../../../services/organization.service', () => ({ organizationService: {} }));
 
-import { resolveAdFrameSrc, SandboxedAdFrame } from '../AdBanner';
+import { resolveAdFrameSrc, SandboxedAdFrame, DEFAULT_AD_FRAME_CONFIG } from '../AdBanner';
+import { validateAdFrameConfig } from '../../superadmin/AdFrameSettings';
+
+describe('dashboard ad settings validation', () => {
+  const on = (patch: object) => ({ ...DEFAULT_AD_FRAME_CONFIG, enabled: true, ...patch });
+
+  it('accepts the defaults and well-formed provider values', () => {
+    expect(validateAdFrameConfig(DEFAULT_AD_FRAME_CONFIG)).toBeNull();
+    expect(validateAdFrameConfig(on({
+      adsterra: { enabled: true, key: 'abc123', weight: 2 },
+      aads: { enabled: true, unit: '2412345', weight: 1 },
+      zoho: { enabled: true, img: 'https://x.example/b.png', href: 'https://go.zoho.com/r', weight: 1 },
+    }))).toBeNull();
+  });
+
+  it('rejects values that could inject markup or load over http', () => {
+    expect(validateAdFrameConfig(on({ adsterra: { enabled: true, key: '"></script><script>', weight: 1 } }))).not.toBeNull();
+    expect(validateAdFrameConfig(on({ aads: { enabled: true, unit: '12/../x', weight: 1 } }))).not.toBeNull();
+    expect(validateAdFrameConfig(on({ zoho: { enabled: true, img: 'http://x/b.png', href: 'https://y', weight: 1 } }))).not.toBeNull();
+    expect(validateAdFrameConfig(on({ zoho: { enabled: true, img: 'https://x/b.png', href: 'javascript:alert(1)', weight: 1 } }))).not.toBeNull();
+    expect(validateAdFrameConfig(on({ aads: { enabled: false, unit: '', weight: 11 } }))).not.toBeNull();
+  });
+});
 
 const APP = 'https://openhrapp.com';
 

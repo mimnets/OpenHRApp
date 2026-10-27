@@ -638,7 +638,8 @@ export const organizationService = {
       isSuperAdmin: false,
       isReadOnly: status === 'EXPIRED',
       isBlocked: status === 'SUSPENDED',
-      showAds: status === 'AD_SUPPORTED',
+      // Ads for every organization except those on the paid ad-free plan (ACTIVE) and the demo.
+      showAds: status !== 'ACTIVE' && !data?.is_demo,
       isDemo: data?.is_demo || false,
     };
   },

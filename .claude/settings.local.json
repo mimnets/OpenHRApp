@@ -97,7 +97,8 @@
       "PowerShell(docker run *)",
       "PowerShell($newJwtSecret = $\\(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(48\\).toString\\('base64'\\)\\)\"\\); Write-Output $newJwtSecret)",
       "PowerShell(New-Item *)",
-      "PowerShell(docker rm openhr-init 2>&1; docker compose up -d 2>&1)"
+      "PowerShell(docker rm openhr-init 2>&1; docker compose up -d 2>&1)",
+      "Bash(python -)"
     ]
   }
 }
