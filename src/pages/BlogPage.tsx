@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User } from 'lucide-react';
 import { blogService } from '../services/blog.service';
 import { BlogPost } from '../types';
-import { PublicAdBanner } from '../components/ads';
+import { PublicAdBanner, AdFrame } from '../components/ads';
 import BlogNavbar from '../components/blog/BlogNavbar';
 import BlogSidebar from '../components/blog/BlogSidebar';
 import BlogFooter from '../components/blog/BlogFooter';
@@ -319,6 +319,8 @@ const BlogPage: React.FC<BlogPageProps> = ({ onBack, onRegisterClick }) => {
           </div>
         </div>
       </div>
+
+      <AdFrame placement="blog" className="px-4 py-6" />
 
       {/* Footer */}
       <BlogFooter />

@@ -19,6 +19,7 @@ import {
   Target,
 } from 'lucide-react';
 import HelpButton from './onboarding/HelpButton';
+import { AdFrame } from './ads/AdBanner';
 
 interface SidebarProps {
   currentPath: string;
@@ -101,6 +102,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout, ro
             </button>
           </div>
         ))}
+
+        {/* Never next to attendance (check-in, history, audit) or leave screens. */}
+        {!/^(attendance|leave)/.test(currentPath) && <AdFrame placement="sidebar" className="pt-4" />}
 
         {/* Sign Out */}
         <div className="pt-4 pb-2 space-y-4">

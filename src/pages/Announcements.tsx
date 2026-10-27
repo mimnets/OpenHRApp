@@ -8,6 +8,7 @@ import { useSubscription } from '../context/SubscriptionContext';
 import { AnnouncementCard } from '../components/announcements/AnnouncementCard';
 import { AnnouncementFormModal } from '../components/announcements/AnnouncementFormModal';
 import HelpButton from '../components/onboarding/HelpButton';
+import { AdFrame } from '../components/ads/AdBanner';
 
 interface Props {
   user: any;
@@ -167,6 +168,8 @@ const Announcements: React.FC<Props> = ({ user }) => {
           </div>
         </div>
       )}
+
+      <AdFrame placement="announcements" />
     </div>
   );
 };

@@ -4,7 +4,32 @@ import { render } from '@testing-library/react';
 vi.mock('../../../services/supabase', () => ({ supabase: {}, isSupabaseConfigured: () => false }));
 vi.mock('../../../services/organization.service', () => ({ organizationService: {} }));
 
-import { resolveAdFrameSrc, SandboxedAdFrame, DEFAULT_AD_FRAME_CONFIG } from '../AdBanner';
+import {
+  resolveAdFrameSrc, SandboxedAdFrame, DEFAULT_AD_FRAME_CONFIG,
+  isPlacementOn, pickFrameSize, adFrameSrcForSize,
+} from '../AdBanner';
+
+describe('ad frame sizing and placements', () => {
+  it('uses the 728x90 leaderboard only where it fits, else the 300x250 rectangle', () => {
+    expect(pickFrameSize(1100)).toBe('wide');
+    expect(pickFrameSize(728)).toBe('wide');
+    expect(pickFrameSize(727)).toBe('small');
+    expect(pickFrameSize(360)).toBe('small');
+    expect(pickFrameSize(220)).toBe('small'); // side menu: scaled down, never the wide banner
+  });
+
+  it('tells the ad page which size to serve', () => {
+    expect(adFrameSrcForSize('https://ads.openhrapp.com/', 'wide')).toBe('https://ads.openhrapp.com/?size=wide');
+    expect(adFrameSrcForSize('https://ads.openhrapp.com/', 'small')).toBe('https://ads.openhrapp.com/?size=small');
+  });
+
+  it('keeps the employee dashboard on by default and every other placement opt-in', () => {
+    expect(isPlacementOn(undefined, 'employee_dashboard')).toBe(true);
+    expect(isPlacementOn({}, 'sidebar')).toBe(false);
+    expect(isPlacementOn({ sidebar: true }, 'sidebar')).toBe(true);
+    expect(isPlacementOn({ employee_dashboard: false }, 'employee_dashboard')).toBe(false);
+  });
+});
 import { validateAdFrameConfig } from '../../superadmin/AdFrameSettings';
 
 describe('dashboard ad settings validation', () => {

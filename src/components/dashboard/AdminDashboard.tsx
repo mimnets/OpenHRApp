@@ -6,6 +6,7 @@ import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AnnouncementWidget } from './AnnouncementWidget';
 import SetupChecklist from '../onboarding/SetupChecklist';
+import { AdFrame } from '../ads/AdBanner';
 
 interface Props {
   data: DashboardData;
@@ -35,6 +36,8 @@ export const AdminDashboard: React.FC<Props> = ({ data, isLoading, onNavigate })
 
       {/* Setup Checklist for Admins */}
       <SetupChecklist user={data.freshUser} onNavigate={onNavigate} />
+
+      {!isLoading && <AdFrame placement="team_dashboards" />}
 
       {/* Quick Access Tabs */}
       <div className="space-y-2">

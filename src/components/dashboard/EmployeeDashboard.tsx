@@ -5,7 +5,7 @@ import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AnnouncementWidget } from './AnnouncementWidget';
-import { DashboardAdFrame } from '../ads/AdBanner';
+import { AdFrame } from '../ads/AdBanner';
 
 interface Props {
   data: DashboardData;
@@ -78,8 +78,8 @@ export const EmployeeDashboard: React.FC<Props> = ({ data, isLoading, onNavigate
         </div>
       )}
 
-      {/* The only in-app ad: renders nothing for paid organizations or while ads are off. */}
-      {!isLoading && <DashboardAdFrame className="mx-auto" />}
+      {/* Renders nothing for paid organizations or while this placement is off. */}
+      {!isLoading && <AdFrame placement="employee_dashboard" />}
 
       {/* Announcements Widget */}
       <AnnouncementWidget user={data.freshUser} onNavigate={onNavigate} />

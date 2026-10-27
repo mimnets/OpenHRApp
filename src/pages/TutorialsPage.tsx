@@ -6,6 +6,7 @@ import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
 import { updatePageMeta, setJsonLd } from '../utils/seo';
 import { spaLinkProps, STRETCHED_LINK } from '../utils/spaLink';
+import { AdFrame } from '../components/ads/AdBanner';
 
 // Preferred category display order — categories not listed here appear at the end
 const CATEGORY_ORDER = [
@@ -217,6 +218,7 @@ const TutorialsPage: React.FC<TutorialsPageProps> = ({ onBack, onRegisterClick }
         </div>
       </div>
 
+      <AdFrame placement="guides" className="px-4 py-6" />
       <TutorialsFooter />
     </div>
   );

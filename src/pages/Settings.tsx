@@ -12,6 +12,7 @@ import HelpButton from '../components/onboarding/HelpButton';
 import { ReEnableSetupGuide } from '../components/onboarding/SetupChecklist';
 import { contactService } from '../services/contact.service';
 import { useToast } from '../context/ToastContext';
+import { AdFrame } from '../components/ads/AdBanner';
 
 interface SettingsProps {
   user: UserType;
@@ -424,6 +425,8 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack }) => {
           </form>
         </div>
       </div>
+
+      <AdFrame placement="settings" className="mt-6" />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { hrService } from '../services/hrService';
 import { AppNotification, NotificationType } from '../types';
 import AdminNotificationFormModal from '../components/notifications/AdminNotificationFormModal';
 import HelpButton from '../components/onboarding/HelpButton';
+import { AdFrame } from '../components/ads/AdBanner';
 import { useToast } from '../context/ToastContext';
 
 interface Employee {
@@ -229,6 +230,8 @@ const AdminNotifications: React.FC<Props> = (_props) => {
           onSent={() => { setShowSendModal(false); loadNotifications(); }}
         />
       )}
+
+      <AdFrame placement="notifications" />
     </div>
   );
 };

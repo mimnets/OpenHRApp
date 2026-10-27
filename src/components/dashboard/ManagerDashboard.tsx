@@ -5,6 +5,7 @@ import { DashboardData } from '../../hooks/dashboard/useDashboard';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { AnnouncementWidget } from './AnnouncementWidget';
+import { AdFrame } from '../ads/AdBanner';
 
 interface Props {
   data: DashboardData;
@@ -29,8 +30,10 @@ export const ManagerDashboard: React.FC<Props> = ({ data, isLoading, onNavigate 
       <DashboardStats 
         leaveUsed={data.leaveUsed} 
         upcomingHoliday={data.upcomingHoliday} 
-        isLoading={isLoading} 
+        isLoading={isLoading}
       />
+
+      {!isLoading && <AdFrame placement="team_dashboards" />}
 
       {!isLoading && (
         <>

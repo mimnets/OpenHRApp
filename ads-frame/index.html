@@ -45,17 +45,26 @@
       try { return new URL(v).protocol === 'https:'; } catch (e) { return false; }
     }
 
+    // The app asks for ?size=wide (728x90, desktop) or small (300x250, phones and narrow spaces).
+    var WIDE = new URLSearchParams(location.search).get('size') === 'wide';
+    var KEY = /^[A-Za-z0-9]+$/;
+
     // Each value is re-validated here, not only in Super Admin: this page is public.
     var providers = {
       adsterra: {
-        ok: function (p) { return /^[A-Za-z0-9]+$/.test(p.key || ''); },
+        ok: function (p) { return KEY.test(p.key || ''); },
         render: function (p) {
+          // Desktop uses the 728x90 key when there is one; otherwise the 300x250 banner, centered.
+          var wide = WIDE && KEY.test(p.keyWide || '');
+          var key = wide ? p.keyWide : p.key;
+          var w = wide ? 728 : 300, h = wide ? 90 : 250;
           // Adsterra's banner tag may use document.write, so it runs in its own srcdoc document
           // where it is parsed normally (same origin as this page, still isolated from the app).
           var f = document.createElement('iframe');
+          f.style.width = w + 'px'; f.style.height = h + 'px';
           f.srcdoc = '<!doctype html><body style="margin:0;display:flex;justify-content:center">' +
-            '<script>atOptions={key:"' + p.key + '",format:"iframe",height:50,width:320,params:{}};<\/script>' +
-            '<script src="https://www.highperformanceformat.com/' + p.key + '/invoke.js"><\/script></body>';
+            '<script>atOptions={key:"' + key + '",format:"iframe",height:' + h + ',width:' + w + ',params:{}};<\/script>' +
+            '<script src="https://www.highperformanceformat.com/' + key + '/invoke.js"><\/script></body>';
           slot.appendChild(f);
         }
       },
@@ -74,7 +83,7 @@
           var a = document.createElement('a');
           a.href = p.href; a.target = '_blank'; a.rel = 'sponsored noopener';
           var img = document.createElement('img');
-          img.src = p.img; img.alt = 'Zoho — business apps for growing teams'; img.onerror = house;
+          img.src = WIDE && https(p.imgWide) ? p.imgWide : p.img; img.alt = 'Zoho — business apps for growing teams'; img.onerror = house;
           a.appendChild(img);
           slot.appendChild(a);
         }

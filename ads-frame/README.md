@@ -25,9 +25,13 @@ origin it would lose all isolation (the app refuses a same-origin frame URL anyw
      build command empty, build output directory `ads-frame`. Then move the custom domain
      `ads.openhrapp.com` to this project and delete the uploaded one. Pushes now redeploy it.
 4. **Vercel:** set `VITE_AD_FRAME_URL = https://ads.openhrapp.com` and redeploy the app.
-5. **Super Admin → Ads → Dashboard Ads:** enter the Adsterra key (320x50 banner), A-Ads unit
-   number and Zoho banner image + affiliate link, switch on the providers you want, switch on
-   **All dashboard ads**, and save.
+5. **Super Admin → Ads → Platform Ads:** enter the Adsterra keys (a **300x250** banner for phones
+   and a **728x90** banner for desktop), the A-Ads unit number (Adaptive size) and the Zoho
+   images (300x250 and optionally 728x90) + affiliate link. Switch on the providers and the
+   placements you want, switch on **All ads**, and save. Run migration 0044 first.
+
+The app asks this page for `?size=wide` (728x90, where it fits) or `?size=small` (300x250,
+scaled down in narrow spaces such as the side menu).
 
 Register `ads.openhrapp.com` as the website in Adsterra and A-Ads.
 

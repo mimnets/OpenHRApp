@@ -6,6 +6,7 @@ import TutorialsNavbar from '../components/tutorials/TutorialsNavbar';
 import TutorialsFooter from '../components/tutorials/TutorialsFooter';
 import { sanitizeHtml } from '../utils/sanitize';
 import { navigateTo, updatePageMeta, setJsonLd } from '../utils/seo';
+import { AdFrame } from '../components/ads/AdBanner';
 
 interface TutorialPageProps {
   slug: string;
@@ -347,6 +348,7 @@ const TutorialPage: React.FC<TutorialPageProps> = ({ slug, onBack }) => {
         )}
       </div>
 
+      <AdFrame placement="guides" className="px-4 py-6" />
       <TutorialsFooter />
     </div>
   );

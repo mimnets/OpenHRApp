@@ -105,11 +105,12 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                 <li><strong>Analytics Cookies:</strong> Analytics tracking is currently disabled. No analytics cookies are loaded.</li>
                 <li><strong>Vercel Analytics:</strong> We use Vercel Analytics for performance monitoring and usage insights.</li>
                 <li>
-                  <strong>Dashboard advertising (free use only):</strong> Unless your organization is on the paid
-                  ad-free plan, the employee dashboard shows one advertising banner. The banner rotates between ads from
+                  <strong>Advertising (free use only):</strong> Unless your organization is on the paid ad-free plan,
+                  some screens of the app (such as dashboards, announcements, notifications, settings, and the side menu)
+                  show an advertising banner, and so do public pages such as the guides, blog, and home page. The banner rotates between ads from
                   Adsterra, A-Ads, and affiliate partners such as Zoho. It is loaded inside an isolated frame served from a
                   separate address (ads.openhrapp.com), and the ad providers' code runs only inside that frame. Your browser
-                  prevents that code from reading the dashboard, your employee records, selfies, locations, or your sign-in
+                  prevents that code from reading the page around it, your employee records, selfies, locations, or your sign-in
                   session, and it cannot redirect the app. The ad providers may set their own cookies or similar technologies
                   within that frame and on their own sites. Advertising never appears on the attendance, camera, or leave
                   screens, and organizations on the paid ad-free plan never load it.
@@ -172,8 +173,8 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                   by us.
                 </li>
                 <li>
-                  <strong>Dashboard Ad Providers:</strong> For organizations not on the paid ad-free plan, the dashboard
-                  banner is requested by your browser from Adsterra and A-Ads inside the isolated ad frame described in
+                  <strong>Ad Providers:</strong> For organizations not on the paid ad-free plan, and for visitors of
+                  public pages, the ad banner is requested by your browser from Adsterra and A-Ads inside the isolated ad frame described in
                   section 3. We send them no employee records, names, email addresses, or organization details, and the frame
                   is loaded without telling them which page of the app you were on. Like any website you visit, those
                   providers and the advertisers they serve receive the technical information every web request carries,

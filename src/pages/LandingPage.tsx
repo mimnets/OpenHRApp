@@ -7,6 +7,7 @@ import PricingSection from '../components/landing/PricingSection';
 import ProofSection from '../components/landing/ProofSection';
 import Footer from '../components/landing/Footer';
 import { updatePageMeta, setJsonLd } from '../utils/seo';
+import { AdFrame } from '../components/ads/AdBanner';
 
 const ShowcaseSection = React.lazy(() => import('../components/landing/ShowcaseSection'));
 const FAQSection = React.lazy(() => import('../components/landing/FAQSection'));
@@ -132,6 +133,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onRegisterClick
         <Suspense fallback={<SectionSkeleton />}><RoadmapSection /></Suspense>
         <Suspense fallback={<SectionSkeleton />}><CTASection onRegisterClick={onRegisterClick} /></Suspense>
       </main>
+      <AdFrame placement="landing" className="px-4 py-6" />
       <Footer />
     </div>
   );

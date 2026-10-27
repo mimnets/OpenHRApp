@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { supabase } from '../../services/supabase';
 
-/** Public blog slots, rendered by PublicAdBanner. In-app ads go only through DashboardAdFrame. */
+/** Public blog slots, rendered by PublicAdBanner. All other ads go only through AdFrame. */
 export type AdSlot = 'blog-header' | 'blog-feed' | 'blog-post-top' | 'blog-post-content';
 export type AdSize = '300x250' | '728x90' | '320x100' | 'text';
 
@@ -23,23 +23,50 @@ export interface AdConfig {
 }
 
 /**
- * Dashboard ad frame configuration, stored by Super Admin as the platform setting
- * 'ad_frame_config' and read back through the public get_ad_frame_settings() RPC (migration 0042).
+ * Where the ad frame may appear. `public` placements are on pages without login: anonymous
+ * visitors see them, signed-in users follow their organization's showAds. Keep ids in sync with
+ * migration 0044 (get_ad_frame_settings whitelists them).
+ */
+export const AD_PLACEMENTS = [
+  { id: 'employee_dashboard', label: 'Employee dashboard', public: false },
+  { id: 'team_dashboards', label: 'Manager & Admin dashboards', public: false },
+  { id: 'announcements', label: 'Announcements page', public: false },
+  { id: 'sidebar', label: 'Side menu (hidden on attendance & leave)', public: false },
+  { id: 'notifications', label: 'Notifications page', public: false },
+  { id: 'settings', label: 'Profile & Settings page', public: false },
+  { id: 'guides', label: 'How-to guides (public)', public: true },
+  { id: 'blog', label: 'Blog (public)', public: true },
+  { id: 'landing', label: 'Landing page (public)', public: true },
+] as const;
+
+export type AdPlacement = typeof AD_PLACEMENTS[number]['id'];
+
+/**
+ * Ad frame configuration, stored by Super Admin as the platform setting 'ad_frame_config' and
+ * read back through the public get_ad_frame_settings() RPC (migrations 0042-0044).
  * The standalone page in ads-frame/ reads the same RPC to pick which provider to show.
  */
 export interface AdFrameConfig {
   enabled: boolean;
-  adsterra: { enabled: boolean; key: string; weight: number };
+  /** key: 300x250 banner (phones, narrow spaces). keyWide: 728x90 banner (desktop). */
+  adsterra: { enabled: boolean; key: string; keyWide: string; weight: number };
   aads: { enabled: boolean; unit: string; weight: number };
-  zoho: { enabled: boolean; img: string; href: string; weight: number };
+  /** img: 300x250 banner. imgWide: 728x90 banner. */
+  zoho: { enabled: boolean; img: string; imgWide: string; href: string; weight: number };
+  placements: Partial<Record<AdPlacement, boolean>>;
 }
 
 export const DEFAULT_AD_FRAME_CONFIG: AdFrameConfig = {
   enabled: false,
-  adsterra: { enabled: false, key: '', weight: 2 },
+  adsterra: { enabled: false, key: '', keyWide: '', weight: 2 },
   aads: { enabled: false, unit: '', weight: 1 },
-  zoho: { enabled: false, img: '', href: '', weight: 1 },
+  zoho: { enabled: false, img: '', imgWide: '', href: '', weight: 1 },
+  placements: {},
 };
+
+/** The employee dashboard was the original placement, so it stays on unless switched off; every other placement is opt-in. */
+export const isPlacementOn = (placements: AdFrameConfig['placements'] | undefined, id: AdPlacement): boolean =>
+  placements?.[id] ?? id === 'employee_dashboard';
 
 /**
  * Ad networks' scripts run only inside this frame, served from a separate origin (ads-frame/,
@@ -79,45 +106,100 @@ export const SandboxedAdFrame: React.FC<{ src: string; width: number; height: nu
   </>
 );
 
-/** Only the master switch matters to the app; the ad page itself decides which provider to show. */
-export const fetchAdFrameEnabled = async (): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('get_ad_frame_settings');
-    return !error && (data as Partial<AdFrameConfig> | null)?.enabled === true;
-  } catch {
-    return false;
+type PlacementSwitches = { enabled: boolean; placements: AdFrameConfig['placements'] };
+const OFF: PlacementSwitches = { enabled: false, placements: {} };
+
+// One request per page load, shared by every frame on the page (e.g. side menu + dashboard).
+let switchesRequest: Promise<PlacementSwitches> | null = null;
+
+/** Only the master and placement switches matter to the app; the ad page itself picks the provider. */
+export const fetchAdFrameSwitches = (): Promise<PlacementSwitches> => {
+  if (!switchesRequest) {
+    switchesRequest = Promise.resolve(supabase.rpc('get_ad_frame_settings'))
+      .then(({ data, error }) => {
+        if (error || !data) throw error ?? new Error('no settings');
+        const cfg = data as Partial<AdFrameConfig>;
+        return { enabled: cfg.enabled === true, placements: cfg.placements ?? {} };
+      })
+      .catch(() => { switchesRequest = null; return OFF; }); // retry on the next mount
   }
+  return switchesRequest;
 };
 
-const FRAME_WIDTH = 320;
-const FRAME_HEIGHT = 100;
+/** Test seam: forget the cached switches. */
+export const __resetAdFrameSwitchesForTests = () => { switchesRequest = null; };
+
+// Ad networks serve fixed sizes, so "responsive" means picking one: a 728x90 leaderboard where it
+// fits (desktop), otherwise the 300x250 medium rectangle, scaled down below 300px (e.g. side menu).
+// Both are standard Adsterra banner sizes; each needs its own key (see AdFrameConfig).
+const SIZES = {
+  wide: { width: 728, height: 90 },
+  small: { width: 300, height: 250 },
+} as const;
+type FrameSize = keyof typeof SIZES;
+
+export const pickFrameSize = (containerWidth: number): FrameSize =>
+  containerWidth >= SIZES.wide.width ? 'wide' : 'small';
+
+/** The ad page reads ?size= to choose the matching Adsterra key / Zoho image. */
+export const adFrameSrcForSize = (src: string, size: FrameSize): string => {
+  const u = new URL(src);
+  u.searchParams.set('size', size);
+  return u.href;
+};
 
 /**
- * The one in-app ad placement (employee dashboard). Shown to every organization whose
- * subscription says showAds (everyone except paid ACTIVE organizations), when the Super Admin
- * master switch is on and VITE_AD_FRAME_URL points at the ad subdomain.
+ * The ad banner for one placement. In-app placements show only when the organization's
+ * subscription says showAds (everyone except paid ACTIVE organizations and the demo); public
+ * placements also show to anonymous visitors. Both need the Super Admin master switch, the
+ * placement's own switch, and VITE_AD_FRAME_URL pointing at the ad subdomain.
+ * It picks the 728x90 or 320x100 size from the space available (see pickFrameSize).
  */
-export const DashboardAdFrame: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const AdFrame: React.FC<{ placement: AdPlacement; className?: string }> = ({ placement, className = '' }) => {
   const { subscription } = useSubscription();
+  const isPublic = AD_PLACEMENTS.find(p => p.id === placement)?.public ?? false;
+  const audience = isPublic ? subscription?.showAds !== false : subscription?.showAds === true;
   const src = resolveAdFrameSrc();
-  const eligible = subscription?.showAds === true && src !== null;
-  const [enabled, setEnabled] = useState(false);
+  const eligible = audience && src !== null;
+  const [on, setOn] = useState(false);
+  const [width, setWidth] = useState<number | null>(null);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!eligible) return;
     let live = true;
-    fetchAdFrameEnabled().then((on) => { if (live) setEnabled(on); });
+    fetchAdFrameSwitches().then(s => { if (live) setOn(s.enabled && isPlacementOn(s.placements, placement)); });
     return () => { live = false; };
-  }, [eligible]);
+  }, [eligible, placement]);
 
-  if (!eligible || !enabled || !src) return null;
+  const visible = eligible && on && src !== null;
+
+  useEffect(() => {
+    const el = box.current;
+    if (!visible || !el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [visible]);
+
+  if (!visible) return null;
+
+  // Until measured (or without ResizeObserver) assume the mobile size at full scale.
+  const sizeName = width === null ? 'small' : pickFrameSize(width);
+  const size = SIZES[sizeName];
+  const scale = width === null ? 1 : Math.min(1, width / size.width);
 
   return (
-    <div
-      className={`relative overflow-hidden ${className}`}
-      style={{ width: '100%', maxWidth: FRAME_WIDTH, aspectRatio: `${FRAME_WIDTH / FRAME_HEIGHT}` }}
-    >
-      <SandboxedAdFrame src={src} width={FRAME_WIDTH} height={FRAME_HEIGHT} />
+    <div ref={box} className={`w-full flex justify-center ${className}`} style={{ height: size.height * scale }}>
+      <div style={{ width: size.width * scale, height: size.height * scale }}>
+        <div
+          className="relative overflow-hidden"
+          style={{ width: size.width, height: size.height, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+        >
+          {/* key: a size change loads a fresh ad of the new size instead of resizing the old one */}
+          <SandboxedAdFrame key={sizeName} src={adFrameSrcForSize(src!, sizeName)} width={size.width} height={size.height} />
+        </div>
+      </div>
     </div>
   );
 };
