@@ -18,6 +18,7 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-10-27',
     title: 'Cookie banner removed',
     entries: [
+      { type: 'security', description: 'The employee dashboard ad slot can now show rotating ads from Adsterra, A-Ads and Zoho inside an isolated, sandboxed frame served from a separate ad subdomain. Ad network code runs only inside that frame: the browser stops it reading the dashboard, employee data or the login session, and it cannot redirect the app. The frame is off until it is configured, appears only for organizations on the ad-supported plan, and never on the attendance, camera or leave screens.' },
       { type: 'improvement', description: 'Removed the cookie consent banner and the Cookie & Ad Preferences footer link. Analytics tracking and advertising scripts are currently switched off, so there is nothing optional left to consent to. The Privacy Policy now says so: only essential cookies for sign-in and sessions are used, plus Vercel Analytics for performance monitoring.' },
     ],
   },

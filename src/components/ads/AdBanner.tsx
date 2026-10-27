@@ -136,6 +136,45 @@ export const PwaSponsoredImage: React.FC<{ src: string }> = ({ src }) => (
   </a>
 );
 
+/**
+ * Ad networks' scripts run only inside this frame, served from a separate origin (ads-frame/,
+ * deployed to its own subdomain). The browser's same-origin policy stops that code reading the
+ * dashboard DOM or the app's localStorage session, and the sandbox has no allow-top-navigation,
+ * so an ad cannot redirect the app tab. Unset VITE_AD_FRAME_URL and the slot falls back to the image.
+ */
+export const AD_FRAME_SLOT: AdSlot = 'dashboard-below-cards';
+
+export const resolveAdFrameSrc = (
+  url: string | undefined = import.meta.env.VITE_AD_FRAME_URL,
+  origin: string = window.location.origin
+): string | null => {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    // allow-same-origin below is only safe because the frame can never be the app's own origin.
+    return u.protocol === 'https:' && u.origin !== origin ? u.href : null;
+  } catch {
+    return null;
+  }
+};
+
+export const SandboxedAdFrame: React.FC<{ src: string; width: number; height: number }> = ({ src, width, height }) => (
+  <>
+    <iframe
+      src={src}
+      title="Advertisement"
+      width={width}
+      height={height}
+      sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      style={{ border: 0, width: '100%', height: '100%' }}
+    />
+    <span className="absolute top-1 left-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 pointer-events-none">
+      Ad
+    </span>
+  </>
+);
 
 export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
   const { subscription } = useSubscription();
@@ -211,6 +250,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({ slot, className = '' }) => {
   // Render based on ad type
   const renderAd = () => {
     if (isPwaAdSlot(slot)) {
+      const frameSrc = slot === AD_FRAME_SLOT ? resolveAdFrameSrc() : null;
+      if (frameSrc) return <SandboxedAdFrame src={frameSrc} width={size.width} height={size.height} />;
       const src = resolvePwaImageSrc(adConfig);
       return src ? <PwaSponsoredImage src={src} /> : null;
     }

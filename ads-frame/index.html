@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  OpenHRApp ad frame. Deployed on its own origin (ads.openhrapp.com, Cloudflare Pages) and
+  embedded by the app's dashboard in a sandboxed <iframe>. Every third-party ad script runs
+  here, never on the app's origin, so it cannot read employee data. See ads-frame/README.md.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Advertisement</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+    body { display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; }
+    #ad, #ad a, #ad img { display: block; max-width: 100%; max-height: 100%; }
+    .house { color: #0f766e; background: #f0fdfa; border-radius: 8px; padding: 12px 16px; text-decoration: none; font-size: 14px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="ad"></div>
+  <script>
+    // ── Fill these in. An entry left empty is skipped; weight sets how often it is picked. ──
+    var ADS = [
+      // Adsterra → Websites → add ads.openhrapp.com → Get code for a 320x50 Banner. Paste its key.
+      { type: 'adsterra', weight: 2, key: '', width: 320, height: 50 },
+      // A-Ads → Create ad unit for ads.openhrapp.com, size Adaptive. Paste the unit number.
+      { type: 'aads', weight: 1, unit: '' },
+      // Zoho affiliate: download a banner from the Zoho dashboard into this folder, paste your link.
+      { type: 'image', weight: 1, img: 'zoho-320x100.png', href: '', alt: 'Zoho — business apps for growing teams' }
+    ];
+    // Shown when nothing above is configured, or the chosen network returns no ad.
+    var HOUSE = { href: 'https://openhrapp.com/pricing', text: 'Remove ads — OpenHRApp ad-free plan' };
+
+    var slot = document.getElementById('ad');
+
+    function house() {
+      slot.innerHTML = '';
+      var a = document.createElement('a');
+      a.className = 'house'; a.href = HOUSE.href; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = HOUSE.text;
+      slot.appendChild(a);
+    }
+
+    function link(href, child) {
+      var a = document.createElement('a');
+      a.href = href; a.target = '_blank'; a.rel = 'sponsored noopener';
+      a.appendChild(child);
+      return a;
+    }
+
+    var render = {
+      adsterra: function (ad) {
+        // Adsterra's banner snippet: a global atOptions, then invoke.js. Written while the page is
+        // still parsing (as their own snippet is), because invoke.js may itself use document.write.
+        window.atOptions = { key: ad.key, format: 'iframe', height: ad.height, width: ad.width, params: {} };
+        document.write('<script src="https://www.highperformanceformat.com/' + encodeURIComponent(ad.key) + '/invoke.js"><\/script>');
+      },
+      aads: function (ad) {
+        var f = document.createElement('iframe');
+        f.setAttribute('data-aa', ad.unit);
+        f.src = 'https://acceptable.a-ads.com/' + encodeURIComponent(ad.unit) + '/?size=Adaptive';
+        f.style.cssText = 'border:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent';
+        slot.appendChild(f);
+      },
+      image: function (ad) {
+        var img = document.createElement('img');
+        img.src = ad.img; img.alt = ad.alt; img.onerror = house;
+        slot.appendChild(link(ad.href, img));
+      }
+    };
+
+    function configured(ad) {
+      return ad.type === 'adsterra' ? !!ad.key : ad.type === 'aads' ? !!ad.unit : !!(ad.href && ad.img);
+    }
+
+    // Weighted random pick, so each dashboard load rotates between the configured networks.
+    function pick(list) {
+      var total = list.reduce(function (n, ad) { return n + ad.weight; }, 0);
+      var r = Math.random() * total;
+      for (var i = 0; i < list.length; i++) { r -= list[i].weight; if (r < 0) return list[i]; }
+      return list[list.length - 1];
+    }
+
+    var ready = ADS.filter(configured);
+    if (ready.length) { var ad = pick(ready); render[ad.type](ad); }
+    else house();
+  </script>
+</body>
+</html>
