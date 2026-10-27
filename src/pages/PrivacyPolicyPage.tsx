@@ -60,7 +60,7 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
             <Shield className="text-dl-teal" size={28} />
           </div>
           <h1 className="text-3xl sm:text-4xl font-semibold text-dl-ink mb-3">Privacy Policy</h1>
-          <p className="text-dl-muted text-sm">Last updated: February 2026</p>
+          <p className="text-dl-muted text-sm">Last updated: October 2026</p>
         </div>
       </div>
 
@@ -105,12 +105,19 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                 <li><strong>Analytics Cookies:</strong> Analytics tracking is currently disabled. No analytics cookies are loaded.</li>
                 <li><strong>Vercel Analytics:</strong> We use Vercel Analytics for performance monitoring and usage insights.</li>
                 <li>
-                  <strong>Advertising (currently disabled):</strong> Advertising is currently disabled. No advertising scripts are loaded.
-                  When enabled in the future, we may show in-page advertising supplied by Monetag on eligible public content pages
-                  such as the blog and guides. This integration will never run on your dashboard,
-                  attendance, leave, or any other signed-in screen, and it will be unrelated to
-                  the in-app notifications that remind you to check in — those are a first-party
-                  feature of your own account, not advertising.
+                  <strong>Dashboard advertising (free ad-supported plan only):</strong> If your organization uses the free
+                  ad-supported plan, the employee dashboard shows one advertising banner. The banner rotates between ads from
+                  Adsterra, A-Ads, and affiliate partners such as Zoho. It is loaded inside an isolated frame served from a
+                  separate address (ads.openhrapp.com), and the ad providers' code runs only inside that frame. Your browser
+                  prevents that code from reading the dashboard, your employee records, selfies, locations, or your sign-in
+                  session, and it cannot redirect the app. The ad providers may set their own cookies or similar technologies
+                  within that frame and on their own sites. Advertising never appears on the attendance, camera, or leave
+                  screens, and organizations on the paid ad-free plan never load it.
+                </li>
+                <li>
+                  <strong>Public pages:</strong> In-page advertising from Monetag on public content pages such as the blog and
+                  guides is currently disabled, and no Monetag scripts are loaded. The in-app notifications that remind you
+                  to check in are a first-party feature of your own account, not advertising.
                 </li>
               </ul>
             </section>
@@ -152,8 +159,8 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                   says which is which. OpenHRApp does not deliberately include employee
                   records, account names, or email addresses in the Monetag integration: the
                   code that loads the ad tag passes only the advertising zone identifier and
-                  the provider's script address, and no advertising is requested at all while
-                  you are signed in. The request for an ad is nevertheless made by your
+                  the provider's script address, and no Monetag advertising is requested at
+                  all while you are signed in. The request for an ad is nevertheless made by your
                   browser directly to that provider, so the provider — and any advertiser it
                   serves — may receive the technical information every web request carries,
                   including your IP address, device and browser characteristics, and the
@@ -163,6 +170,17 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                   advertising provider, but we cannot describe or vouch for the provider's own
                   collection, which is governed by its policy and by applicable law rather than
                   by us.
+                </li>
+                <li>
+                  <strong>Dashboard Ad Providers:</strong> For organizations on the free ad-supported plan, the dashboard
+                  banner is requested by your browser from Adsterra and A-Ads inside the isolated ad frame described in
+                  section 3. We send them no employee records, names, email addresses, or organization details, and the frame
+                  is loaded without telling them which page of the app you were on. Like any website you visit, those
+                  providers and the advertisers they serve receive the technical information every web request carries,
+                  including your IP address and device and browser characteristics, and their handling of it is governed by
+                  their own privacy policies. If you click an ad or an affiliate banner, it opens the advertiser's site in a
+                  new tab, and that site's own privacy policy applies from then on. Affiliate partners such as Zoho may record
+                  that the visit came from OpenHRApp so that we can be paid a referral fee.
                 </li>
                 <li><strong>Legal Requirements:</strong> When required by law, regulation, or legal process.</li>
               </ul>
