@@ -82,6 +82,8 @@ describe('ad frame isolation', () => {
     expect(sandbox).not.toContain('allow-top-navigation');
     expect(sandbox).not.toContain('allow-top-navigation-by-user-activation');
     expect(frame.getAttribute('referrerpolicy')).toBe('no-referrer');
+    // No permission delegation: the frame also runs on the check-in screen, next to the camera.
+    expect(frame.hasAttribute('allow')).toBe(false);
     expect(container.textContent).toContain('Ad');
   });
 });
