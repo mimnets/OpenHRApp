@@ -349,6 +349,116 @@ async function sendSuperAdminRegistrationEmail(
   }
 }
 
+// ── Verification code email ─────────────────────────────────────────────────
+async function sendVerificationCodeEmail(email: string, code: string): Promise<boolean> {
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendKey) {
+    console.error('[REGISTER] RESEND_API_KEY not set — cannot send verification code');
+    return false;
+  }
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#0f172a">
+      <h2 style="margin:0 0 12px">Verify your email</h2>
+      <p>Use this code to finish creating your organization on OpenHRApp:</p>
+      <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#eef2ff;color:#4f46e5;padding:16px;text-align:center;border-radius:10px;font-family:monospace">${code}</p>
+      <p style="color:#64748b;font-size:13px">Enter it on the registration page soon, as it expires. If you did not try to sign up, ignore this email and nothing will be created.</p>
+    </div>
+  `;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'OpenHRApp <noreply@openhrapp.com>',
+        to: [email],
+        subject: `${code} is your OpenHRApp verification code`,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      console.error(`[REGISTER] Verification email failed: ${res.status} ${await res.text()}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[REGISTER] Verification email error:', e);
+    return false;
+  }
+}
+
+// Step 1 of registration: prove the caller owns the email before anything
+// else is created. Only an unconfirmed auth user (and the empty profile row the
+// handle_new_user trigger adds) exists until the code is entered.
+async function handleStart(
+  supabase: ReturnType<typeof createClient>,
+  req: Request,
+  formData: FormData,
+): Promise<Response> {
+  const email   = formData.get('email')?.toString()?.trim().toLowerCase() ?? '';
+  const tsToken = formData.get('turnstileToken')?.toString() ?? '';
+  const ip      = callerIp(req);
+
+  const turnstileResult = await verifyTurnstile(tsToken, ip, 'register');
+  if (!turnstileResult.ok) {
+    console.warn(`[REGISTER] Turnstile rejected code request from ${ip ?? 'unknown IP'}`);
+    return jsonError(400, turnstileResult.message ?? 'Anti-spam check failed.');
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    return jsonError(400, 'Please enter a valid email address.');
+  }
+
+  // Each code sent counts as an attempt, so resends are capped too.
+  const { data: allowed, error: rlErr } = await supabase
+    .rpc('check_registration_rate_limit', { p_email: email, p_ip: ip });
+  if (rlErr) {
+    console.error('[REGISTER] Rate-limit check failed:', rlErr.message);
+  } else if (allowed === false) {
+    console.warn(`[REGISTER] Rate limit hit for ${email} / ${ip ?? 'unknown IP'}`);
+    return jsonError(429, 'Too many attempts. Please try again in an hour.');
+  }
+
+  // A profile row exists for every auth user (handle_new_user trigger), so
+  // "already registered" means it belongs to an organization or a Super Admin.
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id, organization_id, role')
+    .eq('email', email)
+    .maybeSingle();
+  if (existingProfile && (existingProfile.organization_id || existingProfile.role === 'SUPER_ADMIN')) {
+    return jsonError(409, 'This email is already registered. Please sign in instead.');
+  }
+
+  if (!existingProfile) {
+    const { error: createErr } = await supabase.auth.admin.createUser({
+      email,
+      password: crypto.randomUUID() + crypto.randomUUID(), // replaced in step 3
+      email_confirm: false,
+    });
+    // An auth user without a profile row means a half-finished earlier attempt.
+    if (createErr && !/already|exists/i.test(createErr.message)) {
+      console.error('[REGISTER] createUser failed:', createErr.message);
+      return jsonError(400, 'Could not start registration. Please try again.');
+    }
+  }
+
+  const { data: link, error: linkErr } = await supabase.auth.admin.generateLink({ type: 'magiclink', email });
+  const code = link?.properties?.email_otp;
+  if (linkErr || !code) {
+    console.error('[REGISTER] generateLink failed:', linkErr?.message ?? 'no email_otp returned');
+    return jsonError(500, 'Could not create a verification code. Please try again.');
+  }
+
+  if (!(await sendVerificationCodeEmail(email, code))) {
+    return jsonError(502, 'Could not send the verification email. Please try again shortly.');
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'Verification code sent.' }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+  );
+}
+
 // ── Main handler ────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -370,45 +480,32 @@ Deno.serve(async (req: Request) => {
   try {
     // Parse multipart FormData
     const formData = await req.formData();
+    if (formData.get('step')?.toString() === 'start') {
+      return await handleStart(supabase, req, formData);
+    }
+
     const orgName   = formData.get('orgName')?.toString()?.trim() ?? '';
     const adminName = formData.get('adminName')?.toString()?.trim() ?? '';
-    const email     = formData.get('email')?.toString()?.trim().toLowerCase() ?? '';
     const password  = formData.get('password')?.toString() ?? '';
     const country   = (formData.get('country')?.toString()?.trim().toUpperCase() ?? 'BD');
     const address   = formData.get('address')?.toString()?.trim() ?? '';
     const logoFile  = formData.get('logo') instanceof File ? formData.get('logo') as File : null;
-    const tsToken   = formData.get('turnstileToken')?.toString() ?? '';
 
-    // ── Anti-spam gate ────────────────────────────────────────────────────
-    // Runs before any validation or database work so bot traffic costs us a
-    // single outbound call and nothing else.
-    const ip = callerIp(req);
-    // 'register' must match the action the widget is rendered with, so a token
-    // minted for a different surface cannot be replayed here.
-    // NOT named `ts` — the admin-ID builder further down already declares a
-    // `const ts`, and a second const of the same name in this scope is a parse
-    // error, which the edge runtime surfaces only as an opaque BOOT_ERROR.
-    const turnstileResult = await verifyTurnstile(tsToken, ip, 'register');
-    if (!turnstileResult.ok) {
-      console.warn(`[REGISTER] Turnstile rejected registration from ${ip ?? 'unknown IP'}`);
-      return jsonError(400, turnstileResult.message ?? 'Anti-spam check failed.');
+    // ── Verified caller ───────────────────────────────────────────────────
+    // Step 2 (the emailed code) signs the caller in; that session token is the
+    // proof of email ownership, so Turnstile and the rate limit already ran in
+    // step 1. The email comes from the token, never from the form.
+    const accessToken = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+    const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+    if (!authUser?.email || !authUser.email_confirmed_at) {
+      return jsonError(401, 'Please verify your email first.');
     }
-
-    // ── Rate limit ────────────────────────────────────────────────────────
-    // Turnstile stops commodity bots; this stops a human or headless browser
-    // farming organizations one at a time.
-    const { data: allowed, error: rlErr } = await supabase
-      .rpc('check_registration_rate_limit', { p_email: email, p_ip: ip });
-    if (rlErr) {
-      console.error('[REGISTER] Rate-limit check failed:', rlErr.message);
-    } else if (allowed === false) {
-      console.warn(`[REGISTER] Rate limit hit for ${email} / ${ip ?? 'unknown IP'}`);
-      return jsonError(429, 'Too many registration attempts. Please try again later.');
-    }
+    const userId = authUser.id;
+    const email  = authUser.email.toLowerCase();
 
     // ── Validate ──────────────────────────────────────────────────────────
-    if (!orgName || !email || !password) {
-      return jsonError(400, 'Missing required fields: orgName, email, or password.');
+    if (!orgName || !adminName || !password) {
+      return jsonError(400, 'Missing required fields: orgName, adminName, or password.');
     }
     if (password.length < 8) {
       return jsonError(400, 'Password must be at least 8 characters.');
@@ -417,18 +514,16 @@ Deno.serve(async (req: Request) => {
       return jsonError(400, 'Invalid country code. Must be 2-letter ISO code (e.g., BD, US, IN).');
     }
 
-    // ── Check email duplicate ─────────────────────────────────────────────
-    // This used to call auth.admin.listUsers(), which returns only the FIRST
-    // PAGE (50 users) — so past that threshold the check silently passed for
-    // every address. Look the address up directly instead; auth.users still has
-    // a unique constraint on email, so createUser below is the final authority.
+    // ── Already registered? ───────────────────────────────────────────────
+    // handle_new_user gives every auth user a profile row; one that already
+    // belongs to an organization (or a Super Admin) must not be re-pointed.
     const { data: existingProfile } = await supabase
       .from('profiles')
-      .select('id')
-      .eq('email', email)
+      .select('organization_id, role')
+      .eq('id', userId)
       .maybeSingle();
-    if (existingProfile) {
-      return jsonError(400, 'Email already in use.');
+    if (existingProfile?.organization_id || existingProfile?.role === 'SUPER_ADMIN') {
+      return jsonError(409, 'This email is already registered. Please sign in instead.');
     }
 
     // ── Create Organization ───────────────────────────────────────────────
@@ -472,24 +567,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ── Create Auth User ──────────────────────────────────────────────────
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
+    // ── Set the admin's password ──────────────────────────────────────────
+    const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
       password,
-      email_confirm: false,
       user_metadata: { name: adminName },
     });
 
-    if (authError || !authData.user) {
+    if (authError) {
       // Rollback org
       await supabase.from('organizations').delete().eq('id', orgId);
-      return jsonError(400, 'Database Error (User): ' + authError?.message);
+      return jsonError(400, 'Database Error (User): ' + authError.message);
     }
-
-    const userId = authData.user.id;
-
-    // admin.createUser does NOT auto-send confirmation email — trigger it explicitly
-    await supabase.auth.resend({ type: 'signup', email });
 
     // ── Create Profile ────────────────────────────────────────────────────
     const randId   = Math.floor(1000 + Math.random() * 9000);
@@ -505,7 +593,7 @@ Deno.serve(async (req: Request) => {
       employee_id:     adminId,
       designation:     'System Admin',
       department:      'Management',
-      verified:        false,
+      verified:        true,
     });
 
     if (profileError) {
@@ -587,7 +675,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Organization created. Please verify your email.' }),
+      JSON.stringify({ success: true, message: 'Organization created.' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
 

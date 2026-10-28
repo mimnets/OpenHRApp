@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { User } from '../types';
 import { organizationService } from './organization.service';
@@ -19,6 +20,37 @@ const profileToUser = (profile: Record<string, any>): User => ({
     ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${profile.avatar}`
     : undefined,
 });
+
+// Registration verifies the emailed code on its own client that never stores a
+// session, so the half-registered user (no organization yet) is invisible to
+// the app's session handling and is gone on refresh.
+let registrationClient: ReturnType<typeof createClient> | null = null;
+const getRegistrationClient = () => registrationClient ??= createClient(
+  import.meta.env.VITE_SUPABASE_URL as string,
+  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'openhr-registration' } },
+);
+
+// Calls the register Edge Function and unwraps its error body.
+async function invokeRegister(body: FormData, accessToken?: string): Promise<{ success: boolean; error?: string }> {
+  const { data: result, error } = await supabase.functions.invoke('register', {
+    body,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
+  if (error) {
+    let message = error.message;
+    try {
+      // FunctionsHttpError wraps the real body — extract it
+      const errBody = await (error as any).context?.json?.();
+      if (errBody?.message) message = errBody.message;
+    } catch {}
+    console.error('[Auth] Registration error body:', message);
+    return { success: false, error: message };
+  }
+  if (result?.message && !result?.success) return { success: false, error: result.message };
+  if (result?.error) return { success: false, error: result.error };
+  return { success: true };
+}
 
 export const authService = {
   async login(email: string, pass: string): Promise<{ user: User | null; error?: string }> {
@@ -92,15 +124,46 @@ export const authService = {
     return { ok: true };
   },
 
+  // Registration step 1: emails a verification code. Nothing is created
+  // beyond an unconfirmed auth user until the code is entered.
+  async startRegistration(email: string, turnstileToken: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured()) return { success: false, error: 'System offline' };
+    try {
+      const body = new FormData();
+      body.append('step', 'start');
+      body.append('email', email.trim().toLowerCase());
+      if (turnstileToken) body.append('turnstileToken', turnstileToken);
+      return await invokeRegister(body);
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Could not send the verification code.' };
+    }
+  },
+
+  // Registration step 2: checks the code. The returned token proves the email
+  // is verified and is what step 3 sends to the register function.
+  async verifyRegistrationCode(email: string, code: string): Promise<{ accessToken?: string; error?: string }> {
+    if (!isSupabaseConfigured()) return { error: 'System offline' };
+    const { data, error } = await getRegistrationClient().auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code.trim(),
+      type: 'email',
+    });
+    if (error || !data.session) {
+      const msg = error?.message ?? '';
+      return { error: /expired/i.test(msg)
+        ? 'This code has expired. Send a new one.'
+        : 'That code is not right. Check the email and try again.' };
+    }
+    return { accessToken: data.session.access_token };
+  },
+
+  // Registration step 3: creates the organization for the verified email.
   async registerOrganization(data: {
+    accessToken: string;
     orgName: string;
     adminName: string;
-    email: string;
     password: string;
     country: string;
-    address?: string;
-    logo?: File | null;
-    turnstileToken?: string;
   }): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured()) return { success: false, error: 'System offline' };
 
@@ -108,37 +171,10 @@ export const authService = {
       const formData = new FormData();
       formData.append('orgName', data.orgName);
       formData.append('adminName', data.adminName);
-      formData.append('email', data.email);
       formData.append('password', data.password);
       formData.append('country', data.country);
-      if (data.address) formData.append('address', data.address);
-      if (data.logo) formData.append('logo', data.logo);
-      if (data.turnstileToken) formData.append('turnstileToken', data.turnstileToken);
-
-      // Calls the Supabase Edge Function (Phase 4 will create this)
-      const { data: result, error } = await supabase.functions.invoke('register', {
-        body: formData,
-      });
-
-      // SECURITY: Clear password from memory immediately
-      data.password = '';
-
-      if (error) {
-        let message = error.message;
-        try {
-          // FunctionsHttpError wraps the real body — extract it
-          const body = await (error as any).context?.json?.();
-          if (body?.message) message = body.message;
-        } catch {}
-        console.error('[Auth] Registration 400 body:', message);
-        return { success: false, error: message };
-      }
-      if (result?.message && !result?.success) return { success: false, error: result.message };
-      if (result?.error) return { success: false, error: result.error };
-
-      return { success: true };
+      return await invokeRegister(formData, data.accessToken);
     } catch (err: any) {
-      data.password = '';
       console.error('[Auth] Registration error');
       return { success: false, error: err?.message || 'Registration failed.' };
     }

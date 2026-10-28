@@ -1,8 +1,7 @@
 
-import React, { useState } from 'react';
-import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2, Globe, MapPin, Upload } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Building2, User, Mail, Lock, ArrowRight, Loader2, ArrowLeft, CheckCircle2, Globe, KeyRound } from 'lucide-react';
 import { hrService } from '../services/hrService';
-import { RegistrationVerificationPage } from '../components/registration/RegistrationVerificationPage';
 import Turnstile from '../components/shared/Turnstile';
 import { COUNTRIES, getFlagEmoji } from '../data/countries';
 
@@ -11,59 +10,116 @@ interface Props {
   onSuccess: (user: any) => void;
 }
 
-const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
+type Step = 'email' | 'code' | 'details' | 'done';
+
+const STEP_INFO: Record<Step, { title: string; subtitle: string; index: number }> = {
+  email:   { title: 'Create Organization',  subtitle: 'Step 1 of 3 · Your work email', index: 1 },
+  code:    { title: 'Check your inbox',     subtitle: 'Step 2 of 3 · Verify email',    index: 2 },
+  details: { title: 'Organization details', subtitle: 'Step 3 of 3 · Almost done',     index: 3 },
+  done:    { title: 'Welcome aboard',       subtitle: 'Your organization is ready',    index: 3 },
+};
+
+const RESEND_COOLDOWN_S = 60;
+
+const inputClass = 'w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all';
+const labelClass = 'text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1';
+const primaryButtonClass = 'w-full py-5 bg-primary text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-primary-hover transition-all disabled:opacity-50';
+
+const RegisterOrganization: React.FC<Props> = ({ onBack, onSuccess }) => {
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [accessToken, setAccessToken] = useState('');
   const [formData, setFormData] = useState({
     orgName: '',
     adminName: '',
-    email: '',
     password: '',
     confirmPassword: '',
     country: '',
-    address: '',
-    logo: null as File | null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState('');
   const [turnstileReset, setTurnstileReset] = useState(0);
+  const [resendIn, setResendIn] = useState(0);
 
   const captchaEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        setError("Logo file size must be less than 2MB.");
-        return;
-      }
-      if (!file.type.startsWith('image/')) {
-        setError("Logo must be an image file.");
-        return;
-      }
-      setFormData({ ...formData, logo: file });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setError(null);
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setTimeout(() => setResendIn(s => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendIn]);
+
+  // Turnstile tokens are single-use — the spent one cannot be replayed, so
+  // force a fresh challenge after every send attempt.
+  const resetTurnstile = () => {
+    setTurnstileToken('');
+    setTurnstileReset(n => n + 1);
+  };
+
+  const sendCode = async (): Promise<boolean> => {
+    if (captchaEnabled && !turnstileToken) {
+      setError('Please complete the anti-spam check.');
+      return false;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    setNotice(null);
+    const result = await hrService.startRegistration(email, turnstileToken);
+    setIsSubmitting(false);
+    resetTurnstile();
+    if (!result.success) {
+      setError(result.error || 'Could not send the verification code.');
+      return false;
+    }
+    setResendIn(RESEND_COOLDOWN_S);
+    return true;
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (await sendCode()) {
+      setCode('');
+      setStep('code');
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleResend = async () => {
+    if (await sendCode()) setNotice('A new code is on its way.');
+  };
+
+  const handleCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    setNotice(null);
+    const result = await hrService.verifyRegistrationCode(email, code);
+    setIsSubmitting(false);
+    if (!result.accessToken) {
+      setError(result.error || 'That code is not right. Check the email and try again.');
+      return;
+    }
+    setAccessToken(result.accessToken);
+    setStep('details');
+  };
+
+  const handleChangeEmail = () => {
+    setError(null);
+    setNotice(null);
+    setCode('');
+    setStep('email');
+  };
+
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return;
     }
     if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    if (captchaEnabled && !turnstileToken) {
-      setError("Please complete the anti-spam check.");
+      setError('Password must be at least 8 characters.');
       return;
     }
 
@@ -71,36 +127,35 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
     setError(null);
 
     const result = await hrService.registerOrganization({
+      accessToken,
       orgName: formData.orgName,
       adminName: formData.adminName,
-      email: formData.email,
       password: formData.password,
       country: formData.country,
-      address: formData.address,
-      logo: formData.logo,
-      turnstileToken
     });
 
+    setIsSubmitting(false);
     if (result.success) {
-      setIsSuccess(true);
+      setStep('done');
     } else {
-      setError(result.error || "Registration failed.");
-      setIsSubmitting(false);
-      // Turnstile tokens are single-use — the spent one cannot be replayed on
-      // retry, so force a fresh challenge before the user submits again.
-      setTurnstileToken('');
-      setTurnstileReset(n => n + 1);
+      setError(result.error || 'Registration failed.');
     }
   };
 
-  if (isSuccess) {
-    return (
-      <RegistrationVerificationPage 
-        email={formData.email} 
-        onVerificationComplete={onBack} 
-      />
-    );
-  }
+  const handleGoToDashboard = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    const result = await hrService.login(email, formData.password);
+    if (result.user) {
+      setFormData(f => ({ ...f, password: '', confirmPassword: '' }));
+      onSuccess(result.user);
+      return;
+    }
+    setIsSubmitting(false);
+    setError(`${result.error || 'Could not sign you in.'} Your organization was created, so you can sign in from the login page.`);
+  };
+
+  const info = STEP_INFO[step];
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-6 bg-[#f8fafc] relative overflow-hidden">
@@ -109,116 +164,170 @@ const RegisterOrganization: React.FC<Props> = ({ onBack }) => {
 
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8">
         <div className="bg-slate-900 p-8 text-white relative">
-          <button onClick={onBack} className="absolute left-8 top-8 p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><ArrowLeft size={20}/></button>
+          {step !== 'done' && (
+            <button onClick={step === 'code' ? handleChangeEmail : onBack} aria-label="Back" className="absolute left-8 top-8 p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><ArrowLeft size={20}/></button>
+          )}
           <div className="mt-8">
-            <h2 className="text-2xl font-semibold uppercase tracking-tight">Create Organization</h2>
+            <h2 className="text-2xl font-semibold uppercase tracking-tight">{info.title}</h2>
             {/* Not a trial. The TRIAL subscription status is an ad-free window,
                 after which an organization continues free on AD_SUPPORTED, or
                 stays ad-free by donating (ACTIVE). "Start your 14-day free
                 trial" implied the product started costing money on day 15 and
                 contradicted the site's own FAQ, which states there is no trial
                 period because OpenHRApp is permanently free. */}
-            <p className="text-slate-400 font-medium mt-1">Free forever — your first 14 days are ad-free</p>
+            <p className="text-slate-400 font-medium mt-1">{step === 'email' ? 'Free forever — your first 14 days are ad-free' : info.subtitle}</p>
+            <div className="flex gap-1.5 mt-5" aria-label={`Step ${info.index} of 3`}>
+              {[1, 2, 3].map(i => (
+                <span key={i} className={`h-1 flex-1 rounded-full ${i <= info.index ? 'bg-primary' : 'bg-white/20'}`} />
+              ))}
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 sm:p-10 space-y-6" autoComplete="on">
+        <div className="p-5 sm:p-10 space-y-6">
           {error && (
-            <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold flex gap-2">
-              <CheckCircle2 size={16} className="rotate-45" /> {error}
+            <div role="alert" className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-xs font-bold flex gap-2">
+              <CheckCircle2 size={16} className="rotate-45 shrink-0" /> {error}
             </div>
           )}
+          {notice && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-700 text-xs font-bold">{notice}</div>
+          )}
 
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Organization Name</label>
-              <div className="relative">
-                <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input name="organization" autoComplete="organization" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. Acme Corp" value={formData.orgName} onChange={e => setFormData({...formData, orgName: e.target.value})} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {step === 'email' && (
+            <form onSubmit={handleEmailSubmit} className="space-y-6" autoComplete="on">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Country</label>
+                <label htmlFor="reg-email" className={labelClass}>Work Email</label>
                 <div className="relative">
-                  <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <select required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all appearance-none" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}>
-                    <option value="" disabled>Select country...</option>
-                    {COUNTRIES.map(country => (
-                      <option key={country.code} value={country.code}>
-                        {getFlagEmoji(country.code)} {country.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  <input id="reg-email" type="email" name="email" autoComplete="email" required autoFocus className={inputClass} placeholder="name@company.com" value={email} onChange={e => setEmail(e.target.value)} />
+                </div>
+                <p className="text-xs text-slate-500 px-1 pt-1">We'll email you a 6-digit code to confirm it's yours.</p>
+              </div>
+
+              <Turnstile onVerify={setTurnstileToken} resetSignal={turnstileReset} className="flex justify-center" />
+
+              <button type="submit" disabled={isSubmitting || (captchaEnabled && !turnstileToken)} className={primaryButtonClass}>
+                {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <>Send verification code <ArrowRight size={20}/></>}
+              </button>
+            </form>
+          )}
+
+          {step === 'code' && (
+            <form onSubmit={handleCodeSubmit} className="space-y-6">
+              <p className="text-sm text-slate-600">
+                We sent a code to <span className="font-semibold text-slate-800 break-all">{email}</span>
+              </p>
+              <div className="space-y-1">
+                <label htmlFor="reg-code" className={labelClass}>Verification Code</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                  {/* Supabase OTP length is a project setting (6 by default), so accept 6–10 digits. */}
+                  <input id="reg-code" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" required autoFocus maxLength={10} pattern="[0-9]{6,10}" className={`${inputClass} tracking-[0.4em] text-lg`} placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Logo (Optional)</label>
-                <div className="relative">
-                  <Upload className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <input type="file" accept="image/*" className="w-full min-w-0 pl-14 pr-2 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all file:mr-2 file:py-1 file:px-2 sm:file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200" onChange={handleLogoChange} />
-                </div>
-                {logoPreview && (
-                  <div className="mt-2 flex justify-center">
-                    <img src={logoPreview} alt="Logo preview" className="h-16 w-16 object-contain rounded-xl border-2 border-indigo-100" />
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 text-xs leading-relaxed">
+                <span className="font-semibold">Not there? Check your spam or junk folder.</span> It comes from <span className="font-mono">noreply@openhrapp.com</span>.
+              </div>
+
+              <button type="submit" disabled={isSubmitting || code.length < 6} className={primaryButtonClass}>
+                {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <>Verify <ArrowRight size={20}/></>}
+              </button>
+
+              {resendIn <= 0 && <Turnstile onVerify={setTurnstileToken} resetSignal={turnstileReset} className="flex justify-center" />}
+
+              <div className="flex justify-between gap-3 text-sm font-semibold">
+                <button type="button" onClick={handleChangeEmail} className="text-primary hover:underline">Change email</button>
+                <button type="button" onClick={handleResend} disabled={isSubmitting || resendIn > 0 || (captchaEnabled && !turnstileToken)} className="text-primary hover:underline disabled:text-slate-400 disabled:no-underline">
+                  {resendIn > 0 ? `Resend in 0:${String(resendIn).padStart(2, '0')}` : 'Resend code'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {step === 'details' && (
+            <form onSubmit={handleDetailsSubmit} className="space-y-6" autoComplete="on">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <span className={labelClass}>Work Email</span>
+                  <div className="flex items-center justify-between gap-3 px-5 py-4 bg-emerald-50 rounded-2xl text-sm font-bold text-slate-800">
+                    <span className="break-all">{email}</span>
+                    <span className="flex items-center gap-1 text-emerald-600 text-xs shrink-0"><CheckCircle2 size={14} /> Verified</span>
                   </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Address (Optional)</label>
-              <div className="relative">
-                <MapPin className="absolute left-5 top-5 text-slate-300" size={18} />
-                <textarea className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all resize-none" rows={2} placeholder="e.g. 123 Main Street, City, State, ZIP" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Admin Full Name</label>
-              <div className="relative">
-                <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input name="name" autoComplete="name" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="e.g. John Doe" value={formData.adminName} onChange={e => setFormData({...formData, adminName: e.target.value})} />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Work Email</label>
-              <div className="relative">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                <input type="email" name="email" autoComplete="email" required className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="name@company.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                  <input type="password" name="new-password" autoComplete="new-password" required className="w-full pl-14 pr-2 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="********" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                  {/* Lets password managers file the new password under this email. */}
+                  <input type="email" name="email" autoComplete="username" value={email} readOnly hidden />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Confirm</label>
-                <div className="relative">
-                  <input type="password" name="confirm-password" autoComplete="new-password" required className="w-full pl-5 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-100 transition-all" placeholder="********" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
+
+                <div className="space-y-1">
+                  <label htmlFor="reg-org" className={labelClass}>Organization Name</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                    <input id="reg-org" name="organization" autoComplete="organization" required autoFocus className={inputClass} placeholder="e.g. Acme Corp" value={formData.orgName} onChange={e => setFormData({...formData, orgName: e.target.value})} />
+                  </div>
                 </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="reg-country" className={labelClass}>Country</label>
+                  <div className="relative">
+                    <Globe className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                    <select id="reg-country" required className={`${inputClass} appearance-none`} value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})}>
+                      <option value="" disabled>Select country...</option>
+                      {COUNTRIES.map(country => (
+                        <option key={country.code} value={country.code}>
+                          {getFlagEmoji(country.code)} {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="reg-name" className={labelClass}>Admin Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                    <input id="reg-name" name="name" autoComplete="name" required className={inputClass} placeholder="e.g. John Doe" value={formData.adminName} onChange={e => setFormData({...formData, adminName: e.target.value})} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label htmlFor="reg-password" className={labelClass}>Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <input id="reg-password" type="password" name="new-password" autoComplete="new-password" required minLength={8} className={`${inputClass} pr-2`} placeholder="********" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label htmlFor="reg-confirm" className={labelClass}>Confirm</label>
+                    <input id="reg-confirm" type="password" name="confirm-password" autoComplete="new-password" required className={`${inputClass} pl-5`} placeholder="********" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 px-1">You can add your logo and address later from the setup checklist.</p>
               </div>
+
+              <button type="submit" disabled={isSubmitting} className={primaryButtonClass}>
+                {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <>Complete Registration <ArrowRight size={20}/></>}
+              </button>
+            </form>
+          )}
+
+          {step === 'done' && (
+            <div className="flex flex-col items-center text-center gap-5">
+              <div className="p-4 bg-emerald-50 rounded-full">
+                <CheckCircle2 size={48} className="text-emerald-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">{formData.orgName} is ready</h3>
+                <p className="text-sm text-slate-500">Free forever. Your first 14 days are ad-free.</p>
+              </div>
+              <button onClick={handleGoToDashboard} disabled={isSubmitting} className={primaryButtonClass}>
+                {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <>Go to dashboard <ArrowRight size={20}/></>}
+              </button>
+              {error && <button onClick={onBack} className="text-sm font-semibold text-primary hover:underline">Back to home</button>}
             </div>
-          </div>
-
-          <Turnstile
-            onVerify={setTurnstileToken}
-            resetSignal={turnstileReset}
-            className="flex justify-center"
-          />
-
-          <button type="submit" disabled={isSubmitting || (captchaEnabled && !turnstileToken)} className="w-full py-5 bg-primary text-white rounded-xl font-semibold uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 hover:bg-primary-hover transition-all disabled:opacity-50">
-            {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <>Complete Registration <ArrowRight size={20}/></>}
-          </button>
-        </form>
+          )}
+        </div>
       </div>
     </div>
   );
