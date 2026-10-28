@@ -202,7 +202,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack, onSuccess }) => {
                   <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                   <input id="reg-email" type="email" name="email" autoComplete="email" required autoFocus className={inputClass} placeholder="name@company.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
-                <p className="text-xs text-slate-500 px-1 pt-1">We'll email you a 6-digit code to confirm it's yours.</p>
+                <p className="text-xs text-slate-500 px-1 pt-1">We'll email you a verification code to confirm it's yours.</p>
               </div>
 
               <Turnstile onVerify={setTurnstileToken} resetSignal={turnstileReset} className="flex justify-center" />
@@ -223,7 +223,7 @@ const RegisterOrganization: React.FC<Props> = ({ onBack, onSuccess }) => {
                 <div className="relative">
                   <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                   {/* Supabase OTP length is a project setting (6 by default), so accept 6–10 digits. */}
-                  <input id="reg-code" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" required autoFocus maxLength={10} pattern="[0-9]{6,10}" className={`${inputClass} tracking-[0.4em] text-lg`} placeholder="000000" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
+                  <input id="reg-code" name="one-time-code" autoComplete="one-time-code" inputMode="numeric" required autoFocus maxLength={10} pattern="[0-9]{6,10}" className={`${inputClass} tracking-[0.4em] text-lg`} placeholder="Enter code" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
                 </div>
               </div>
 
