@@ -39,6 +39,8 @@ Register `ads.openhrapp.com` as the website in Adsterra and A-Ads.
 
 ## Rules
 
-- The frame appears only on the employee dashboard, never on attendance, camera or leave screens.
+- The frame never covers the camera view and never appears on leave screens. On the check-in
+  screen (placement `attendance`, migration 0046) it sits below the camera and gets no camera or
+  location permission.
 - `_headers` limits who may embed this page (`frame-ancestors`). Add any new app domain there.
 - If the app domain is not `openhrapp.com`, change `HOUSE.href` and `_headers` to match.

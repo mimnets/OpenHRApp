@@ -308,11 +308,11 @@ const Upgrade: React.FC<UpgradeProps> = ({ onBack }) => {
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                  <span className="text-slate-600">One small banner on the employee dashboard</span>
+                  <span className="text-slate-600">Small ad banners on dashboards and the check-in screen</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />
-                  <span className="text-slate-600">No ads on attendance, camera or leave screens</span>
+                  <span className="text-slate-600">Ads can never see your selfies, location or employee data</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5" />

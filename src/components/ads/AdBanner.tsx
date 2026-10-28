@@ -25,7 +25,7 @@ export interface AdConfig {
 /**
  * Where the ad frame may appear. `public` placements are on pages without login: anonymous
  * visitors see them, signed-in users follow their organization's showAds. Keep ids in sync with
- * migration 0044 (get_ad_frame_settings whitelists them).
+ * migration 0046 (get_ad_frame_settings whitelists them).
  */
 export const AD_PLACEMENTS = [
   { id: 'employee_dashboard', label: 'Employee dashboard', public: false },
@@ -34,6 +34,7 @@ export const AD_PLACEMENTS = [
   { id: 'sidebar', label: 'Side menu (hidden on attendance & leave)', public: false },
   { id: 'notifications', label: 'Notifications page', public: false },
   { id: 'settings', label: 'Profile & Settings page', public: false },
+  { id: 'attendance', label: 'Check-in / check-out screen (below the camera)', public: false },
   { id: 'guides', label: 'How-to guides (public)', public: true },
   { id: 'blog', label: 'Blog (public)', public: true },
   { id: 'landing', label: 'Landing page (public)', public: true },

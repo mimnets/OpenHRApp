@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-10-28',
+    title: 'Ad banner on the check-in screen',
+    entries: [
+      { type: 'feature', description: 'The isolated ad banner can now appear on the check-in / check-out screen, between the camera and the remarks field, with its own switch in Super Admin → Ads → Platform Ads (off until switched on; needs migration 0046). The frame is never given camera or location access, never covers the camera view, and the remarks field keeps it away from the Check In button. The Privacy Policy and Upgrade page are updated to match.' },
+    ],
+  },
+  {
     date: '2026-10-27',
     title: 'Cookie banner removed',
     entries: [

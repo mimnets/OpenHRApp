@@ -106,14 +106,14 @@ const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) => {
                 <li><strong>Vercel Analytics:</strong> We use Vercel Analytics for performance monitoring and usage insights.</li>
                 <li>
                   <strong>Advertising (free use only):</strong> Unless your organization is on the paid ad-free plan,
-                  some screens of the app (such as dashboards, announcements, notifications, settings, and the side menu)
+                  some screens of the app (such as dashboards, announcements, notifications, settings, the side menu, and the check-in screen below the camera)
                   show an advertising banner, and so do public pages such as the guides, blog, and home page. The banner rotates between ads from
                   Adsterra, A-Ads, and affiliate partners such as Zoho. It is loaded inside an isolated frame served from a
                   separate address (ads.openhrapp.com), and the ad providers' code runs only inside that frame. Your browser
                   prevents that code from reading the page around it, your employee records, selfies, locations, or your sign-in
                   session, and it cannot redirect the app. The ad providers may set their own cookies or similar technologies
-                  within that frame and on their own sites. Advertising never appears on the attendance, camera, or leave
-                  screens, and organizations on the paid ad-free plan never load it.
+                  within that frame and on their own sites. The frame is never given access to the camera or
+                  location, never covers the camera view, and never appears on the leave screens. Organizations on the paid ad-free plan never load it.
                 </li>
                 <li>
                   <strong>Public pages:</strong> In-page advertising from Monetag on public content pages such as the blog and

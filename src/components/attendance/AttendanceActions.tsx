@@ -2,6 +2,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, Fingerprint } from 'lucide-react';
 import { Attendance } from '../../types';
+import { AdFrame } from '../ads/AdBanner';
 
 interface Props {
   dutyType: 'OFFICE' | 'FACTORY';
@@ -21,6 +22,10 @@ export const AttendanceActions: React.FC<Props> = ({
 
   return (
     <div className="px-8 pt-4 pb-12 flex flex-col items-center gap-4">
+      {/* Cross-origin frame without camera/location permission; the remarks field keeps it away from the button. */}
+      <div className="w-full max-w-[320px]">
+        <AdFrame placement="attendance" />
+      </div>
       <div className="w-full max-w-[320px] space-y-2">
         <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-1.5">
           {dutyType === 'FACTORY' && <AlertCircle size={10} className="text-emerald-500" />}
