@@ -1,0 +1,27 @@
+# OpenHR additions to the official self-hosted Supabase stack.
+# Copy into ~/supabase-project, then enable it once:
+#   sh run.sh config add docker-compose.openhr.yml
+# The values come from ~/supabase-project/.env (see MIGRATE-DATA.md step 4).
+services:
+  auth:
+    environment:
+      # Pro sends 8-digit email codes; keep the same length.
+      GOTRUE_MAILER_OTP_LENGTH: ${MAILER_OTP_LENGTH:-8}
+
+  functions:
+    environment:
+      APP_URL: ${APP_URL:-https://openhrapp.com}
+      CRON_SECRET: ${CRON_SECRET}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+      OUTREACH_FROM_EMAIL: ${OUTREACH_FROM_EMAIL:-}
+      OUTREACH_POSTAL_ADDRESS: ${OUTREACH_POSTAL_ADDRESS:-}
+      OUTREACH_REPLY_TO: ${OUTREACH_REPLY_TO:-}
+      TRIAL_TRANSITION_BATCH: ${TRIAL_TRANSITION_BATCH:-}
+      TRIAL_TRANSITION_PAUSED: ${TRIAL_TRANSITION_PAUSED:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      TURNSTILE_ALLOWED_HOSTNAMES: ${TURNSTILE_ALLOWED_HOSTNAMES:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}

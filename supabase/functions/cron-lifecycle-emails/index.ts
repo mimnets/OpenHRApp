@@ -179,7 +179,9 @@ Deno.serve(async (req: Request) => {
       }
 
       const unsubToken = await signUnsubscribe(c.email, cronSecret);
-      const unsubUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/email-unsubscribe?token=${unsubToken}`;
+      // Self-hosted: SUPABASE_URL is the internal gateway; links in emails need the public one.
+      const publicUrl = Deno.env.get('SUPABASE_PUBLIC_URL') ?? Deno.env.get('SUPABASE_URL');
+      const unsubUrl = `${publicUrl}/functions/v1/email-unsubscribe?token=${unsubToken}`;
       const fullHtml = renderEmail({
         content: styleInlineContent(html),
         preheader: vars.org_name,

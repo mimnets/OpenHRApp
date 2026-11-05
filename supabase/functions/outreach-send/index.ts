@@ -99,7 +99,9 @@ Deno.serve(async (req: Request) => {
         .eq('id', prospectId).in('status', ['NEW', 'QUALIFIED']);
     },
     async unsubscribeUrl(email) {
-      return `${supabaseUrl}/functions/v1/email-unsubscribe?token=${await signUnsubscribe(email, secret)}`;
+      // Self-hosted: SUPABASE_URL is the internal gateway; links in emails need the public one.
+      const publicUrl = Deno.env.get('SUPABASE_PUBLIC_URL') ?? supabaseUrl;
+      return `${publicUrl}/functions/v1/email-unsubscribe?token=${await signUnsubscribe(email, secret)}`;
     },
     async resend(payload, idempotencyKey) {
       const res = await fetch('https://api.resend.com/emails', {
