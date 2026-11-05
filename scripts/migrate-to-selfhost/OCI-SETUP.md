@@ -37,7 +37,7 @@ line says Oracle Linux, stop and ask for the matching commands.
 2. Add two rules:
    - Source CIDR `0.0.0.0/0`, IP protocol TCP, destination port `80`
    - Source CIDR `0.0.0.0/0`, IP protocol TCP, destination port `443`
-3. **Do not open** ports 8000, 5432 or 6543. The database and the gateway stay private.
+3. **Do not open** ports 8100, 5432 or 6543. The database and the gateway stay private.
    Nginx Proxy Manager is the only public entry point. (If NPM already works for other
    sites, ports 80 and 443 are probably open already.)
 
@@ -165,6 +165,26 @@ sh run.sh config remove caddy
 docker rm -f supabase-caddy 2>/dev/null
 ```
 
+Port 8000 is already used on this server by **Portainer**, so Supabase's gateway must use
+another port. Open `.env`:
+
+```bash
+nano .env
+```
+
+Find the line `API_GW_HTTP_PORT=8000` and change it to:
+
+```
+API_GW_HTTP_PORT=8100
+```
+
+Save (**Ctrl+O**, **Enter**, **Ctrl+X**). Check that port 8100 is free. This must print
+nothing:
+
+```bash
+sudo ss -ltnp | grep ':8100 '
+```
+
 Start Supabase:
 
 ```bash
@@ -176,7 +196,7 @@ docker compose ps
 All services must show `healthy`. The first start can take a few minutes. The `PROXY_DOMAIN`
 line in `.env` is for Caddy only. It is not used now, and you can leave it.
 
-Supabase now listens on port **8000** on the server. Port 8000 stays **closed** in the
+Supabase now listens on port **8100** on the server. Port 8100 stays **closed** in the
 Oracle Cloud security list. Only NPM reaches it, from inside the server.
 
 Find the server's private IP address, which NPM uses to reach Supabase:
@@ -190,7 +210,7 @@ It looks like `10.0.0.123`. Write it down.
 Check that Supabase answers on that address (use your IP):
 
 ```bash
-curl -s http://10.0.0.123:8000/auth/v1/health
+curl -s http://10.0.0.123:8100/auth/v1/health
 ```
 
 It must return JSON. If it does not, check `docker compose ps` again.
@@ -207,7 +227,7 @@ use). Go to **Hosts → Proxy Hosts → Add Proxy Host**.
 | Domain Names | `api.openhrapp.com` |
 | Scheme | `http` |
 | Forward Hostname / IP | the private IP from Step 6, for example `10.0.0.123` |
-| Forward Port | `8000` |
+| Forward Port | `8100` |
 | Cache Assets | **off** |
 | Block Common Exploits | **off** (it can block normal database queries from the app) |
 | Websockets Support | **on** (required for live updates, called Realtime) |
@@ -240,7 +260,7 @@ If something fails:
 | Problem | Cause and fix |
 |---|---|
 | NPM cannot get the certificate | DNS does not point at the server yet (Step 2), or port 80 is closed (Step 1). |
-| `502 Bad Gateway` | NPM cannot reach Supabase. Check the private IP and port 8000 in the proxy host, and check that `curl http://<private-ip>:8000/auth/v1/health` works (Step 6). If NPM still cannot reach it, use `172.17.0.1` as the Forward Hostname. |
+| `502 Bad Gateway` | NPM cannot reach Supabase. Check the private IP and port 8100 in the proxy host, and check that `curl http://<private-ip>:8100/auth/v1/health` works (Step 6). If NPM still cannot reach it, use `172.17.0.1` as the Forward Hostname. |
 | File uploads fail with `413` | In the proxy host, open the **Advanced** tab, add `client_max_body_size 50m;`, and save. |
 
 ---
