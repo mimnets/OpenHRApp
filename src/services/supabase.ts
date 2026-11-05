@@ -12,6 +12,11 @@ export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    // Pinned to the key supabase-js derived from the original hosted project URL,
+    // so moving the API to another host (self-hosted) keeps existing logins:
+    // sessionManager.initialize() refreshes the stored token against the new
+    // server on app start. Never change this value.
+    storageKey: 'sb-cixryuwtlwbofabctrkk-auth-token',
   },
 });
 

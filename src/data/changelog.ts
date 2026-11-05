@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'Tools to move to a self-hosted server',
     entries: [
       { type: 'improvement', description: 'Added scripts that copy all data, user accounts and uploaded files from the hosted Supabase project to a self-hosted Supabase server, with a version and schema check before anything changes and a row-count comparison after. Both scripts can be re-run, so files can be copied ahead of time and the final switch-over takes minutes.' },
+      { type: 'improvement', description: 'Moving the app to a different server address no longer signs everyone out: the browser keeps the saved login under a fixed name, and the app refreshes it against the new server on start. Offline caching rules now follow the configured server address instead of only working on supabase.co addresses.' },
       { type: 'fix', description: 'The self-hosting Docker Compose file now starts: five services pointed at a network name that did not exist, and some services had different default passwords from the others. Edge functions on a self-hosted server now also receive the push notification, Turnstile, AI report, outreach email and trial settings.' },
     ],
   },

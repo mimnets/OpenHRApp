@@ -22,21 +22,27 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 // ── Runtime caching ──────────────────────────────────────────────────────────
 
+// The API host: hosted (*.supabase.co) or the self-hosted domain in VITE_SUPABASE_URL.
+const SUPABASE_HOST = (() => {
+  try { return new URL(import.meta.env.VITE_SUPABASE_URL as string).host; } catch { return ''; }
+})();
+const isSupabase = (url: URL) => url.host === SUPABASE_HOST || url.host.endsWith('.supabase.co');
+
 // Supabase Auth — never cache
 registerRoute(
-  ({ url }) => url.host.endsWith('.supabase.co') && /^\/auth\/v1\//.test(url.pathname),
+  ({ url }) => isSupabase(url) && /^\/auth\/v1\//.test(url.pathname),
   new NetworkOnly(),
 );
 
 // Supabase Realtime — never cache
 registerRoute(
-  ({ url }) => url.host.endsWith('.supabase.co') && /^\/realtime\/v1\//.test(url.pathname),
+  ({ url }) => isSupabase(url) && /^\/realtime\/v1\//.test(url.pathname),
   new NetworkOnly(),
 );
 
 // Supabase Edge Functions — never cache
 registerRoute(
-  ({ url }) => url.host.endsWith('.supabase.co') && /^\/functions\/v1\//.test(url.pathname),
+  ({ url }) => isSupabase(url) && /^\/functions\/v1\//.test(url.pathname),
   new NetworkOnly(),
 );
 
@@ -44,7 +50,7 @@ registerRoute(
 registerRoute(
   ({ url, request }) =>
     request.method === 'GET' &&
-    url.host.endsWith('.supabase.co') &&
+    isSupabase(url) &&
     /^\/storage\/v1\/object\/public\//.test(url.pathname),
   new CacheFirst({
     cacheName: 'supabase-storage-v1',
@@ -60,7 +66,7 @@ registerRoute(
 registerRoute(
   ({ url, request }) =>
     request.method === 'GET' &&
-    url.host.endsWith('.supabase.co') &&
+    isSupabase(url) &&
     /^\/rest\/v1\/settings/.test(url.pathname),
   new NetworkOnly(),
 );
@@ -69,7 +75,7 @@ registerRoute(
 registerRoute(
   ({ url, request }) =>
     request.method === 'GET' &&
-    url.host.endsWith('.supabase.co') &&
+    isSupabase(url) &&
     /^\/rest\/v1\//.test(url.pathname),
   new NetworkFirst({
     cacheName: 'supabase-rest-v1',
