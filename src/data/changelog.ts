@@ -15,6 +15,14 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-11-05',
+    title: 'Tools to move to a self-hosted server',
+    entries: [
+      { type: 'improvement', description: 'Added scripts that copy all data, user accounts and uploaded files from the hosted Supabase project to a self-hosted Supabase server, with a version and schema check before anything changes and a row-count comparison after. Both scripts can be re-run, so files can be copied ahead of time and the final switch-over takes minutes.' },
+      { type: 'fix', description: 'The self-hosting Docker Compose file now starts: five services pointed at a network name that did not exist, and some services had different default passwords from the others. Edge functions on a self-hosted server now also receive the push notification, Turnstile, AI report, outreach email and trial settings.' },
+    ],
+  },
+  {
     date: '2026-10-28',
     title: 'Account and plan protection; ad banner on the check-in screen',
     entries: [

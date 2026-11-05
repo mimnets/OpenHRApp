@@ -50,12 +50,12 @@ services:
     container_name: openhrapp-db
     restart: unless-stopped
     networks:
-      - openhrapp-network
+      - openhr-network
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./volumes/init-roles.sh:/docker-entrypoint-initdb.d/99-init-roles.sh:ro
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openhrapp-postgres-dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openhr-postgres-dev}
       POSTGRES_DB: ${DB_NAME:-postgres}
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
@@ -72,7 +72,7 @@ services:
     container_name: openhrapp-kong
     restart: unless-stopped
     networks:
-      - openhrapp-network
+      - openhr-network
     ports:
       - "8000:8000"   # Public API endpoint
       - "8001:8001"   # Admin API (internal)
@@ -107,14 +107,14 @@ services:
     container_name: openhrapp-auth
     restart: unless-stopped
     networks:
-      - openhrapp-network
+      - openhr-network
     environment:
       GOTRUE_API_HOST: "0.0.0.0"
       GOTRUE_API_PORT: "9999"
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhrapp-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
+      GOTRUE_DB_DATABASE_URL: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhr-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
       GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
-      GOTRUE_JWT_SECRET: ${JWT_SECRET:-openhrapp-jwt-secret-change-me-in-production-please}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
       GOTRUE_JWT_EXP: "3600"
       GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
@@ -147,13 +147,13 @@ services:
     container_name: openhrapp-rest
     restart: unless-stopped
     networks:
-      - openhrapp-network
+      - openhr-network
     environment:
-      PGRST_DB_URI: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhrapp-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
+      PGRST_DB_URI: "postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-openhr-postgres-dev}@supabase-db:5432/${DB_NAME:-postgres}?sslmode=disable"
       PGRST_DB_SCHEMAS: "public,storage,graphql_public"
       PGRST_DB_ANON_ROLE: anon
       PGRST_DB_USE_LEGACY_GUCS: "false"
-      PGRST_JWT_SECRET: ${JWT_SECRET:-openhrapp-jwt-secret-change-me-in-production-please}
+      PGRST_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
       PGRST_DB_EXTRA_SEARCH_PATH: "public,extensions"
       PGRST_OPENAPI_SERVER_PROXY_URI: ${API_EXTERNAL_URL:-http://localhost:8000}/rest/v1
       PGRST_SERVER_HOST: "0.0.0.0"
@@ -177,17 +177,17 @@ services:
     container_name: openhrapp-realtime
     restart: unless-stopped
     networks:
-      - openhrapp-network
+      - openhr-network
     environment:
       DB_HOST: supabase-db
       DB_PORT: "5432"
       DB_USER: supabase_auth_admin
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-openhrapp-postgres-dev}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-openhr-postgres-dev}
       DB_NAME: ${DB_NAME:-postgres}
       DB_ENC_KEY: ${DB_ENC_KEY:-Rl5Mu7K04BWb1QOm}
       DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-      API_JWT_SECRET: ${JWT_SECRET:-openhrapp-jwt-secret-change-me-in-production-please}
-      SECRET_KEY_BASE: ${JWT_SECRET:-openhrapp-jwt-secret-change-me-in-production-please}
+      API_JWT_SECRET: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
+      SECRET_KEY_BASE: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
       PORT: "4000"
       ERL_AFLAGS: "-proto_dist inet_tcp"
       DNS_NODES: "''"
@@ -349,6 +349,18 @@ services:
       CRON_SECRET: ${CRON_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-}
+      APP_URL: ${SITE_URL:-http://localhost:3000}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OUTREACH_FROM_EMAIL: ${OUTREACH_FROM_EMAIL:-}
+      OUTREACH_POSTAL_ADDRESS: ${OUTREACH_POSTAL_ADDRESS:-}
+      OUTREACH_REPLY_TO: ${OUTREACH_REPLY_TO:-}
+      TRIAL_TRANSITION_BATCH: ${TRIAL_TRANSITION_BATCH:-}
+      TRIAL_TRANSITION_PAUSED: ${TRIAL_TRANSITION_PAUSED:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      TURNSTILE_ALLOWED_HOSTNAMES: ${TURNSTILE_ALLOWED_HOSTNAMES:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       DENO_ORIGIN: ${API_EXTERNAL_URL:-http://localhost:8000}
       VERIFY_JWT: "false"
       JWT_VERIFY_KEY: ${JWT_SECRET:-openhr-jwt-secret-change-me-in-production-please}
