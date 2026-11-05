@@ -10,9 +10,9 @@ Run the commands in PuTTY. In PuTTY, **right-click pastes**.
 The app runs on HTTPS (Vercel). Browsers block an HTTPS page from calling a plain
 `http://150.136.150.227:8000` address. Logins, the service worker and push notifications
 also need HTTPS. You can get a free HTTPS certificate only for a domain name, not for a
-bare IP. So the API gets a subdomain (`api.openhrapp.com`), and Caddy runs in front of
-Supabase. Caddy gets and renews the Let's Encrypt certificate automatically. Supabase
-ships a ready-made Caddy setup.
+bare IP. So the API gets a subdomain (`api.openhrapp.com`). The server's existing
+Nginx Proxy Manager sits in front of Supabase, and gets and renews the Let's Encrypt
+certificate automatically.
 
 ---
 
@@ -38,7 +38,8 @@ line says Oracle Linux, stop and ask for the matching commands.
    - Source CIDR `0.0.0.0/0`, IP protocol TCP, destination port `80`
    - Source CIDR `0.0.0.0/0`, IP protocol TCP, destination port `443`
 3. **Do not open** ports 8000, 5432 or 6543. The database and the gateway stay private.
-   Caddy is the only public entry point.
+   Nginx Proxy Manager is the only public entry point. (If NPM already works for other
+   sites, ports 80 and 443 are probably open already.)
 
 Then, in PuTTY (Oracle's Ubuntu images also have their own firewall rules):
 
@@ -57,8 +58,8 @@ add this record:
 |---|---|---|
 | A | `api` | `150.136.150.227` |
 
-If you use Cloudflare, set the record to **DNS only** (grey cloud), so Caddy can get the
-certificate.
+If you use Cloudflare, set the record to **DNS only** (grey cloud), so Nginx Proxy Manager
+can get the certificate.
 
 Check it from your PC (Command Prompt):
 
@@ -132,26 +133,97 @@ SMTP_SENDER_NAME=
 
 To save in nano: **Ctrl+O**, then **Enter**, then **Ctrl+X**.
 
-Check that no placeholder secrets are left. This command must print nothing:
+Check that no example passwords are left. The `.env.example` file that `.env` was
+copied from contains example values such as `your-super-secret-...` and
+`this_password_is_insecure...`. Anyone can read these on GitHub, so none of them may stay.
+This command searches `.env` for those example values:
 
 ```bash
 grep -nE "your-super-secret|this_password_is_insecure|your-tenant-id" .env
 ```
 
+- **It prints nothing:** good. Every secret has a real value. Go on.
+- **It prints lines**, for example `42:DASHBOARD_PASSWORD=this_password_is_insecure_and_should_be_updated`:
+  the number at the start is the line number in `.env`. Open `.env` again with `nano .env`,
+  replace those values with your own strong values, save, and run the command again
+  until it prints nothing.
+
 **Keep a copy of `.env` in a safe place** (for example, a password manager). It contains
 all the keys.
 
-## Step 6: Turn on HTTPS and start
+## Step 6: Start Supabase
+
+The server already runs **Nginx Proxy Manager (NPM)** on ports 80 and 443, so NPM gives
+the API its HTTPS certificate. Do **not** use the Caddy option. Caddy needs the same
+ports, so the two cannot run together.
+
+If you already ran `sh run.sh config add caddy`, undo it first:
 
 ```bash
-sh run.sh config add caddy
+cd ~/supabase-project
+sh run.sh config remove caddy
+docker rm -f supabase-caddy 2>/dev/null
+```
+
+Start Supabase:
+
+```bash
+cd ~/supabase-project
 sh run.sh start
 docker compose ps
 ```
 
-All services must show `healthy`. The first start can take a few minutes.
+All services must show `healthy`. The first start can take a few minutes. The `PROXY_DOMAIN`
+line in `.env` is for Caddy only. It is not used now, and you can leave it.
 
-## Step 7: Check that it works
+Supabase now listens on port **8000** on the server. Port 8000 stays **closed** in the
+Oracle Cloud security list. Only NPM reaches it, from inside the server.
+
+Find the server's private IP address, which NPM uses to reach Supabase:
+
+```bash
+hostname -I | awk '{print $1}'
+```
+
+It looks like `10.0.0.123`. Write it down.
+
+Check that Supabase answers on that address (use your IP):
+
+```bash
+curl -s http://10.0.0.123:8000/auth/v1/health
+```
+
+It must return JSON. If it does not, check `docker compose ps` again.
+
+## Step 7: Add the API domain in Nginx Proxy Manager
+
+Open the NPM admin page (usually `http://150.136.150.227:81`, or the address you normally
+use). Go to **Hosts → Proxy Hosts → Add Proxy Host**.
+
+**Details tab:**
+
+| Field | Value |
+|---|---|
+| Domain Names | `api.openhrapp.com` |
+| Scheme | `http` |
+| Forward Hostname / IP | the private IP from Step 6, for example `10.0.0.123` |
+| Forward Port | `8000` |
+| Cache Assets | **off** |
+| Block Common Exploits | **off** (it can block normal database queries from the app) |
+| Websockets Support | **on** (required for live updates, called Realtime) |
+
+**SSL tab:**
+
+| Field | Value |
+|---|---|
+| SSL Certificate | Request a new SSL Certificate (Let's Encrypt) |
+| Force SSL | on |
+| HTTP/2 Support | on |
+| Email / Agree to terms | your email, tick the box |
+
+Click **Save**. NPM gets the certificate. This takes up to a minute.
+
+## Step 8: Check that it works
 
 1. On your PC, open **https://api.openhrapp.com**. A login prompt must appear. This is
    Studio. Log in with `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD`.
@@ -163,21 +235,19 @@ All services must show `healthy`. The first start can take a few minutes.
 
    It must return JSON that contains a version number.
 
-If the certificate fails, look at the Caddy log:
+If something fails:
 
-```bash
-docker logs supabase-caddy --tail 50
-```
-
-The cause is almost always one of these:
-- DNS does not point at the server yet (Step 2).
-- Port 80 is still closed (Step 1).
+| Problem | Cause and fix |
+|---|---|
+| NPM cannot get the certificate | DNS does not point at the server yet (Step 2), or port 80 is closed (Step 1). |
+| `502 Bad Gateway` | NPM cannot reach Supabase. Check the private IP and port 8000 in the proxy host, and check that `curl http://<private-ip>:8000/auth/v1/health` works (Step 6). If NPM still cannot reach it, use `172.17.0.1` as the Forward Hostname. |
+| File uploads fail with `413` | In the proxy host, open the **Advanced** tab, add `client_max_body_size 50m;`, and save. |
 
 ---
 
-## After Step 7: the migration (done with Claude)
+## After Step 8: the migration (done with Claude)
 
-When Steps 0 to 7 work, tell Claude, and send the output of Step 0. The server size and
+When Steps 0 to 8 work, tell Claude, and send the output of Step 0. The server size and
 CPU type decide some settings. The remaining work:
 
 1. Change `db-copy.sh` to Supabase's official dump-and-restore method. This copies Pro's
@@ -193,4 +263,3 @@ CPU type decide some settings. The remaining work:
 
 - [Supabase: Self-hosting with Docker](https://supabase.com/docs/guides/self-hosting/docker)
 - [Supabase: HTTPS with a reverse proxy](https://supabase.com/docs/guides/self-hosting/self-hosted-proxy-https)
-- [Official docker-compose.caddy.yml](https://github.com/supabase/supabase/blob/master/docker/docker-compose.caddy.yml)
