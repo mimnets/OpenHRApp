@@ -227,6 +227,7 @@ Cloud as live again, so **Revert** stays off until the next final switch.
 
 | Problem | Fix |
 |---|---|
+| `Supabase project: No .env file in /root/supabase-project` | The helper is looking in the wrong folder. See "No .env file" below. |
 | "Cannot reach the helper" | Check that the helper is running: `pgrep -af migrate-runner`. If not, start it again. A new start makes a new token. |
 | Page shows a 502 message | Nginx cannot reach the helper. Run the `iptables` command again, and check the private IP in the Nginx block. If it still fails, use `172.17.0.1` in place of the private IP. |
 | "Wrong token" | Use the token from the latest start of the helper. |
@@ -239,6 +240,42 @@ Cloud as live again, so **Revert** stays off until the next final switch.
 
 The full log is in `~/openhr-migration/runner.log`. Passwords and keys are hidden in it. If
 a step fails, send the log to Claude.
+
+### "No .env file" when you run the checks
+
+The helper looks for `supabase-project` in the home folder of the user that started it. If
+you run it as `root`, it looks in `/root/supabase-project`, but the project may be in another
+folder, such as `/home/ubuntu/supabase-project`. Do not move the project. Tell the helper
+where it is.
+
+In PuTTY, go to the folder where you started the helper (usually `~/OpenHRApp`), then:
+
+1. Stop the helper and find the Supabase folder:
+
+   ```bash
+   pkill -f migrate-runner
+   export SUPABASE_PROJECT=$(docker inspect supabase-db --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}')
+   echo "$SUPABASE_PROJECT"; ls -la "$SUPABASE_PROJECT/.env"
+   ```
+
+   This must print the folder path, then a line that shows the `.env` file. If you get an
+   error, or `.env` is not listed, stop and send the output to Claude.
+
+2. Start the helper again, in the same PuTTY window:
+
+   ```bash
+   python3 scripts/migrate-to-selfhost/migrate-runner.py
+   ```
+
+3. The restart makes a new token. Reload https://openhrapp.com/db-migrate, paste the new token,
+   and click **Connect**. Enter the Cloud details again, then click **Run the checks**.
+
+You do not need to change the Nginx block or run the `iptables` command again, unless the IP
+in the newly printed block has changed.
+
+`SUPABASE_PROJECT` lasts only for that PuTTY session, so run the `export` line again whenever
+you start the helper from a new window. Always start the helper as the same user: its backups,
+log and lock file are in that user's home folder (for `root`, `/root/openhr-migration`).
 
 ---
 
