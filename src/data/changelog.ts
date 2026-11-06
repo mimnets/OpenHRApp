@@ -15,6 +15,15 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-11-06',
+    title: 'Server move page, with a way back',
+    entries: [
+      { type: 'feature', description: 'Added an unlisted page for the site owner that moves the database and files to the self-hosted server from the browser: checks, test copy, final switch and rollback. It talks to a temporary, token-protected helper on the server, and it stores no passwords or keys. A backup is taken before existing data is replaced, and new copies are locked after the final switch, so live data cannot be overwritten by accident.' },
+      { type: 'feature', description: 'The same page can copy everything back to Supabase Cloud, including data entered since the switch. It backs up Cloud first, replaces the data in one transaction so a failure leaves Cloud as it was, copies the files and compares row counts. It is refused until the final switch is done, so it cannot overwrite live Cloud data with an older copy.' },
+      { type: 'fix', description: 'The final switch would have left the self-hosted server with no scheduled jobs (such as closing forgotten check-outs and sending reminders), because the jobs on the old server were paused first and only active jobs were copied. All jobs are now copied.' },
+    ],
+  },
+  {
     date: '2026-11-05',
     title: 'Tools to move to a self-hosted server',
     entries: [

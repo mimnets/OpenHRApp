@@ -13,6 +13,7 @@ Files used by those guides:
 |---|---|
 | `db-copy.sh` | Copies the database from Pro using Supabase's official dump method, plus the parts it skips (auth triggers, storage policies, cron jobs). Checks before changing anything, and compares row counts after. Modes: `full` (empty server) and `data` (reload data at cutover). |
 | `storage-copy.mjs` | Copies every bucket and file through both Storage APIs. Copies only missing files, so it is safe to re-run. |
+| `migrate-runner.py` | Helper behind https://openhrapp.com/db-migrate (`public/db-migrate.html`). Runs the two scripts above from the page, and can copy everything back to Supabase Cloud. See `MIGRATE-DATA.md`. |
 | `docker-compose.openhr.yml` | Adds OpenHR's Edge Function secrets and the 8-digit email code setting to the official stack. |
 
 The repo's root `docker-compose.yml` is a separate, older all-in-one setup. The OCI

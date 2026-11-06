@@ -108,7 +108,7 @@ src -At > cron.sql <<SQL
 select 'select cron.unschedule(jobid) from cron.job;';
 select format('select cron.schedule(%L, %L, %L);', jobname, schedule,
               replace(command, 'https://$REF.supabase.co', 'http://api-gw:8000'))
-from cron.job where active order by jobname;
+from cron.job order by jobname;
 SQL
 echo "   $(wc -l < extensions.sql) extensions, $(grep -c '^create policy' extras.sql) storage policies, $(grep -c '^CREATE.*TRIGGER' extras.sql) auth/storage triggers, $(grep -c 'cron.schedule(' cron.sql) cron jobs"
 

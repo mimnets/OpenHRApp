@@ -12,6 +12,29 @@ There are three parts:
 Users stay logged in after the switch. The app keeps its saved login and refreshes it
 against the new server.
 
+## The web page (easier than Parts B and C)
+
+**https://openhrapp.com/db-migrate** does Parts B and C from the browser, and can also copy
+everything back to Supabase Cloud. Do steps A1, A4, A5 and A6 first. The page installs the
+Supabase CLI itself (A2), and asks for the address from A3.
+
+In PuTTY:
+
+```bash
+cd ~/OpenHRApp && git pull
+python3 scripts/migrate-to-selfhost/migrate-runner.py
+```
+
+It prints one `iptables` command, one block for the **Advanced** tab of the
+`api.openhrapp.com` proxy host in Nginx Proxy Manager, and a token. Do the first two, then
+paste the token in the page.
+
+When you finish, click **Stop the helper**, then remove the block from Nginx Proxy Manager.
+
+The helper runs only fixed actions, and only accepts requests with the token. Backups and
+dumps are in `~/openhr-migration`. They contain password hashes, so delete them when you no
+longer need them.
+
 ---
 
 ## Part A: Setup (once)
@@ -253,7 +276,31 @@ Pick a quiet time, for example late evening.
 3. Pause the self-hosted cron jobs: open Studio (https://api.openhrapp.com) → **SQL Editor**,
    and run `select cron.alter_job(jobid, active := false) from cron.job;`
 
-Data entered on the new server after the switch is not copied back to Pro. Decide quickly.
+This does not copy data entered on the new server back to Pro. To keep that data, use the
+revert below instead.
+
+### Revert to Supabase Cloud, with the data
+
+Use **Revert** in step 5 of https://openhrapp.com/db-migrate. It:
+
+1. Checks that the Cloud project is reachable, has the OpenHR tables, and has every
+   self-hosted column. If not, it stops and changes nothing.
+2. Pauses the self-hosted cron jobs, and saves a backup of Cloud's data in `~/openhr-migration`.
+3. Replaces the `public` and `auth` data on Cloud in one transaction. If any error occurs,
+   Cloud keeps its old data, and the self-hosted cron jobs start again.
+4. Copies the files to Cloud, and compares the row counts.
+5. Turns on the cron jobs on Cloud. You then set the two Vercel variables back to the Cloud
+   values, and redeploy.
+
+Limits:
+
+- It works only after the final switch, because before it the live data is on Cloud. If
+  you switched with the scripts instead of the page, run `touch ~/openhr-migration/CUTOVER_DONE` first.
+- It needs the original Cloud project. **Do not delete that project.** If it is paused,
+  restore it in the Supabase dashboard first. A new, empty project is not supported.
+- The data and files must fit the limits of the project's current Cloud plan.
+- If you add a migration on the self-hosted server, apply it on Cloud too, or the revert
+  stops at step 1 and lists the missing columns.
 
 ---
 

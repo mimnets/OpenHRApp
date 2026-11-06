@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Database Move | OpenHRApp</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #17202c; --muted: #5b6776; --line: #dde2e8;
+    --brand: #2563eb; --brand-text: #fff; --ok: #157347; --warn: #a15c00; --bad: #b42318;
+    --bad-soft: #fdecea; --warn-soft: #fff4e0; --log-bg: #10161f; --log-text: #d7e0ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141b; --card: #18202a; --text: #e8edf3; --muted: #9aa7b6; --line: #2c3743;
+      --brand: #5b8def; --brand-text: #0b1118; --ok: #4cc38a; --warn: #e5a53d; --bad: #f4796b;
+      --bad-soft: #3a1d1a; --warn-soft: #36280f; --log-bg: #0a0e13; --log-text: #d7e0ea;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; }
+  h2 { font-size: 17px; margin: 0 0 8px; display: flex; gap: 10px; align-items: center; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--muted); margin-bottom: 24px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 14px; }
+  section[hidden] { display: none; }
+  .num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--line); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+  .done .num { background: var(--ok); color: var(--card); }
+  label { display: block; font-weight: 600; margin: 12px 0 4px; }
+  .hint { color: var(--muted); font-size: 13px; font-weight: 400; }
+  input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: 14px ui-monospace, Consolas, monospace; }
+  input:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  button { min-height: 40px; padding: 8px 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--text); font: 600 14px system-ui, sans-serif; cursor: pointer; }
+  button.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-text); }
+  button.danger { background: var(--bad); border-color: var(--bad); color: var(--card); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+  .row input { flex: 1 1 180px; width: auto; }
+  pre, code { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  code { overflow-wrap: anywhere; }
+  pre.cmd { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin: 0 0 12px; overflow-x: auto; }
+  ol, ul { margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  .note { border-radius: 6px; padding: 10px 12px; margin: 12px 0; font-size: 14px; }
+  .note.warn { background: var(--warn-soft); }
+  .note.bad { background: var(--bad-soft); }
+  .msg { color: var(--bad); font-size: 14px; margin-top: 8px; min-height: 1px; }
+  .checks { list-style: none; padding: 0; margin: 12px 0 0; }
+  .checks li { display: grid; grid-template-columns: 56px 1fr; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+  .tag { font-size: 12px; font-weight: 700; }
+  .tag.ok { color: var(--ok); } .tag.warn { color: var(--warn); } .tag.fail { color: var(--bad); }
+  .result { font-size: 14px; color: var(--muted); margin-top: 10px; }
+  #log { background: var(--log-bg); color: var(--log-text); border-radius: 8px; padding: 12px; height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+  #running { color: var(--brand); font-size: 14px; font-weight: 600; }
+  .value { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .value code { flex: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+  summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Move the database to the self-hosted server</h1>
+  <p class="lead">From Supabase Pro to api.openhrapp.com. The steps are in order. Real users are not affected until step 4.</p>
+
+  <section id="s-connect">
+    <h2><span class="num">1</span>Connect to the server</h2>
+    <p>This page sends commands to a small helper on the OCI server. In PuTTY, start the helper:</p>
+    <pre class="cmd">cd ~/OpenHRApp &amp;&amp; git pull
+python3 scripts/migrate-to-selfhost/migrate-runner.py</pre>
+    <p>Do the two setup steps that it prints (one command, and one setting in Nginx Proxy Manager). Then paste the token it prints.</p>
+    <label for="token">Helper token</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false">
+    <details style="margin-top:10px">
+      <summary>Helper address</summary>
+      <label for="base">Address</label>
+      <input id="base" value="https://api.openhrapp.com/db-migrate-runner" spellcheck="false">
+    </details>
+    <div class="row"><button class="primary" id="connect">Connect</button><span id="connected" class="hint"></span></div>
+    <div class="msg" id="connect-msg" role="alert"></div>
+  </section>
+
+  <section id="s-check" hidden>
+    <h2><span class="num">2</span>Enter the Pro details and run the checks</h2>
+    <p class="hint">These are sent to your server only, with each command, and are not saved. Reloading this page clears them.</p>
+    <label for="dburl">Pro database address <span class="hint">Pro dashboard → Connect → Session pooler (port 5432)</span></label>
+    <input id="dburl" type="password" autocomplete="off" spellcheck="false" placeholder="postgresql://postgres.xxxx:password@aws-0-region.pooler.supabase.com:5432/postgres">
+    <label for="srvkey">Pro service_role key <span class="hint">Project Settings → API Keys</span></label>
+    <input id="srvkey" type="password" autocomplete="off" spellcheck="false">
+    <div class="row"><button class="primary" data-run="check">Run the checks</button></div>
+    <div class="msg" id="check-msg" role="alert"></div>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section id="s-test" hidden>
+    <h2><span class="num">3</span>Test copy</h2>
+    <p>Copies everything to the self-hosted server while the app stays on Pro. You can repeat this. Cron jobs stay paused on the self-hosted server, so nobody gets a reminder twice.</p>
+    <div class="row"><button class="primary" id="run-db" data-run="db">Copy the database</button><button data-run="storage" id="run-storage">Copy the files</button></div>
+    <div id="replace-box" hidden>
+      <div class="note warn">The self-hosted database already has data. A new copy replaces it. A backup is saved on the server first.</div>
+      <div class="row"><label for="replace" class="hint" style="margin:0">Type REPLACE to confirm</label><input id="replace" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <div class="msg" id="test-msg" role="alert"></div>
+    <div class="result" id="test-result"></div>
+    <details style="margin-top:12px">
+      <summary>Test it before the switch (recommended)</summary>
+      <ol style="margin-top:8px">
+        <li>In Vercel, set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> for <b>Preview</b> only, with the values shown in step 4.</li>
+        <li>Open a preview deployment. Log in as an admin and as an employee, open attendance and leave, and view a selfie.</li>
+        <li>Do not enter real data. This copy is replaced in the next step.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section id="s-cutover" hidden>
+    <h2><span class="num">4</span>Final switch</h2>
+    <p>Do this at a quiet time. It pauses cron on Pro, copies the newest data and files, and turns cron on here.</p>
+    <div class="note warn">Anything users enter on Pro after this copy starts does not move across. Finish the Vercel switch right after the copy.</div>
+    <div class="row"><label for="cutover-word" class="hint" style="margin:0">Type CUTOVER to confirm</label><input id="cutover-word" autocomplete="off" spellcheck="false"><button class="danger" id="run-cutover">Run the final copy</button></div>
+    <div class="msg" id="cutover-msg" role="alert"></div>
+    <div class="result" id="cutover-result"></div>
+    <div id="review-box" hidden>
+      <div class="note warn">The copy finished with differences (see the log). Small row differences are normal if users were active during the copy. Otherwise, run the final copy again.</div>
+      <div class="row"><label for="accept-word" class="hint" style="margin:0">Type ACCEPT to accept them</label><input id="accept-word" autocomplete="off" spellcheck="false"><button id="run-accept">Accept the differences</button></div>
+    </div>
+    <h3 style="font-size:15px;margin:18px 0 6px">Vercel values</h3>
+    <p class="hint">Project → Settings → Environment Variables. Use these for Production only after the final copy, then redeploy the latest production deployment.</p>
+    <div class="value"><code id="v-url">Connect to see this value</code><button data-copy="v-url">Copy</button></div>
+    <div class="value"><code id="v-key">Connect to see this value</code><button data-copy="v-key">Copy</button></div>
+    <p class="hint">Keep <code>VITE_VAPID_PUBLIC_KEY</code>, <code>VITE_TURNSTILE_SITE_KEY</code> and <code>VITE_AD_FRAME_URL</code> unchanged.</p>
+    <div id="after-box" hidden>
+      <h3 style="font-size:15px;margin:18px 0 6px">After the redeploy, test on openhrapp.com</h3>
+      <ol>
+        <li>Log in, check in and check out, and apply for leave.</li>
+        <li>Register a test organization, and check that the code email arrives.</li>
+        <li>In Resend → Emails, check that the emails are delivered.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="s-finish" hidden>
+    <h2><span class="num">5</span>Revert to Supabase Cloud, or finish</h2>
+    <details>
+      <summary>Revert: copy everything back to Supabase Cloud</summary>
+      <p style="margin-top:8px">Use this when the app runs on the self-hosted server and you want to go back, with all data entered since the switch. It works only after the final switch, and only into the original Cloud project. If that project is paused, restore it in the Supabase dashboard first.</p>
+      <ol>
+        <li>Pick a quiet time. Anything users enter during the copy does not move across.</li>
+        <li>Run the copy below. It backs up Cloud on your server, replaces Cloud's data in one transaction, copies the files, and compares row counts.</li>
+        <li>When it succeeds, set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> in Vercel back to the Cloud values, and redeploy.</li>
+      </ol>
+      <div class="note warn">This replaces all data in the Cloud project with the data on this server.</div>
+      <div class="row"><label for="revert-word" class="hint" style="margin:0">Type REVERT to confirm</label><input id="revert-word" autocomplete="off" spellcheck="false"><button class="danger" id="run-revert">Copy back to Cloud</button></div>
+      <div class="msg" id="revert-msg" role="alert"></div>
+      <div class="result" id="revert-result"></div>
+      <div id="revert-review-box" hidden>
+        <div class="note warn">The copy finished with differences or failed files (see the log). The self-hosted server is still live. Run the copy again at a quiet time, or accept them if they are expected.</div>
+        <div class="row"><label for="revert-accept-word" class="hint" style="margin:0">Type ACCEPT to accept them</label><input id="revert-accept-word" autocomplete="off" spellcheck="false"><button id="run-revert-accept">Accept the differences</button></div>
+      </div>
+    </details>
+    <details style="margin-top:10px">
+      <summary>Quick rollback, without copying data</summary>
+      <p style="margin-top:8px">Only for right after the switch, if no one has entered data worth keeping. First set the two Vercel values back to Cloud, and redeploy. This turns cron back on at Cloud and pauses it here. Data entered on this server stays here.</p>
+      <div class="row"><label for="rollback-word" class="hint" style="margin:0">Type ROLLBACK to confirm</label><input id="rollback-word" autocomplete="off" spellcheck="false"><button class="danger" id="run-rollback">Roll back</button></div>
+      <div class="msg" id="rollback-msg" role="alert"></div>
+    </details>
+    <p style="margin-top:14px">When you finish, stop the helper. Then remove the <code>/db-migrate-runner/</code> block from Nginx Proxy Manager.</p>
+    <div class="row"><button id="stop">Stop the helper</button><span class="hint" id="stop-msg"></span></div>
+  </section>
+
+  <section id="s-log" hidden>
+    <h2 style="justify-content:space-between">Log <span id="running" aria-live="polite"></span></h2>
+    <pre id="log" tabindex="0" aria-label="Migration log"></pre>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var from = 0, running = false, connected = false, status = null, pollTimer = null;
+  var MSG_FOR = { check: 'check-msg', db: 'test-msg', storage: 'test-msg', cutover: 'cutover-msg', accept: 'cutover-msg', rollback: 'rollback-msg', revert: 'revert-msg', revert_accept: 'revert-msg' };
+
+  function base() { return $('base').value.trim().replace(/\/+$/, ''); }
+
+  function api(path, body) {
+    var options = { headers: { Authorization: 'Bearer ' + $('token').value.trim() }, cache: 'no-store' };
+    if (body !== undefined) {
+      options.method = 'POST';
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(body);
+    }
+    return fetch(base() + path, options).catch(function () {
+      throw new Error('Cannot reach the helper. Check that it is running, and that the setting in Nginx Proxy Manager and the iptables command are done.');
+    }).then(function (res) {
+      return res.json().catch(function () {
+        throw new Error('The server answered, but not the helper (status ' + res.status + '). Check the /db-migrate-runner/ block in Nginx Proxy Manager. A 502 means that Nginx cannot reach the helper: run the iptables command.');
+      }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || 'Request failed.');
+        return data;
+      });
+    });
+  }
+
+  function sizeOf(bytes) { return (bytes / 1e6).toFixed(0) + ' MB'; }
+
+  function outcome(item, okText) {
+    if (!item) return '';
+    var text = item.exit === 0 ? okText : item.exit === 2 ? 'Finished with differences or failed files. See the log.' : 'Failed. See the log.';
+    return text + ' (' + item.at + ')';
+  }
+
+  function render() {
+    var state = (status && status.state) || {};
+    var check = state.check, facts = (check && check.facts) || {};
+    var checksFailed = !check || check.items.some(function (i) { return i.status === 'fail'; });
+    var haveCreds = $('dburl').value.trim() && $('srvkey').value.trim();
+    var locked = status && status.locked;
+    var stage = state.cutover && state.cutover.stage;
+
+    ['s-check', 's-test', 's-cutover', 's-finish', 's-log'].forEach(function (id) { $(id).hidden = !connected; });
+    $('s-connect').classList.toggle('done', connected);
+    $('s-check').classList.toggle('done', !!check && !checksFailed);
+    $('s-test').classList.toggle('done', !!state.db && state.db.exit === 0 && !!state.storage && state.storage.exit === 0);
+    $('s-cutover').classList.toggle('done', !!locked);
+
+    var list = $('checks');
+    list.textContent = '';
+    (check ? check.items : []).forEach(function (item) {
+      var li = document.createElement('li');
+      var tag = document.createElement('span');
+      tag.className = 'tag ' + item.status;
+      tag.textContent = item.status.toUpperCase();
+      var text = document.createElement('span');
+      text.textContent = item.name + (item.detail ? ': ' + item.detail : '');
+      li.appendChild(tag);
+      li.appendChild(text);
+      list.appendChild(li);
+    });
+
+    var replace = facts.target_public_tables > 0;
+    $('replace-box').hidden = !replace || locked;
+    $('run-db').textContent = replace ? 'Replace and copy the database' : 'Copy the database';
+
+    var ready = haveCreds && !running && !checksFailed && !locked;
+    document.querySelector('[data-run="check"]').disabled = running || !haveCreds;
+    $('run-db').disabled = !ready || (replace && $('replace').value !== 'REPLACE');
+    $('run-storage').disabled = !ready || !state.db;
+    $('run-cutover').disabled = !ready || $('cutover-word').value !== 'CUTOVER';
+    $('run-accept').disabled = running || !haveCreds || $('accept-word').value !== 'ACCEPT';
+    $('run-rollback').disabled = running || !haveCreds || $('rollback-word').value !== 'ROLLBACK';
+    $('run-revert').disabled = running || !haveCreds || !locked || $('revert-word').value !== 'REVERT';
+    $('run-revert-accept').disabled = running || !haveCreds || $('revert-accept-word').value !== 'ACCEPT';
+    $('revert-review-box').hidden = stage !== 'revert_review' || !locked;
+    $('revert-result').textContent = stage === 'reverted' ? 'Copied back and verified. Cron is running on Cloud. Point Vercel back to Cloud now, if you have not yet.'
+      : stage === 'revert_failed' ? 'The copy back failed. Cloud kept its old data, and the app stays on the self-hosted server. See the log.'
+      : !locked ? 'Available after the final switch.' : '';
+    $('stop').disabled = running;
+
+    var parts = [];
+    if (state.db) parts.push('Database: ' + outcome(state.db, 'copied and verified.'));
+    if (state.storage) parts.push('Files: ' + outcome(state.storage, 'copied.'));
+    if (check && facts.src_db_bytes !== undefined) parts.push('Pro holds ' + sizeOf(facts.src_db_bytes) + ' of data and ' + sizeOf(facts.src_file_bytes) + ' of files.');
+    $('test-result').textContent = parts.join(' ');
+
+    $('review-box').hidden = stage !== 'review' || locked;
+    $('after-box').hidden = !locked;
+    $('cutover-result').textContent = locked ? 'Final copy done. New copies are locked to protect live data. Now switch Vercel.'
+      : stage === 'failed' ? 'The final copy failed, and cron was restored on Pro. The app is still running on Pro.'
+      : stage === 'rolled_back' ? 'Rolled back. Cron is running on Pro.' : '';
+
+    if (status && status.vercel) {
+      $('v-url').textContent = 'VITE_SUPABASE_URL = ' + (status.vercel.url || '(not set in .env)');
+      $('v-key').textContent = 'VITE_SUPABASE_ANON_KEY = ' + (status.vercel.anon_key || '(not set in .env)');
+    }
+    $('running').textContent = running ? 'Running: ' + status.job.name + '…' : '';
+  }
+
+  function refresh() {
+    return api('/status?from=' + from).then(function (data) {
+      status = data;
+      running = data.job.running;
+      from = data.next;
+      if (data.lines.length) {
+        var log = $('log');
+        var atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+        log.textContent += data.lines.join('\n') + '\n';
+        if (atEnd) log.scrollTop = log.scrollHeight;
+      }
+      render();
+      clearTimeout(pollTimer);
+      if (running || data.lines.length === 2000) pollTimer = setTimeout(poll, 1500);
+    });
+  }
+
+  function poll() {
+    refresh().catch(function () {
+      // A short network gap must not end the watch: the job runs on the server.
+      $('running').textContent = 'Reconnecting…';
+      pollTimer = setTimeout(poll, 4000);
+    });
+  }
+
+  function run(action, confirm) {
+    var msg = $(MSG_FOR[action]);
+    msg.textContent = '';
+    return api('/run', { action: action, src_db_url: $('dburl').value, src_service_key: $('srvkey').value, confirm: confirm })
+      .then(function () {
+        running = true;
+        return refresh();
+      })
+      .catch(function (e) { msg.textContent = e.message; render(); });
+  }
+
+  $('connect').addEventListener('click', function () {
+    $('connect-msg').textContent = '';
+    from = 0;
+    $('log').textContent = '';
+    refresh().then(function () {
+      connected = true;
+      $('connected').textContent = 'Connected';
+      render();
+    }).catch(function (e) { $('connect-msg').textContent = e.message; });
+  });
+
+  document.querySelector('[data-run="check"]').addEventListener('click', function () { run('check'); });
+  $('run-db').addEventListener('click', function () {
+    run('db', $('replace').value).then(function () { $('replace').value = ''; render(); });
+  });
+  $('run-storage').addEventListener('click', function () { run('storage'); });
+  $('run-cutover').addEventListener('click', function () {
+    run('cutover', $('cutover-word').value).then(function () { $('cutover-word').value = ''; render(); });
+  });
+  $('run-accept').addEventListener('click', function () {
+    run('accept', $('accept-word').value).then(function () { $('accept-word').value = ''; render(); });
+  });
+  $('run-rollback').addEventListener('click', function () {
+    run('rollback', $('rollback-word').value).then(function () { $('rollback-word').value = ''; render(); });
+  });
+  $('run-revert').addEventListener('click', function () {
+    run('revert', $('revert-word').value).then(function () { $('revert-word').value = ''; render(); });
+  });
+  $('run-revert-accept').addEventListener('click', function () {
+    run('revert_accept', $('revert-accept-word').value).then(function () { $('revert-accept-word').value = ''; render(); });
+  });
+  ['dburl', 'srvkey', 'replace', 'cutover-word', 'accept-word', 'rollback-word', 'revert-word', 'revert-accept-word'].forEach(function (id) {
+    $(id).addEventListener('input', render);
+  });
+
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = $(btn.getAttribute('data-copy')).textContent.split(' = ').pop();
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { btn.textContent = 'Select and copy'; });
+    });
+  });
+
+  $('stop').addEventListener('click', function () {
+    api('/shutdown', {}).then(function () {
+      $('stop-msg').textContent = 'The helper has stopped.';
+      clearTimeout(pollTimer);
+    }).catch(function (e) { $('stop-msg').textContent = e.message; });
+  });
+})();
+</script>
+</body>
+</html>

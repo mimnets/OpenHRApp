@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
           filename: 'sw.ts',
           injectManifest: {
             globPatterns: ['**/*.{js,css,html,ico,svg,woff2,webp,png}'],
+            globIgnores: ['db-migrate.html'],
             maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           },
         }),

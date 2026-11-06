@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/db-migrate", "destination": "/db-migrate.html" },
     { "source": "/((?!assets/|sitemap\\.xml|robots\\.txt|manifest\\.json|feed\\.xml|sw\\.js|registerSW\\.js|workbox-.*\\.js).*)", "destination": "/index.html" }
   ]
 }
