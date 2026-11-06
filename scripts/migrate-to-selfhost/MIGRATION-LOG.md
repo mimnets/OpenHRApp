@@ -30,6 +30,7 @@ No passwords or keys belong in this file.
 | Demo login fails, or `{"error":"Demo not configured"}` | 10 |
 | Cutover would leave no cron jobs | 11 |
 | Selfie blank after check-in, uploads fail, `Bucket not found` | 12 |
+| Images inside blog articles are broken | 13 |
 
 ---
 
@@ -306,12 +307,29 @@ storage is cleared, those selfies are lost.
 **Files from Cloud are a separate step:** this fix makes new uploads work. Old files stay on Cloud
 until the restriction is lifted and **Copy the files** is run (see 1).
 
+## 13. Blog and guide images are broken
+
+**Symptom:** covers and images inside blog articles do not load.
+
+**Cause, in two parts:**
+
+1. The files stayed on Cloud (see 1). The server had none of the 19 blog covers, the 43 images inside
+   articles, or the 3 guide covers.
+2. The images inside articles have the old Cloud address written into the article text. Copying or
+   uploading the files alone does not fix them. Covers store only a path, so they follow the server
+   address by themselves.
+
+**Fix:** follow `Others/content-image-regeneration-guide.md`. It has the SQL that fixes the addresses, a
+prompt for each image, and the upload steps. If the Cloud restriction is lifted, **Copy the files**
+restores the originals instead, but the SQL is still needed.
+
 ---
 
 ## Still to do after the migration
 
 - [ ] Stop the helper, and remove the `/db-migrate-runner/` block from Nginx Proxy Manager.
 - [ ] Copy the files, if the restriction stopped them (see 1).
+- [ ] Fix the image addresses in the blog articles, and restore or regenerate the images (see 13).
 - [x] Check that the cron jobs are active (see 11).
 - [ ] Check that the cron jobs' calls succeed (see 11).
 - [ ] Decide whether to pause `selfie-cleanup` until the old files are copied (see 11).
