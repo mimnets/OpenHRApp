@@ -223,7 +223,36 @@ and copied only the `active` ones, so it would have copied none.
 select jobname, schedule, active from cron.job order by jobname;
 ```
 
+**Result after the move:** all 10 jobs are active: `attendance-reminders`, `auto-absent-check`,
+`auto-close-sessions`, `auto-expire-trials`, `daily-attendance-report`, `demo-reset`,
+`notification-cleanup`, `push-checkin-reminder`, `review-cycle-transition`, `selfie-cleanup`.
+
+`active` shows only that a job is switched on. To see whether its calls succeed, run this. Responses
+are kept for only a few hours. Expect `200`. A `401` means that `CRON_SECRET` does not match. A
+`status_code` of null, with an `error_msg`, means that the call did not reach the functions:
+
+```sql
+select status_code, timed_out, left(error_msg, 80) as error, count(*), max(created) as latest
+from net._http_response group by 1, 2, 3 order by latest desc;
+```
+
+**Selfie cleanup and files not yet copied:** `selfie-cleanup` clears the selfie link on attendance rows
+past the retention period (30 days by default), whether or not the file is on this server. If old
+selfies are still on Cloud, a later copy brings the file back, but the row no longer links to it, and
+the cleanup job no longer removes it. Those files then stay in storage unused. To keep the links until
+the files are copied, pause the job, and turn it on again afterwards with `active := true`:
+
+```sql
+select cron.alter_job((select jobid from cron.job where jobname = 'selfie-cleanup'), active := false);
+```
+
+**`lifecycle-emails` is not in the list.** The `cron-lifecycle-emails` function exists, and migration 0031
+says to schedule it by hand. `db-copy.sh` copies every job, so it was probably never scheduled on Cloud
+either. Scheduling it starts emails to real users, so that is a decision for the owner.
+
 ## 12. Selfies blank and uploads fail: buckets missing
+
+**Status:** fixed. After the SQL below, all six buckets exist, and a real check-in saved its selfie.
 
 **Symptom:** check-in succeeds, but the session selfie shows blank. Uploads to the server return:
 
@@ -283,7 +312,10 @@ until the restriction is lifted and **Copy the files** is run (see 1).
 
 - [ ] Stop the helper, and remove the `/db-migrate-runner/` block from Nginx Proxy Manager.
 - [ ] Copy the files, if the restriction stopped them (see 1).
-- [ ] Check that the cron jobs are active and running (see 11).
+- [x] Check that the cron jobs are active (see 11).
+- [ ] Check that the cron jobs' calls succeed (see 11).
+- [ ] Decide whether to pause `selfie-cleanup` until the old files are copied (see 11).
+- [ ] Decide whether `lifecycle-emails` should be scheduled (see 11).
 - [ ] Turn off **Block Common Exploits** on the `api.openhrapp.com` proxy host. It can block normal
       database queries from the app.
 - [ ] Close port 8100 to the internet. It answers from outside over plain HTTP. First point the proxy
