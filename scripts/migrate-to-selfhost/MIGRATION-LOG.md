@@ -260,10 +260,14 @@ select id, public from storage.buckets order by id;
 **Check:**
 
 ```bash
-curl -s -H "apikey: <anon key>" https://api.openhrapp.com/storage/v1/object/public/selfies/x.webp
+curl -s -X POST -H "apikey: <anon key>" -H "Authorization: Bearer <anon key>" -H "Content-Type: image/webp" \
+  --data-binary "test" https://api.openhrapp.com/storage/v1/object/selfies/probe/none.webp
 ```
 
-It must say `Object not found`, not `Bucket not found`. Then do a real check-in with a selfie.
+It must say `new row violates row-level security policy`, not `Bucket not found`. The refusal is correct:
+the bucket exists, and it rejects uploads with no login. Do not test with the public URL
+(`/object/public/selfies/...`). It says `Bucket not found` for private buckets even when they exist.
+Then do a real check-in with a selfie.
 
 **Selfies taken while the bucket was missing:** after three failed tries, the app keeps a selfie in that
 device's browser and tries again when the attendance screen opens, for 7 days. They upload by themselves
