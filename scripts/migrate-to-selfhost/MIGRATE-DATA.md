@@ -12,6 +12,21 @@ There are three parts:
 Users stay logged in after the switch. The app keeps its saved login and refreshes it
 against the new server.
 
+## If you are logged in as `root`
+
+In these guides, `~` means the home folder of the user you are logged in as. On this server
+the folders are in `/home/ubuntu`, but for `root`, `~` means `/root`. If your prompt shows
+`root@`, replace the paths in every command:
+
+| The guide says | Use this as `root` |
+|---|---|
+| `~/OpenHRApp` | `/home/ubuntu/OpenHRApp` |
+| `~/supabase-project` | `/home/ubuntu/supabase-project` |
+
+If you use the wrong path, you get errors such as
+`cp: cannot stat '/root/OpenHRApp/supabase/functions/*/': No such file or directory`.
+That error copies nothing, so nothing needs cleaning up.
+
 ## The web page (easier than Parts B and C)
 
 **https://openhrapp.com/db-migrate** does Parts B and C from the browser, and can also copy
@@ -157,6 +172,24 @@ sh run.sh config add docker-compose.openhr.yml
 sh run.sh start
 ```
 
+As `root`, use the full paths:
+
+```bash
+cd /home/ubuntu/supabase-project
+for d in /home/ubuntu/OpenHRApp/supabase/functions/*/; do
+  [ "$(basename "$d")" = main ] || cp -r "$d" volumes/functions/
+done
+cp /home/ubuntu/OpenHRApp/scripts/migrate-to-selfhost/docker-compose.openhr.yml .
+sh run.sh config add docker-compose.openhr.yml
+sh run.sh start
+```
+
+The `cp ... docker-compose.openhr.yml .` line must end with a space and a dot. The dot means
+"copy to this folder". Without it, you get `cp: missing destination file operand`.
+
+Do A4 first, because `sh run.sh start` passes the secrets to the functions. If you add
+secrets later, run `sh run.sh start` again.
+
 This keeps Supabase's own `main` router and adds our 28 functions plus the `_shared`
 folder. `docker-compose.openhr.yml` passes the A4 secrets to the functions, and sets
 email codes to 8 digits, as on Pro.
@@ -167,7 +200,8 @@ Test:
 curl -s https://api.openhrapp.com/functions/v1/public-ad-config
 ```
 
-It must return JSON, not `NOT_FOUND` or `BOOT_ERROR`.
+It must return JSON, not `NOT_FOUND` or `BOOT_ERROR`. Before the data is copied, an error
+about the database or a missing table is normal.
 
 When the code changes later: `cd ~/OpenHRApp && git pull`, run the `for` loop again, then
 `docker restart supabase-edge-functions`.

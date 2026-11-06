@@ -75,6 +75,9 @@ For option B:
 
    It prints the next three items. Keep the window open until you copy them.
 
+   If your prompt shows `root@`, use `cd /home/ubuntu/OpenHRApp && git pull`, and set
+   `SUPABASE_PROJECT` first (see "No .env file" below).
+
 2. **Run the `iptables` command that it prints.** This lets Nginx Proxy Manager reach the
    helper. Run it again if the server restarts.
 
@@ -228,6 +231,8 @@ Cloud as live again, so **Revert** stays off until the next final switch.
 | Problem | Fix |
 |---|---|
 | `Supabase project: No .env file in /root/supabase-project` | The helper is looking in the wrong folder. See "No .env file" below. |
+| `cp: cannot stat '/root/OpenHRApp/...'` or `cd: OpenHRApp/: No such file or directory` | You are logged in as `root`, so `~` means `/root`. Use `/home/ubuntu/OpenHRApp` and `/home/ubuntu/supabase-project`. See "If you are logged in as `root`" in `MIGRATE-DATA.md`. |
+| `cp: missing destination file operand` | The end of the command is missing. The `cp` line in step A6 must end with a space and a dot. |
 | "Cannot reach the helper" | Check that the helper is running: `pgrep -af migrate-runner`. If not, start it again. A new start makes a new token. |
 | Page shows a 502 message | Nginx cannot reach the helper. Run the `iptables` command again, and check the private IP in the Nginx block. If it still fails, use `172.17.0.1` in place of the private IP. |
 | "Wrong token" | Use the token from the latest start of the helper. |
