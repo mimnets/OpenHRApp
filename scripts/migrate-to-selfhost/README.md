@@ -9,6 +9,9 @@ Follow these in order:
 3. **`DB-MIGRATE-PAGE.md`**: how to do the copy, the switch and the revert from
    https://openhrapp.com/db-migrate.
 
+**`MIGRATION-LOG.md`** records every error from the November 2026 move and its fix. Look
+there first if something breaks.
+
 Files used by those guides:
 
 | File | Purpose |

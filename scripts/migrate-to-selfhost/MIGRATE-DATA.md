@@ -118,6 +118,8 @@ OUTREACH_REPLY_TO=<the same as Pro>
 
 - **CRON_SECRET:** make a new one with `openssl rand -hex 32` and paste it. Use letters
   and digits only.
+- **DEMO_USER_PASSWORD:** if you do not have the old value, make a new one with the commands in
+  `MIGRATION-LOG.md`, item 10. A new value in `.env` alone does not fix the demo accounts.
 - **VAPID keys must be the same as on Pro.** The app in the browser has the public key
   built in (`VITE_VAPID_PUBLIC_KEY` on Vercel). New keys would stop every push
   notification.
