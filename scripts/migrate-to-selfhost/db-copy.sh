@@ -103,6 +103,11 @@ select format('drop policy if exists %I on %I.%I;', policyname, schemaname, tabl
               (select string_agg(quote_ident(r), ', ') from unnest(roles) r))
        || coalesce(' using (' || qual || ')', '') || coalesce(' with check (' || with_check || ')', '') || ';'
 from pg_policies where schemaname = 'storage';
+-- The buckets: storage rows are not dumped, and the app cannot upload without them,
+-- even when storage-copy.mjs has not run or Pro's Storage API is blocked.
+select format('insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values (%L, %L, %L, %L, %L) on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;',
+              id, name, public, file_size_limit, allowed_mime_types)
+from storage.buckets;
 SQL
 src -At > cron.sql <<SQL
 select 'select cron.unschedule(jobid) from cron.job;';

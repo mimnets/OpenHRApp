@@ -29,6 +29,7 @@ No passwords or keys belong in this file.
 | `password authentication failed for user "postgres"` | 9 |
 | Demo login fails, or `{"error":"Demo not configured"}` | 10 |
 | Cutover would leave no cron jobs | 11 |
+| Selfie blank after check-in, uploads fail, `Bucket not found` | 12 |
 
 ---
 
@@ -163,6 +164,9 @@ the service_role key.
 
 ## 10. Demo accounts do not work
 
+**Status:** fixed. After these commands, `demo-login` returned `200` for admin, manager and
+employee.
+
 **Symptom:** the demo login fails. `demo-login` returns `{"error":"Demo not configured"}`.
 
 **Cause, in two parts:**
@@ -218,6 +222,56 @@ and copied only the `active` ones, so it would have copied none.
 ```sql
 select jobname, schedule, active from cron.job order by jobname;
 ```
+
+## 12. Selfies blank and uploads fail: buckets missing
+
+**Symptom:** check-in succeeds, but the session selfie shows blank. Uploads to the server return:
+
+```json
+{"statusCode":"404","error":"Bucket not found","message":"Bucket not found","code":"NoSuchBucket"}
+```
+
+The same failure applies to anything uploaded to the missing buckets: profile photos, organization
+logos, donation screenshots and showcase logos.
+
+**Cause:** `db-copy.sh` does not copy the storage tables, and that includes the list of buckets. Only
+`storage-copy.mjs` created buckets, and it could not read Cloud because of the 402 (see 1). So only
+`content-images` existed. Attendance is saved first and the selfie uploads afterwards in the
+background, so the check-in looked fine and the employee saw no error.
+
+**Fix:** run this in Studio's SQL Editor. It adds only the missing buckets and changes no files:
+
+```sql
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values
+  ('avatars',              'avatars',              false, 5242880,  array['image/jpeg','image/png','image/webp','image/gif']),
+  ('org-logos',            'org-logos',            true,  5242880,  array['image/jpeg','image/png','image/webp','image/gif']),
+  ('selfies',              'selfies',              false, 10485760, array['image/jpeg','image/png','image/webp']),
+  ('content-images',       'content-images',       true,  10485760, array['image/jpeg','image/png','image/webp','image/gif']),
+  ('donation-screenshots', 'donation-screenshots', false, 5242880,  array['image/jpeg','image/png','image/webp','image/gif']),
+  ('showcase-logos',       'showcase-logos',       true,  5242880,  array['image/jpeg','image/png','image/webp','image/gif'])
+on conflict (id) do nothing;
+
+select id, public from storage.buckets order by id;
+```
+
+`db-copy.sh` now also copies the buckets, so a future run does not hit this.
+
+**Check:**
+
+```bash
+curl -s -H "apikey: <anon key>" https://api.openhrapp.com/storage/v1/object/public/selfies/x.webp
+```
+
+It must say `Object not found`, not `Bucket not found`. Then do a real check-in with a selfie.
+
+**Selfies taken while the bucket was missing:** after three failed tries, the app keeps a selfie in that
+device's browser and tries again when the attendance screen opens, for 7 days. They upload by themselves
+if the employee opens the app on the same device within that time. After that, or if the browser's
+storage is cleared, those selfies are lost.
+
+**Files from Cloud are a separate step:** this fix makes new uploads work. Old files stay on Cloud
+until the restriction is lifted and **Copy the files** is run (see 1).
 
 ---
 
