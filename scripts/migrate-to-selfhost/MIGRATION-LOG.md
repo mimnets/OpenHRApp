@@ -31,6 +31,7 @@ No passwords or keys belong in this file.
 | Cutover would leave no cron jobs | 11 |
 | Selfie blank after check-in, uploads fail, `Bucket not found` | 12 |
 | Images inside blog articles are broken | 13 |
+| No Adsterra ads, only the "Remove ads" banner | 14 |
 
 ---
 
@@ -322,6 +323,32 @@ until the restriction is lifted and **Copy the files** is run (see 1).
 **Fix:** follow `Others/content-image-regeneration-guide.md`. It has the SQL that fixes the addresses, a
 prompt for each image, and the upload steps. If the Cloud restriction is lifted, **Copy the files**
 restores the originals instead, but the SQL is still needed.
+
+## 14. No Adsterra ads
+
+**Symptom:** the ad space shows only "Remove ads — OpenHRApp ad-free plan", or no real ad.
+
+**Cause:** `ads-frame/index.html` runs on its own site (`ads.openhrapp.com`, Cloudflare Pages), and is
+not part of the Vercel build. Changing the Vercel variables did not change it, so it kept reading its
+settings from Cloud. Cloud answered 402, and the frame fell back to the house banner.
+
+**Fix:** set `SUPABASE_URL` and `SUPABASE_ANON_KEY` at the top of `ads-frame/index.html` to the
+self-hosted values, then deploy it to Cloudflare Pages. If the project is not connected to Git: Workers
+& Pages → the ads project → **Create deployment** → upload the `ads-frame` folder.
+
+**Check:**
+
+```bash
+curl -s https://ads.openhrapp.com/ | grep "var SUPABASE_URL"
+```
+
+It must show `https://api.openhrapp.com`. Cloudflare may cache the page for up to 5 minutes.
+
+**If you revert to Cloud:** change these two values back as well.
+
+**Who sees ads:** every organization except `ACTIVE` (the paid ad-free plan) and the demo. Ad blockers
+also hide them. Test with a non-`ACTIVE` organization, with no ad blocker. Adsterra does not fill every
+ad space on every view.
 
 ---
 
