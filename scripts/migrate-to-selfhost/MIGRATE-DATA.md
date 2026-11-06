@@ -15,8 +15,9 @@ against the new server.
 ## The web page (easier than Parts B and C)
 
 **https://openhrapp.com/db-migrate** does Parts B and C from the browser, and can also copy
-everything back to Supabase Cloud. Do steps A1, A4, A5 and A6 first. The page installs the
-Supabase CLI itself (A2), and asks for the address from A3.
+everything back to Supabase Cloud. Step-by-step instructions are in **`DB-MIGRATE-PAGE.md`**.
+Do steps A1, A4, A5 and A6 first. The page installs the Supabase CLI itself (A2), and asks
+for the address from A3.
 
 In PuTTY:
 

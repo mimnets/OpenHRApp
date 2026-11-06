@@ -6,6 +6,8 @@ Follow these in order:
    behind Nginx Proxy Manager, at https://api.openhrapp.com.
 2. **`MIGRATE-DATA.md`**: secrets, Resend email, Edge Functions, the rehearsal, the
    cutover with Vercel, and rollback.
+3. **`DB-MIGRATE-PAGE.md`**: how to do the copy, the switch and the revert from
+   https://openhrapp.com/db-migrate.
 
 Files used by those guides:
 

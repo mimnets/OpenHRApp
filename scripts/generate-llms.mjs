@@ -175,6 +175,13 @@ async function main() {
 }
 
 main().catch((err) => {
+  // HTTP 402: Supabase has restricted the project (over quota). This is not a broken
+  // query, and failing here would block every deploy, including the move off that
+  // project. The last committed file in public/ ships instead.
+  if (/HTTP 402/.test(err.message)) {
+    console.warn('llms.txt generation skipped, project restricted (HTTP 402). Keeping the committed file.');
+    process.exit(0);
+  }
   console.error('llms.txt generation failed:', err.message);
   process.exit(1);
 });

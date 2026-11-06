@@ -122,7 +122,7 @@ python3 scripts/migrate-to-selfhost/migrate-runner.py</pre>
     <div class="msg" id="cutover-msg" role="alert"></div>
     <div class="result" id="cutover-result"></div>
     <div id="review-box" hidden>
-      <div class="note warn">The copy finished with differences (see the log). Small row differences are normal if users were active during the copy. Otherwise, run the final copy again.</div>
+      <div class="note warn">The copy finished with differences or failed files (see the log). Small row differences are normal if users were active during the copy. If only the files failed because Pro is restricted, you can accept, switch, and use "Copy the files" in step 3 after the restriction is lifted. It then copies only missing files. Otherwise, run the final copy again.</div>
       <div class="row"><label for="accept-word" class="hint" style="margin:0">Type ACCEPT to accept them</label><input id="accept-word" autocomplete="off" spellcheck="false"><button id="run-accept">Accept the differences</button></div>
     </div>
     <h3 style="font-size:15px;margin:18px 0 6px">Vercel values</h3>
@@ -246,7 +246,7 @@ python3 scripts/migrate-to-selfhost/migrate-runner.py</pre>
     var ready = haveCreds && !running && !checksFailed && !locked;
     document.querySelector('[data-run="check"]').disabled = running || !haveCreds;
     $('run-db').disabled = !ready || (replace && $('replace').value !== 'REPLACE');
-    $('run-storage').disabled = !ready || !state.db;
+    $('run-storage').disabled = running || !haveCreds || checksFailed || !state.db;
     $('run-cutover').disabled = !ready || $('cutover-word').value !== 'CUTOVER';
     $('run-accept').disabled = running || !haveCreds || $('accept-word').value !== 'ACCEPT';
     $('run-rollback').disabled = running || !haveCreds || $('rollback-word').value !== 'ROLLBACK';

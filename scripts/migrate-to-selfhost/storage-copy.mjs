@@ -7,6 +7,8 @@
 // Resumable: a file already on the target with the same size is skipped, so
 // run it days before cutover for the bulk, then again at cutover for the delta.
 // Run AFTER db-copy.sh (its truncate can cascade into storage.objects).
+// ONLY_MISSING=1 never overwrites a file on the target (for use after the switch,
+// when the target's copy may be the newer one).
 //
 //   SRC_URL=https://<ref>.supabase.co SRC_SERVICE_KEY=... \
 //   DST_URL=https://api.example.com  DST_SERVICE_KEY=... \
@@ -46,7 +48,8 @@ async function copyBucket(b) {
   }
 
   const [have, want] = await Promise.all([listAll(dst, b.id), listAll(src, b.id)]);
-  const todo = [...want].filter(([p, size]) => have.get(p) !== size).map(([p]) => p);
+  const onlyMissing = process.env.ONLY_MISSING === '1';
+  const todo = [...want].filter(([p, size]) => (onlyMissing ? !have.has(p) : have.get(p) !== size)).map(([p]) => p);
   console.log(`${b.id}: ${want.size} files, ${todo.length} to copy`);
 
   let done = 0, failed = 0;

@@ -257,6 +257,13 @@ async function main() {
 }
 
 main().catch((err) => {
+  // HTTP 402: Supabase has restricted the project (over quota). This is not a broken
+  // query, and failing here would block every deploy, including the move off that
+  // project. The last committed file in public/ ships instead.
+  if (/HTTP 402/.test(err.message)) {
+    console.warn('RSS feed generation skipped, project restricted (HTTP 402). Keeping the committed file.');
+    process.exit(0);
+  }
   console.error('RSS feed generation failed:', err.message);
   // Fail the build rather than silently shipping a feed with no articles in it.
   process.exit(1);

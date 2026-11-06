@@ -251,13 +251,29 @@ def copy_storage(pro, to_cloud=False):
     cloud = (pro.api_url, pro.service_key)
     local = ('http://localhost:' + port, env_value('SERVICE_ROLE_KEY'))
     source, target = (local, cloud) if to_cloud else (cloud, local)
+    # After the final switch the self-hosted copy of a file may be the newer one.
+    only_missing = '1' if LOCK_FILE.exists() and not to_cloud else '0'
     rc = stream(['docker', 'run', '--rm', '--network', 'host', '-v', '%s:/w' % STORAGE_DIR, '-w', '/w',
-                 '-e', 'SRC_URL', '-e', 'SRC_SERVICE_KEY', '-e', 'DST_URL', '-e', 'DST_SERVICE_KEY', 'node:20',
+                 '-e', 'SRC_URL', '-e', 'SRC_SERVICE_KEY', '-e', 'DST_URL', '-e', 'DST_SERVICE_KEY', '-e', 'ONLY_MISSING', 'node:20',
                  'sh', '-c', 'npm i --silent @supabase/supabase-js@2 && node storage-copy.mjs'],
-                {'SRC_URL': source[0], 'SRC_SERVICE_KEY': source[1], 'DST_URL': target[0], 'DST_SERVICE_KEY': target[1]})
+                {'SRC_URL': source[0], 'SRC_SERVICE_KEY': source[1], 'DST_URL': target[0], 'DST_SERVICE_KEY': target[1],
+                 'ONLY_MISSING': only_missing})
     if not to_cloud:
         save_state('storage', {'exit': rc})
     return rc
+
+
+def cloud_api_status(pro):
+    """HTTP status of the Cloud Storage API. 402 means that Supabase has restricted the project."""
+    request = urllib.request.Request(pro.api_url + '/storage/v1/bucket', headers={
+        'apikey': pro.service_key, 'Authorization': 'Bearer ' + pro.service_key})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status if hasattr(response, 'status') else 200
+    except urllib.error.HTTPError as e:
+        return e.code
+    except urllib.error.URLError:
+        return 0
 
 
 def set_pro_cron(pro, active):
@@ -351,13 +367,15 @@ def action_check(pro, _):
 
     add('ok', 'Supabase CLI') if ensure_cli() else add('fail', 'Supabase CLI', 'Could not install it. See step A2.')
 
-    try:
-        request = urllib.request.Request(pro.api_url + '/storage/v1/bucket', headers={
-            'apikey': pro.service_key, 'Authorization': 'Bearer ' + pro.service_key})
-        with urllib.request.urlopen(request, timeout=30) as response:
-            add('ok', 'Pro service_role key', '%d buckets' % len(json.loads(response.read().decode('utf-8'))))
-    except (urllib.error.URLError, ValueError) as e:
-        add('fail', 'Pro service_role key', 'Storage API refused it: %s' % e)
+    api_status = cloud_api_status(pro)
+    if api_status == 200:
+        add('ok', 'Pro files (Storage API)', 'The service_role key works')
+    elif api_status == 402:
+        add('warn', 'Pro files (Storage API)', 'Supabase has restricted this project (over quota), so files cannot '
+                                               'be copied until the restriction is lifted. The database copy can '
+                                               'still run if the Pro database check above passed.')
+    else:
+        add('fail', 'Pro files (Storage API)', 'It refused the service_role key (status %s).' % api_status)
 
     gaps = go_live_gaps()
     if gaps:
@@ -448,6 +466,9 @@ def revert_blockers(pro):
     if int(out.strip() or 0) == 0:
         return ['The Cloud project has no OpenHR tables, so this is not the original project. '
                 'Restoring into a new project needs the schema first.']
+    if cloud_api_status(pro) == 402:
+        return ['Supabase still restricts the Cloud project (over quota), so the app could not run there. '
+                'Lift the restriction in the Supabase dashboard first.']
     blockers = []
     rc_t, target_cols = target_sql(COLUMNS_SQL)
     rc_p, cloud_cols = pro_sql(pro, COLUMNS_SQL)
@@ -574,7 +595,7 @@ def action_revert_accept(pro, _):
 ACTIONS = {
     'check': (action_check, None, False),
     'db': (action_db, None, True),
-    'storage': (action_storage, None, True),
+    'storage': (action_storage, None, False),  # Copies only missing files after the final switch.
     'cutover': (action_cutover, 'CUTOVER', True),
     'accept': (action_accept, 'ACCEPT', True),
     'rollback': (action_rollback, 'ROLLBACK', False),
