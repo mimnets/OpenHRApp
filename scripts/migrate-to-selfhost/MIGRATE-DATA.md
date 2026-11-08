@@ -143,7 +143,8 @@ Resend sends two kinds of email:
 | Leave, attendance, reminders, reports, outreach | Edge Functions, through Resend's API | `RESEND_API_KEY` (A4) |
 
 1. In the Resend dashboard, open **Domains** and check that `openhrapp.com` shows
-   **Verified**. It is already verified if Pro sends email through Resend now.
+   **Verified**. It is already verified if Pro sends email through Resend now. Create the
+   API key in this same account, or Resend rejects it with `domain is not verified`.
 2. In `.env`, set the SMTP lines like this:
 
    ```

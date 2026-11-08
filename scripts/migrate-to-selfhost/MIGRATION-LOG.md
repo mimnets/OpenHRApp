@@ -352,37 +352,83 @@ ad space on every view.
 
 ## 15. No email is sent after the move
 
-**Status:** open. The checks below are done. The fix is not applied yet.
+**Status:** fixed on 2026-11-08. The owner reported the problem solved after the steps below.
 
 **Symptom:** registration shows "Could not send the verification email. Please try again shortly."
+Resend → **Emails** showed no sends after the move.
 
 **Cause, in two parts:**
 
-1. **Resend API.** Resend rejects the key on the server: `403 The openhrapp.com domain is not verified`.
-   The key has 36 characters in both `.env` and the functions container, so it does reach the functions.
-   Public DNS still has Resend's records (`resend._domainkey`, and MX and SPF on `send`, region
-   `ap-northeast-1`). The key probably belongs to a different Resend account from the one that has the
-   domain. This stops every Edge Function email.
-2. **Auth SMTP.** Step A5 is not in effect. Auth still has the template values `GOTRUE_SMTP_HOST=supabase-mail`
-   and `GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com`. Password reset and signup verification emails do not
-   reach real users.
+1. **Resend API: key from the wrong account.** Resend rejected the server's key:
+   `403 The openhrapp.com domain is not verified`. The domain was verified, and its DNS records were in
+   place. But the key came from a different Resend account, whose only domain was `openhr.vclbd.net`. This
+   stopped every Edge Function email.
+2. **Auth SMTP: step A5 was not in effect.** Auth still had the template values
+   `GOTRUE_SMTP_HOST=supabase-mail` and `GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com`, so password reset and
+   signup verification emails could not reach real users.
+
+**Good to know:** the error message is misleading. "Not verified" can also mean that the domain is not in
+the account that owns the key. To see which domains a key can reach (a sending-only key returns
+`restricted_api_key` instead):
+
+```bash
+cd /home/ubuntu/supabase-project
+KEY=$(grep '^RESEND_API_KEY=' .env | cut -d= -f2-)
+curl -s https://api.resend.com/domains -H "Authorization: Bearer $KEY"
+```
 
 **Fix:**
 
-1. Open the Resend account where **Domains** shows `openhrapp.com` as **Verified**, and create an API key
-   there. If no account has the domain, add it again and put the new DNS records in Cloudflare.
-2. In `/home/ubuntu/supabase-project/.env`, set `RESEND_API_KEY` to the new key and set the `SMTP_*` lines
-   from step A5, with `SMTP_PASS` equal to the same key. Each name must appear only once.
+1. In the Resend account where **Domains** shows `openhrapp.com` as **Verified**, create an API key.
+2. In `/home/ubuntu/supabase-project/.env`, set the `SMTP_*` lines from step A5, and put that key in both
+   `RESEND_API_KEY` and `SMTP_PASS`.
 3. Run `sh run.sh start`. `docker restart` does not read `.env` again.
 
+Keep both lines. They are not duplicates, and each name must appear only once:
+
+| Line in `.env` | Used by | Sends |
+|---|---|---|
+| `RESEND_API_KEY` | Edge Functions, through Resend's API | Registration code, leave, reports, trials, bulk, outreach |
+| `SMTP_PASS` | Supabase Auth, through Resend's SMTP | Password reset, signup verification |
+
 **Check:** a test send to `delivered@resend.dev` returns `200`, and a real registration and a real password
-reset both arrive. Also check `GOTRUE_MAILER_AUTOCONFIRM=false` in the `supabase-auth` container.
+reset both arrive. `GOTRUE_MAILER_AUTOCONFIRM` in the `supabase-auth` container must be `false`.
+
+**Follow-ups, from the same check:**
+
+- The `.env` values, including the Resend keys, were shown in screenshots in a Claude chat. Replace the
+  Resend key with a **Sending access** key, on both lines, and delete the old keys in both Resend accounts.
+- `ANTHROPIC_API_KEY` in `.env` still had the placeholder text `<the same as Pro>`. AI email and report
+  features need a real key.
+- Emails that failed between the move and this fix are probably not sent again, including trial reminders
+  and daily reports. Whether `cron-expire-trials` marks a failed reminder as sent was not checked.
+- If you revert to Cloud, its `RESEND_API_KEY` secret may need the new key. The account now lists only the
+  new key.
+
+## 16. iPhone PWA: the page zooms in past the screen edge
+
+**Status:** fix released in commit `d9725b8`. Not tested by Claude on a real iPhone. The move did not cause
+this. It is recorded here so that the fix is easy to find.
+
+**Symptom:** the screen goes wider than the display, and the user must pinch to zoom out.
+
+**Cause (most likely):** iOS zooms in when a field with text under 16px gets focus, and it does not zoom
+back out. Many fields use `text-sm` or `text-xs`.
+
+**Fix:** a rule in `src/index.css`, for iOS only, sets field text to 16px. Do not add `maximum-scale=1` to
+the viewport tag. It blocks pinch-zoom on Android.
+
+**If it comes back:** if the page is too wide before any field is tapped, the cause is different. Look for
+an element wider than the screen on that page.
 
 ---
 
 ## Still to do after the migration
 
-- [ ] Fix email: the Resend key and the Auth SMTP settings (see 15).
+- [x] Fix email: the Resend key and the Auth SMTP settings (see 15).
+- [ ] Replace the exposed Resend key with a sending-only key, and delete the old keys (see 15).
+- [ ] Set a real `ANTHROPIC_API_KEY` in `.env` (see 15).
+- [ ] Check whether customers missed trial reminders during the email outage (see 15).
 - [ ] Stop the helper, and remove the `/db-migrate-runner/` block from Nginx Proxy Manager.
 - [ ] Copy the files, if the restriction stopped them (see 1).
 - [ ] Fix the image addresses in the blog articles, and restore or regenerate the images (see 13).
