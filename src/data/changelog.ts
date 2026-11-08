@@ -18,6 +18,7 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-11-08',
     title: 'Faster app start and login, and iPhone screen zoom fix',
     entries: [
+      { type: 'improvement', description: 'Added a handoff note covering the email fix, the iPhone zoom fix, the app start work and the issues still open.' },
       { type: 'fix', description: 'The app no longer reloads itself the first time its offline files finish installing. On iPhone, this could refresh the page while someone was logging in.' },
       { type: 'fix', description: 'Tapping Login or Get Started while the landing page is still loading no longer reloads the page. The tap now opens that page as soon as the app is ready.' },
       { type: 'improvement', description: 'The dashboard sends far fewer requests at start: help links load once instead of 12 times, settings are no longer fetched twice, and user details come from the saved session instead of the server.' },
