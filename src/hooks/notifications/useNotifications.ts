@@ -67,7 +67,8 @@ export function useNotifications() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     async function setupRealtime() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
 
       channel = supabase

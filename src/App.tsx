@@ -17,28 +17,30 @@ import { lazyWithReload } from './utils/lazyWithReload';
 import { supabase } from './services/supabase';
 import { sessionManager } from './services/session/sessionManager';
 
-// Eager: public pages needed for first paint / SEO
+// Eager: the two pages most launches show first.
 import Login from './pages/Login';
-import Setup from './pages/Setup';
-import RegisterOrganization from './pages/RegisterOrganization';
 import LandingPage from './pages/LandingPage';
 import { VerifyAccount } from './pages/VerifyAccount';
 import { ResetPassword } from './pages/ResetPassword';
 import { SuspendedPage } from './components/subscription';
-import BlogPage from './pages/BlogPage';
-import BlogPostPage from './pages/BlogPostPage';
-import TutorialsPage from './pages/TutorialsPage';
-import TutorialPage from './pages/TutorialPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfServicePage from './pages/TermsOfServicePage';
-import PricingPage from './pages/PricingPage';
-import RefundPolicyPage from './pages/RefundPolicyPage';
-import NotFoundPage from './pages/NotFoundPage';
-import FeaturesPage from './pages/FeaturesPage';
-import FeatureDetailPage from './pages/FeatureDetailPage';
-import ChangelogPage from './pages/ChangelogPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
+
+// Lazy: other public pages, so iPhones do not parse them on every launch.
+const Setup = lazyWithReload(() => import('./pages/Setup'));
+const RegisterOrganization = lazyWithReload(() => import('./pages/RegisterOrganization'));
+const BlogPage = lazyWithReload(() => import('./pages/BlogPage'));
+const BlogPostPage = lazyWithReload(() => import('./pages/BlogPostPage'));
+const TutorialsPage = lazyWithReload(() => import('./pages/TutorialsPage'));
+const TutorialPage = lazyWithReload(() => import('./pages/TutorialPage'));
+const PrivacyPolicyPage = lazyWithReload(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazyWithReload(() => import('./pages/TermsOfServicePage'));
+const PricingPage = lazyWithReload(() => import('./pages/PricingPage'));
+const RefundPolicyPage = lazyWithReload(() => import('./pages/RefundPolicyPage'));
+const NotFoundPage = lazyWithReload(() => import('./pages/NotFoundPage'));
+const FeaturesPage = lazyWithReload(() => import('./pages/FeaturesPage'));
+const FeatureDetailPage = lazyWithReload(() => import('./pages/FeatureDetailPage'));
+const ChangelogPage = lazyWithReload(() => import('./pages/ChangelogPage'));
+const AboutPage = lazyWithReload(() => import('./pages/AboutPage'));
+const ContactPage = lazyWithReload(() => import('./pages/ContactPage'));
 
 // Lazy: authenticated pages loaded on demand after login.
 // lazyWithReload auto-recovers from stale chunk hashes after a deploy
@@ -65,6 +67,12 @@ import { PushPermissionPrompt } from './components/PushPermissionPrompt';
 // M-04: standalone Monetag In-Page Push. Ships switched off — see src/config/monetag.ts.
 import { classifyRoute } from './config/monetag';
 import { beginAdvertisingDocumentReset, initializeMonetagRuntimeSettings, installMonetagTagOnce, watchPageAdvertisingOptIn, type AuthState } from './utils/monetagLoader';
+
+const suspenseFallback = (
+  <div className="h-screen w-full flex items-center justify-center bg-slate-50">
+    <Loader2 className="animate-spin text-primary" size={48} />
+  </div>
+);
 
 // Parse features route from pathname
 const parseFeaturesRoute = (pathname: string) => {
@@ -117,8 +125,9 @@ const AppContent: React.FC = () => {
   const [navParams, setNavParams] = useState<any>(null);
 
   // Public Pages State
-  const [showLanding, setShowLanding] = useState(true);
-  const [showRegister, setShowRegister] = useState(false);
+  // __heroIntent: a tap on the static hero in index.html before React mounted.
+  const [showLanding, setShowLanding] = useState(() => !(window as any).__heroIntent);
+  const [showRegister, setShowRegister] = useState(() => (window as any).__heroIntent === 'register');
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [blogRoute, setBlogRoute] = useState<{ type: 'list' | 'post'; slug?: string } | null>(() => {
@@ -684,12 +693,6 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const suspenseFallback = (
-    <div className="h-screen w-full flex items-center justify-center bg-slate-50">
-      <Loader2 className="animate-spin text-primary" size={48} />
-    </div>
-  );
-
   const pushPrompt = !isSuperAdmin ? (
     <PushPermissionPrompt userId={user.id} organizationId={user.organizationId as string | undefined} />
   ) : null;
@@ -718,7 +721,9 @@ const App: React.FC = () => {
         <ThemeProvider>
           <ToastProvider>
             <SearchProvider>
-              <AppContent />
+              <Suspense fallback={suspenseFallback}>
+                <AppContent />
+              </Suspense>
               <SearchDialog />
               <Analytics />
               {COOKIE_CONSENT_ENABLED && <CookieConsent />}

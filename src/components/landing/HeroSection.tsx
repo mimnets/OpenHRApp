@@ -15,6 +15,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
   const [isIOS, setIsIOS] = useState(false);
   const [_isInstalled, setIsInstalled] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [playVideo, setPlayVideo] = useState(false);
 
   useEffect(() => {
     const ua = navigator.userAgent;
@@ -156,13 +157,35 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onLoginClick, onRegisterClick
             <h2 className="font-dl-display text-dl-xl sm:text-dl-2xl font-semibold text-dl-ink tracking-dl-head mb-6">See OpenHRApp in Action</h2>
             <div className="rounded-dl-lg overflow-hidden shadow-dl-2 border border-dl-hair">
               <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                <iframe
-                  className="absolute top-0 left-0 w-full h-full"
-                  src="https://www.youtube.com/embed/Wb-4mt90IFU"
-                  title="OpenHRApp Introduction"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                ></iframe>
+                {/* The YouTube player is heavy on phones, so it loads only when asked for. */}
+                {playVideo ? (
+                  <iframe
+                    className="absolute top-0 left-0 w-full h-full"
+                    src="https://www.youtube.com/embed/Wb-4mt90IFU?autoplay=1"
+                    title="OpenHRApp Introduction"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setPlayVideo(true)}
+                    aria-label="Play the OpenHRApp introduction video"
+                    className="absolute inset-0 w-full h-full group"
+                  >
+                    <img
+                      src="https://i.ytimg.com/vi/Wb-4mt90IFU/hqdefault.jpg"
+                      alt=""
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="w-16 h-16 rounded-full bg-dl-ink/80 text-white flex items-center justify-center group-hover:bg-dl-ink transition-colors">
+                        <Play size={28} fill="currentColor" />
+                      </span>
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

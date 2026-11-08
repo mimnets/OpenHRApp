@@ -104,17 +104,6 @@ registerRoute(
   }),
 );
 
-// ESM modules
-registerRoute(
-  ({ url }) => url.origin === 'https://esm.sh',
-  new CacheFirst({
-    cacheName: 'esm-modules',
-    plugins: [
-      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 }),
-    ],
-  }),
-);
-
 // Images
 registerRoute(
   ({ url }) => /\/img\//.test(url.pathname),

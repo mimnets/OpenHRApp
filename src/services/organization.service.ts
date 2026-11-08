@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { apiClient, resolveOrgId } from './api.client';
+import { apiClient, dedupe, resolveOrgId } from './api.client';
 import { AppConfig, Holiday, Team, LeavePolicy, LeaveWorkflow, OrgReviewConfig, CustomLeaveType, OrgNotificationConfig, SubscriptionInfo, SubscriptionStatus, User } from '../types';
 import { DEFAULT_CONFIG, DEFAULT_REVIEW_CONFIG, DEFAULT_LEAVE_TYPES, DEFAULT_NOTIFICATION_CONFIG } from '../constants';
 import { shiftService } from './shift.service';
@@ -27,7 +27,12 @@ function touchCache() { orgCacheTimestamp = Date.now(); }
 // migration (nullable org_id) hasn't been applied yet.
 const PLATFORM_PREFIX = 'openhr-platform:';
 
-async function getSetting(key: string, defaultValue: any) {
+// Parallel readers of one key (prefetch + the page itself) share a single request.
+function getSetting(key: string, defaultValue: any) {
+  return dedupe(`setting:${key}`, () => fetchSetting(key, defaultValue));
+}
+
+async function fetchSetting(key: string, defaultValue: any) {
   if (!isSupabaseConfigured()) {
     console.warn(`[OrgService] Supabase not configured, returning default for: ${key}`);
     return defaultValue;
@@ -556,23 +561,26 @@ export const organizationService = {
   // Platform-level setting — no org_id filter.
   // Falls back to localStorage if the DB migration (nullable org_id) hasn't
   // been applied yet.
-  async getGuideHelpLinks(): Promise<Record<string, string>> {
-    if (!isSupabaseConfigured()) return {};
-    try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'guide_help_links')
-        .is('organization_id', null)
-        .maybeSingle();
-      if (error) throw error;
-      if (data?.value) return data.value;
-    } catch { /* DB unavailable — try localStorage below */ }
-    try {
-      const stored = localStorage.getItem('openhr-platform:guide_help_links');
-      if (stored) return JSON.parse(stored);
-    } catch {}
-    return {};
+  // Every HelpButton on a page calls this on mount, so they share one request.
+  getGuideHelpLinks(): Promise<Record<string, string>> {
+    return dedupe('guide_help_links', async () => {
+      if (!isSupabaseConfigured()) return {};
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'guide_help_links')
+          .is('organization_id', null)
+          .maybeSingle();
+        if (error) throw error;
+        if (data?.value) return data.value;
+      } catch { /* DB unavailable — try localStorage below */ }
+      try {
+        const stored = localStorage.getItem('openhr-platform:guide_help_links');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+      return {};
+    });
   },
 
   /**

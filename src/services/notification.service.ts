@@ -6,8 +6,8 @@ import { organizationService } from './organization.service';
 import { DEFAULT_USER_NOTIFICATION_PREFS } from '../constants';
 
 async function getCurrentUserId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user.id ?? null;
 }
 
 const mapNotification = (r: any): AppNotification => ({

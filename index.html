@@ -92,11 +92,8 @@
   <!-- Vital: Link to manifest at the root level -->
   <link rel="manifest" href="/manifest.json">
   
-  <link rel="preconnect" href="https://esm.sh" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://www.youtube.com">
-  <link rel="preconnect" href="https://i.ytimg.com">
   <!-- Inter for the app; Schibsted Grotesk / Public Sans / IBM Plex Mono for the
        Daylight public surface. One request, non-blocking, display=swap.
        Inter previously pulled 300/800/900 which nothing uses — see the weight
@@ -124,21 +121,6 @@
     } catch(e) {}
   })();
 </script>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.2.3",
-    "react-dom": "https://esm.sh/react-dom@19.2.3",
-    "react-dom/client": "https://esm.sh/react-dom@19.2.3/client",
-    "react/": "https://esm.sh/react@19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
-    "recharts": "https://esm.sh/recharts@2.13.3"
-  }
-}
-</script>
-<link rel="modulepreload" href="https://esm.sh/react@19.2.3">
-<link rel="modulepreload" href="https://esm.sh/react-dom@19.2.3/client">
 </head>
 <body class="bg-[#fcfdfe] text-slate-900">
   <div id="root">
@@ -333,6 +315,15 @@
         if (hero) hero.classList.add('sh-auth-session');
       }
     } catch(e) {}
+    // The hero's links are for crawlers. Following one reloads a page that is still
+    // loading, so keep the tap for App.tsx to act on once React mounts.
+    document.getElementById('static-hero').addEventListener('click', function(e) {
+      var link = e.target.closest && e.target.closest('a');
+      if (!link) return;
+      e.preventDefault();
+      window.__heroIntent = link.classList.contains('sh-btn-dark') ? 'login'
+        : link.classList.contains('sh-btn-primary') ? 'register' : '';
+    });
   })();
 </script>
 <script>

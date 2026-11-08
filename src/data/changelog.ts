@@ -16,8 +16,12 @@ export interface ChangelogRelease {
 export const changelog: ChangelogRelease[] = [
   {
     date: '2026-11-08',
-    title: 'iPhone screen zoom fix',
+    title: 'Faster app start and login, and iPhone screen zoom fix',
     entries: [
+      { type: 'fix', description: 'The app no longer reloads itself the first time its offline files finish installing. On iPhone, this could refresh the page while someone was logging in.' },
+      { type: 'fix', description: 'Tapping Login or Get Started while the landing page is still loading no longer reloads the page. The tap now opens that page as soon as the app is ready.' },
+      { type: 'improvement', description: 'The dashboard sends far fewer requests at start: help links load once instead of 12 times, settings are no longer fetched twice, and user details come from the saved session instead of the server.' },
+      { type: 'improvement', description: 'The landing page loads faster on phones. The intro video player loads only when tapped, ads load when scrolled near, and pages such as the blog and the full changelog load only when opened. Unused third-party module loading is removed.' },
       { type: 'fix', description: 'On iPhone and iPad, tapping a form field no longer zooms the page in and leaves it wider than the screen. Fields now use 16px text on these devices, and pinch-to-zoom still works.' },
       { type: 'fix', description: 'Email works again after the server move: registration codes, password resets and notifications. The server had an email key from the wrong account and placeholder mail settings. The cause, fix and follow-ups are in the server move error record.' },
     ],

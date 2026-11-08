@@ -55,8 +55,11 @@ export function useServiceWorker() {
   // reload twice (controllerchange + applyUpdate fallback timeout).
   const reloadedRef = useRef(false);
   useEffect(() => {
+    // A first install also fires controllerchange (clientsClaim), but this page is
+    // already current; reloading it would interrupt a login in progress.
+    const hadController = !!navigator.serviceWorker?.controller;
     const handleControllerChange = () => {
-      if (reloadedRef.current) return;
+      if (!hadController || reloadedRef.current) return;
       reloadedRef.current = true;
       window.location.reload();
     };

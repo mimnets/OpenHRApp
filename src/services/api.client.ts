@@ -56,7 +56,9 @@ export async function resolveOrgId(): Promise<string | undefined> {
   if (cached) return cached;
   if (!_orgIdPromise) {
     _orgIdPromise = (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Local session, no network call: RLS still checks the token on the query below.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return undefined;
       const { data: profile } = await supabase
         .from('profiles').select('organization_id').eq('id', user.id).maybeSingle();

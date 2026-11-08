@@ -98,6 +98,7 @@ export const SandboxedAdFrame: React.FC<{ src: string; width: number; height: nu
     <iframe
       src={src}
       title="Advertisement"
+      loading="lazy"
       width={width}
       height={height}
       sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
