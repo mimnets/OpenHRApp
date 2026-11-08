@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-11-08',
+    title: 'iPhone screen zoom fix',
+    entries: [
+      { type: 'fix', description: 'On iPhone and iPad, tapping a form field no longer zooms the page in and leaves it wider than the screen. Fields now use 16px text on these devices, and pinch-to-zoom still works.' },
+    ],
+  },
+  {
     date: '2026-11-06',
     title: 'Server move page, with a way back',
     entries: [

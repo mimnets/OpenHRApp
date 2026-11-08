@@ -219,6 +219,13 @@ body {
   }
 }
 
+/* iOS only: focusing a field under 16px zooms the page in and never zooms back out. */
+@supports (-webkit-touch-callout: none) {
+  input:not(.text-lg, .text-xl), select, textarea {
+    font-size: 16px;
+  }
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
