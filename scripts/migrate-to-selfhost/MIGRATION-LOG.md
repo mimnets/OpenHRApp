@@ -350,10 +350,39 @@ It must show `https://api.openhrapp.com`. Cloudflare may cache the page for up t
 also hide them. Test with a non-`ACTIVE` organization, with no ad blocker. Adsterra does not fill every
 ad space on every view.
 
+## 15. No email is sent after the move
+
+**Status:** open. The checks below are done. The fix is not applied yet.
+
+**Symptom:** registration shows "Could not send the verification email. Please try again shortly."
+
+**Cause, in two parts:**
+
+1. **Resend API.** Resend rejects the key on the server: `403 The openhrapp.com domain is not verified`.
+   The key has 36 characters in both `.env` and the functions container, so it does reach the functions.
+   Public DNS still has Resend's records (`resend._domainkey`, and MX and SPF on `send`, region
+   `ap-northeast-1`). The key probably belongs to a different Resend account from the one that has the
+   domain. This stops every Edge Function email.
+2. **Auth SMTP.** Step A5 is not in effect. Auth still has the template values `GOTRUE_SMTP_HOST=supabase-mail`
+   and `GOTRUE_SMTP_ADMIN_EMAIL=admin@example.com`. Password reset and signup verification emails do not
+   reach real users.
+
+**Fix:**
+
+1. Open the Resend account where **Domains** shows `openhrapp.com` as **Verified**, and create an API key
+   there. If no account has the domain, add it again and put the new DNS records in Cloudflare.
+2. In `/home/ubuntu/supabase-project/.env`, set `RESEND_API_KEY` to the new key and set the `SMTP_*` lines
+   from step A5, with `SMTP_PASS` equal to the same key. Each name must appear only once.
+3. Run `sh run.sh start`. `docker restart` does not read `.env` again.
+
+**Check:** a test send to `delivered@resend.dev` returns `200`, and a real registration and a real password
+reset both arrive. Also check `GOTRUE_MAILER_AUTOCONFIRM=false` in the `supabase-auth` container.
+
 ---
 
 ## Still to do after the migration
 
+- [ ] Fix email: the Resend key and the Auth SMTP settings (see 15).
 - [ ] Stop the helper, and remove the `/db-migrate-runner/` block from Nginx Proxy Manager.
 - [ ] Copy the files, if the restriction stopped them (see 1).
 - [ ] Fix the image addresses in the blog articles, and restore or regenerate the images (see 13).

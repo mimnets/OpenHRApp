@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'iPhone screen zoom fix',
     entries: [
       { type: 'fix', description: 'On iPhone and iPad, tapping a form field no longer zooms the page in and leaves it wider than the screen. Fields now use 16px text on these devices, and pinch-to-zoom still works.' },
+      { type: 'improvement', description: 'Recorded why email stopped after the server move, and the steps to fix it, in the server move error record.' },
     ],
   },
   {
