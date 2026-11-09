@@ -13,6 +13,10 @@ describe('check-in without location', () => {
     expect(buildNoLocationRemarks('timeout', '  GPS not working ')).toBe('[NO LOCATION: timeout] GPS not working');
   });
 
+  it('saves only the tag when there is no reason', () => {
+    expect(buildNoLocationRemarks('unavailable', '  ')).toBe('[NO LOCATION: unavailable]');
+  });
+
   it('flags only records saved without a location', () => {
     expect(isNoLocationRecord({ location: { lat: 0, lng: 0, address: NO_LOCATION_ADDRESS } })).toBe(true);
     expect(isNoLocationRecord({ location: { lat: 23.81, lng: 90.41, address: 'Head Office' } })).toBe(false);

@@ -33,6 +33,7 @@ const LocationHelpGuide: React.FC<{ onClose: () => void }> = ({ onClose }) => (
             <li>Go to <strong>Settings &gt; Apps &gt; Chrome</strong> (or the app name)</li>
             <li>Tap <strong>Permissions &gt; Location &gt; Allow</strong></li>
             <li>If using PWA: also check <strong>Settings &gt; Apps &gt; Open HR &gt; Permissions &gt; Location</strong></li>
+            <li>Still blocked? Open <strong>Chrome &gt; Settings &gt; Site settings &gt; Location</strong>, find this site and set it to <strong>Allow</strong></li>
             <li>Return to the app and tap <strong>Retry</strong></li>
           </ol>
         </div>

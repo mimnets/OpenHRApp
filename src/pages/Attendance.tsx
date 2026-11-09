@@ -57,7 +57,11 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   const isCheckOut = !!activeRecord && !activeRecord.checkOut;
   const canSkipLocation = !isCheckOut && !location && !isLocating && !!locationError
     && appConfig?.allowCheckInWithoutLocation !== false;
-  const withoutLocation = canSkipLocation && skipLocationChosen;
+  // A failed detection continues automatically. A permission block needs a deliberate choice and a reason.
+  const canChooseNoLocation = canSkipLocation && locationFailure === 'denied';
+  const autoNoLocation = canSkipLocation && locationFailure !== 'denied';
+  const noLocationReasonRequired = canChooseNoLocation && skipLocationChosen;
+  const withoutLocation = autoNoLocation || noLocationReasonRequired;
   const locationReady = isCheckOut || !!location || withoutLocation;
 
   // 3. Initialize hardware once when data is ready
@@ -100,7 +104,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
       return;
     }
 
-    if (withoutLocation && !remarks.trim()) {
+    if (noLocationReasonRequired && !remarks.trim()) {
       showToast('Mandatory: Please enter why your location is not available.', 'warning');
       return;
     }
@@ -197,10 +201,11 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
         onSubmit={handlePunchSubmit}
         status={status}
         activeRecord={activeRecord}
-        canSkipLocation={canSkipLocation}
-        withoutLocation={withoutLocation}
+        canChooseNoLocation={canChooseNoLocation}
+        autoNoLocation={autoNoLocation}
+        noLocationReasonRequired={noLocationReasonRequired}
         onToggleWithoutLocation={() => setSkipLocationChosen(chosen => !chosen)}
-        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || ((dutyType === 'FACTORY' || withoutLocation) && !remarks.trim())}
+        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || ((dutyType === 'FACTORY' || noLocationReasonRequired) && !remarks.trim())}
       />
 
       <canvas ref={canvasRef} className="hidden" />

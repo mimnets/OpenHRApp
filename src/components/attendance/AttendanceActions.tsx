@@ -13,18 +13,19 @@ interface Props {
   status: 'idle' | 'loading' | 'success';
   isDisabled: boolean;
   activeRecord?: Attendance;
-  canSkipLocation?: boolean;
-  withoutLocation?: boolean;
+  canChooseNoLocation?: boolean;
+  autoNoLocation?: boolean;
+  noLocationReasonRequired?: boolean;
   onToggleWithoutLocation?: () => void;
 }
 
 export const AttendanceActions: React.FC<Props> = ({
   dutyType, dutyLabel, remarks, setRemarks, onSubmit, status, isDisabled, activeRecord,
-  canSkipLocation, withoutLocation, onToggleWithoutLocation
+  canChooseNoLocation, autoNoLocation, noLocationReasonRequired, onToggleWithoutLocation
 }) => {
   const displayLabel = dutyLabel || (dutyType === 'FACTORY' ? 'Factory' : 'Office');
-  const remarksRequired = dutyType === 'FACTORY' || !!withoutLocation;
-  const remarksPlaceholder = withoutLocation
+  const remarksRequired = dutyType === 'FACTORY' || !!noLocationReasonRequired;
+  const remarksPlaceholder = noLocationReasonRequired
     ? (dutyType === 'FACTORY' ? `${displayLabel} Name & why no location...` : 'Why is your location not available?')
     : (dutyType === 'FACTORY' ? `${displayLabel} Name & Details...` : 'Optional remarks...');
 
@@ -34,17 +35,22 @@ export const AttendanceActions: React.FC<Props> = ({
       <div className="w-full max-w-[320px]">
         <AdFrame placement="attendance" />
       </div>
-      {canSkipLocation && (
+      {autoNoLocation && (
+        <p className="w-full max-w-[320px] px-2 text-[11px] font-medium text-slate-500 leading-snug">
+          Location not detected. You can still check in. HR will see this flag.
+        </p>
+      )}
+      {canChooseNoLocation && (
         <div className="w-full max-w-[320px] px-2 flex items-center justify-between gap-3">
           <p className="text-[11px] font-medium text-slate-500 leading-snug">
-            {withoutLocation ? 'This check-in will be flagged for HR. A reason is required.' : 'Location not working?'}
+            {noLocationReasonRequired ? 'This check-in will be flagged for HR. A reason is required.' : 'Location blocked?'}
           </p>
           <button
             type="button"
             onClick={onToggleWithoutLocation}
             className="shrink-0 min-h-[44px] px-2 text-xs font-bold text-primary"
           >
-            {withoutLocation ? 'Cancel' : 'Check in without location'}
+            {noLocationReasonRequired ? 'Cancel' : 'Check in without location'}
           </button>
         </div>
       )}

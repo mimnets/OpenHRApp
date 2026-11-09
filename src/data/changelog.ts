@@ -18,7 +18,8 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-11-09',
     title: 'Team managers can report to a boss for leave approval',
     entries: [
-      { type: 'feature', description: 'Employees can now check in when their phone cannot get a location. After location fails, they can choose Check in without location, take the selfie and enter a reason. The record shows a No Location flag in Attendance Logs, and its remarks include the reason and the type of location failure. HR or Admins can turn this off with Allow Check-In Without Location in the organization\'s System settings. It is on by default.' },
+      { type: 'feature', description: 'Employees can now check in when their phone cannot get a location. If location detection fails, the Check In button turns on automatically and no reason is needed. If location permission is blocked, the button stays gray until the employee taps Check in without location and enters a reason. A selfie is required in both cases, and Factory duty input stays mandatory. The record shows a No Location flag in Attendance Logs, and its remarks include the type of location failure and any reason. HR or Admins can turn this off with Allow Check-In Without Location in the organization\'s System settings. It is on by default.' },
+      { type: 'improvement', description: 'Added a Chrome site settings step to the location Help guide for Android phones that stay blocked after the app permission is allowed.' },
       { type: 'improvement', description: 'Added automated tests to confirm Factory duty input stays mandatory for check-in and check-out when no location is available.' },
       { type: 'fix', description: 'Check-out no longer waits for a location, because check-out never saved one.' },
       { type: 'fix', description: 'Check-out no longer erases the remarks entered at check-in, including the Factory tag. Any new check-out remark is added after them.' },

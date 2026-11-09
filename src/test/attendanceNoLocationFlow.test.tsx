@@ -57,7 +57,44 @@ describe('Attendance screen without a location', () => {
   });
   afterEach(cleanup);
 
-  it('checks in only after the employee chooses the option and enters a reason', async () => {
+  it('enables check-in automatically when detection fails, without a reason', async () => {
+    render(<Attendance user={{ id: 'E1' }} />);
+    expect(screen.queryByRole('button', { name: SKIP_LABEL })).toBeNull();
+    expect(screen.getByText(/hr will see this flag/i)).toBeTruthy();
+
+    const checkIn = punchButton(/^check in$/i);
+    expect(checkIn.disabled).toBe(false);
+
+    fireEvent.click(checkIn);
+    await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
+      'OFFICE',
+      '[NO LOCATION: timeout]',
+      { lat: 0, lng: 0, address: 'Not captured' },
+      'selfie-data'
+    ));
+  });
+
+  it('keeps the factory input mandatory when detection fails', async () => {
+    render(<Attendance user={{ id: 'E1' }} autoStart="FACTORY" />);
+    const checkIn = punchButton(/^check in$/i);
+    expect(checkIn.disabled).toBe(true);
+
+    fireEvent.change(screen.getByPlaceholderText(/factory name & details/i), {
+      target: { value: 'Plant 2' },
+    });
+    expect(checkIn.disabled).toBe(false);
+
+    fireEvent.click(checkIn);
+    await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
+      'FACTORY',
+      '[NO LOCATION: timeout] Plant 2',
+      { lat: 0, lng: 0, address: 'Not captured' },
+      'selfie-data'
+    ));
+  });
+
+  it('needs a choice and a reason when permission is blocked', async () => {
+    geo = { location: null, isLocating: false, error: 'Location blocked.', failure: 'denied' };
     render(<Attendance user={{ id: 'E1' }} />);
     const checkIn = punchButton(/^check in$/i);
     expect(checkIn.disabled).toBe(true);
@@ -74,7 +111,7 @@ describe('Attendance screen without a location', () => {
     await waitFor(() => expect(submitPunch).toHaveBeenCalledTimes(1));
     expect(submitPunch).toHaveBeenCalledWith(
       'OFFICE',
-      '[NO LOCATION: timeout] GPS not working',
+      '[NO LOCATION: denied] GPS not working',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     );
@@ -97,6 +134,7 @@ describe('Attendance screen without a location', () => {
     attendance.appConfig = { allowCheckInWithoutLocation: false };
     render(<Attendance user={{ id: 'E1' }} />);
     expect(screen.queryByRole('button', { name: SKIP_LABEL })).toBeNull();
+    expect(screen.queryByText(/hr will see this flag/i)).toBeNull();
     expect(punchButton(/^check in$/i).disabled).toBe(true);
   });
 
@@ -112,7 +150,8 @@ describe('Attendance screen without a location', () => {
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith('OFFICE', '', null, 'selfie-data'));
   });
 
-  it('requires the factory input to check in without a location', async () => {
+  it('requires the factory input to check in when permission is blocked', async () => {
+    geo = { location: null, isLocating: false, error: 'Location blocked.', failure: 'denied' };
     render(<Attendance user={{ id: 'E1' }} autoStart="FACTORY" />);
     const checkIn = punchButton(/^check in$/i);
 
@@ -129,7 +168,7 @@ describe('Attendance screen without a location', () => {
     fireEvent.click(checkIn);
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
       'FACTORY',
-      '[NO LOCATION: timeout] Plant 2, GPS not working',
+      '[NO LOCATION: denied] Plant 2, GPS not working',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     ));
