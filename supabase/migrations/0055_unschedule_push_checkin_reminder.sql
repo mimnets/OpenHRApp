@@ -5,8 +5,11 @@
 -- every minute. Past reminders stay in the notifications table until the normal cleanup removes
 -- them.
 --
+-- Removes the job by id, because unscheduling by name only finds jobs owned by the current role and
+-- a database copy can leave this job under another role.
+--
 -- Safe to run more than once. Apply by hand in the SQL Editor on every database the app may run on.
 
-select cron.unschedule(jobname)
+select cron.unschedule(jobid)
 from cron.job
 where jobname = 'push-checkin-reminder';
