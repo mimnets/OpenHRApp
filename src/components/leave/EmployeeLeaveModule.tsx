@@ -6,7 +6,7 @@ import { hrService } from '../../services/hrService';
 import { organizationService } from '../../services/organization.service';
 import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift, CustomLeaveType } from '../../types';
 import { DEFAULT_LEAVE_TYPES } from '../../constants';
-import { leaveDecisionLabel } from '../../utils/leaveApprovers';
+import { leaveDecisionDetail, leaveDecisionLabel } from '../../utils/leaveApprovers';
 
 
 const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
@@ -248,8 +248,10 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
 
       // Approval Status
       const statusLabel = req.status.replace('_', ' ');
+      const decision = leaveDecisionDetail(req);
       drawSection('Approval Status', [
         ['Status', statusLabel],
+        ...(decision ? [['Decided By', decision] as [string, string]] : []),
         ['Manager', managerName],
         ['Manager Remarks', req.managerRemarks || 'N/A'],
         ['Approver Remarks', req.approverRemarks || 'N/A'],

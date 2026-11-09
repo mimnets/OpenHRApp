@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canActOnLeave, canCreateLeaveFor, leaveDecisionLabel } from '../utils/leaveApprovers';
+import { canActOnLeave, canCreateLeaveFor, leaveDecisionDetail, leaveDecisionLabel } from '../utils/leaveApprovers';
 import type { Employee, LeaveRequest } from '../types';
 
 const E = (id: string, role: string, o: Partial<Employee> = {}) => ({ id, role, status: 'ACTIVE', ...o }) as Employee;
@@ -28,6 +28,18 @@ describe('leaveDecisionLabel', () => {
   });
   it('says so when older requests have no record', () => {
     expect(leaveDecisionLabel(L('emp', 'APPROVED'))).toBe('Decided by: not recorded');
+  });
+});
+
+describe('leaveDecisionDetail', () => {
+  it('gives the name and date without the label', () => {
+    const decidedAt = '2026-11-09T10:00:00Z';
+    const leave = { ...L('emp', 'APPROVED'), decidedBy: 'hr', decidedByName: 'Asha', decidedAt };
+    expect(leaveDecisionDetail(leave)).toBe(`Asha on ${new Date(decidedAt).toLocaleDateString()}`);
+  });
+  it('says not recorded for older requests and nothing while pending', () => {
+    expect(leaveDecisionDetail(L('emp', 'REJECTED'))).toBe('Not recorded');
+    expect(leaveDecisionDetail(L('emp', 'PENDING_HR'))).toBeNull();
   });
 });
 
