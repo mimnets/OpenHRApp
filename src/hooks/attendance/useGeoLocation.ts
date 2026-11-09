@@ -4,6 +4,7 @@ import { OFFICE_LOCATIONS } from '../../constants';
 import { hrService } from '../../services/hrService';
 import { OfficeLocation } from '../../types';
 import { LocationFailure } from '../../utils/attendanceUtils';
+import { collectLocationDiagnostics } from '../../utils/locationDiagnostics';
 
 const REVERSE_GEOCODE_TIMEOUT_MS = 5000;
 
@@ -56,6 +57,7 @@ export const useGeoLocation = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [failure, setFailure] = useState<LocationFailure | null>(null);
+  const [diagnostics, setDiagnostics] = useState<string | null>(null);
   const [geoFences, setGeoFences] = useState<OfficeLocation[]>(OFFICE_LOCATIONS);
   const watchIdRef = useRef<number | null>(null);
 
@@ -133,11 +135,13 @@ export const useGeoLocation = () => {
     setIsLocating(true);
     setError(null);
     setFailure(null);
+    setDiagnostics(null);
 
     try {
       if (!navigator.geolocation) {
         setError('Geolocation is not supported by this browser. Please use Chrome, Safari, or Firefox.');
         setFailure('unsupported');
+        setDiagnostics(await collectLocationDiagnostics());
         setIsLocating(false);
         return;
       }
@@ -171,6 +175,7 @@ export const useGeoLocation = () => {
       console.error('Geolocation detection failed:', err);
       setError(getLocationErrorMessage(err));
       setFailure(getLocationFailure(err));
+      setDiagnostics(await collectLocationDiagnostics(err));
     } finally {
       setIsLocating(false);
     }
@@ -203,5 +208,5 @@ export const useGeoLocation = () => {
     }
   }, []);
 
-  return { location, isLocating, error, failure, detectLocation, watchLocation, clearWatch };
+  return { location, isLocating, error, failure, diagnostics, detectLocation, watchLocation, clearWatch };
 };

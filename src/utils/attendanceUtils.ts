@@ -10,11 +10,8 @@ export const isNoLocationRecord = (log: Pick<Attendance, 'location'>): boolean =
   log.location?.address === NO_LOCATION_ADDRESS;
 
 /** The tag keeps the failure type with the record, so repeated failures can be diagnosed. */
-export const buildNoLocationRemarks = (failure: LocationFailure, reason: string): string => {
-  const tag = `[NO LOCATION: ${failure}]`;
-  const note = reason.trim();
-  return note ? `${tag} ${note}` : tag;
-};
+export const buildNoLocationRemarks = (failure: LocationFailure, reason: string, diagnostics?: string | null): string =>
+  [`[NO LOCATION: ${failure}]`, reason.trim(), diagnostics].filter(Boolean).join(' ');
 
 /** Check-out adds to the check-in remarks. It must not erase tags such as [FACTORY] or [NO LOCATION]. */
 export const mergeCheckOutRemarks = (existing: string | undefined, entered: string): string => {

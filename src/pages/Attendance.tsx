@@ -37,7 +37,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   } = useCamera();
 
   const {
-    location, isLocating, error: locationError, failure: locationFailure, detectLocation
+    location, isLocating, error: locationError, failure: locationFailure, diagnostics: locationDiagnostics, detectLocation
   } = useGeoLocation();
 
   // Subscription check for write access
@@ -129,7 +129,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
     if (withoutLocation) {
       await submitPunch(
         dutyType,
-        buildNoLocationRemarks(locationFailure || 'unknown', remarks),
+        buildNoLocationRemarks(locationFailure || 'unknown', remarks, locationDiagnostics),
         { lat: 0, lng: 0, address: NO_LOCATION_ADDRESS },
         selfieData
       );

@@ -5,7 +5,7 @@ import Attendance from '../pages/Attendance';
 
 const submitPunch = vi.fn();
 const detectLocation = vi.fn();
-let geo: { location: any; isLocating: boolean; error: string | null; failure: string | null };
+let geo: { location: any; isLocating: boolean; error: string | null; failure: string | null; diagnostics?: string | null };
 let attendance: { activeRecord: any; appConfig: any };
 
 vi.mock('../hooks/attendance/useAttendance', () => ({
@@ -69,6 +69,19 @@ describe('Attendance screen without a location', () => {
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
       'OFFICE',
       '[NO LOCATION: timeout]',
+      { lat: 0, lng: 0, address: 'Not captured' },
+      'selfie-data'
+    ));
+  });
+
+  it('saves the diagnostics with the check-in', async () => {
+    geo.diagnostics = '[DIAG: permission=granted]';
+    render(<Attendance user={{ id: 'E1' }} />);
+
+    fireEvent.click(punchButton(/^check in$/i));
+    await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
+      'OFFICE',
+      '[NO LOCATION: timeout] [DIAG: permission=granted]',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     ));
