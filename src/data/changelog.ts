@@ -19,6 +19,7 @@ export const changelog: ChangelogRelease[] = [
     title: 'Team managers can report to a boss for leave approval',
     entries: [
       { type: 'feature', description: 'Employees can now check in when their phone cannot get a location. After location fails, they can choose Check in without location, take the selfie and enter a reason. The record shows a No Location flag in Attendance Logs, and its remarks include the reason and the type of location failure. HR or Admins can turn this off with Allow Check-In Without Location in the organization\'s System settings. It is on by default.' },
+      { type: 'improvement', description: 'Added automated tests to confirm Factory duty input stays mandatory for check-in and check-out when no location is available.' },
       { type: 'fix', description: 'Check-out no longer waits for a location, because check-out never saved one.' },
       { type: 'fix', description: 'Check-out no longer erases the remarks entered at check-in, including the Factory tag. Any new check-out remark is added after them.' },
       { type: 'fix', description: 'A slow address lookup can no longer hold up check-in. After 5 seconds, the check-in shows the coordinates instead of the street address.' },

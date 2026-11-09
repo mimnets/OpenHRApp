@@ -111,4 +111,42 @@ describe('Attendance screen without a location', () => {
     fireEvent.click(checkOut);
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith('OFFICE', '', null, 'selfie-data'));
   });
+
+  it('requires the factory input to check in without a location', async () => {
+    render(<Attendance user={{ id: 'E1' }} autoStart="FACTORY" />);
+    const checkIn = punchButton(/^check in$/i);
+
+    fireEvent.click(punchButton(SKIP_LABEL));
+    expect(checkIn.disabled).toBe(true);
+
+    const input = screen.getByPlaceholderText(/factory name & why no location/i);
+    fireEvent.change(input, { target: { value: '   ' } });
+    expect(checkIn.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: 'Plant 2, GPS not working' } });
+    expect(checkIn.disabled).toBe(false);
+
+    fireEvent.click(checkIn);
+    await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
+      'FACTORY',
+      '[NO LOCATION: timeout] Plant 2, GPS not working',
+      { lat: 0, lng: 0, address: 'Not captured' },
+      'selfie-data'
+    ));
+  });
+
+  it('requires the factory input to check out without a location', async () => {
+    attendance.activeRecord = { id: 'A1', employeeId: 'E1', date: '2026-11-09', status: 'PRESENT', dutyType: 'FACTORY' };
+    render(<Attendance user={{ id: 'E1' }} />);
+    const checkOut = punchButton(/^check out$/i);
+    expect(checkOut.disabled).toBe(true);
+
+    fireEvent.change(screen.getByPlaceholderText(/factory name & details/i), {
+      target: { value: 'Finished at Plant 2' },
+    });
+    expect(checkOut.disabled).toBe(false);
+
+    fireEvent.click(checkOut);
+    await waitFor(() => expect(submitPunch).toHaveBeenCalledWith('FACTORY', 'Finished at Plant 2', null, 'selfie-data'));
+  });
 });
