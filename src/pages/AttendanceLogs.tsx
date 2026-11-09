@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { hrService } from '../services/hrService';
 import { Attendance, Employee, AppConfig } from '../types';
-import { consolidateAttendance, calculatePunctuality, calculateDuration } from '../utils/attendanceUtils';
+import { consolidateAttendance, calculatePunctuality, calculateDuration, isNoLocationRecord } from '../utils/attendanceUtils';
 import HelpButton from '../components/onboarding/HelpButton';
 import { useToast } from '../context/ToastContext';
 
@@ -383,6 +383,11 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY', 
                     }`}>
                       {log.status}
                     </span>
+                    {isNoLocationRecord(log) && (
+                      <span className="px-2.5 py-1 rounded-lg text-[8px] font-semibold uppercase tracking-widest bg-amber-50 text-amber-600">
+                        No location
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
                     {isAuditMode && (
@@ -571,9 +576,13 @@ const AttendanceLogs: React.FC<AttendanceLogsProps> = ({ user, viewMode = 'MY', 
                 <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between">
                    <div className="flex-1 pr-4">
                       <p className="text-xs font-bold text-slate-700">{selectedLog.location?.address}</p>
-                      <p className="text-[9px] font-mono text-slate-400 mt-1">{selectedLog.location?.lat.toFixed(6)}, {selectedLog.location?.lng.toFixed(6)}</p>
+                      {!isNoLocationRecord(selectedLog) && (
+                        <p className="text-[9px] font-mono text-slate-400 mt-1">{selectedLog.location?.lat.toFixed(6)}, {selectedLog.location?.lng.toFixed(6)}</p>
+                      )}
                    </div>
-                   <a href={`https://www.google.com/maps?q=${selectedLog.location?.lat},${selectedLog.location?.lng}`} target="_blank" rel="noreferrer" className="p-3 bg-white text-primary rounded-xl shadow-sm border border-slate-50 hover:bg-primary hover:text-white transition-all"><ExternalLink size={18} /></a>
+                   {!isNoLocationRecord(selectedLog) && (
+                     <a href={`https://www.google.com/maps?q=${selectedLog.location?.lat},${selectedLog.location?.lng}`} target="_blank" rel="noreferrer" className="p-3 bg-white text-primary rounded-xl shadow-sm border border-slate-50 hover:bg-primary hover:text-white transition-all"><ExternalLink size={18} /></a>
+                   )}
                 </div>
               </div>
 

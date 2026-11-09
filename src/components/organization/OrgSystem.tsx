@@ -284,6 +284,13 @@ export const OrgSystem: React.FC<Props> = ({ config, onSave }) => {
                       <p className="text-[9px] text-slate-400 mt-1">If no punch found by this time, mark as ABSENT.</p>
                    </div>
                </div>
+               <div className="space-y-2 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                   <div className="flex items-center justify-between gap-4">
+                      <h4 className="font-semibold text-slate-900 text-sm flex items-center gap-2"><MapPin size={16} className="text-rose-500"/> Allow Check-In Without Location</h4>
+                      <input type="checkbox" className="w-5 h-5 accent-indigo-600 rounded-lg shrink-0" checked={config.allowCheckInWithoutLocation !== false} onChange={e => handleChange('allowCheckInWithoutLocation', e.target.checked)} />
+                   </div>
+                   <p className="text-[9px] text-slate-400">When a phone cannot get a location, the employee can still check in with a selfie and a reason. The record is flagged in Attendance Logs.</p>
+               </div>
              </div>
          </div>
       </div>

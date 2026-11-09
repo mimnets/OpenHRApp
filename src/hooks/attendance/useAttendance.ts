@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { hrService } from '../../services/hrService';
 import { Attendance, AppConfig, Shift } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { mergeCheckOutRemarks } from '../../utils/attendanceUtils';
 
 export const useAttendance = (user: any, onFinish?: () => void) => {
   const { showToast } = useToast();
@@ -74,7 +75,7 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
   const submitPunch = async (
     dutyType: 'OFFICE' | 'FACTORY',
     remarks: string,
-    location: { lat: number; lng: number; address: string },
+    location: { lat: number; lng: number; address: string } | null,
     selfieData: string
   ) => {
     setStatus('loading');
@@ -84,7 +85,10 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
 
       if (activeRecord && !activeRecord.checkOut) {
         // Clock Out
-        await hrService.updateAttendance(activeRecord.id, { checkOut: punchTime, remarks });
+        await hrService.updateAttendance(activeRecord.id, {
+          checkOut: punchTime,
+          remarks: mergeCheckOutRemarks(activeRecord.remarks, remarks),
+        });
       } else {
         // Clock In
         let punchStatus: Attendance['status'] = 'PRESENT';
@@ -113,8 +117,8 @@ export const useAttendance = (user: any, onFinish?: () => void) => {
           date: today,
           checkIn: punchTime, 
           status: punchStatus, 
-          location, 
-          selfie: selfieData, 
+          location: location ?? undefined,
+          selfie: selfieData,
           remarks: dutyType === 'FACTORY' ? `[FACTORY] ${remarks}` : remarks,
           dutyType: dutyType
         });

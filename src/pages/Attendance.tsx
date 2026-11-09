@@ -8,6 +8,7 @@ import { useGeoLocation } from '../hooks/attendance/useGeoLocation';
 import { useAttendance } from '../hooks/attendance/useAttendance';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useToast } from '../context/ToastContext';
+import { NO_LOCATION_ADDRESS, buildNoLocationRemarks } from '../utils/attendanceUtils';
 
 // UI Components
 import { AttendanceHeader } from '../components/attendance/AttendanceHeader';
@@ -36,7 +37,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   } = useCamera();
 
   const {
-    location, isLocating, error: locationError, detectLocation
+    location, isLocating, error: locationError, failure: locationFailure, detectLocation
   } = useGeoLocation();
 
   // Subscription check for write access
@@ -48,8 +49,16 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   const [dutyType, setDutyType] = useState<'OFFICE' | 'FACTORY'>('OFFICE');
   const [isMobile, setIsMobile] = useState(false);
   const [fallbackPhoto, setFallbackPhoto] = useState<string | null>(null);
+  const [skipLocationChosen, setSkipLocationChosen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraInitialized = useRef(false);
+
+  // Check-out does not save a location, so it never waits for one.
+  const isCheckOut = !!activeRecord && !activeRecord.checkOut;
+  const canSkipLocation = !isCheckOut && !location && !isLocating && !!locationError
+    && appConfig?.allowCheckInWithoutLocation !== false;
+  const withoutLocation = canSkipLocation && skipLocationChosen;
+  const locationReady = isCheckOut || !!location || withoutLocation;
 
   // 3. Initialize hardware once when data is ready
   useEffect(() => {
@@ -60,7 +69,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
     if (isLoading || cameraInitialized.current) return;
     cameraInitialized.current = true;
 
-    detectLocation(true);
+    if (!isCheckOut) detectLocation(true);
     startCamera('user');
   }, [isLoading]);
 
@@ -91,7 +100,12 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
       return;
     }
 
-    if (status !== 'idle' || !location) return;
+    if (withoutLocation && !remarks.trim()) {
+      showToast('Mandatory: Please enter why your location is not available.', 'warning');
+      return;
+    }
+
+    if (status !== 'idle' || !locationReady) return;
 
     let selfieData: string | null = null;
 
@@ -108,7 +122,16 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
 
     if (!selfieData) return;
 
-    await submitPunch(dutyType, remarks, location, selfieData);
+    if (withoutLocation) {
+      await submitPunch(
+        dutyType,
+        buildNoLocationRemarks(locationFailure || 'unknown', remarks),
+        { lat: 0, lng: 0, address: NO_LOCATION_ADDRESS },
+        selfieData
+      );
+    } else {
+      await submitPunch(dutyType, remarks, isCheckOut ? null : location, selfieData);
+    }
   };
 
   const handleBack = () => {
@@ -143,12 +166,14 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
           onTakePhoto={handleTakePhoto}
           photoLoading={cameraLoading}
         >
-          <LocationDisplay
-            location={location}
-            isLocating={isLocating}
-            error={locationError}
-            onRetry={() => detectLocation(true)}
-          />
+          {!isCheckOut && status !== 'success' && (
+            <LocationDisplay
+              location={location}
+              isLocating={isLocating}
+              error={locationError}
+              onRetry={() => detectLocation(true)}
+            />
+          )}
         </CameraFeed>
       </div>
 
@@ -172,7 +197,10 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
         onSubmit={handlePunchSubmit}
         status={status}
         activeRecord={activeRecord}
-        isDisabled={!canPunch || !location || isLocating || status !== 'idle' || !hasPhoto || (dutyType === 'FACTORY' && !remarks.trim())}
+        canSkipLocation={canSkipLocation}
+        withoutLocation={withoutLocation}
+        onToggleWithoutLocation={() => setSkipLocationChosen(chosen => !chosen)}
+        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || ((dutyType === 'FACTORY' || withoutLocation) && !remarks.trim())}
       />
 
       <canvas ref={canvasRef} className="hidden" />

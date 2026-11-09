@@ -13,12 +13,20 @@ interface Props {
   status: 'idle' | 'loading' | 'success';
   isDisabled: boolean;
   activeRecord?: Attendance;
+  canSkipLocation?: boolean;
+  withoutLocation?: boolean;
+  onToggleWithoutLocation?: () => void;
 }
 
 export const AttendanceActions: React.FC<Props> = ({
-  dutyType, dutyLabel, remarks, setRemarks, onSubmit, status, isDisabled, activeRecord
+  dutyType, dutyLabel, remarks, setRemarks, onSubmit, status, isDisabled, activeRecord,
+  canSkipLocation, withoutLocation, onToggleWithoutLocation
 }) => {
   const displayLabel = dutyLabel || (dutyType === 'FACTORY' ? 'Factory' : 'Office');
+  const remarksRequired = dutyType === 'FACTORY' || !!withoutLocation;
+  const remarksPlaceholder = withoutLocation
+    ? (dutyType === 'FACTORY' ? `${displayLabel} Name & why no location...` : 'Why is your location not available?')
+    : (dutyType === 'FACTORY' ? `${displayLabel} Name & Details...` : 'Optional remarks...');
 
   return (
     <div className="px-8 pt-4 pb-12 flex flex-col items-center gap-4">
@@ -26,15 +34,29 @@ export const AttendanceActions: React.FC<Props> = ({
       <div className="w-full max-w-[320px]">
         <AdFrame placement="attendance" />
       </div>
+      {canSkipLocation && (
+        <div className="w-full max-w-[320px] px-2 flex items-center justify-between gap-3">
+          <p className="text-[11px] font-medium text-slate-500 leading-snug">
+            {withoutLocation ? 'This check-in will be flagged for HR. A reason is required.' : 'Location not working?'}
+          </p>
+          <button
+            type="button"
+            onClick={onToggleWithoutLocation}
+            className="shrink-0 min-h-[44px] px-2 text-xs font-bold text-primary"
+          >
+            {withoutLocation ? 'Cancel' : 'Check in without location'}
+          </button>
+        </div>
+      )}
       <div className="w-full max-w-[320px] space-y-2">
         <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest px-2 flex items-center gap-1.5">
-          {dutyType === 'FACTORY' && <AlertCircle size={10} className="text-emerald-500" />}
-          {displayLabel} {dutyType === 'FACTORY' && "(Mandatory)"}
+          {remarksRequired && <AlertCircle size={10} className="text-emerald-500" />}
+          {displayLabel} {remarksRequired && "(Mandatory)"}
         </p>
         <input
           type="text"
-          placeholder={dutyType === 'FACTORY' ? `${displayLabel} Name & Details...` : "Optional remarks..."}
-          className={`w-full px-6 py-3.5 bg-white border rounded-2xl text-slate-700 text-xs font-bold placeholder:text-slate-300 outline-none shadow-sm transition-all ${dutyType === 'FACTORY' && !remarks ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'}`}
+          placeholder={remarksPlaceholder}
+          className={`w-full px-6 py-3.5 bg-white border rounded-2xl text-slate-700 text-xs font-bold placeholder:text-slate-300 outline-none shadow-sm transition-all ${remarksRequired && !remarks ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'}`}
           value={remarks}
           onChange={e => setRemarks(e.target.value)}
         />

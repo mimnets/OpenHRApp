@@ -18,6 +18,10 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-11-09',
     title: 'Team managers can report to a boss for leave approval',
     entries: [
+      { type: 'feature', description: 'Employees can now check in when their phone cannot get a location. After location fails, they can choose Check in without location, take the selfie and enter a reason. The record shows a No Location flag in Attendance Logs, and its remarks include the reason and the type of location failure. HR or Admins can turn this off with Allow Check-In Without Location in the organization\'s System settings. It is on by default.' },
+      { type: 'fix', description: 'Check-out no longer waits for a location, because check-out never saved one.' },
+      { type: 'fix', description: 'Check-out no longer erases the remarks entered at check-in, including the Factory tag. Any new check-out remark is added after them.' },
+      { type: 'fix', description: 'A slow address lookup can no longer hold up check-in. After 5 seconds, the check-in shows the coordinates instead of the street address.' },
       { type: 'improvement', description: 'Removed check-in reminders for employees: the popup asking to turn them on, the reminder 15 minutes before a shift, and the alert 30 minutes after it starts. Managers still get late check-in alerts, and Marked Absent and check-out reminders still work. Push Broadcast still reaches devices that are already subscribed, but new devices can no longer subscribe.' },
       { type: 'improvement', description: 'Removed the Contact Support form from the System & Profile page. The contact form on the public website is unchanged.' },
       { type: 'fix', description: 'Fixed the database update that stops check-in reminders, which failed with a "could not find valid entry" error when the reminder job belonged to a different database role.' },

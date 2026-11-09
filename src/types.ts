@@ -300,6 +300,7 @@ export interface AppConfig {
   autoAbsentEnabled?: boolean;
   autoAbsentTime?: string; // HH:mm
   officeLocations?: OfficeLocation[];
+  allowCheckInWithoutLocation?: boolean; // On unless set to false
   dutyLabel1?: string; // Display label for OFFICE duty type (default "Office")
   dutyLabel2?: string; // Display label for FACTORY duty type (default "Factory")
 }

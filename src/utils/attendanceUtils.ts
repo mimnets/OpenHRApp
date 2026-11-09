@@ -1,6 +1,25 @@
 
 import { Attendance, Employee, Shift, AppConfig, Holiday, LeaveRequest, EmployeeAttendanceSummary } from '../types';
 
+export type LocationFailure = 'denied' | 'unavailable' | 'timeout' | 'unsupported' | 'unknown';
+
+/** Stored in attendance.location when an employee checks in without a location. */
+export const NO_LOCATION_ADDRESS = 'Not captured';
+
+export const isNoLocationRecord = (log: Pick<Attendance, 'location'>): boolean =>
+  log.location?.address === NO_LOCATION_ADDRESS;
+
+/** The tag keeps the failure type with the record, so repeated failures can be diagnosed. */
+export const buildNoLocationRemarks = (failure: LocationFailure, reason: string): string =>
+  `[NO LOCATION: ${failure}] ${reason.trim()}`;
+
+/** Check-out adds to the check-in remarks. It must not erase tags such as [FACTORY] or [NO LOCATION]. */
+export const mergeCheckOutRemarks = (existing: string | undefined, entered: string): string => {
+  const note = entered.trim();
+  if (!existing) return note;
+  return note ? `${existing} | ${note}` : existing;
+};
+
 /**
  * Consolidates multiple attendance records into a single daily record per employee.
  * Logic: 

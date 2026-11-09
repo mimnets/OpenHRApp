@@ -3,6 +3,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { OFFICE_LOCATIONS } from '../../constants';
 import { hrService } from '../../services/hrService';
 import { OfficeLocation } from '../../types';
+import { LocationFailure } from '../../utils/attendanceUtils';
+
+const REVERSE_GEOCODE_TIMEOUT_MS = 5000;
 
 /**
  * Geolocation hook for attendance check-in/check-out (PWA / browser only).
@@ -39,10 +42,20 @@ const getLocationErrorMessage = (err: any): string => {
   }
 };
 
+const getLocationFailure = (err: any): LocationFailure => {
+  switch (err?.code) {
+    case 1: return 'denied';
+    case 2: return 'unavailable';
+    case 3: return 'timeout';
+    default: return 'unknown';
+  }
+};
+
 export const useGeoLocation = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<LocationFailure | null>(null);
   const [geoFences, setGeoFences] = useState<OfficeLocation[]>(OFFICE_LOCATIONS);
   const watchIdRef = useRef<number | null>(null);
 
@@ -72,10 +85,13 @@ export const useGeoLocation = () => {
   };
 
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    // The address is only a label. A slow lookup must not hold up the check-in.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REVERSE_GEOCODE_TIMEOUT_MS);
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } }
+        { headers: { 'Accept-Language': 'en' }, signal: controller.signal }
       );
       if (!response.ok) throw new Error('Geocode failed');
       const data = await response.json();
@@ -97,6 +113,8 @@ export const useGeoLocation = () => {
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     } catch {
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -114,10 +132,12 @@ export const useGeoLocation = () => {
   const detectLocation = useCallback(async (force: boolean = false) => {
     setIsLocating(true);
     setError(null);
+    setFailure(null);
 
     try {
       if (!navigator.geolocation) {
         setError('Geolocation is not supported by this browser. Please use Chrome, Safari, or Firefox.');
+        setFailure('unsupported');
         setIsLocating(false);
         return;
       }
@@ -150,6 +170,7 @@ export const useGeoLocation = () => {
     } catch (err: any) {
       console.error('Geolocation detection failed:', err);
       setError(getLocationErrorMessage(err));
+      setFailure(getLocationFailure(err));
     } finally {
       setIsLocating(false);
     }
@@ -182,5 +203,5 @@ export const useGeoLocation = () => {
     }
   }, []);
 
-  return { location, isLocating, error, detectLocation, watchLocation, clearWatch };
+  return { location, isLocating, error, failure, detectLocation, watchLocation, clearWatch };
 };
