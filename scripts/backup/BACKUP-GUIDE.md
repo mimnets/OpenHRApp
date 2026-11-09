@@ -63,16 +63,107 @@ These backups are taken while the server runs. Postgres recovers from them as it
 
 ### 3. Set up encrypted off-site storage
 
-Use storage outside OCI, such as Cloudflare R2.
+This step uses Cloudflare R2, which is outside OCI. You do not need the `rclone config` menus. The commands
+below create the same settings. Never share the keys, the passwords or `rclone.conf`, or a screenshot that
+shows them.
 
-1. Create a bucket, and an API token limited to that bucket.
-2. Install rclone: `curl https://rclone.org/install.sh | sudo bash`
-3. Run `rclone config`, and create two remotes:
-   - An S3 remote with provider Cloudflare, named `r2`.
-   - A **crypt** remote named `openhr-backup`, pointing at `r2:<bucket>`.
-4. Store the crypt passwords and a copy of `/root/.config/rclone/rclone.conf` in a password manager.
+**a. In Cloudflare.** Button names may differ slightly.
 
-**Without the crypt passwords, the backups cannot be read.** They must not exist only on the server.
+1. Open **R2 Object Storage**. Cloudflare may ask for a payment card, even for the free tier.
+2. Click **Create bucket**, and name it exactly `openhr-backups`. Keep the default settings. Do not choose a
+   jurisdiction such as EU, because it needs a different endpoint.
+3. Open **Manage API Tokens**, then **Create API Token**.
+4. Set the permission to **Object Read & Write**, and limit the token to the `openhr-backups` bucket.
+5. Create the token, and keep the page open. It shows these values only once: **Access Key ID**,
+   **Secret Access Key** and **Endpoint**.
+
+**b. Install rclone, and connect it to R2.** Run this as `root`. The endpoint must end at `.com`, in the form
+`https://<id>.r2.cloudflarestorage.com`. Do not add `/openhr-backups`.
+
+```bash
+curl https://rclone.org/install.sh | sudo bash
+
+read -r -p "Access Key ID: " R2_KEY
+read -r -p "Secret Access Key: " R2_SECRET
+read -r -p "Endpoint: " R2_ENDPOINT
+
+rclone config create r2 s3 provider=Cloudflare \
+  access_key_id="$R2_KEY" secret_access_key="$R2_SECRET" \
+  endpoint="$R2_ENDPOINT" region=auto acl=private no_check_bucket=true > /dev/null
+
+rclone ls r2:openhr-backups && echo "R2 CONNECTED"
+```
+
+`R2 CONNECTED` must appear. If you see `403` or `AccessDenied`, see **If R2 says Access Denied** below, and do
+not continue yet.
+
+**c. Add the encryption.**
+
+```bash
+P1=$(openssl rand -hex 32)
+P2=$(openssl rand -hex 32)
+
+rclone config create openhr-backup crypt \
+  remote=r2:openhr-backups password="$P1" password2="$P2" --obscure > /dev/null
+
+echo "Password 1: $P1"
+echo "Password 2: $P2"
+```
+
+Store both passwords in a password manager now. **Without them, the backups cannot be read.** Run this only
+once. A second run makes new passwords, and older backups then need the old ones.
+
+**d. Test it.**
+
+```bash
+echo "backup test" > /tmp/rclone-test.txt
+rclone copy /tmp/rclone-test.txt openhr-backup:test
+echo "--- Readable through the encrypted connection:"
+rclone ls openhr-backup:
+echo "--- What Cloudflare actually stores:"
+rclone ls r2:openhr-backups
+rclone purge openhr-backup:test
+rm /tmp/rclone-test.txt
+```
+
+The first list must show `test/rclone-test.txt`. The second must show scrambled names.
+
+**e. Save the settings.** Copy the output of this command into the same password manager entry. A new server
+needs it to read the backups:
+
+```bash
+cat /root/.config/rclone/rclone.conf
+```
+
+#### If R2 says Access Denied
+
+`AccessDenied` on `ListObjectsV2` usually means that the token is not allowed to use that bucket, or that the
+address is wrong. Check these in order:
+
+1. **Endpoint:** it must not end in `/openhr-backups`. To check it, and to correct it:
+
+   ```bash
+   rclone config show r2 | grep endpoint
+   rclone config update r2 endpoint=https://<id>.r2.cloudflarestorage.com
+   ```
+
+2. **Bucket name:** it must be exactly `openhr-backups` in Cloudflare, including the final `s`.
+3. **Token:** it must have **Object Read & Write**, and list the `openhr-backups` bucket. If not, create a new
+   token, because the secret cannot be shown again, and enter the new keys:
+
+   ```bash
+   read -r -p "Access Key ID: " R2_KEY
+   read -r -p "Secret Access Key: " R2_SECRET
+   rclone config update r2 access_key_id="$R2_KEY" secret_access_key="$R2_SECRET"
+   ```
+
+4. **Jurisdiction:** if the bucket was created with one such as EU, delete it and create it again without one.
+
+Then test again:
+
+```bash
+rclone ls r2:openhr-backups && echo "R2 CONNECTED"
+```
 
 ### 4. Run it once
 
