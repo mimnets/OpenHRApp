@@ -1026,15 +1026,6 @@ Customize the app's appearance using the Theme Selector:
 
 See the [Theme Customization guide](/how-to-use/theme-customization) for more details on available themes and dark mode.
 
-#### Contacting Support
-
-Need help? Use the **Contact Support** form at the bottom of the Settings page:
-
-1. Your name and email are pre-filled.
-2. Enter a **subject** for your query.
-3. Write your **message** with details about your issue.
-4. Click **"Send"** to submit your support request.
-
 #### Related Guides
 
 - [Welcome to OpenHR](/how-to-use/welcome-to-openhr) — Overview of all features.

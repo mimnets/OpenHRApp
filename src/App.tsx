@@ -63,7 +63,6 @@ const AdminNotifications = lazyWithReload(() => import('./pages/AdminNotificatio
 
 import { navigateTo } from './utils/seo';
 import { getCurrentRoute, navigateToRoute, replaceRoute } from './utils/deeplink';
-import { PushPermissionPrompt } from './components/PushPermissionPrompt';
 // M-04: standalone Monetag In-Page Push. Ships switched off — see src/config/monetag.ts.
 import { classifyRoute } from './config/monetag';
 import { beginAdvertisingDocumentReset, initializeMonetagRuntimeSettings, installMonetagTagOnce, watchPageAdvertisingOptIn, type AuthState } from './utils/monetagLoader';
@@ -525,8 +524,6 @@ const AppContent: React.FC = () => {
     window.location.replace(window.location.href);
   }, [user]);
 
-  // Push subscription handled via PushPermissionPrompt (soft-gate, user-initiated)
-
   const handleNavigate = (path: string, params?: any) => {
     if (path === 'attendance-quick-office') {
       setCurrentPath('attendance');
@@ -693,23 +690,13 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const pushPrompt = !isSuperAdmin ? (
-    <PushPermissionPrompt userId={user.id} organizationId={user.organizationId as string | undefined} />
-  ) : null;
-
   if (currentPath === 'attendance') {
-    return (
-      <>
-        <Suspense fallback={suspenseFallback}>{renderContent()}</Suspense>
-        {pushPrompt}
-      </>
-    );
+    return <Suspense fallback={suspenseFallback}>{renderContent()}</Suspense>;
   }
 
   return (
     <MainLayout currentPath={currentPath} onNavigate={handleNavigate}>
       <Suspense fallback={suspenseFallback}>{renderContent()}</Suspense>
-      {pushPrompt}
     </MainLayout>
   );
 };

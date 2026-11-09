@@ -18,6 +18,8 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-11-09',
     title: 'Team managers can report to a boss for leave approval',
     entries: [
+      { type: 'improvement', description: 'Removed check-in reminders for employees: the popup asking to turn them on, the reminder 15 minutes before a shift, and the alert 30 minutes after it starts. Managers still get late check-in alerts, and Marked Absent and check-out reminders still work. Push Broadcast still reaches devices that are already subscribed, but new devices can no longer subscribe.' },
+      { type: 'improvement', description: 'Removed the Contact Support form from the System & Profile page. The contact form on the public website is unchanged.' },
       { type: 'feature', description: 'Added a Reports To field to the employee form. A team manager\'s leave now goes to the person chosen there, who gets the approval email and can approve or reject it. HR still gives final approval.' },
       { type: 'fix', description: 'A team lead ticked as a member of their own team no longer becomes their own manager. Their leave used to go to themselves and wait for an HR override. It now goes to their Reports To person, or to HR if none is set.' },
       { type: 'fix', description: 'Saving or deleting a team no longer erases a Reports To chosen by hand. Members who report to the team lead still follow the lead when it changes.' },

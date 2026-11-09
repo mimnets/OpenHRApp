@@ -21,7 +21,6 @@ originSessionId: f9fb8799-c860-4f92-88f7-d834cf191da5
 | cron-auto-close-sessions | Close forgotten check-outs | CRON_SECRET |
 | cron-daily-report | Daily attendance summary email | CRON_SECRET |
 | cron-expire-trials | Trial expiration + reminders | CRON_SECRET |
-| cron-push-checkin-reminder | Missed check-in push alerts | CRON_SECRET |
 | cron-review-transitions | Auto-open/close review cycles | CRON_SECRET |
 | register | Organization registration | Public |
 | send-bulk-email | Super admin bulk email broadcast | SUPER_ADMIN |
@@ -42,7 +41,6 @@ Defined in `scripts/setup-cron-schedules.sql`. Uses `net.http_post()` (pg_net 0.
 | auto-absent-check | * * * * * | cron-auto-absent |
 | daily-attendance-report | 0 23 * * * | cron-daily-report |
 | attendance-reminders | */5 * * * * | cron-attendance-reminders |
-| push-checkin-reminder | */5 * * * * | cron-push-checkin-reminder |
 | review-cycle-transition | 0 0 * * * | cron-review-transitions |
 | auto-expire-trials | 0 0 * * * | cron-expire-trials |
 

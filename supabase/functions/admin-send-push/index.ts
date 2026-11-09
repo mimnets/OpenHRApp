@@ -93,8 +93,8 @@ async function sendWebPush(
 
   const jwt = `${signingInput}.${sig}`;
 
-  // Encode payload as JSON — matches what cron-push-checkin-reminder sends
-  // and what the SW push handler (sw.ts) expects: { title, body, url, icon, tag }.
+  // Encode payload as JSON — matches what the SW push handler (sw.ts)
+  // expects: { title, body, url, icon, tag }.
   const pushPayload = {
     title: payload.title,
     body: payload.body,

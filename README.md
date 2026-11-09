@@ -123,7 +123,6 @@ supabase functions deploy cron-auto-absent
 supabase functions deploy cron-auto-close-sessions
 supabase functions deploy cron-daily-report
 supabase functions deploy cron-expire-trials
-supabase functions deploy cron-push-checkin-reminder
 supabase functions deploy cron-review-transitions
 supabase functions deploy notify-admins-email
 supabase functions deploy public-ad-config
@@ -149,7 +148,7 @@ Open your Supabase Dashboard → **SQL Editor** and run the contents of `scripts
 - `<PROJECT_REF>` with your Supabase project ref
 - `<CRON_SECRET>` with the secret you set in step 6
 
-This schedules all background jobs: auto-close sessions, auto-absent marking, trial expiration, attendance reminders, daily reports, review cycle transitions, and push notification check-in reminders.
+This schedules all background jobs: auto-close sessions, auto-absent marking, trial expiration, attendance reminders, daily reports, and review cycle transitions.
 
 #### 8. Configure Environment Variables
 
@@ -247,7 +246,7 @@ The stack runs 13 containers covering every Supabase service:
 | `openhr-frontend` | React 19 SPA served by Nginx (port 3000) |
 | `openhr-init` | Auto-setup container (runs once — migrations, functions, cron) |
 
-Cron jobs for attendance processing, trial expiration, daily reports, check-in reminders, review transitions, and demo resets are automatically scheduled.
+Cron jobs for attendance processing, trial expiration, daily reports, review transitions, and demo resets are automatically scheduled.
 
 #### Persistence
 
@@ -358,8 +357,7 @@ supabase/
 │   ├── cron-daily-report/          # Daily attendance summary
 │   ├── cron-attendance-reminders/  # Checkout reminders
 │   ├── cron-expire-trials/         # Trial expiration
-│   ├── cron-review-transitions/    # Review cycle open/close
-│   └── cron-push-checkin-reminder/ # Missed check-in push alerts
+│   └── cron-review-transitions/    # Review cycle open/close
 └── .temp/                   # Local Supabase config (git-ignored)
 ```
 
@@ -382,7 +380,6 @@ supabase/
 | `auto-absent-check` | Every minute | `cron-auto-absent` |
 | `daily-attendance-report` | Daily 23:00 UTC | `cron-daily-report` |
 | `attendance-reminders` | Every 5 min | `cron-attendance-reminders` |
-| `push-checkin-reminder` | Every minute | `cron-push-checkin-reminder` |
 | `review-cycle-transition` | Daily midnight | `cron-review-transitions` |
 | `auto-expire-trials` | Daily midnight | `cron-expire-trials` |
 

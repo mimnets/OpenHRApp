@@ -12,7 +12,7 @@ interface Props {
 const NOTIFICATION_TYPE_LABELS: Record<NotificationType, { label: string; description: string }> = {
   ANNOUNCEMENT: { label: 'Announcements', description: 'Noticeboard and company-wide announcements' },
   LEAVE: { label: 'Leave Requests', description: 'Leave submissions, approvals, and rejections' },
-  ATTENDANCE: { label: 'Attendance', description: 'Check-in reminders, late alerts, missed check-outs' },
+  ATTENDANCE: { label: 'Attendance', description: 'Late alerts, missed check-outs' },
   REVIEW: { label: 'Performance Reviews', description: 'Review cycle updates and assessment notifications' },
   SYSTEM: { label: 'System', description: 'System alerts, maintenance, and admin notifications' },
   NEW_REGISTRATION: { label: 'New Registrations', description: 'New organization sign-up alerts' },
