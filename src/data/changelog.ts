@@ -15,6 +15,16 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-11-09',
+    title: 'Team managers can report to a boss for leave approval',
+    entries: [
+      { type: 'feature', description: 'Added a Reports To field to the employee form. A team manager\'s leave now goes to the person chosen there, who gets the approval email and can approve or reject it. HR still gives final approval.' },
+      { type: 'fix', description: 'A team lead ticked as a member of their own team no longer becomes their own manager. Their leave used to go to themselves and wait for an HR override. It now goes to their Reports To person, or to HR if none is set.' },
+      { type: 'fix', description: 'Saving or deleting a team no longer erases a Reports To chosen by hand. Members who report to the team lead still follow the lead when it changes.' },
+      { type: 'improvement', description: 'Leave emails now say "reporting manager" instead of "line manager".' },
+    ],
+  },
+  {
     date: '2026-11-08',
     title: 'Faster app start and login, and iPhone screen zoom fix',
     entries: [

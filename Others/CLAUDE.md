@@ -81,7 +81,7 @@ Pages/Components → Hooks → hrService (facade) → Domain Services → apiCli
 1. Employee submits leave
 2. System checks department workflow config (`organizationService.getWorkflows()`)
 3. If workflow `approverRole` = HR/ADMIN → status = `PENDING_HR` (skip manager)
-4. If employee has no `lineManagerId` → status = `PENDING_HR`
+4. If employee has no `lineManagerId` ("Reports To" on the employee form; it can't be themselves) → status = `PENDING_HR`
 5. Otherwise → status = `PENDING_MANAGER`
 6. Manager approves → status changes to `PENDING_HR`
 7. HR/Admin approves → status = `APPROVED` (final)

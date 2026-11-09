@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { apiClient, dedupe } from './api.client';
 import { LeaveRequest, LeaveBalance } from '../types';
 import { organizationService } from './organization.service';
+import { reportingManagerId } from '../utils/reportingLine';
 
 let cachedLeaves: LeaveRequest[] | null = null;
 let leaveCacheTimestamp = 0;
@@ -84,7 +85,7 @@ export const leaveService = {
           .eq('id', data.employeeId)
           .single();
         department = emp?.department || 'Unassigned';
-        lineManagerId = emp?.line_manager_id || null;
+        lineManagerId = reportingManagerId(data.employeeId, emp?.line_manager_id);
       }
     } catch (e) { console.error('Could not fetch employee details for workflow'); }
 
@@ -191,7 +192,7 @@ export const leaveService = {
         .select('line_manager_id')
         .eq('id', data.employeeId.trim())
         .single();
-      lineManagerId = emp?.line_manager_id || null;
+      lineManagerId = reportingManagerId(data.employeeId.trim(), emp?.line_manager_id);
     } catch (e) { /* non-fatal */ }
 
     const orgId = apiClient.getOrganizationId();

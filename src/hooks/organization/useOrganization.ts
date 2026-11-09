@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { hrService } from '../../services/hrService';
 import { Holiday, AppConfig, LeaveWorkflow, Employee, Team, LeavePolicy, ShiftOverride, OrgNotificationConfig } from '../../types';
 import { DEFAULT_CONFIG, DEFAULT_NOTIFICATION_CONFIG } from '../../constants';
+import { teamProfileUpdates } from '../../utils/reportingLine';
 
 export const useOrganization = () => {
   const [departments, setDepartments] = useState<string[]>([]);
@@ -87,6 +88,7 @@ export const useOrganization = () => {
   const saveTeam = async (teamId: string | null, data: Partial<Team>, selectedMembers: Set<string>) => {
       setIsSaving(true);
       let targetId = teamId;
+      const previousLeaderId = teams.find(t => t.id === teamId)?.leaderId;
       try {
         // 1. Create or Update Team Record
         let finalTeamId = targetId;
@@ -99,32 +101,10 @@ export const useOrganization = () => {
 
         // 2. Sync Members & Line Managers
         if (finalTeamId) {
-            const originalMembers: string[] = employees.filter(e => e.teamId === finalTeamId).map(e => e.id);
-            const toAdd: string[] = [...selectedMembers].filter(id => !originalMembers.includes(id));
-            const toRemove: string[] = originalMembers.filter(id => !selectedMembers.has(id));
-            
-            // AUTOMATION: Set Line Manager to the Team Leader
-            const newLeaderId = data.leaderId || null;
+            const changes = teamProfileUpdates(finalTeamId, previousLeaderId, data.leaderId || null, selectedMembers, employees);
+            await Promise.all(changes.map(c => hrService.updateProfile(c.id, c.updates)));
 
-            await Promise.all([
-                // New members: Assign Team ID AND Line Manager ID
-                ...toAdd.map(id => hrService.updateProfile(id, { 
-                    team_id: finalTeamId,
-                    line_manager_id: newLeaderId // <--- AUTOMATIC ASSIGNMENT
-                })),
-                
-                // Removed members: Clear Team ID AND Line Manager ID
-                ...toRemove.map(id => hrService.updateProfile(id, { 
-                    team_id: null,
-                    line_manager_id: null 
-                })),
 
-                // Existing members: Ensure Line Manager ID is synced (in case Leader changed)
-                ...[...selectedMembers].filter(id => originalMembers.includes(id)).map(id => hrService.updateProfile(id, {
-                    line_manager_id: newLeaderId
-                }))
-            ]);
-            
             // Reload specific data
             const [uTeams, uEmps] = await Promise.all([hrService.getTeams(), hrService.getEmployees()]);
             setTeams(uTeams);
@@ -137,11 +117,12 @@ export const useOrganization = () => {
 
   const deleteTeam = async (teamId: string) => {
       setIsSaving(true);
+      const leaderId = teams.find(t => t.id === teamId)?.leaderId;
       await hrService.deleteTeam(teamId);
-      
+
       // Cleanup: Remove team_id from users
-      const members = employees.filter(e => e.teamId === teamId);
-      await Promise.all(members.map(m => hrService.updateProfile(m.id, { team_id: null, line_manager_id: null })));
+      const changes = teamProfileUpdates(teamId, leaderId, null, new Set(), employees);
+      await Promise.all(changes.map(c => hrService.updateProfile(c.id, c.updates)));
 
       const uTeams = await hrService.getTeams();
       const uEmps = await hrService.getEmployees();

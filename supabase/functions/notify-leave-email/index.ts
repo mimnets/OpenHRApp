@@ -143,7 +143,7 @@ function buildEmployeeEmail(leave: LeaveRecord, action: LeaveAction): { subject:
   switch (action) {
     case 'SUBMITTED': {
       const nextStep = leave.status === 'PENDING_MANAGER'
-        ? '<p style="color:#4b5563;font-size:14px;">Your line manager will review your request. You will be notified when there is an update.</p>'
+        ? '<p style="color:#4b5563;font-size:14px;">Your reporting manager will review your request. You will be notified when there is an update.</p>'
         : '<p style="color:#4b5563;font-size:14px;">The HR team will review your request. You will be notified when there is an update.</p>';
       return {
         subject: `Leave Request Submitted — ${leave.type} (${formatDate(leave.start_date)} — ${formatDate(leave.end_date)})`,
@@ -161,7 +161,7 @@ function buildEmployeeEmail(leave: LeaveRecord, action: LeaveAction): { subject:
       return {
         subject: `Leave Approved by Manager — ${leave.type} (${formatDate(leave.start_date)} — ${formatDate(leave.end_date)})`,
         html: baseTemplate('Manager Approved — Pending HR Review', `
-          <p style="color:#4b5563;font-size:14px;">Your line manager has <strong style="color:#10b981;">approved</strong> your leave request. It is now pending final review by HR.</p>
+          <p style="color:#4b5563;font-size:14px;">Your reporting manager has <strong style="color:#10b981;">approved</strong> your leave request. It is now pending final review by HR.</p>
           ${details}
           <p style="color:#111827;font-size:14px;font-weight:500;">Status: ${statusBadge('PENDING_HR')}</p>
           ${leave.manager_remarks ? `<p style="color:#4b5563;font-size:13px;background-color:#f9fafb;padding:12px;border-radius:6px;border-left:3px solid #4f46e5;"><strong>Manager Remarks:</strong> ${escapeHtml(leave.manager_remarks)}</p>` : ''}
@@ -173,7 +173,7 @@ function buildEmployeeEmail(leave: LeaveRecord, action: LeaveAction): { subject:
       return {
         subject: `Leave Request Rejected — ${leave.type} (${formatDate(leave.start_date)} — ${formatDate(leave.end_date)})`,
         html: baseTemplate('Leave Request Rejected', `
-          <p style="color:#4b5563;font-size:14px;">Your leave request has been <strong style="color:#ef4444;">rejected</strong> by your line manager.</p>
+          <p style="color:#4b5563;font-size:14px;">Your leave request has been <strong style="color:#ef4444;">rejected</strong> by your reporting manager.</p>
           ${details}
           <p style="color:#111827;font-size:14px;font-weight:500;">Status: ${statusBadge('REJECTED')}</p>
           ${leave.manager_remarks ? `<p style="color:#4b5563;font-size:13px;background-color:#fef2f2;padding:12px;border-radius:6px;border-left:3px solid #ef4444;"><strong>Reason:</strong> ${escapeHtml(leave.manager_remarks)}</p>` : ''}
@@ -260,8 +260,8 @@ function buildHrEmail(leave: LeaveRecord, action: LeaveAction, employeeName: str
   switch (action) {
     case 'SUBMITTED': {
       const route = leave.status === 'PENDING_HR'
-        ? '<p style="color:#4b5563;font-size:14px;">This request has been routed <strong>directly to HR</strong> for approval (no line manager or department workflow bypasses manager).</p>'
-        : `<p style="color:#4b5563;font-size:14px;">This request is currently pending approval from the line manager${managerName ? ` (<strong>${escapeHtml(managerName)}</strong>)` : ''}.</p>`;
+        ? '<p style="color:#4b5563;font-size:14px;">This request has been routed <strong>directly to HR</strong> for approval (no reporting manager or department workflow bypasses manager).</p>'
+        : `<p style="color:#4b5563;font-size:14px;">This request is currently pending approval from the reporting manager${managerName ? ` (<strong>${escapeHtml(managerName)}</strong>)` : ''}.</p>`;
       return {
         subject: `New Leave Submission: ${escapeHtml(employeeName)} — ${leave.type}`,
         html: baseTemplate('New Leave Request Submitted', `
@@ -278,7 +278,7 @@ function buildHrEmail(leave: LeaveRecord, action: LeaveAction, employeeName: str
       return {
         subject: `Manager Approved — Action Required: ${escapeHtml(employeeName)} — ${leave.type}`,
         html: baseTemplate('Leave Request Needs HR Approval', `
-          <p style="color:#4b5563;font-size:14px;">The leave request from <strong>${escapeHtml(employeeName)}</strong> has been approved by the line manager${managerName ? ` (<strong>${escapeHtml(managerName)}</strong>)` : ''} and now requires <strong>HR approval</strong>.</p>
+          <p style="color:#4b5563;font-size:14px;">The leave request from <strong>${escapeHtml(employeeName)}</strong> has been approved by the reporting manager${managerName ? ` (<strong>${escapeHtml(managerName)}</strong>)` : ''} and now requires <strong>HR approval</strong>.</p>
           ${details}
           <p style="color:#111827;font-size:14px;font-weight:500;">Status: ${statusBadge('PENDING_HR')}</p>
           ${leave.manager_remarks ? `<p style="color:#4b5563;font-size:13px;background-color:#f9fafb;padding:12px;border-radius:6px;border-left:3px solid #4f46e5;"><strong>Manager Remarks:</strong> ${escapeHtml(leave.manager_remarks)}</p>` : ''}
@@ -290,7 +290,7 @@ function buildHrEmail(leave: LeaveRecord, action: LeaveAction, employeeName: str
       return {
         subject: `Manager Rejected: ${escapeHtml(employeeName)} — ${leave.type}`,
         html: baseTemplate('Leave Request Rejected by Manager', `
-          <p style="color:#4b5563;font-size:14px;">The leave request from <strong>${escapeHtml(employeeName)}</strong> has been <strong style="color:#ef4444;">rejected</strong> by the line manager${managerName ? ` (<strong>${escapeHtml(managerName)}</strong>)` : ''}. No further action is needed.</p>
+          <p style="color:#4b5563;font-size:14px;">The leave request from <strong>${escapeHtml(employeeName)}</strong> has been <strong style="color:#ef4444;">rejected</strong> by the reporting manager${managerName ? ` (<strong>${escapeHtml(managerName)}</strong>)` : ''}. No further action is needed.</p>
           ${details}
           <p style="color:#111827;font-size:14px;font-weight:500;">Status: ${statusBadge('REJECTED')}</p>
           ${leave.manager_remarks ? `<p style="color:#4b5563;font-size:13px;background-color:#fef2f2;padding:12px;border-radius:6px;border-left:3px solid #ef4444;"><strong>Reason:</strong> ${escapeHtml(leave.manager_remarks)}</p>` : ''}

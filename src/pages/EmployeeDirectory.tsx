@@ -36,6 +36,7 @@ import { Employee, Team, User, Shift } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 import HelpButton from '../components/onboarding/HelpButton';
 import { useToast } from '../context/ToastContext';
+import { reportingManagerId, reportsToForTeam } from '../utils/reportingLine';
 
 
 const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
@@ -289,7 +290,7 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user, selectedEmp
       employmentType: emp.employmentType || 'PERMANENT',
       location: emp.location || '',
       workType: emp.workType || 'OFFICE',
-      lineManagerId: emp.lineManagerId || '',
+      lineManagerId: reportingManagerId(emp.id, emp.lineManagerId) || '',
       teamId: emp.teamId || '',
       shiftId: emp.shiftId || ''
     });
@@ -893,14 +894,26 @@ const EmployeeDirectory: React.FC<EmployeeDirectoryProps> = ({ user, selectedEmp
                     onChange={e => {
                       const selectedTeamId = e.target.value;
                       const selectedTeam = teams.find(t => t.id === selectedTeamId);
-                      const leaderId = selectedTeam?.leaderId || '';
-                      console.log('[EmployeeDirectory] Team changed to:', selectedTeamId, '| Auto-setting line manager:', leaderId);
-                      setFormState({...formState, teamId: selectedTeamId, lineManagerId: leaderId});
+                      const lineManagerId = reportsToForTeam(editingId, formState.lineManagerId, selectedTeam?.leaderId);
+                      console.log('[EmployeeDirectory] Team changed to:', selectedTeamId, '| Auto-setting line manager:', lineManagerId);
+                      setFormState({...formState, teamId: selectedTeamId, lineManagerId});
                     }}
                   >
                     <option value="">No Team Assigned</option>
                     {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">Reports To</label>
+                  <select
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-primary-light"
+                    value={formState.lineManagerId}
+                    onChange={e => setFormState({...formState, lineManagerId: e.target.value})}
+                  >
+                    <option value="">No One (leave goes to HR)</option>
+                    {employees.filter(emp => emp.id !== editingId).map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                  </select>
+                  <p className="text-[10px] text-slate-400 px-1">Reviews this person's leave first, then HR gives final approval.</p>
                 </div>
                 {shifts.length > 0 && (
                   <div className="space-y-1.5">
