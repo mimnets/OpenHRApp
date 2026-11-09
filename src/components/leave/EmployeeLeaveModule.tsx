@@ -6,6 +6,7 @@ import { hrService } from '../../services/hrService';
 import { organizationService } from '../../services/organization.service';
 import { LeaveBalance, LeaveRequest, Holiday, AppConfig, Shift, CustomLeaveType } from '../../types';
 import { DEFAULT_LEAVE_TYPES } from '../../constants';
+import { leaveDecisionLabel } from '../../utils/leaveApprovers';
 
 
 const getScaledLogoDims = (dataUrl: string, maxSize: number): Promise<{ w: number; h: number }> =>
@@ -358,6 +359,7 @@ const EmployeeLeaveModule: React.FC<Props> = ({ user, balance, history, onRefres
                  <div>
                     <h4 className="font-semibold text-slate-800 text-sm uppercase leading-tight">{req.type} Leave</h4>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{req.startDate} — {req.endDate}</p>
+                    {leaveDecisionLabel(req) && <p className="text-[10px] font-bold text-slate-500 mt-0.5">{leaveDecisionLabel(req)}</p>}
                  </div>
               </div>
               <div className="flex items-center gap-3">
