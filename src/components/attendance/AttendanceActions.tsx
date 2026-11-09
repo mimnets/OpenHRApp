@@ -13,19 +13,18 @@ interface Props {
   status: 'idle' | 'loading' | 'success';
   isDisabled: boolean;
   activeRecord?: Attendance;
-  canChooseNoLocation?: boolean;
-  autoNoLocation?: boolean;
-  noLocationReasonRequired?: boolean;
+  canSkipLocation?: boolean;
+  withoutLocation?: boolean;
   onToggleWithoutLocation?: () => void;
 }
 
 export const AttendanceActions: React.FC<Props> = ({
   dutyType, dutyLabel, remarks, setRemarks, onSubmit, status, isDisabled, activeRecord,
-  canChooseNoLocation, autoNoLocation, noLocationReasonRequired, onToggleWithoutLocation
+  canSkipLocation, withoutLocation, onToggleWithoutLocation
 }) => {
   const displayLabel = dutyLabel || (dutyType === 'FACTORY' ? 'Factory' : 'Office');
-  const remarksRequired = dutyType === 'FACTORY' || !!noLocationReasonRequired;
-  const remarksPlaceholder = noLocationReasonRequired
+  const remarksRequired = dutyType === 'FACTORY' || !!withoutLocation;
+  const remarksPlaceholder = withoutLocation
     ? (dutyType === 'FACTORY' ? `${displayLabel} Name & why no location...` : 'Why is your location not available?')
     : (dutyType === 'FACTORY' ? `${displayLabel} Name & Details...` : 'Optional remarks...');
 
@@ -35,13 +34,7 @@ export const AttendanceActions: React.FC<Props> = ({
       <div className="w-full max-w-[320px]">
         <AdFrame placement="attendance" />
       </div>
-      {autoNoLocation && (
-        <p className="w-full max-w-[320px] px-3 py-2.5 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-2xl text-xs font-semibold text-amber-800 leading-snug">
-          <AlertTriangle size={14} className="shrink-0 mt-px" />
-          Location not detected. You can still check in. HR will see this flag.
-        </p>
-      )}
-      {canChooseNoLocation && !noLocationReasonRequired && (
+      {canSkipLocation && !withoutLocation && (
         <div className="w-full max-w-[320px] p-3 space-y-2 bg-amber-50 border border-amber-300 rounded-2xl">
           <p className="flex items-center gap-2 text-xs font-semibold text-amber-800">
             <AlertTriangle size={14} className="shrink-0" />
@@ -56,7 +49,7 @@ export const AttendanceActions: React.FC<Props> = ({
           </button>
         </div>
       )}
-      {noLocationReasonRequired && (
+      {withoutLocation && (
         <div className="w-full max-w-[320px] pl-3 pr-1 flex items-center justify-between gap-2 bg-amber-50 border border-amber-300 rounded-2xl">
           <p className="py-2 text-xs font-semibold text-amber-800 leading-snug">
             {dutyType === 'FACTORY'

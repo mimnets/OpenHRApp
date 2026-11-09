@@ -57,18 +57,21 @@ describe('Attendance screen without a location', () => {
   });
   afterEach(cleanup);
 
-  it('enables check-in automatically when detection fails, without a reason', async () => {
+  it('uses the same button and remark when detection fails', async () => {
     render(<Attendance user={{ id: 'E1' }} />);
-    expect(screen.queryByRole('button', { name: SKIP_LABEL })).toBeNull();
-    expect(screen.getByText(/hr will see this flag/i)).toBeTruthy();
-
     const checkIn = punchButton(/^check in$/i);
+    expect(checkIn.disabled).toBe(true);
+
+    fireEvent.click(punchButton(SKIP_LABEL));
+    expect((screen.getByPlaceholderText(/why is your location not available/i) as HTMLInputElement).value)
+      .toBe('Location not detected');
+    expect(submitPunch).not.toHaveBeenCalled();
     expect(checkIn.disabled).toBe(false);
 
     fireEvent.click(checkIn);
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
       'OFFICE',
-      '[NO LOCATION: timeout]',
+      '[NO LOCATION: timeout] Location not detected',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     ));
@@ -78,10 +81,11 @@ describe('Attendance screen without a location', () => {
     geo.diagnostics = '[DIAG: permission=granted]';
     render(<Attendance user={{ id: 'E1' }} />);
 
+    fireEvent.click(punchButton(SKIP_LABEL));
     fireEvent.click(punchButton(/^check in$/i));
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
       'OFFICE',
-      '[NO LOCATION: timeout] [DIAG: permission=granted]',
+      '[NO LOCATION: timeout] Location not detected [DIAG: permission=granted]',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     ));
@@ -90,23 +94,25 @@ describe('Attendance screen without a location', () => {
   it('keeps the factory input mandatory when detection fails', async () => {
     render(<Attendance user={{ id: 'E1' }} autoStart="FACTORY" />);
     const checkIn = punchButton(/^check in$/i);
+
+    fireEvent.click(punchButton(SKIP_LABEL));
+    const input = screen.getByPlaceholderText(/factory name & why no location/i) as HTMLInputElement;
+    expect(input.value).toBe('Location not detected - ');
     expect(checkIn.disabled).toBe(true);
 
-    fireEvent.change(screen.getByPlaceholderText(/factory name & details/i), {
-      target: { value: 'Plant 2' },
-    });
+    fireEvent.change(input, { target: { value: 'Location not detected - Plant 2' } });
     expect(checkIn.disabled).toBe(false);
 
     fireEvent.click(checkIn);
     await waitFor(() => expect(submitPunch).toHaveBeenCalledWith(
       'FACTORY',
-      '[NO LOCATION: timeout] Plant 2',
+      '[NO LOCATION: timeout] Location not detected - Plant 2',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     ));
   });
 
-  it('needs a choice and a reason when permission is blocked', async () => {
+  it('uses the same button and remark when permission is blocked', async () => {
     geo = { location: null, isLocating: false, error: 'Location blocked.', failure: 'denied' };
     render(<Attendance user={{ id: 'E1' }} />);
     const checkIn = punchButton(/^check in$/i);

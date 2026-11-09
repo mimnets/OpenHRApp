@@ -57,11 +57,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   const isCheckOut = !!activeRecord && !activeRecord.checkOut;
   const canSkipLocation = !isCheckOut && !location && !isLocating && !!locationError
     && appConfig?.allowCheckInWithoutLocation !== false;
-  // A failed detection continues automatically. A permission block needs a deliberate choice and a reason.
-  const canChooseNoLocation = canSkipLocation && locationFailure === 'denied';
-  const autoNoLocation = canSkipLocation && locationFailure !== 'denied';
-  const noLocationReasonRequired = canChooseNoLocation && skipLocationChosen;
-  const withoutLocation = autoNoLocation || noLocationReasonRequired;
+  const withoutLocation = canSkipLocation && skipLocationChosen;
   const locationReady = isCheckOut || !!location || withoutLocation;
   // The auto-written remark does not count as the mandatory factory details.
   const factoryInputMissing = dutyType === 'FACTORY'
@@ -122,7 +118,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
       return;
     }
 
-    if (noLocationReasonRequired && !remarks.trim()) {
+    if (withoutLocation && !remarks.trim()) {
       showToast('Mandatory: Please enter why your location is not available.', 'warning');
       return;
     }
@@ -219,11 +215,10 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
         onSubmit={handlePunchSubmit}
         status={status}
         activeRecord={activeRecord}
-        canChooseNoLocation={canChooseNoLocation}
-        autoNoLocation={autoNoLocation}
-        noLocationReasonRequired={noLocationReasonRequired}
+        canSkipLocation={canSkipLocation}
+        withoutLocation={withoutLocation}
         onToggleWithoutLocation={handleToggleWithoutLocation}
-        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || factoryInputMissing || (noLocationReasonRequired && !remarks.trim())}
+        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || factoryInputMissing || (withoutLocation && !remarks.trim())}
       />
 
       <canvas ref={canvasRef} className="hidden" />

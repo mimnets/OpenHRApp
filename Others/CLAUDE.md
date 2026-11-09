@@ -148,7 +148,7 @@ The app is PWA-only. All native-feature hooks use standard browser APIs:
 Rules:
 - ALL native-feature components MUST have an `<ErrorBoundary>` wrapper
 - Always handle permission-denied / no-geolocation errors with readable messages
-- Location is recorded, not enforced. The org setting `allowCheckInWithoutLocation` (on unless `false`) controls check-in without a location. A failed detection enables check-in automatically. A permission block needs the employee to tap the option, which writes a remark they can edit. That remark does not count as the mandatory factory details. A selfie is always required. These records have `location = 'Not captured'` and a `[NO LOCATION: <failure>]` remark tag, plus a `[DIAG: ...]` tag from `src/utils/locationDiagnostics.ts`. Check-out does not use location
+- Location is recorded, not enforced. The org setting `allowCheckInWithoutLocation` (on unless `false`) controls check-in without a location. After any location failure, the employee taps the option, which writes a remark they can edit. That remark does not count as the mandatory factory details. A selfie is always required. These records have `location = 'Not captured'` and a `[NO LOCATION: <failure>]` remark tag, plus a `[DIAG: ...]` tag from `src/utils/locationDiagnostics.ts`. Check-out does not use location
 - Test camera + location on real iOS Safari and Android Chrome before shipping (PWA standalone mode is stricter than the browser tab)
 
 ---
