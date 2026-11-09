@@ -171,6 +171,9 @@ export interface LeaveRequest {
   appliedDate: string;
   approverRemarks?: string;
   managerRemarks?: string;
+  decidedBy?: string;
+  decidedByName?: string;
+  decidedAt?: string;
   organizationId?: string;
 }
 

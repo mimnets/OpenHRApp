@@ -23,6 +23,9 @@ const mapLeave = (r: any): LeaveRequest => ({
   status: (r.status || 'PENDING_MANAGER').toString().trim().toUpperCase() as any,
   managerRemarks: r.manager_remarks || '',
   approverRemarks: r.approver_remarks || '',
+  decidedBy: r.decided_by || undefined,
+  decidedByName: r.decided_by_name || undefined,
+  decidedAt: r.decided_at || undefined,
   organizationId: r.organization_id,
 });
 

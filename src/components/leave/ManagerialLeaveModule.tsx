@@ -4,6 +4,7 @@ import { UserCheck, RefreshCw, X, ArrowRight, CheckCircle2, XCircle } from 'luci
 import { hrService } from '../../services/hrService';
 import { Employee, LeaveRequest, Team } from '../../types';
 import { teamLeaveRequests } from '../../utils/teamLeave';
+import { leaveDecisionLabel } from '../../utils/leaveApprovers';
 import { useToast } from '../../context/ToastContext';
 import HelpButton from '../onboarding/HelpButton';
 
@@ -114,6 +115,7 @@ const ManagerialLeaveModule: React.FC<Props> = ({ user, requests, employees, tea
                 <p className="text-xs text-slate-500">{req.type} · {req.totalDays} days · {req.startDate} → {req.endDate}</p>
                 {req.managerRemarks && <p className="text-xs text-slate-600 mt-1">Manager: {req.managerRemarks}</p>}
                 {req.approverRemarks && <p className="text-xs text-slate-600 mt-1">HR: {req.approverRemarks}</p>}
+                {leaveDecisionLabel(req) && <p className="text-xs text-slate-500 mt-1">{leaveDecisionLabel(req)}</p>}
               </div>
               <span className={`self-start px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-widest ${STATUS_STYLE[req.status]}`}>
                 {STATUS_LABEL[req.status]}

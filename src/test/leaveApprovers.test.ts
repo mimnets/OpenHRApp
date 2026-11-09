@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canActOnLeave, canCreateLeaveFor } from '../utils/leaveApprovers';
+import { canActOnLeave, canCreateLeaveFor, leaveDecisionLabel } from '../utils/leaveApprovers';
 import type { Employee, LeaveRequest } from '../types';
 
 const E = (id: string, role: string, o: Partial<Employee> = {}) => ({ id, role, status: 'ACTIVE', ...o }) as Employee;
@@ -9,6 +9,27 @@ const L = (employeeId: string, status: LeaveRequest['status'], lineManagerId?: s
 const ME = 'me';
 const withColleague = [E(ME, 'HR'), E('other', 'ADMIN')];
 const soleApprover = [E(ME, 'ADMIN'), E('emp', 'EMPLOYEE')];
+
+describe('leaveDecisionLabel', () => {
+  const decidedAt = '2026-11-09T10:00:00Z';
+  const date = new Date(decidedAt).toLocaleDateString();
+
+  it('shows nothing while pending', () => {
+    expect(leaveDecisionLabel(L('emp', 'PENDING_HR'))).toBeNull();
+    expect(leaveDecisionLabel(L('emp', 'PENDING_MANAGER'))).toBeNull();
+  });
+  it('names the person and date', () => {
+    const leave = { ...L('emp', 'APPROVED'), decidedBy: 'hr', decidedByName: 'Asha', decidedAt };
+    expect(leaveDecisionLabel(leave)).toBe(`Decided by Asha on ${date}`);
+  });
+  it('marks a decision on their own request', () => {
+    const leave = { ...L('hr', 'REJECTED'), decidedBy: 'hr', decidedByName: 'Asha', decidedAt };
+    expect(leaveDecisionLabel(leave)).toBe(`Decided by Asha (own request) on ${date}`);
+  });
+  it('says so when older requests have no record', () => {
+    expect(leaveDecisionLabel(L('emp', 'APPROVED'))).toBe('Decided by: not recorded');
+  });
+});
 
 describe('canActOnLeave', () => {
   it("allows acting on another employee's leave", () => {

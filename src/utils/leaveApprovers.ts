@@ -7,6 +7,15 @@ function hasOtherApprover(userId: string, employees: Employee[]): boolean {
   return employees.some((e) => e.id !== userId && (e.role === 'ADMIN' || e.role === 'HR') && e.status !== 'INACTIVE');
 }
 
+/** Who approved or rejected a request, for display. Null while it is still pending. */
+export function leaveDecisionLabel(leave: LeaveRequest): string | null {
+  if (leave.status !== 'APPROVED' && leave.status !== 'REJECTED') return null;
+  if (!leave.decidedByName) return 'Decided by: not recorded';
+  const own = leave.decidedBy === leave.employeeId ? ' (own request)' : '';
+  const date = leave.decidedAt ? ` on ${new Date(leave.decidedAt).toLocaleDateString()}` : '';
+  return `Decided by ${leave.decidedByName}${own}${date}`;
+}
+
 /** Whether this HR or Admin user may approve, reject, edit or delete a leave record. */
 export function canActOnLeave(leave: LeaveRequest, userId: string, employees: Employee[]): boolean {
   if (leave.employeeId !== userId) return true;

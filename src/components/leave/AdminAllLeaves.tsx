@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Edit3, Trash2, CheckCircle, XCircle, RefreshCw, AlertTriangle, FileCheck, Search } from 'lucide-react';
 import { hrService } from '../../services/hrService';
 import { LeaveRequest } from '../../types';
+import { leaveDecisionLabel } from '../../utils/leaveApprovers';
 import { useToast } from '../../context/ToastContext';
 
 interface Props {
@@ -104,6 +105,9 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, canAct, onEdit, onRefresh, 
                 </div>
                 {req.reason && (
                   <p className="text-[10px] font-bold text-slate-400 mt-1 truncate max-w-xs" title={req.reason}>"{req.reason}"</p>
+                )}
+                {leaveDecisionLabel(req) && (
+                  <p className="text-[10px] font-bold text-slate-500 mt-1">{leaveDecisionLabel(req)}</p>
                 )}
               </div>
             </div>
