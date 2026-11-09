@@ -426,7 +426,9 @@ an element wider than the screen on that page.
 ## Still to do after the migration
 
 - [x] Fix email: the Resend key and the Auth SMTP settings (see 15).
-- [ ] Set up backups, and test a restore (see `scripts/backup/BACKUP-GUIDE.md`).
+- [x] Set up the nightly off-site backup (see `scripts/backup/BACKUP-GUIDE.md`).
+- [ ] Check the first scheduled backup and its alert, and turn on OCI boot volume backups.
+- [ ] Test a restore on a temporary VM (see `scripts/backup/BACKUP-GUIDE.md`).
 - [ ] Replace the exposed Resend key with a sending-only key, and delete the old keys (see 15).
 - [ ] Set a real `ANTHROPIC_API_KEY` in `.env` (see 15).
 - [ ] Check whether customers missed trial reminders during the email outage (see 15).

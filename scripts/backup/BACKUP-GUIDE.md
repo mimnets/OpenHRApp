@@ -4,8 +4,17 @@ How to back up the self-hosted Supabase server and restore it after an incident.
 
 No passwords or keys belong in this file.
 
-**Status:** written on 2026-11-09. The script and the restore steps have not been run yet. Do the
-restore test below before you rely on them.
+**Status on 2026-11-09:**
+
+| Item | Status |
+|---|---|
+| Off-site storage (R2 bucket `openhr-backups`, encrypted) | Working |
+| Backup script | Ran by hand: exit code 0, three files in R2 |
+| Backup contents | Checked: 33 public tables, `auth.users`, `cron.job`, 63 stored files, `.env` |
+| Nightly schedule | Set by the owner. The first scheduled run has not been checked yet |
+| Alert (healthchecks.io) | Not confirmed by a scheduled run yet |
+| OCI boot volume backup | Not confirmed |
+| Restore | **Not tested.** Do the restore test below before you rely on these backups |
 
 | Item | Value |
 |---|---|
@@ -110,8 +119,11 @@ echo "Password 1: $P1"
 echo "Password 2: $P2"
 ```
 
-Store both passwords in a password manager now. **Without them, the backups cannot be read.** Run this only
-once. A second run makes new passwords, and older backups then need the old ones.
+Both lines must show a long value. If one is empty, a line was lost when it was pasted: run
+`rclone config delete openhr-backup`, and paste the block again.
+
+Store both passwords in a password manager now. **Without them, the backups cannot be read.** Once a backup
+exists, do not run this again. A new run makes new passwords, and older backups still need the old ones.
 
 **d. Test it.**
 
@@ -165,6 +177,16 @@ Then test again:
 rclone ls r2:openhr-backups && echo "R2 CONNECTED"
 ```
 
+#### Other rclone messages
+
+| You see | Meaning | What to do |
+|---|---|---|
+| `Failed to read versioning status, assuming unversioned` with `GetBucketVersioning` and `AccessDenied` | The token cannot read this bucket setting. rclone carries on | Nothing. Do not give the token more access |
+| `didn't find section in config file ("openhr-backup")` | The encrypted connection does not exist, or you are not logged in as `root` | Run `whoami` and `rclone listremotes`. If it shows only `r2:`, do step c |
+
+`openhr-backup:` is the encrypted connection in rclone. `openhr-backups` is the bucket in Cloudflare. Use
+`r2:openhr-backups` to see the scrambled files, and `openhr-backup:` to see the real names.
+
 ### 4. Run it once
 
 ```bash
@@ -173,7 +195,20 @@ bash scripts/backup/openhr-backup.sh
 rclone ls openhr-backup:
 ```
 
-Three files must appear under today's date.
+Three files must appear under today's date. Then check what is inside them. The output contains only names and
+counts:
+
+```bash
+cd /home/ubuntu/openhr-backups/$(date -u +%F)
+echo "Public tables in dump: $(zcat db.sql.gz | grep -c '^COPY public\.')"
+echo "Login table in dump: $(zcat db.sql.gz | grep -c '^COPY auth.users')"
+echo "Cron jobs table in dump: $(zcat db.sql.gz | grep -c '^COPY cron.job ')"
+echo "Stored files: $(tar -tzf storage.tar.gz | grep -vc '/$')"
+tar -tzf config.tar.gz | grep -E '/\.env$|/docker-compose\.openhr\.yml$'
+```
+
+On 2026-11-09 this showed 33 public tables, 1 login table, 1 cron table and 63 stored files, and listed both
+config files. A much lower number later means that something is wrong.
 
 ### 5. Schedule it
 
