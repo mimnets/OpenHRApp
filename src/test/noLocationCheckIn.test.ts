@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   NO_LOCATION_ADDRESS,
+  addNoLocationRemark,
   buildNoLocationRemarks,
+  stripNoLocationRemark,
   consolidateAttendance,
   isNoLocationRecord,
   mergeCheckOutRemarks,
@@ -34,6 +36,27 @@ describe('check-in without location', () => {
     });
     const [day] = consolidateAttendance([record('a', NO_LOCATION_ADDRESS), record('b', 'Head Office')]);
     expect(isNoLocationRecord(day)).toBe(true);
+  });
+});
+
+describe('auto-written no-location remark', () => {
+  it('writes the remark and keeps what the employee entered', () => {
+    expect(addNoLocationRemark('', false)).toBe('Location not detected');
+    expect(addNoLocationRemark('', true)).toBe('Location not detected - ');
+    expect(addNoLocationRemark(' Plant 2 ', true)).toBe('Location not detected - Plant 2');
+  });
+
+  it('does not add the remark twice', () => {
+    expect(addNoLocationRemark('Location not detected', false)).toBe('Location not detected');
+    expect(addNoLocationRemark('Location not detected - Plant 2', true)).toBe('Location not detected - Plant 2');
+  });
+
+  it('returns only what the employee entered', () => {
+    expect(stripNoLocationRemark('Location not detected')).toBe('');
+    expect(stripNoLocationRemark('Location not detected - ')).toBe('');
+    expect(stripNoLocationRemark('Location not detected - Plant 2')).toBe('Plant 2');
+    expect(stripNoLocationRemark('Plant 2')).toBe('Plant 2');
+    expect(stripNoLocationRemark('Location not detected at Plant 2')).toBe('Location not detected at Plant 2');
   });
 });
 

@@ -8,7 +8,7 @@ import { useGeoLocation } from '../hooks/attendance/useGeoLocation';
 import { useAttendance } from '../hooks/attendance/useAttendance';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useToast } from '../context/ToastContext';
-import { NO_LOCATION_ADDRESS, buildNoLocationRemarks } from '../utils/attendanceUtils';
+import { NO_LOCATION_ADDRESS, addNoLocationRemark, buildNoLocationRemarks, stripNoLocationRemark } from '../utils/attendanceUtils';
 
 // UI Components
 import { AttendanceHeader } from '../components/attendance/AttendanceHeader';
@@ -63,6 +63,24 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
   const noLocationReasonRequired = canChooseNoLocation && skipLocationChosen;
   const withoutLocation = autoNoLocation || noLocationReasonRequired;
   const locationReady = isCheckOut || !!location || withoutLocation;
+  // The auto-written remark does not count as the mandatory factory details.
+  const factoryInputMissing = dutyType === 'FACTORY'
+    && !(withoutLocation ? stripNoLocationRemark(remarks) : remarks.trim());
+
+  const handleToggleWithoutLocation = () => {
+    setRemarks(current => skipLocationChosen
+      ? stripNoLocationRemark(current)
+      : addNoLocationRemark(current, dutyType === 'FACTORY'));
+    setSkipLocationChosen(!skipLocationChosen);
+  };
+
+  // A retry can succeed after the option was chosen. Do not save the remark with a real location.
+  useEffect(() => {
+    if (location && skipLocationChosen) {
+      setSkipLocationChosen(false);
+      setRemarks(stripNoLocationRemark);
+    }
+  }, [location, skipLocationChosen]);
 
   // 3. Initialize hardware once when data is ready
   useEffect(() => {
@@ -99,7 +117,7 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
       return;
     }
 
-    if (dutyType === 'FACTORY' && !remarks.trim()) {
+    if (factoryInputMissing) {
       showToast("Mandatory: Please mention the Factory Name and details in remarks.", 'warning');
       return;
     }
@@ -204,8 +222,8 @@ const Attendance: React.FC<AttendanceProps> = ({ user, autoStart, onFinish }) =>
         canChooseNoLocation={canChooseNoLocation}
         autoNoLocation={autoNoLocation}
         noLocationReasonRequired={noLocationReasonRequired}
-        onToggleWithoutLocation={() => setSkipLocationChosen(chosen => !chosen)}
-        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || ((dutyType === 'FACTORY' || noLocationReasonRequired) && !remarks.trim())}
+        onToggleWithoutLocation={handleToggleWithoutLocation}
+        isDisabled={!canPunch || !locationReady || (!isCheckOut && isLocating) || status !== 'idle' || !hasPhoto || factoryInputMissing || (noLocationReasonRequired && !remarks.trim())}
       />
 
       <canvas ref={canvasRef} className="hidden" />

@@ -9,6 +9,19 @@ export const NO_LOCATION_ADDRESS = 'Not captured';
 export const isNoLocationRecord = (log: Pick<Attendance, 'location'>): boolean =>
   log.location?.address === NO_LOCATION_ADDRESS;
 
+const NO_LOCATION_REMARK = 'Location not detected';
+
+/** Factory duty ends with a separator because the employee must still add the factory details. */
+export const addNoLocationRemark = (remarks: string, isFactory: boolean): string => {
+  const entered = stripNoLocationRemark(remarks);
+  if (entered) return `${NO_LOCATION_REMARK} - ${entered}`;
+  return isFactory ? `${NO_LOCATION_REMARK} - ` : NO_LOCATION_REMARK;
+};
+
+/** Returns what the employee entered, without the text added by addNoLocationRemark. */
+export const stripNoLocationRemark = (remarks: string): string =>
+  remarks.replace(new RegExp(`^\\s*${NO_LOCATION_REMARK}(\\s*-\\s*|\\s*$)`), '').trim();
+
 /** The tag keeps the failure type with the record, so repeated failures can be diagnosed. */
 export const buildNoLocationRemarks = (failure: LocationFailure, reason: string, diagnostics?: string | null): string =>
   [`[NO LOCATION: ${failure}]`, reason.trim(), diagnostics].filter(Boolean).join(' ');

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AlertCircle, RefreshCw, Fingerprint } from 'lucide-react';
+import { AlertCircle, AlertTriangle, RefreshCw, Fingerprint } from 'lucide-react';
 import { Attendance } from '../../types';
 import { AdFrame } from '../ads/AdBanner';
 
@@ -36,21 +36,39 @@ export const AttendanceActions: React.FC<Props> = ({
         <AdFrame placement="attendance" />
       </div>
       {autoNoLocation && (
-        <p className="w-full max-w-[320px] px-2 text-[11px] font-medium text-slate-500 leading-snug">
+        <p className="w-full max-w-[320px] px-3 py-2.5 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-2xl text-xs font-semibold text-amber-800 leading-snug">
+          <AlertTriangle size={14} className="shrink-0 mt-px" />
           Location not detected. You can still check in. HR will see this flag.
         </p>
       )}
-      {canChooseNoLocation && (
-        <div className="w-full max-w-[320px] px-2 flex items-center justify-between gap-3">
-          <p className="text-[11px] font-medium text-slate-500 leading-snug">
-            {noLocationReasonRequired ? 'This check-in will be flagged for HR. A reason is required.' : 'Location blocked?'}
+      {canChooseNoLocation && !noLocationReasonRequired && (
+        <div className="w-full max-w-[320px] p-3 space-y-2 bg-amber-50 border border-amber-300 rounded-2xl">
+          <p className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+            <AlertTriangle size={14} className="shrink-0" />
+            Location not detected
           </p>
           <button
             type="button"
             onClick={onToggleWithoutLocation}
-            className="shrink-0 min-h-[44px] px-2 text-xs font-bold text-primary"
+            className="w-full min-h-[44px] px-3 rounded-xl bg-amber-700 hover:bg-amber-800 active:scale-95 transition-all text-sm font-bold text-white"
           >
-            {noLocationReasonRequired ? 'Cancel' : 'Check in without location'}
+            Check in without location
+          </button>
+        </div>
+      )}
+      {noLocationReasonRequired && (
+        <div className="w-full max-w-[320px] pl-3 pr-1 flex items-center justify-between gap-2 bg-amber-50 border border-amber-300 rounded-2xl">
+          <p className="py-2 text-xs font-semibold text-amber-800 leading-snug">
+            {dutyType === 'FACTORY'
+              ? `Remark added. Add the ${displayLabel} details, then tap Check In. HR will see this flag.`
+              : 'Remark added. Tap Check In to continue. HR will see this flag.'}
+          </p>
+          <button
+            type="button"
+            onClick={onToggleWithoutLocation}
+            className="shrink-0 min-h-[44px] px-2 text-xs font-bold text-amber-800 underline"
+          >
+            Cancel
           </button>
         </div>
       )}

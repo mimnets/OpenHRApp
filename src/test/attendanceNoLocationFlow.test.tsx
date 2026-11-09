@@ -113,21 +113,49 @@ describe('Attendance screen without a location', () => {
     expect(checkIn.disabled).toBe(true);
 
     fireEvent.click(punchButton(SKIP_LABEL));
-    expect(checkIn.disabled).toBe(true);
-
-    fireEvent.change(screen.getByPlaceholderText(/why is your location not available/i), {
-      target: { value: 'GPS not working' },
-    });
+    const input = screen.getByPlaceholderText(/why is your location not available/i) as HTMLInputElement;
+    expect(input.value).toBe('Location not detected');
+    expect(submitPunch).not.toHaveBeenCalled();
     expect(checkIn.disabled).toBe(false);
 
+    fireEvent.change(input, { target: { value: '  ' } });
+    expect(checkIn.disabled).toBe(true);
+
+    fireEvent.change(input, { target: { value: 'Location not detected' } });
     fireEvent.click(checkIn);
     await waitFor(() => expect(submitPunch).toHaveBeenCalledTimes(1));
     expect(submitPunch).toHaveBeenCalledWith(
       'OFFICE',
-      '[NO LOCATION: denied] GPS not working',
+      '[NO LOCATION: denied] Location not detected',
       { lat: 0, lng: 0, address: 'Not captured' },
       'selfie-data'
     );
+  });
+
+  it('keeps remarks already entered and removes the added text on cancel', () => {
+    geo = { location: null, isLocating: false, error: 'Location blocked.', failure: 'denied' };
+    render(<Attendance user={{ id: 'E1' }} />);
+    const input = screen.getByPlaceholderText(/optional remarks/i) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'Client visit' } });
+
+    fireEvent.click(punchButton(SKIP_LABEL));
+    expect(input.value).toBe('Location not detected - Client visit');
+
+    fireEvent.click(punchButton(/^cancel$/i));
+    expect(input.value).toBe('Client visit');
+    expect(punchButton(/^check in$/i).disabled).toBe(true);
+  });
+
+  it('removes the added text when a retry finds the location', () => {
+    geo = { location: null, isLocating: false, error: 'Location blocked.', failure: 'denied' };
+    const { rerender } = render(<Attendance user={{ id: 'E1' }} />);
+    fireEvent.click(punchButton(SKIP_LABEL));
+
+    geo = { location: { lat: 23.8, lng: 90.4, address: 'Head Office' }, isLocating: false, error: null, failure: null };
+    rerender(<Attendance user={{ id: 'E1' }} />);
+
+    expect((screen.getByPlaceholderText(/optional remarks/i) as HTMLInputElement).value).toBe('');
+    expect(screen.queryByText(/hr will see this flag/i)).toBeNull();
   });
 
   it('does not offer the option while location is still being detected', () => {
@@ -171,7 +199,12 @@ describe('Attendance screen without a location', () => {
     fireEvent.click(punchButton(SKIP_LABEL));
     expect(checkIn.disabled).toBe(true);
 
-    const input = screen.getByPlaceholderText(/factory name & why no location/i);
+    const input = screen.getByPlaceholderText(/factory name & why no location/i) as HTMLInputElement;
+    expect(input.value).toBe('Location not detected - ');
+
+    fireEvent.change(input, { target: { value: 'Location not detected' } });
+    expect(checkIn.disabled).toBe(true);
+
     fireEvent.change(input, { target: { value: '   ' } });
     expect(checkIn.disabled).toBe(true);
 
