@@ -22,6 +22,7 @@ export const changelog: ChangelogRelease[] = [
       { type: 'fix', description: 'A team lead ticked as a member of their own team no longer becomes their own manager. Their leave used to go to themselves and wait for an HR override. It now goes to their Reports To person, or to HR if none is set.' },
       { type: 'fix', description: 'Saving or deleting a team no longer erases a Reports To chosen by hand. Members who report to the team lead still follow the lead when it changes.' },
       { type: 'improvement', description: 'Leave emails now say "reporting manager" instead of "line manager".' },
+      { type: 'security', description: 'HR and Admins can no longer approve, reject, edit, delete or create as approved their own leave when another active HR or Admin can decide it. The only HR or Admin in an organization can still decide their own leave, after any boss has reviewed it.' },
     ],
   },
   {

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, RefreshCw, X, ArrowRight, FileCheck, Ban, Plus, List, Clock } from 'lucide-react';
 import { hrService } from '../../services/hrService';
-import { LeaveRequest } from '../../types';
+import { Employee, LeaveRequest } from '../../types';
+import { canActOnLeave, canCreateLeaveFor } from '../../utils/leaveApprovers';
 import { useToast } from '../../context/ToastContext';
 import HelpButton from '../onboarding/HelpButton';
 import AdminLeaveFormModal from './AdminLeaveFormModal';
@@ -17,7 +18,9 @@ interface Props {
 
 type Tab = 'pending' | 'all';
 
-export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly = false }) => {
+const OWN_LEAVE_NOTE = 'Your own request';
+
+export const HRLeaveModule: React.FC<Props> = ({ user, requests, onRefresh, readOnly = false }) => {
   const { showToast } = useToast();
   const [showVerify, setShowVerify] = useState<LeaveRequest | null>(null);
   const [remarks, setRemarks] = useState('');
@@ -27,17 +30,18 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
   // Admin CRUD state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editTarget, setEditTarget] = useState<LeaveRequest | null>(null);
-  const [employees, setEmployees] = useState<{ id: string; name: string; department: string }[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        const emps = await hrService.getEmployees();
-        setEmployees(emps.map(e => ({ id: e.id, name: e.name, department: e.department })));
+        setEmployees(await hrService.getEmployees());
       } catch { /* ignore */ }
     };
     loadEmployees();
   }, []);
+
+  const canAct = (leave: LeaveRequest) => canActOnLeave(leave, user.id, employees);
 
   const pendingHR = requests.filter(r => r.status === 'PENDING_HR');
   const pendingCount = requests.filter(r => r.status === 'PENDING_HR' || r.status === 'PENDING_MANAGER').length;
@@ -133,6 +137,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
                     </div>
                   </div>
                 </div>
+                {canAct(req) ? (
                 <button
                   onClick={() => !readOnly && setShowVerify(req)}
                   disabled={readOnly}
@@ -144,6 +149,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
                 >
                   Verify <ArrowRight size={14}/>
                 </button>
+                ) : <span className="text-xs text-slate-500">{OWN_LEAVE_NOTE}</span>}
               </div>
             ))}
 
@@ -162,6 +168,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
                     </div>
                   </div>
                 </div>
+                {canAct(req) ? (
                 <button
                   onClick={() => !readOnly && setShowVerify(req)}
                   disabled={readOnly}
@@ -173,6 +180,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
                 >
                   Review <ArrowRight size={14}/>
                 </button>
+                ) : <span className="text-xs text-slate-500">{OWN_LEAVE_NOTE}</span>}
               </div>
             ))}
 
@@ -192,6 +200,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
         <div className="bg-white rounded-xl border border-slate-100 p-8 shadow-sm">
           <AdminAllLeaves
             requests={requests}
+            canAct={canAct}
             onEdit={(leave) => setEditTarget(leave)}
             onRefresh={onRefresh}
             readOnly={readOnly}
@@ -276,7 +285,7 @@ export const HRLeaveModule: React.FC<Props> = ({ requests, onRefresh, readOnly =
       {showCreateModal && (
         <AdminLeaveFormModal
           mode="create"
-          employees={employees}
+          employees={employees.filter(e => canCreateLeaveFor(e.id, user.id, employees))}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleFormSaved}
         />

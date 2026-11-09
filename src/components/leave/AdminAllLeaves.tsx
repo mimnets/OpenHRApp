@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 
 interface Props {
   requests: LeaveRequest[];
+  canAct: (leave: LeaveRequest) => boolean;
   onEdit: (leave: LeaveRequest) => void;
   onRefresh: () => void;
   readOnly?: boolean;
@@ -30,7 +31,7 @@ const statusBar = (status: string) => {
   }
 };
 
-const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly = false }) => {
+const AdminAllLeaves: React.FC<Props> = ({ requests, canAct, onEdit, onRefresh, readOnly = false }) => {
   const { showToast } = useToast();
   const [deleteTarget, setDeleteTarget] = useState<LeaveRequest | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -113,7 +114,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
               </span>
 
               {/* Approve/Reject for any pending */}
-              {!readOnly && isPending(req.status) && (
+              {!readOnly && canAct(req) && isPending(req.status) && (
                 <button
                   onClick={() => setApproveTarget(req)}
                   className="px-3 py-2 bg-primary text-white rounded-xl text-[9px] font-semibold uppercase tracking-widest hover:bg-primary-hover transition-colors"
@@ -123,7 +124,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
               )}
 
               {/* Edit */}
-              {!readOnly && (
+              {!readOnly && canAct(req) && (
                 <button
                   onClick={() => onEdit(req)}
                   className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-amber-600 hover:border-amber-200 transition-colors"
@@ -134,7 +135,7 @@ const AdminAllLeaves: React.FC<Props> = ({ requests, onEdit, onRefresh, readOnly
               )}
 
               {/* Delete */}
-              {!readOnly && (
+              {!readOnly && canAct(req) && (
                 <button
                   onClick={() => setDeleteTarget(req)}
                   className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-rose-600 hover:border-rose-200 transition-colors"

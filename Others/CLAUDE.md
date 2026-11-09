@@ -84,7 +84,7 @@ Pages/Components → Hooks → hrService (facade) → Domain Services → apiCli
 4. If employee has no `lineManagerId` ("Reports To" on the employee form; it can't be themselves) → status = `PENDING_HR`
 5. Otherwise → status = `PENDING_MANAGER`
 6. Manager approves → status changes to `PENDING_HR`
-7. HR/Admin approves → status = `APPROVED` (final)
+7. HR/Admin approves → status = `APPROVED` (final). Nobody decides their own leave: another active HR/Admin must act, unless they are the organization's only one (migration 0053, `src/utils/leaveApprovers.ts`)
 8. Leave balance = quota[type] - sum(approved_days[type])
 
 **Attendance Auto-Close** (`attendance.service.ts`):
