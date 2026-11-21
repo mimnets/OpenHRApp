@@ -15,6 +15,13 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    date: '2026-11-21',
+    title: 'Handoff notes for leave approvals, check-in without location and backups',
+    entries: [
+      { type: 'improvement', description: 'Added a handoff note for developers that summarises the leave approval, check-in without location and nightly backup work, and lists what is still open or untested.' },
+    ],
+  },
+  {
     date: '2026-11-09',
     title: 'Team managers can report to a boss for leave approval',
     entries: [
